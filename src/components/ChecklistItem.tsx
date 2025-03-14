@@ -35,14 +35,14 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
         <div className="p-5">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <span className="inline-block text-xs font-medium px-2.5 py-1 bg-secondary/80 rounded-full mb-2">
+              <span className="inline-block text-xs font-medium px-2.5 py-1 bg-tmw-gray/70 rounded-full mb-2">
                 {item.category}
               </span>
-              <h3 className="text-lg font-medium">{item.title}</h3>
+              <h3 className="text-lg font-medium text-tmw-darkgray">{item.title}</h3>
             </div>
             
             <div className={`text-xs font-medium rounded-full px-3 py-1 flex items-center
-              ${item.status === ComplianceStatus.NotEvaluated ? 'bg-secondary text-muted-foreground' :
+              ${item.status === ComplianceStatus.NotEvaluated ? 'bg-tmw-gray text-muted-foreground' :
                 item.status === ComplianceStatus.Compliant ? 'bg-success/10 text-success' :
                 item.status === ComplianceStatus.PartiallyCompliant ? 'bg-warning/10 text-warning' :
                 'bg-error/10 text-error'
@@ -111,7 +111,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
           <Button
             variant="ghost"
             size="sm"
-            className="mt-3 text-xs text-muted-foreground hover:text-foreground"
+            className="mt-3 text-xs text-muted-foreground hover:text-tmw-blue"
             onClick={() => setShowComments(!showComments)}
           >
             {showComments ? 'Masquer les commentaires' : 'Ajouter un commentaire'}
@@ -119,7 +119,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
         </div>
         
         {showComments && (
-          <div className="p-4 bg-secondary/40 border-t border-border/40">
+          <div className="p-4 bg-tmw-gray/40 border-t border-border/40">
             <Textarea
               placeholder="Ajoutez des notes ou commentaires concernant ce critère..."
               className="min-h-[100px] text-sm"

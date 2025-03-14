@@ -75,6 +75,13 @@ export default {
 					DEFAULT: 'hsl(var(--error))',
 					foreground: 'hsl(var(--error-foreground))'
 				},
+				tmw: {
+					blue: '#0067DA',
+					purple: '#624E9E',
+					lightblue: '#93ACE3',
+					gray: '#F0F2F5',
+					darkgray: '#333333',
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

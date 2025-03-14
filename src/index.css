@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 20% 20%;
 
-    --primary: 210 100% 50%;
+    --primary: 217 100% 43%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 20% 96%;
@@ -23,17 +23,17 @@
     --muted: 210 20% 96%;
     --muted-foreground: 210 20% 45%;
 
-    --accent: 210 20% 96%;
-    --accent-foreground: 210 20% 20%;
+    --accent: 263 34% 46%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 210 20% 92%;
     --input: 210 20% 92%;
-    --ring: 210 100% 50%;
+    --ring: 217 100% 43%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
@@ -55,7 +55,7 @@
     --popover: 224 71% 4%;
     --popover-foreground: 220 13% 91%;
 
-    --primary: 210 100% 50%;
+    --primary: 217 100% 43%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 215 27.9% 16.9%;
@@ -64,8 +64,8 @@
     --muted: 215 27.9% 16.9%;
     --muted-foreground: 217.9 10.6% 64.9%;
 
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 220 13% 91%;
+    --accent: 263 34% 46%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 220 13% 91%;
@@ -99,7 +99,7 @@
 /* Custom styles for improved aesthetics */
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+    @apply bg-white/90 backdrop-blur-md border border-white/30 shadow-sm;
   }
   
   .status-chip {
@@ -111,7 +111,7 @@
   }
   
   .animated-border::after {
-    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-primary transition-all duration-300 ease-apple;
+    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-tmw-blue transition-all duration-300 ease-apple;
   }
   
   .animated-border:hover::after {
@@ -128,6 +128,10 @@
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+  }
+
+  .tmw-gradient {
+    @apply bg-gradient-to-r from-tmw-blue to-tmw-purple;
   }
 }
 

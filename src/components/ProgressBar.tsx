@@ -17,7 +17,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, total, score }) => 
   };
   
   return (
-    <div className="bg-white/60 backdrop-blur-md border border-border rounded-lg p-5 mb-6 transition-all duration-300 hover:border-primary/30">
+    <div className="glass-card rounded-lg p-5 mb-6 transition-all duration-300 hover:border-tmw-blue/30">
       <div className="flex justify-between items-center mb-2">
         <div>
           <h3 className="text-sm font-medium text-muted-foreground">Progression de l'audit</h3>
@@ -32,9 +32,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, total, score }) => 
         </div>
       </div>
       
-      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+      <div className="h-2 w-full bg-tmw-gray rounded-full overflow-hidden">
         <div 
-          className="h-full bg-primary rounded-full transition-all duration-500 ease-apple"
+          className="h-full rounded-full transition-all duration-500 ease-apple"
           style={{ width: `${percentage}%`, 
                   backgroundColor: score < 50 ? 'hsl(var(--error))' : 
                                     score < 80 ? 'hsl(var(--warning))' : 
