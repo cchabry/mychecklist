@@ -1,6 +1,10 @@
 
 import { Client } from '@notionhq/client';
-import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
+import { 
+  PageObjectResponse, 
+  PropertyItemObjectResponse,
+  RichTextItemResponse
+} from '@notionhq/client/build/src/api-endpoints';
 import { ComplianceStatus, Audit, AuditItem } from './types';
 
 let notionClient: Client | null = null;
@@ -52,17 +56,50 @@ export const getProjectById = async (projectId: string) => {
       return null;
     }
     
+    // Accessing properties with proper type checking
     const properties = page.properties;
+    
+    // Helper function to safely extract rich text
+    const getRichTextValue = (prop: any): string => {
+      if (prop && prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0) {
+        return prop.rich_text[0].plain_text;
+      }
+      return '';
+    };
+    
+    // Helper function to safely extract title
+    const getTitleValue = (prop: any): string => {
+      if (prop && prop.type === 'title' && prop.title && prop.title.length > 0) {
+        return prop.title[0].plain_text;
+      }
+      return '';
+    };
+    
+    // Helper function to safely extract URL
+    const getUrlValue = (prop: any): string => {
+      if (prop && prop.type === 'url' && prop.url !== undefined) {
+        return prop.url;
+      }
+      return '';
+    };
+    
+    // Helper function to safely extract number
+    const getNumberValue = (prop: any): number => {
+      if (prop && prop.type === 'number' && prop.number !== undefined) {
+        return prop.number;
+      }
+      return 0;
+    };
     
     // Adapter le format Notion au format de l'app
     return {
-      id: properties.id?.rich_text?.[0]?.plain_text || '',
-      name: properties.name?.title?.[0]?.plain_text || '',
-      url: properties.url?.url || '',
+      id: getRichTextValue(properties.id),
+      name: getTitleValue(properties.name),
+      url: getUrlValue(properties.url),
       createdAt: page.created_time || new Date().toISOString(),
       updatedAt: page.last_edited_time || new Date().toISOString(),
-      progress: properties.progress?.number || 0,
-      itemsCount: properties.itemsCount?.number || 0
+      progress: getNumberValue(properties.progress),
+      itemsCount: getNumberValue(properties.itemsCount)
     };
   } catch (error) {
     console.error('Erreur lors de la récupération du projet:', error);
@@ -97,26 +134,54 @@ export const getAuditForProject = async (projectId: string) => {
     
     const properties = page.properties;
     
+    // Helper functions for safe property access
+    const getRichTextValue = (prop: any): string => {
+      if (prop && prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0) {
+        return prop.rich_text[0].plain_text;
+      }
+      return '';
+    };
+    
+    const getNumberValue = (prop: any): number => {
+      if (prop && prop.type === 'number' && prop.number !== undefined) {
+        return prop.number;
+      }
+      return 0;
+    };
+    
+    const getDateValue = (prop: any): string | null => {
+      if (prop && prop.type === 'date' && prop.date && prop.date.start) {
+        return prop.date.start;
+      }
+      return null;
+    };
+    
+    const getRelationItems = (prop: any): AuditItem[] => {
+      if (prop && prop.type === 'relation' && Array.isArray(prop.relation)) {
+        return prop.relation.map((relation: any) => {
+          return {
+            id: relation.id,
+            title: relation.title || '',
+            description: relation.description || '',
+            category: relation.category || 'Accessibilité',
+            status: relation.status || ComplianceStatus.NotEvaluated
+          } as AuditItem;
+        });
+      }
+      return [];
+    };
+    
     // Récupérer les items
-    const items: AuditItem[] = properties.items?.relation?.map(relation => {
-      const item = {
-        id: relation.id,
-        title: relation.title || '',
-        description: relation.description || '',
-        category: relation.category || 'Accessibilité',
-        status: relation.status || ComplianceStatus.NotEvaluated
-      } as AuditItem;
-      return item;
-    }) || [];
+    const items = getRelationItems(properties.items);
     
     return {
-      id: properties.id?.rich_text?.[0]?.plain_text || '',
+      id: getRichTextValue(properties.id),
       projectId: projectId,
       items: items,
       createdAt: page.created_time || new Date().toISOString(),
       updatedAt: page.last_edited_time || new Date().toISOString(),
-      completedAt: properties.completedAt?.date?.start || null,
-      score: properties.score?.number || 0
+      completedAt: getDateValue(properties.completedAt),
+      score: getNumberValue(properties.score)
     };
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'audit:', error);
