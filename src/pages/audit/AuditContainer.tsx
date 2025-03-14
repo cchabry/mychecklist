@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -37,7 +36,7 @@ export const AuditContainer = () => {
     
     try {
       let projectData;
-      let auditData;
+      let auditData = null;
       
       if (usingNotion) {
         // Essayer de charger depuis Notion
@@ -52,22 +51,27 @@ export const AuditContainer = () => {
       if (!projectData) {
         projectData = getProjectById(projectId);
         
-        // Simuler le chargement de l'audit depuis une API
-        const timer = setTimeout(() => {
-          const mockAudit = projectData.progress === 0 
-            ? createNewAudit(projectId) 
-            : createMockAudit(projectId);
-          setAudit(mockAudit);
+        if (projectData) {
+          // Simuler le chargement de l'audit depuis une API
+          setTimeout(() => {
+            const mockAudit = projectData.progress === 0 
+              ? createNewAudit(projectId) 
+              : createMockAudit(projectId);
+            setAudit(mockAudit);
+            setLoading(false);
+          }, 800);
+        } else {
           setLoading(false);
-        }, 800);
-        
-        return () => clearTimeout(timer);
+        }
       } else {
         // Si on a bien chargé depuis Notion
         setProject(projectData);
         setAudit(auditData);
         setLoading(false);
       }
+      
+      setProject(projectData);
+      
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
       toast.error('Erreur de chargement', {
