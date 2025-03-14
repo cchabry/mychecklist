@@ -1,177 +1,160 @@
 
 import { Client } from '@notionhq/client';
-import { Audit, AuditItem, Project } from './types';
-import { toast } from 'sonner';
+import { ComplianceStatus, Audit, AuditItem } from './types';
 
-// Initialiser le client Notion
-const notionClient = new Client({
-  auth: import.meta.env.VITE_NOTION_API_KEY || localStorage.getItem('NOTION_API_KEY'),
-});
+let notionClient: Client | null = null;
+let databaseId: string | null = null;
 
-// ID de la base de données Notion contenant les projets
-const databaseId = import.meta.env.VITE_NOTION_DATABASE_ID || localStorage.getItem('NOTION_DATABASE_ID');
+export const isNotionConfigured = (): boolean => {
+  const apiKey = localStorage.getItem('notion_api_key');
+  const dbId = localStorage.getItem('notion_database_id');
+  return !!apiKey && !!dbId;
+};
 
-export const getProjects = async (): Promise<Project[]> => {
+export const configureNotion = (apiKey: string, dbId: string): boolean => {
   try {
-    if (!databaseId) {
-      throw new Error('ID de base de données Notion non configuré');
-    }
+    notionClient = new Client({ auth: apiKey });
+    databaseId = dbId;
     
-    const response = await notionClient.databases.query({
-      database_id: databaseId,
-    });
+    // Stocker dans localStorage
+    localStorage.setItem('notion_api_key', apiKey);
+    localStorage.setItem('notion_database_id', dbId);
     
-    return response.results.map((page: any) => ({
-      id: page.id,
-      name: page.properties.Name?.title[0]?.plain_text || 'Projet sans nom',
-      url: page.properties.URL?.url || '#',
-      createdAt: page.created_time,
-      updatedAt: page.last_edited_time,
-      progress: page.properties.Progress?.number || 0,
-      itemsCount: page.properties.ItemsCount?.number || 0,
-    }));
+    return true;
   } catch (error) {
-    console.error('Erreur lors de la récupération des projets depuis Notion:', error);
-    toast.error('Erreur de connexion à Notion', { 
-      description: 'Impossible de récupérer les projets'
-    });
-    return [];
+    console.error('Erreur lors de la configuration Notion:', error);
+    return false;
   }
 };
 
-export const getProjectById = async (projectId: string): Promise<Project | null> => {
+export const getProjectById = async (projectId: string) => {
+  if (!notionClient || !databaseId) return null;
+  
   try {
-    if (!projectId) return null;
+    const response = await notionClient.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: 'id',
+        rich_text: {
+          equals: projectId
+        }
+      }
+    });
     
-    const page = await notionClient.pages.retrieve({ page_id: projectId });
+    if (response.results.length === 0) return null;
     
+    const page = response.results[0];
+    const properties = page.properties;
+    
+    // Adapter le format Notion au format de l'app
     return {
-      id: page.id,
-      name: (page as any).properties.Name?.title[0]?.plain_text || 'Projet sans nom',
-      url: (page as any).properties.URL?.url || '#',
-      createdAt: page.created_time,
-      updatedAt: page.last_edited_time,
-      progress: (page as any).properties.Progress?.number || 0,
-      itemsCount: (page as any).properties.ItemsCount?.number || 0,
+      id: properties.id?.rich_text?.[0]?.plain_text || '',
+      name: properties.name?.title?.[0]?.plain_text || '',
+      url: properties.url?.url || '',
+      createdAt: page.created_time || new Date().toISOString(),
+      updatedAt: page.last_edited_time || new Date().toISOString(),
+      progress: properties.progress?.number || 0,
+      itemsCount: properties.itemsCount?.number || 0
     };
   } catch (error) {
-    console.error('Erreur lors de la récupération du projet depuis Notion:', error);
-    toast.error('Erreur de connexion à Notion', { 
-      description: 'Impossible de récupérer les détails du projet'
-    });
+    console.error('Erreur lors de la récupération du projet:', error);
     return null;
   }
 };
 
-export const getAuditForProject = async (projectId: string): Promise<Audit | null> => {
+export const getAuditForProject = async (projectId: string) => {
+  if (!notionClient || !databaseId) return null;
+  
   try {
-    // Récupérer les éléments d'audit depuis une sous-page ou un bloc enfant dans Notion
-    const response = await notionClient.blocks.children.list({
-      block_id: projectId,
+    // Récupérer les données d'audit
+    const response = await notionClient.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: 'projectId',
+        rich_text: {
+          equals: projectId
+        }
+      }
     });
     
-    // Extraire les données d'audit depuis les blocs enfants
-    const auditItems: AuditItem[] = response.results
-      .filter((block: any) => block.type === 'paragraph' || block.type === 'to_do')
-      .map((block: any, index) => ({
-        id: block.id,
-        title: block.type === 'paragraph' 
-          ? block.paragraph.rich_text[0]?.plain_text || `Item ${index + 1}` 
-          : block.to_do.rich_text[0]?.plain_text || `Item ${index + 1}`,
-        description: block.type === 'paragraph'
-          ? block.paragraph.rich_text[1]?.plain_text || 'Description non disponible'
-          : 'Élément à vérifier',
-        category: 'Accessibilité', // Catégorie par défaut, à améliorer
-        status: block.type === 'to_do' && block.to_do.checked 
-          ? 'compliant' 
-          : 'not-evaluated',
-      }));
+    if (response.results.length === 0) return null;
+    
+    const page = response.results[0];
+    const properties = page.properties;
+    
+    // Récupérer les items
+    const items: AuditItem[] = properties.items?.relation?.map(relation => {
+      const item = {
+        id: relation.id,
+        title: relation.title || '',
+        description: relation.description || '',
+        category: relation.category || 'Accessibilité',
+        status: relation.status || ComplianceStatus.NotEvaluated
+      } as AuditItem;
+      return item;
+    }) || [];
     
     return {
-      id: `audit-${projectId}`,
-      projectId,
-      items: auditItems,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      score: 0,
+      id: properties.id?.rich_text?.[0]?.plain_text || '',
+      projectId: projectId,
+      items: items,
+      createdAt: page.created_time || new Date().toISOString(),
+      updatedAt: page.last_edited_time || new Date().toISOString(),
+      completedAt: properties.completedAt?.date?.start || null,
+      score: properties.score?.number || 0
     };
   } catch (error) {
-    console.error('Erreur lors de la récupération de l\'audit depuis Notion:', error);
-    toast.error('Erreur de connexion à Notion', { 
-      description: 'Impossible de récupérer les éléments d\'audit'
-    });
+    console.error('Erreur lors de la récupération de l\'audit:', error);
     return null;
   }
 };
 
 export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
+  if (!notionClient || !databaseId) return false;
+  
   try {
-    // Mettre à jour le statut des éléments dans Notion
-    for (const item of audit.items) {
-      if (item.id.includes('item-')) {
-        // Pour les nouveaux éléments sans ID Notion valide, créer de nouveaux blocs
-        await notionClient.blocks.children.append({
-          block_id: audit.projectId,
-          children: [{
-            object: 'block',
-            type: 'to_do',
-            to_do: {
-              rich_text: [{ type: 'text', text: { content: item.title } }],
-              checked: item.status === 'compliant',
-              color: 'default',
-            },
-          }],
-        });
-      } else {
-        // Pour les éléments existants, mettre à jour
-        await notionClient.blocks.update({
-          block_id: item.id,
-          type: 'to_do',
-          to_do: {
-            rich_text: [{ type: 'text', text: { content: item.title } }],
-            checked: item.status === 'compliant',
-          },
-        });
+    // Mise à jour de la page d'audit
+    await notionClient.pages.update({
+      page_id: audit.id,
+      properties: {
+        score: {
+          number: audit.score
+        },
+        updatedAt: {
+          date: {
+            start: new Date().toISOString()
+          }
+        }
       }
+    });
+    
+    // Mise à jour des items individuels
+    for (const item of audit.items) {
+      await notionClient.pages.update({
+        page_id: item.id,
+        properties: {
+          status: {
+            select: {
+              name: item.status
+            }
+          },
+          comment: {
+            rich_text: [
+              {
+                type: 'text',
+                text: {
+                  content: item.comment || ''
+                }
+              }
+            ]
+          }
+        }
+      });
     }
     
-    // Mettre à jour les propriétés de la page du projet
-    await notionClient.pages.update({
-      page_id: audit.projectId,
-      properties: {
-        Progress: { number: audit.score },
-        UpdatedAt: { date: { start: new Date().toISOString() } },
-      },
-    });
-    
     return true;
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde de l\'audit dans Notion:', error);
-    toast.error('Erreur de connexion à Notion', { 
-      description: 'Impossible de sauvegarder les modifications'
-    });
+    console.error('Erreur lors de la sauvegarde de l\'audit:', error);
     return false;
   }
-};
-
-// Configuration initiale de l'intégration Notion
-export const configureNotion = (apiKey: string, dbId: string): boolean => {
-  try {
-    localStorage.setItem('NOTION_API_KEY', apiKey);
-    localStorage.setItem('NOTION_DATABASE_ID', dbId);
-    
-    // Réinitialiser le client avec la nouvelle clé API
-    Object.assign(notionClient, new Client({ auth: apiKey }));
-    
-    return true;
-  } catch (error) {
-    console.error('Erreur lors de la configuration de Notion:', error);
-    return false;
-  }
-};
-
-// Vérifier si Notion est configuré
-export const isNotionConfigured = (): boolean => {
-  return !!(import.meta.env.VITE_NOTION_API_KEY || localStorage.getItem('NOTION_API_KEY')) && 
-         !!(import.meta.env.VITE_NOTION_DATABASE_ID || localStorage.getItem('NOTION_DATABASE_ID'));
 };
