@@ -5,44 +5,128 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { getProjectById, createMockAudit, createNewAudit } from '@/lib/mockData';
 import { Audit } from '@/lib/types';
+import { getProjectById as getNotionProject, getAuditForProject, saveAuditToNotion, isNotionConfigured } from '@/lib/notionService';
 import Header from '@/components/Header';
 import AuditHeader from './components/AuditHeader';
 import AuditProgress from './components/AuditProgress';
 import AuditChecklist from './components/AuditChecklist';
 import AuditLoader from './components/AuditLoader';
 import AuditNotFound from './components/AuditNotFound';
+import NotionConfig from '@/components/NotionConfig';
+import { Button } from '@/components/ui/button';
+import { Database } from 'lucide-react';
 
 export const AuditContainer = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   
-  const [project, setProject] = useState(getProjectById(projectId || ''));
+  const [project, setProject] = useState(null);
   const [audit, setAudit] = useState<Audit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
+  const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
   
-  useEffect(() => {
-    if (!projectId || !project) {
+  const loadProject = async () => {
+    setLoading(true);
+    
+    if (!projectId) {
       toast.error('Projet non trouvé');
       navigate('/');
       return;
     }
     
-    // Simuler le chargement de l'audit depuis une API
-    const timer = setTimeout(() => {
-      const mockAudit = project.progress === 0 
-        ? createNewAudit(projectId) 
-        : createMockAudit(projectId);
-      setAudit(mockAudit);
+    try {
+      let projectData;
+      let auditData;
+      
+      if (usingNotion) {
+        // Essayer de charger depuis Notion
+        projectData = await getNotionProject(projectId);
+        
+        if (projectData) {
+          auditData = await getAuditForProject(projectId);
+        }
+      }
+      
+      // Si pas de données Notion ou configuration Notion non active, utiliser les données mock
+      if (!projectData) {
+        projectData = getProjectById(projectId);
+        
+        // Simuler le chargement de l'audit depuis une API
+        const timer = setTimeout(() => {
+          const mockAudit = projectData.progress === 0 
+            ? createNewAudit(projectId) 
+            : createMockAudit(projectId);
+          setAudit(mockAudit);
+          setLoading(false);
+        }, 800);
+        
+        return () => clearTimeout(timer);
+      } else {
+        // Si on a bien chargé depuis Notion
+        setProject(projectData);
+        setAudit(auditData);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      toast.error('Erreur de chargement', {
+        description: 'Impossible de charger les données du projet'
+      });
+      
+      // Fallback en mode local
+      const projectData = getProjectById(projectId);
+      setProject(projectData);
+      
+      if (projectData) {
+        const mockAudit = projectData.progress === 0 
+          ? createNewAudit(projectId) 
+          : createMockAudit(projectId);
+        setAudit(mockAudit);
+      }
+      
       setLoading(false);
-    }, 800);
-    
-    return () => clearTimeout(timer);
-  }, [projectId, project, navigate]);
+    }
+  };
   
-  const handleSaveAudit = () => {
-    toast.success("Audit sauvegardé avec succès", {
-      description: "Toutes les modifications ont été enregistrées",
-    });
+  useEffect(() => {
+    loadProject();
+  }, [projectId, usingNotion, navigate]);
+  
+  const handleSaveAudit = async () => {
+    if (!audit) return;
+    
+    try {
+      let success = false;
+      
+      if (usingNotion) {
+        // Sauvegarder dans Notion
+        success = await saveAuditToNotion(audit);
+      } else {
+        // Simulation locale de sauvegarde
+        success = true;
+      }
+      
+      if (success) {
+        toast.success("Audit sauvegardé avec succès", {
+          description: "Toutes les modifications ont été enregistrées",
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      toast.error('Erreur de sauvegarde', {
+        description: 'Impossible de sauvegarder les modifications'
+      });
+    }
+  };
+  
+  const handleConnectNotionClick = () => {
+    setNotionConfigOpen(true);
+  };
+  
+  const handleNotionConfigSuccess = () => {
+    setUsingNotion(true);
+    loadProject();
   };
   
   if (loading) {
@@ -62,13 +146,22 @@ export const AuditContainer = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mb-6"
+          className="flex items-center justify-between mb-6"
         >
           <AuditHeader 
             project={project} 
             onSave={handleSaveAudit} 
             onBack={() => navigate('/')} 
           />
+          
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
+            onClick={handleConnectNotionClick}
+          >
+            <Database size={16} />
+            {usingNotion ? 'Reconfigurer Notion' : 'Connecter à Notion'}
+          </Button>
         </motion.div>
         
         <motion.div
@@ -97,6 +190,12 @@ export const AuditContainer = () => {
           <div className="mt-2 text-xs text-muted-foreground/70">by ThinkMyWeb</div>
         </div>
       </footer>
+      
+      <NotionConfig 
+        isOpen={notionConfigOpen} 
+        onClose={() => setNotionConfigOpen(false)}
+        onSuccess={handleNotionConfigSuccess}
+      />
     </div>
   );
 };
