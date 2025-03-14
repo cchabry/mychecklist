@@ -123,7 +123,7 @@ const NewProject = () => {
       
       <footer className="py-6 border-t border-border/60 bg-background">
         <div className="container px-4 mx-auto text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} WebAudit - Audits Qualité Web
+          &copy; {new Date().getFullYear()} myChecklist - Audits Qualité Web
         </div>
       </footer>
     </div>

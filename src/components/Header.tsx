@@ -19,7 +19,7 @@ const Header: React.FC = () => {
               <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="white" />
             </svg>
           </div>
-          <span className="text-lg font-medium text-tmw-darkgray">WebAudit</span>
+          <span className="text-lg font-medium text-tmw-darkgray">myChecklist</span>
         </Link>
         
         <div className="flex items-center space-x-4">
