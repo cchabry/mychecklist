@@ -72,37 +72,52 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   const filteredItems = getFilteredItems();
   
   return (
-    <Tabs defaultValue="all" onValueChange={setSelectedCategory}>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Critères d'audit</h2>
-        <TabsList>
-          <TabsTrigger value="all">Tous</TabsTrigger>
-          {CATEGORIES.map(category => (
-            <TabsTrigger key={category} value={category}>
-              {category}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
-      
-      <TabsContent value={selectedCategory} className="mt-0">
-        <div className="space-y-4">
-          {filteredItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+    <div className="bg-white/80 backdrop-blur-md rounded-lg border border-tmw-blue/10 shadow-lg p-6">
+      <Tabs defaultValue="all" onValueChange={setSelectedCategory}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <h2 className="text-xl font-semibold text-tmw-darkgray">
+            <span className="inline-block mr-2 bg-gradient-to-r from-tmw-blue to-tmw-purple bg-clip-text text-transparent">
+              Critères d'audit
+            </span>
+          </h2>
+          <TabsList className="bg-tmw-gray rounded-lg p-1 border border-tmw-blue/10">
+            <TabsTrigger 
+              value="all"
+              className="data-[state=active]:bg-white data-[state=active]:text-tmw-blue data-[state=active]:shadow-sm"
             >
-              <ChecklistItem 
-                item={item} 
-                onChange={handleItemChange} 
-              />
-            </motion.div>
-          ))}
+              Tous
+            </TabsTrigger>
+            {CATEGORIES.map(category => (
+              <TabsTrigger 
+                key={category} 
+                value={category}
+                className="data-[state=active]:bg-white data-[state=active]:text-tmw-blue data-[state=active]:shadow-sm"
+              >
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
-      </TabsContent>
-    </Tabs>
+        
+        <TabsContent value={selectedCategory} className="mt-0">
+          <div className="space-y-4">
+            {filteredItems.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <ChecklistItem 
+                  item={item} 
+                  onChange={handleItemChange} 
+                />
+              </motion.div>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
