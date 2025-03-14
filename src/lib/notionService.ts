@@ -1,5 +1,6 @@
 
 import { Client } from '@notionhq/client';
+import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { ComplianceStatus, Audit, AuditItem } from './types';
 
 let notionClient: Client | null = null;
@@ -43,7 +44,14 @@ export const getProjectById = async (projectId: string) => {
     
     if (response.results.length === 0) return null;
     
-    const page = response.results[0];
+    // Assure that we have a full page object response
+    const page = response.results[0] as PageObjectResponse;
+    
+    if (!('properties' in page)) {
+      console.error('Invalid page response from Notion');
+      return null;
+    }
+    
     const properties = page.properties;
     
     // Adapter le format Notion au format de l'app
@@ -79,7 +87,14 @@ export const getAuditForProject = async (projectId: string) => {
     
     if (response.results.length === 0) return null;
     
-    const page = response.results[0];
+    // Assure that we have a full page object response
+    const page = response.results[0] as PageObjectResponse;
+    
+    if (!('properties' in page)) {
+      console.error('Invalid page response from Notion');
+      return null;
+    }
+    
     const properties = page.properties;
     
     // Récupérer les items
