@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,34 @@ import ProjectCard from '@/components/ProjectCard';
 import { MOCK_PROJECTS } from '@/lib/mockData';
 import { Plus, CheckSquare, Database } from 'lucide-react';
 import NotionConfig from '@/components/NotionConfig';
-import { isNotionConfigured } from '@/lib/notionService';
+import NotionGuide from '@/components/NotionGuide';
+import { isNotionConfigured, getProjectsFromNotion } from '@/lib/notionService';
 
 const Index = () => {
   const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const loadProjects = async () => {
+      if (usingNotion) {
+        setLoading(true);
+        try {
+          const notionProjects = await getProjectsFromNotion();
+          if (notionProjects && notionProjects.length > 0) {
+            setProjects(notionProjects);
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement des projets depuis Notion:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadProjects();
+  }, [usingNotion]);
   
   const handleConnectNotionClick = () => {
     setNotionConfigOpen(true);
@@ -21,7 +43,7 @@ const Index = () => {
   
   const handleNotionConfigSuccess = () => {
     setUsingNotion(true);
-    // Recharger les projets depuis Notion si nécessaire
+    // Les projets seront rechargés par l'useEffect
   };
   
   return (
@@ -44,6 +66,12 @@ const Index = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Évaluez la qualité et la conformité de vos projets web en utilisant notre référentiel de bonnes pratiques.
           </p>
+          {usingNotion && (
+            <div className="mt-4 text-sm text-tmw-teal font-medium flex items-center justify-center gap-2">
+              <Database size={16} />
+              Connecté à Notion
+            </div>
+          )}
         </motion.section>
         
         <motion.div
@@ -52,7 +80,10 @@ const Index = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-tmw-darkgray">Projets</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-semibold text-tmw-darkgray">Projets</h2>
+              <NotionGuide onConnectClick={handleConnectNotionClick} />
+            </div>
             <div className="flex gap-4">
               <Button
                 variant="outline"
@@ -72,7 +103,17 @@ const Index = () => {
             </div>
           </div>
           
-          {projects.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-tmw-teal/20 shadow-sm">
+              <div className="w-16 h-16 bg-tmw-teal/20 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                <Database size={24} className="text-tmw-teal" />
+              </div>
+              <h3 className="text-xl font-medium mb-2 text-tmw-darkgray">Chargement des projets</h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Récupération des données depuis Notion...
+              </p>
+            </div>
+          ) : projects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-tmw-teal/20 shadow-sm">
               <div className="w-16 h-16 bg-tmw-coral/20 rounded-full flex items-center justify-center mb-4">
                 <Plus size={24} className="text-tmw-coral" />

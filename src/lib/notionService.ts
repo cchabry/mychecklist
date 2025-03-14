@@ -1,11 +1,10 @@
-
 import { Client } from '@notionhq/client';
 import { 
   PageObjectResponse, 
   PropertyItemObjectResponse,
   RichTextItemResponse
 } from '@notionhq/client/build/src/api-endpoints';
-import { ComplianceStatus, Audit, AuditItem } from './types';
+import { ComplianceStatus, Audit, AuditItem, Project } from './types';
 
 let notionClient: Client | null = null;
 let databaseId: string | null = null;
@@ -32,6 +31,83 @@ export const configureNotion = (apiKey: string, dbId: string): boolean => {
   }
 };
 
+export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
+  if (!notionClient || !databaseId) {
+    // Si Notion n'est pas configuré, initialiser avec les valeurs du localStorage
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
+    
+    if (!apiKey || !dbId) return null;
+    
+    notionClient = new Client({ auth: apiKey });
+    databaseId = dbId;
+  }
+  
+  try {
+    const response = await notionClient.databases.query({
+      database_id: databaseId
+    });
+    
+    if (response.results.length === 0) return [];
+    
+    // Convertir les résultats Notion en projets
+    const projects: Project[] = [];
+    
+    for (const page of response.results as PageObjectResponse[]) {
+      if (!('properties' in page)) continue;
+      
+      const properties = page.properties;
+      
+      // Helper functions pour extraire les valeurs des propriétés
+      const getRichTextValue = (prop: any): string => {
+        if (prop && prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0) {
+          return prop.rich_text[0].plain_text;
+        }
+        return '';
+      };
+      
+      const getTitleValue = (prop: any): string => {
+        if (prop && prop.type === 'title' && prop.title && prop.title.length > 0) {
+          return prop.title[0].plain_text;
+        }
+        return '';
+      };
+      
+      const getUrlValue = (prop: any): string => {
+        if (prop && prop.type === 'url' && prop.url !== undefined) {
+          return prop.url;
+        }
+        return '';
+      };
+      
+      const getNumberValue = (prop: any): number => {
+        if (prop && prop.type === 'number' && prop.number !== undefined) {
+          return prop.number;
+        }
+        return 0;
+      };
+      
+      // Créer l'objet projet
+      const project: Project = {
+        id: getRichTextValue(properties.id) || page.id, // Utiliser l'ID Notion comme fallback
+        name: getTitleValue(properties.name) || 'Projet sans nom',
+        url: getUrlValue(properties.url) || '',
+        createdAt: page.created_time || new Date().toISOString(),
+        updatedAt: page.last_edited_time || new Date().toISOString(),
+        progress: getNumberValue(properties.progress),
+        itemsCount: getNumberValue(properties.itemsCount)
+      };
+      
+      projects.push(project);
+    }
+    
+    return projects;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des projets depuis Notion:', error);
+    return null;
+  }
+};
+
 export const getProjectById = async (projectId: string) => {
   if (!notionClient || !databaseId) return null;
   
@@ -48,7 +124,7 @@ export const getProjectById = async (projectId: string) => {
     
     if (response.results.length === 0) return null;
     
-    // Assure that we have a full page object response
+    // Assure que nous avons une réponse de page complète
     const page = response.results[0] as PageObjectResponse;
     
     if (!('properties' in page)) {
@@ -56,10 +132,10 @@ export const getProjectById = async (projectId: string) => {
       return null;
     }
     
-    // Accessing properties with proper type checking
+    // Accéder aux propriétés avec vérification de type appropriée
     const properties = page.properties;
     
-    // Helper function to safely extract rich text
+    // Fonction helper pour extraire le texte rich
     const getRichTextValue = (prop: any): string => {
       if (prop && prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0) {
         return prop.rich_text[0].plain_text;
@@ -67,7 +143,7 @@ export const getProjectById = async (projectId: string) => {
       return '';
     };
     
-    // Helper function to safely extract title
+    // Fonction helper pour extraire le titre
     const getTitleValue = (prop: any): string => {
       if (prop && prop.type === 'title' && prop.title && prop.title.length > 0) {
         return prop.title[0].plain_text;
@@ -75,7 +151,7 @@ export const getProjectById = async (projectId: string) => {
       return '';
     };
     
-    // Helper function to safely extract URL
+    // Fonction helper pour extraire l'URL
     const getUrlValue = (prop: any): string => {
       if (prop && prop.type === 'url' && prop.url !== undefined) {
         return prop.url;
@@ -83,7 +159,7 @@ export const getProjectById = async (projectId: string) => {
       return '';
     };
     
-    // Helper function to safely extract number
+    // Fonction helper pour extraire le nombre
     const getNumberValue = (prop: any): number => {
       if (prop && prop.type === 'number' && prop.number !== undefined) {
         return prop.number;
@@ -124,7 +200,7 @@ export const getAuditForProject = async (projectId: string) => {
     
     if (response.results.length === 0) return null;
     
-    // Assure that we have a full page object response
+    // Assure que nous avons une réponse de page complète
     const page = response.results[0] as PageObjectResponse;
     
     if (!('properties' in page)) {
@@ -134,7 +210,7 @@ export const getAuditForProject = async (projectId: string) => {
     
     const properties = page.properties;
     
-    // Helper functions for safe property access
+    // Fonctions helper pour accéder aux propriétés de manière sûre
     const getRichTextValue = (prop: any): string => {
       if (prop && prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0) {
         return prop.rich_text[0].plain_text;
