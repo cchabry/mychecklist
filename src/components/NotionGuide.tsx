@@ -47,13 +47,25 @@ const NotionGuide: React.FC<NotionGuideProps> = ({ onConnectClick }) => {
                 <span>Créez une base de données dans Notion avec les propriétés suivantes :</span>
               </li>
               <li className="ml-6 text-xs border border-border rounded-md overflow-hidden">
-                <div className="bg-muted p-2 font-medium">Propriétés requises :</div>
+                <div className="bg-muted p-2 font-medium">Propriétés requises pour les projets :</div>
                 <div className="p-2 space-y-1">
                   <p><strong>id</strong> (Texte enrichi) - Identifiant unique du projet</p>
                   <p><strong>name</strong> (Titre) - Nom du projet</p>
                   <p><strong>url</strong> (URL) - URL du site web</p>
                   <p><strong>progress</strong> (Nombre) - Progression de l'audit (0-100)</p>
                   <p><strong>itemsCount</strong> (Nombre) - Nombre d'éléments audités</p>
+                </div>
+              </li>
+              <li className="ml-6 text-xs border border-border rounded-md overflow-hidden">
+                <div className="bg-muted p-2 font-medium">Propriétés pour les items de checklist :</div>
+                <div className="p-2 space-y-1">
+                  <p><strong>ID</strong> (Texte enrichi) - Identifiant unique de l'item</p>
+                  <p><strong>Catégorie</strong> (Sélecteur/Texte) - Catégorie principale</p>
+                  <p><strong>Sous-catégorie</strong> (Sélecteur/Texte) - Sous-catégorie</p>
+                  <p><strong>Sous sous catégorie</strong> (Sélecteur/Texte) - Niveau 3 de catégorisation</p>
+                  <p><strong>Consigne</strong> (Titre) - Titre de l'item</p>
+                  <p><strong>Résumé</strong> (Texte enrichi) - Description détaillée</p>
+                  <p><strong>MetaREFs, Critère, Profil, Phase, Effort, Prio, Niveau d'exigence, Portée</strong> (Sélecteurs/Texte) - Tags de qualification</p>
                 </div>
               </li>
               <li className="flex gap-2">
@@ -66,7 +78,7 @@ const NotionGuide: React.FC<NotionGuideProps> = ({ onConnectClick }) => {
           <section className="space-y-2">
             <h3 className="text-lg font-medium">3. Connecter l'application</h3>
             <p className="text-sm text-muted-foreground">
-              Utilisez le bouton "Connecter à Notion" sur la page d'accueil pour configurer l'intégration.
+              Utilisez le bouton "Connecter à Notion" pour configurer l'intégration.
             </p>
             <div className="flex gap-2 pt-2">
               <Button 
@@ -77,27 +89,6 @@ const NotionGuide: React.FC<NotionGuideProps> = ({ onConnectClick }) => {
                 {isConfigured ? 'Reconfigurer Notion' : 'Connecter à Notion'}
               </Button>
             </div>
-          </section>
-
-          <section className="space-y-2 pt-4 border-t border-border">
-            <h3 className="text-lg font-medium">Comment ça fonctionne</h3>
-            <p className="text-sm text-muted-foreground">
-              Une fois configurée, l'application essaiera de charger vos projets depuis Notion au lieu d'utiliser les données fictives.
-            </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <ArrowRight size={16} className="text-tmw-teal shrink-0 mt-0.5" />
-                <span>Lors de l'accès à un projet, l'application recherchera les données correspondantes dans Notion</span>
-              </li>
-              <li className="flex gap-2">
-                <ArrowRight size={16} className="text-tmw-teal shrink-0 mt-0.5" />
-                <span>Si un projet est trouvé, ses données seront utilisées pour afficher l'audit</span>
-              </li>
-              <li className="flex gap-2">
-                <ArrowRight size={16} className="text-tmw-teal shrink-0 mt-0.5" />
-                <span>Les modifications apportées à l'audit seront synchronisées avec Notion lorsque vous sauvegardez</span>
-              </li>
-            </ul>
           </section>
         </div>
       </SheetContent>

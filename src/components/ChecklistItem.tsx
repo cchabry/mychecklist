@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AuditItem, ComplianceStatus, COMPLIANCE_VALUES } from '@/lib/types';
+import { AuditItem, ComplianceStatus } from '@/lib/types';
 import { Check, X, Minus, Info, MessageSquare } from 'lucide-react';
+import ChecklistItemTags from './ChecklistItemTags';
 
 interface ChecklistItemProps {
   item: AuditItem;
@@ -25,6 +26,16 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
     onChange(item.id, status, comment);
   };
   
+  // Afficher la hiérarchie des catégories si disponible
+  const displayCategory = () => {
+    if (item.subsubcategory) {
+      return `${item.category} > ${item.subcategory} > ${item.subsubcategory}`;
+    } else if (item.subcategory) {
+      return `${item.category} > ${item.subcategory}`;
+    }
+    return item.category;
+  };
+  
   return (
     <Card className={`mb-4 overflow-hidden border transition-all duration-300 ${
       item.status === ComplianceStatus.NotEvaluated ? 'border-border/60' :
@@ -37,7 +48,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
           <div className="flex items-start justify-between mb-3">
             <div>
               <span className="inline-block text-xs font-medium px-2.5 py-1 bg-tmw-gray/70 rounded-full mb-2">
-                {item.category}
+                {displayCategory()}
               </span>
               <h3 className="text-lg font-medium text-tmw-darkgray">{item.title}</h3>
             </div>
@@ -65,7 +76,19 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
             {item.description}
           </p>
           
-          <div className="grid grid-cols-3 gap-3">
+          {/* Afficher les tags de qualification */}
+          <ChecklistItemTags 
+            metaRefs={item.metaRefs}
+            criteria={item.criteria}
+            profile={item.profile}
+            phase={item.phase}
+            effort={item.effort}
+            priority={item.priority}
+            requirementLevel={item.requirementLevel}
+            scope={item.scope}
+          />
+          
+          <div className="grid grid-cols-3 gap-3 mt-4">
             <Button 
               variant="outline"
               size="sm"

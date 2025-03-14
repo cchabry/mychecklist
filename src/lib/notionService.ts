@@ -1,3 +1,4 @@
+
 import { Client } from '@notionhq/client';
 import { 
   PageObjectResponse, 
@@ -235,11 +236,23 @@ export const getAuditForProject = async (projectId: string) => {
     const getRelationItems = (prop: any): AuditItem[] => {
       if (prop && prop.type === 'relation' && Array.isArray(prop.relation)) {
         return prop.relation.map((relation: any) => {
+          // Adapter pour le nouveau format d'item
           return {
             id: relation.id,
-            title: relation.title || '',
+            title: relation.title || '', // Consigne
             description: relation.description || '',
             category: relation.category || 'Accessibilité',
+            subcategory: relation.subcategory || '',
+            subsubcategory: relation.subsubcategory || '',
+            details: relation.details || '', // Résumé
+            metaRefs: relation.metaRefs || '',
+            criteria: relation.criteria || '',
+            profile: relation.profile || '',
+            phase: relation.phase || '',
+            effort: relation.effort || '',
+            priority: relation.priority || '',
+            requirementLevel: relation.requirementLevel || '',
+            scope: relation.scope || '',
             status: relation.status || ComplianceStatus.NotEvaluated
           } as AuditItem;
         });

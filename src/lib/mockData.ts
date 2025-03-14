@@ -1,4 +1,3 @@
-
 import { ChecklistItem, Project, Audit, ComplianceStatus } from './types';
 
 // Catégories d'audit
@@ -17,91 +16,214 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: "item-1",
     title: "Images with alternative text",
     description: "All images must have appropriate alternative text that describes the content of the image.",
-    category: "Accessibilité"
+    category: "Accessibilité",
+    subcategory: "Images",
+    metaRefs: "WCAG 1.1.1",
+    criteria: "Texte alternatif",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Faible",
+    priority: "Haute",
+    requirementLevel: "Obligatoire",
+    scope: "Toutes pages"
   },
   {
     id: "item-2",
     title: "Keyboard navigation",
     description: "The website must be fully navigable using only the keyboard.",
-    category: "Accessibilité"
+    category: "Accessibilité",
+    subcategory: "Navigation",
+    metaRefs: "WCAG 2.1.1",
+    criteria: "Clavier",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Moyen",
+    priority: "Haute",
+    requirementLevel: "Obligatoire",
+    scope: "Toutes pages"
   },
   {
     id: "item-3",
     title: "Sufficient color contrast",
     description: "All text must have sufficient contrast with its background according to WCAG guidelines.",
-    category: "Accessibilité"
+    category: "Accessibilité",
+    subcategory: "Visuels",
+    metaRefs: "WCAG 1.4.3",
+    criteria: "Contraste",
+    profile: "Graphiste",
+    phase: "Design",
+    effort: "Faible",
+    priority: "Haute",
+    requirementLevel: "Obligatoire",
+    scope: "Toutes pages"
   },
   {
     id: "item-4",
     title: "Page load time",
     description: "The page must load in less than 3 seconds on a standard connection.",
-    category: "Performance"
+    category: "Performance",
+    subcategory: "Vitesse",
+    criteria: "Temps de chargement",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Élevé",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-5",
     title: "Optimized images",
     description: "All images must be appropriately sized and compressed.",
-    category: "Performance"
+    category: "Performance",
+    subcategory: "Médias",
+    criteria: "Optimisation images",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Moyen",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-6",
     title: "Proper heading structure",
     description: "Pages must use h1-h6 headings in a logical hierarchical order.",
-    category: "SEO"
+    category: "SEO",
+    subcategory: "Structure",
+    criteria: "Structure de titre",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Faible",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-7",
     title: "Meta descriptions",
     description: "Each page must have a unique and descriptive meta description.",
-    category: "SEO"
+    category: "SEO",
+    subcategory: "Description",
+    criteria: "Description de page",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Moyen",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-8",
     title: "Mobile-friendly design",
     description: "The website must be fully responsive and usable on mobile devices.",
-    category: "UX"
+    category: "UX",
+    subcategory: "Responsive",
+    criteria: "Design mobile",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Élevé",
+    priority: "Haute",
+    requirementLevel: "Obligatoire",
+    scope: "Toutes pages"
   },
   {
     id: "item-9",
     title: "HTTPS implementation",
     description: "The website must use HTTPS with a valid SSL certificate.",
-    category: "Sécurité"
+    category: "Sécurité",
+    subcategory: "Sécurité",
+    criteria: "HTTPS",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Faible",
+    priority: "Haute",
+    requirementLevel: "Obligatoire",
+    scope: "Toutes pages"
   },
   {
     id: "item-10",
     title: "Clear navigation",
     description: "Navigation must be intuitive and consistent across the website.",
-    category: "UX"
+    category: "UX",
+    subcategory: "Navigation",
+    criteria: "Navigation intuitive",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Moyen",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-11",
     title: "Form validation",
     description: "All forms must provide clear validation messages for user inputs.",
-    category: "UX"
+    category: "UX",
+    subcategory: "Validation",
+    criteria: "Validation formulaire",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Faible",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-12",
     title: "Content Security Policy",
     description: "Implement appropriate Content Security Policy headers.",
-    category: "Sécurité"
+    category: "Sécurité",
+    subcategory: "Sécurité",
+    criteria: "CSP",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Moyen",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-13",
     title: "Semantic HTML",
     description: "Use semantic HTML elements appropriately throughout the website.",
-    category: "Bonnes pratiques"
+    category: "Bonnes pratiques",
+    subcategory: "HTML",
+    criteria: "HTML semantique",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Faible",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-14",
     title: "No broken links",
     description: "Ensure there are no broken internal or external links.",
-    category: "Bonnes pratiques"
+    category: "Bonnes pratiques",
+    subcategory: "Liens",
+    criteria: "Liens brisés",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Moyen",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   },
   {
     id: "item-15",
     title: "Browser compatibility",
     description: "The website must work correctly on all major browsers.",
-    category: "Bonnes pratiques"
+    category: "Bonnes pratiques",
+    subcategory: "Compatibilité",
+    criteria: "Compatibilité",
+    profile: "Développeur",
+    phase: "Développement",
+    effort: "Élevé",
+    priority: "Moyenne",
+    requirementLevel: "Recommandé",
+    scope: "Toutes pages"
   }
 ];
 
