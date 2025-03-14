@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 20% 20%;
 
-    --primary: 217 100% 43%;
+    --primary: 175 33% 42%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 20% 96%;
@@ -23,7 +23,7 @@
     --muted: 210 20% 96%;
     --muted-foreground: 210 20% 45%;
 
-    --accent: 263 34% 46%;
+    --accent: 7 71% 66%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -31,7 +31,7 @@
 
     --border: 210 20% 92%;
     --input: 210 20% 92%;
-    --ring: 217 100% 43%;
+    --ring: 175 33% 42%;
 
     --radius: 0.5rem;
 
@@ -55,7 +55,7 @@
     --popover: 224 71% 4%;
     --popover-foreground: 220 13% 91%;
 
-    --primary: 217 100% 43%;
+    --primary: 175 33% 42%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 215 27.9% 16.9%;
@@ -64,7 +64,7 @@
     --muted: 215 27.9% 16.9%;
     --muted-foreground: 217.9 10.6% 64.9%;
 
-    --accent: 263 34% 46%;
+    --accent: 7 71% 66%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -111,7 +111,7 @@
   }
   
   .animated-border::after {
-    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-tmw-blue transition-all duration-300 ease-apple;
+    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-tmw-teal transition-all duration-300 ease-apple;
   }
   
   .animated-border:hover::after {
@@ -131,7 +131,19 @@
   }
 
   .tmw-gradient {
-    @apply bg-gradient-to-r from-tmw-blue to-tmw-purple;
+    @apply bg-gradient-to-r from-tmw-teal to-tmw-coral;
+  }
+  
+  .tmw-card {
+    @apply bg-white rounded-xl border border-tmw-teal/20 shadow-sm hover:shadow-md hover:shadow-tmw-teal/10 transition-all duration-300;
+  }
+  
+  .tmw-button {
+    @apply bg-tmw-teal text-white hover:bg-tmw-teal/90 rounded-full px-4 py-2 font-medium transition-all duration-300;
+  }
+  
+  .tmw-button-secondary {
+    @apply bg-white text-tmw-teal border border-tmw-teal/30 hover:border-tmw-teal rounded-full px-4 py-2 font-medium transition-all duration-300;
   }
 }
 

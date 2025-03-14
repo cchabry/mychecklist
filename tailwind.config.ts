@@ -76,8 +76,8 @@ export default {
 					foreground: 'hsl(var(--error-foreground))'
 				},
 				tmw: {
-					blue: '#0067DA',
-					purple: '#624E9E',
+					teal: '#4A968C',
+					coral: '#E87A69',
 					lightblue: '#93ACE3',
 					gray: '#F0F2F5',
 					darkgray: '#333333',

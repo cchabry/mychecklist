@@ -14,25 +14,25 @@ const Header: React.FC = () => {
           to="/" 
           className="flex items-center space-x-2 transition-opacity duration-300 hover:opacity-80"
         >
-          <div className="w-8 h-8 rounded-full bg-tmw-blue flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="white" />
-            </svg>
-          </div>
-          <span className="text-lg font-medium text-tmw-darkgray">myChecklist</span>
+          <img 
+            src="/logo.png" 
+            alt="myChecklist Logo" 
+            className="h-8 w-auto" 
+          />
+          <span className="text-lg font-medium text-tmw-darkgray sr-only">myChecklist</span>
         </Link>
         
         <div className="flex items-center space-x-4">
           {location.pathname !== "/" && (
             <Button variant="ghost" size="icon" asChild>
-              <Link to="/" className="transition-all duration-300 hover:text-tmw-blue">
+              <Link to="/" className="transition-all duration-300 hover:text-tmw-teal">
                 <Home size={20} />
               </Link>
             </Button>
           )}
           
           {location.pathname !== "/new-project" && (
-            <Button asChild className="bg-tmw-blue hover:bg-tmw-blue/90 transition-all duration-300">
+            <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90 transition-all duration-300">
               <Link to="/new-project">
                 <Plus size={16} className="mr-2" />
                 Nouveau projet

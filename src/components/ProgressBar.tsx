@@ -11,17 +11,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, total, score }) => 
   const percentage = Math.round((progress / total) * 100);
   
   const getScoreColor = () => {
-    if (score < 50) return 'text-error';
+    if (score < 50) return 'text-tmw-coral';
     if (score < 80) return 'text-warning';
     return 'text-success';
   };
   
   return (
-    <div className="glass-card rounded-lg p-5 mb-6 transition-all duration-300 hover:border-tmw-blue/30">
+    <div className="bg-white rounded-xl p-5 mb-6 transition-all duration-300 hover:shadow-md shadow-sm border border-tmw-teal/20">
       <div className="flex justify-between items-center mb-2">
         <div>
           <h3 className="text-sm font-medium text-muted-foreground">Progression de l'audit</h3>
-          <div className="text-2xl font-semibold">{progress} / {total} critères évalués</div>
+          <div className="text-2xl font-semibold text-tmw-darkgray">{progress} / {total} critères évalués</div>
         </div>
         
         <div className="text-right">
@@ -36,7 +36,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, total, score }) => 
         <div 
           className="h-full rounded-full transition-all duration-500 ease-apple"
           style={{ width: `${percentage}%`, 
-                  backgroundColor: score < 50 ? 'hsl(var(--error))' : 
+                  backgroundColor: score < 50 ? '#E87A69' : 
                                     score < 80 ? 'hsl(var(--warning))' : 
                                     'hsl(var(--success))' }}
         ></div>
