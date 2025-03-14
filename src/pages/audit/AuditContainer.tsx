@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -35,24 +36,32 @@ export const AuditContainer = () => {
     }
     
     try {
-      let projectData;
+      let projectData = null;
       let auditData = null;
       
+      // Try to load from Notion if configured
       if (usingNotion) {
-        // Essayer de charger depuis Notion
-        projectData = await getNotionProject(projectId);
-        
-        if (projectData) {
-          auditData = await getAuditForProject(projectId);
+        try {
+          projectData = await getNotionProject(projectId);
+          
+          if (projectData) {
+            auditData = await getAuditForProject(projectId);
+          }
+        } catch (notionError) {
+          console.error('Erreur Notion:', notionError);
+          // Continue with mock data on Notion error
         }
       }
       
-      // Si pas de données Notion ou configuration Notion non active, utiliser les données mock
+      // If no data from Notion, use mock data
       if (!projectData) {
+        console.log('Loading mock data for project', projectId);
         projectData = getProjectById(projectId);
         
         if (projectData) {
-          // Simuler le chargement de l'audit depuis une API
+          setProject(projectData);
+          
+          // Load mock audit with a slight delay for UX
           setTimeout(() => {
             const mockAudit = projectData.progress === 0 
               ? createNewAudit(projectId) 
@@ -60,33 +69,34 @@ export const AuditContainer = () => {
             setAudit(mockAudit);
             setLoading(false);
           }, 800);
-        } else {
-          setLoading(false);
+          return; // Exit early as we're handling loading state in setTimeout
         }
       } else {
-        // Si on a bien chargé depuis Notion
+        // Successfully loaded from Notion
         setProject(projectData);
         setAudit(auditData);
-        setLoading(false);
       }
       
-      setProject(projectData);
-      
+      setLoading(false);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
       toast.error('Erreur de chargement', {
         description: 'Impossible de charger les données du projet'
       });
       
-      // Fallback en mode local
-      const projectData = getProjectById(projectId);
-      setProject(projectData);
-      
-      if (projectData) {
-        const mockAudit = projectData.progress === 0 
-          ? createNewAudit(projectId) 
-          : createMockAudit(projectId);
-        setAudit(mockAudit);
+      // Fallback to mock data
+      try {
+        const mockProjectData = getProjectById(projectId);
+        setProject(mockProjectData);
+        
+        if (mockProjectData) {
+          const mockAudit = mockProjectData.progress === 0 
+            ? createNewAudit(projectId) 
+            : createMockAudit(projectId);
+          setAudit(mockAudit);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
       }
       
       setLoading(false);
