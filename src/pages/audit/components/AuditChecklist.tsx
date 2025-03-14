@@ -36,14 +36,18 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
       score = Math.round((earnedPoints / totalPossiblePoints) * 100);
     }
     
-    // Ajout de détails à certains items pour démonstration
-    // (Normalement ces détails viendraient du backend)
-    const itemsWithDetails = updatedItems.map(item => {
-      // Ajouter des détails à certains items pour démonstration
+    // Ajouter des détails à certains items pour démonstration
+    const enrichedItems = updatedItems.map(item => {
       if (item.id === updatedItems[0].id && !item.details) {
         return {
           ...item,
           details: "Les pages doivent être accessibles à tous les utilisateurs, incluant ceux qui utilisent des technologies d'assistance. Assurez-vous que tous les éléments interactifs sont accessibles au clavier et portent des étiquettes descriptives."
+        };
+      }
+      if (item.id === updatedItems[1].id && !item.details) {
+        return {
+          ...item,
+          details: "Vérifiez que toutes les images ont des attributs 'alt' descriptifs qui expliquent le contenu de l'image pour les utilisateurs de lecteurs d'écran."
         };
       }
       if (item.id === updatedItems[2].id && !item.details) {
@@ -52,12 +56,24 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
           details: "Les liens doivent avoir un contraste suffisant et être facilement identifiables. Ils devraient se distinguer du texte normal par le style, la couleur ou le soulignement."
         };
       }
+      if (item.id === updatedItems[3].id && !item.details) {
+        return {
+          ...item,
+          details: "Assurez-vous que les formulaires sont correctement structurés avec des étiquettes associées à chaque champ. Tous les champs de formulaire doivent avoir des instructions claires et des messages d'erreur compréhensibles."
+        };
+      }
+      if (item.id === updatedItems[4].id && !item.details) {
+        return {
+          ...item,
+          details: "La navigation du site doit être cohérente et intuitive. Les utilisateurs doivent pouvoir facilement comprendre où ils se trouvent et comment naviguer vers d'autres sections."
+        };
+      }
       return item;
     });
     
     onUpdateAudit({
       ...audit,
-      items: itemsWithDetails,
+      items: enrichedItems,
       score,
       updatedAt: new Date().toISOString()
     });

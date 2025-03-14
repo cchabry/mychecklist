@@ -119,7 +119,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs text-muted-foreground hover:text-tmw-blue flex items-center"
+                className={`text-xs ${showDetails ? 'text-tmw-blue' : 'text-muted-foreground'} hover:text-tmw-blue flex items-center`}
                 onClick={() => setShowDetails(!showDetails)}
               >
                 <Info size={14} className="mr-1.5" />
@@ -130,7 +130,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs text-muted-foreground hover:text-tmw-blue flex items-center"
+              className={`text-xs ${showComments ? 'text-tmw-blue' : 'text-muted-foreground'} hover:text-tmw-blue flex items-center`}
               onClick={() => setShowComments(!showComments)}
             >
               <MessageSquare size={14} className="mr-1.5" />
@@ -139,11 +139,11 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
           </div>
           
           {item.details && showDetails && (
-            <Collapsible open={showDetails} className="mt-3">
-              <CollapsibleContent className="p-3 bg-tmw-gray/30 rounded-md border border-border/30 text-sm text-muted-foreground">
+            <div className="mt-3">
+              <div className="p-3 bg-tmw-blue/5 rounded-md border border-tmw-blue/20 text-sm text-tmw-darkgray">
                 {item.details}
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
+            </div>
           )}
         </div>
         
