@@ -6,10 +6,23 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import ProjectCard from '@/components/ProjectCard';
 import { MOCK_PROJECTS } from '@/lib/mockData';
-import { Plus, CheckSquare } from 'lucide-react';
+import { Plus, CheckSquare, Database } from 'lucide-react';
+import NotionConfig from '@/components/NotionConfig';
+import { isNotionConfigured } from '@/lib/notionService';
 
 const Index = () => {
   const [projects, setProjects] = useState(MOCK_PROJECTS);
+  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
+  const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
+  
+  const handleConnectNotionClick = () => {
+    setNotionConfigOpen(true);
+  };
+  
+  const handleNotionConfigSuccess = () => {
+    setUsingNotion(true);
+    // Recharger les projets depuis Notion si nécessaire
+  };
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-tmw-teal/5">
@@ -40,12 +53,23 @@ const Index = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-tmw-darkgray">Projets</h2>
-            <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90 transition-all duration-300">
-              <Link to="/new-project">
-                <Plus size={16} className="mr-2" />
-                Nouveau projet
-              </Link>
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
+                onClick={handleConnectNotionClick}
+              >
+                <Database size={16} />
+                {usingNotion ? 'Reconfigurer Notion' : 'Connecter à Notion'}
+              </Button>
+              
+              <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90 transition-all duration-300">
+                <Link to="/new-project">
+                  <Plus size={16} className="mr-2" />
+                  Nouveau projet
+                </Link>
+              </Button>
+            </div>
           </div>
           
           {projects.length === 0 ? (
@@ -87,6 +111,12 @@ const Index = () => {
           <div className="mt-2 text-xs text-muted-foreground/70">by ThinkMyWeb</div>
         </div>
       </footer>
+      
+      <NotionConfig 
+        isOpen={notionConfigOpen} 
+        onClose={() => setNotionConfigOpen(false)}
+        onSuccess={handleNotionConfigSuccess}
+      />
     </div>
   );
 };
