@@ -1,4 +1,3 @@
-
 // Types pour l'application d'audit qualité
 
 export interface ChecklistItem {
@@ -6,6 +5,7 @@ export interface ChecklistItem {
   title: string;
   description: string;
   category: string;
+  details?: string; // Détails supplémentaires à afficher à la demande
 }
 
 export interface Project {

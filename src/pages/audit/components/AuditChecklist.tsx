@@ -36,9 +36,28 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
       score = Math.round((earnedPoints / totalPossiblePoints) * 100);
     }
     
+    // Ajout de détails à certains items pour démonstration
+    // (Normalement ces détails viendraient du backend)
+    const itemsWithDetails = updatedItems.map(item => {
+      // Ajouter des détails à certains items pour démonstration
+      if (item.id === updatedItems[0].id && !item.details) {
+        return {
+          ...item,
+          details: "Les pages doivent être accessibles à tous les utilisateurs, incluant ceux qui utilisent des technologies d'assistance. Assurez-vous que tous les éléments interactifs sont accessibles au clavier et portent des étiquettes descriptives."
+        };
+      }
+      if (item.id === updatedItems[2].id && !item.details) {
+        return {
+          ...item,
+          details: "Les liens doivent avoir un contraste suffisant et être facilement identifiables. Ils devraient se distinguer du texte normal par le style, la couleur ou le soulignement."
+        };
+      }
+      return item;
+    });
+    
     onUpdateAudit({
       ...audit,
-      items: updatedItems,
+      items: itemsWithDetails,
       score,
       updatedAt: new Date().toISOString()
     });

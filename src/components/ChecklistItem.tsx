@@ -3,8 +3,13 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger 
+} from '@/components/ui/collapsible';
 import { AuditItem, ComplianceStatus, COMPLIANCE_VALUES } from '@/lib/types';
-import { Check, X, Minus } from 'lucide-react';
+import { Check, X, Minus, Info, MessageSquare } from 'lucide-react';
 
 interface ChecklistItemProps {
   item: AuditItem;
@@ -13,6 +18,7 @@ interface ChecklistItemProps {
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
   const [showComments, setShowComments] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [comment, setComment] = useState(item.comment || '');
   
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -108,14 +114,37 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
             </Button>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-3 text-xs text-muted-foreground hover:text-tmw-blue"
-            onClick={() => setShowComments(!showComments)}
-          >
-            {showComments ? 'Masquer les commentaires' : 'Ajouter un commentaire'}
-          </Button>
+          <div className="flex mt-3 space-x-2">
+            {item.details && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-tmw-blue flex items-center"
+                onClick={() => setShowDetails(!showDetails)}
+              >
+                <Info size={14} className="mr-1.5" />
+                {showDetails ? 'Masquer les détails' : 'Voir les détails'}
+              </Button>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground hover:text-tmw-blue flex items-center"
+              onClick={() => setShowComments(!showComments)}
+            >
+              <MessageSquare size={14} className="mr-1.5" />
+              {showComments ? 'Masquer les commentaires' : 'Ajouter un commentaire'}
+            </Button>
+          </div>
+          
+          {item.details && showDetails && (
+            <Collapsible open={showDetails} className="mt-3">
+              <CollapsibleContent className="p-3 bg-tmw-gray/30 rounded-md border border-border/30 text-sm text-muted-foreground">
+                {item.details}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
         
         {showComments && (
