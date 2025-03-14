@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { HelpCircle, Database, ArrowRight } from 'lucide-react';
+import { HelpCircle, Database, ArrowRight, Share2 } from 'lucide-react';
 import { isNotionConfigured } from '@/lib/notionService';
 
 interface NotionGuideProps {
@@ -70,7 +70,22 @@ const NotionGuide: React.FC<NotionGuideProps> = ({ onConnectClick }) => {
               </li>
               <li className="flex gap-2">
                 <ArrowRight size={16} className="text-tmw-teal shrink-0 mt-0.5" />
-                <span>Partagez cette base de données avec votre intégration Notion</span>
+                <span>Partagez cette base de données avec votre intégration Notion :</span>
+              </li>
+              <li className="ml-6 space-y-2 border-l-2 border-tmw-teal/30 pl-4">
+                <p><strong>Comment partager votre base de données avec l'intégration :</strong></p>
+                <ol className="list-decimal pl-5 space-y-1.5">
+                  <li>Ouvrez votre base de données dans Notion</li>
+                  <li>Cliquez sur les trois points <strong>...</strong> en haut à droite de la page</li>
+                  <li>Sélectionnez <strong>"Ajouter des personnes, des groupes ou des intégrations"</strong> (ou <strong>"Share"</strong> en anglais) <Share2 size={14} className="inline ml-1 text-tmw-teal" /></li>
+                  <li>Dans la fenêtre qui s'ouvre, saisissez le nom de votre intégration</li>
+                  <li>Sélectionnez votre intégration dans la liste qui apparaît</li>
+                  <li>Choisissez <strong>"Peut modifier"</strong> comme niveau d'autorisation</li>
+                  <li>Confirmez en cliquant sur <strong>"Inviter"</strong></li>
+                </ol>
+                <div className="bg-yellow-50 border border-yellow-200 p-2 rounded-md text-yellow-800 text-xs mt-2">
+                  <strong>Important :</strong> Sans cette étape de partage, l'intégration ne pourra pas accéder à votre base de données, même si vous avez configuré la clé API correctement.
+                </div>
               </li>
             </ul>
           </section>
