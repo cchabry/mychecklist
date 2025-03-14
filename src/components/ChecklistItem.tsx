@@ -3,11 +3,6 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger 
-} from '@/components/ui/collapsible';
 import { AuditItem, ComplianceStatus, COMPLIANCE_VALUES } from '@/lib/types';
 import { Check, X, Minus, Info, MessageSquare } from 'lucide-react';
 
@@ -115,22 +110,20 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
           </div>
           
           <div className="flex mt-3 space-x-2">
-            {item.details && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`text-xs ${showDetails ? 'text-tmw-blue' : 'text-muted-foreground'} hover:text-tmw-blue flex items-center`}
-                onClick={() => setShowDetails(!showDetails)}
-              >
-                <Info size={14} className="mr-1.5" />
-                {showDetails ? 'Masquer les détails' : 'Voir les détails'}
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`text-xs ${showDetails ? 'text-tmw-blue bg-tmw-blue/5' : 'text-muted-foreground'} hover:text-tmw-blue hover:bg-tmw-blue/5 flex items-center`}
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              <Info size={14} className="mr-1.5" />
+              {showDetails ? 'Masquer les détails' : 'Voir les détails'}
+            </Button>
             
             <Button
               variant="ghost"
               size="sm"
-              className={`text-xs ${showComments ? 'text-tmw-blue' : 'text-muted-foreground'} hover:text-tmw-blue flex items-center`}
+              className={`text-xs ${showComments ? 'text-tmw-blue bg-tmw-blue/5' : 'text-muted-foreground'} hover:text-tmw-blue hover:bg-tmw-blue/5 flex items-center`}
               onClick={() => setShowComments(!showComments)}
             >
               <MessageSquare size={14} className="mr-1.5" />
@@ -138,10 +131,10 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
             </Button>
           </div>
           
-          {item.details && showDetails && (
-            <div className="mt-3">
+          {showDetails && (
+            <div className="mt-3 animate-fadeIn">
               <div className="p-3 bg-tmw-blue/5 rounded-md border border-tmw-blue/20 text-sm text-tmw-darkgray">
-                {item.details}
+                {item.details || "Aucun détail disponible pour ce critère."}
               </div>
             </div>
           )}
