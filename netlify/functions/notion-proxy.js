@@ -47,13 +47,17 @@ exports.handler = async (event, context) => {
       console.log('Handling POST request to notion-proxy');
       console.log('Request body type:', typeof event.body);
       console.log('Request body has content:', event.body ? 'Yes' : 'No');
+      console.log('Raw body content:', event.body);
       
       if (!event.body) {
         console.error('Request body is missing');
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Missing request body' })
+          body: JSON.stringify({ 
+            error: 'Missing request body',
+            details: 'The request body is required for POST requests'
+          })
         };
       }
       
@@ -67,7 +71,11 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Invalid JSON in request body' })
+          body: JSON.stringify({ 
+            error: 'Invalid JSON in request body',
+            details: parseError.message,
+            receivedBody: event.body
+          })
         };
       }
       
@@ -76,7 +84,8 @@ exports.handler = async (event, context) => {
         endpoint, 
         method, 
         bodyPresent: !!body, 
-        tokenPresent: !!token 
+        tokenPresent: !!token,
+        tokenLength: token ? token.length : 0
       });
 
       // Validate parameters
@@ -85,7 +94,10 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Missing required parameter: endpoint' })
+          body: JSON.stringify({ 
+            error: 'Missing required parameter: endpoint',
+            receivedParameters: Object.keys(parsedBody).join(', ')
+          })
         };
       }
 
@@ -94,7 +106,10 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Missing required parameter: token' })
+          body: JSON.stringify({ 
+            error: 'Missing required parameter: token',
+            receivedParameters: Object.keys(parsedBody).join(', ')
+          })
         };
       }
 
@@ -124,17 +139,33 @@ exports.handler = async (event, context) => {
         
         // Get response body
         let responseData;
+        let responseText;
+        
         try {
-          responseData = await notionResponse.json();
-          console.log('Response data type:', typeof responseData);
-        } catch (jsonError) {
-          console.error('Failed to parse response as JSON:', jsonError);
-          const textResponse = await notionResponse.text();
-          console.log('Text response:', textResponse);
+          responseText = await notionResponse.text();
+          console.log('Response text:', responseText);
+          
+          // Try to parse as JSON
+          try {
+            responseData = JSON.parse(responseText);
+            console.log('Response data type:', typeof responseData);
+          } catch (jsonError) {
+            console.warn('Could not parse response as JSON, returning as text');
+            return {
+              statusCode: notionResponse.status,
+              headers: { ...headers, 'Content-Type': 'text/plain' },
+              body: responseText
+            };
+          }
+        } catch (textError) {
+          console.error('Failed to get response text:', textError);
           return {
-            statusCode: notionResponse.status,
-            headers: { ...headers, 'Content-Type': 'text/plain' },
-            body: textResponse
+            statusCode: 500,
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error: 'Failed to read response from Notion API',
+              message: textError.message
+            })
           };
         }
 
@@ -164,7 +195,8 @@ exports.handler = async (event, context) => {
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         error: 'Method not allowed',
-        message: 'This endpoint only supports GET and POST methods'
+        message: 'This endpoint only supports GET and POST methods',
+        receivedMethod: event.httpMethod
       })
     };
   } catch (error) {
@@ -177,7 +209,8 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         error: 'Internal server error',
-        message: error.message || 'Unknown error'
+        message: error.message || 'Unknown error',
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
       })
     };
   }

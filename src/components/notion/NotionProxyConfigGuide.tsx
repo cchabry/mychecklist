@@ -11,6 +11,7 @@ const NotionProxyConfigGuide: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
   const [deploymentType, setDeploymentType] = useState<'vercel' | 'netlify' | 'local' | 'other'>('other');
+  const [testResults, setTestResults] = useState<Record<string, { status: number; success: boolean; response?: any }>>({});
   
   // Vérifier le type de déploiement au chargement
   useEffect(() => {
@@ -51,10 +52,11 @@ const NotionProxyConfigGuide: React.FC = () => {
         }
       } else if (method === 'POST') {
         console.log(`Testing POST ${endpoint}`);
+        // Simplified test payload - just for testing connectivity
         const testPayload = {
-          endpoint: '/ping',
+          endpoint: '/users/me',
           method: 'GET',
-          token: 'test_token_for_manual_test'
+          token: 'test_token_for_proxy_test'
         };
         console.log('POST test payload:', testPayload);
         
@@ -80,6 +82,15 @@ const NotionProxyConfigGuide: React.FC = () => {
         }
       }
       
+      setTestResults(prev => ({
+        ...prev,
+        [testId]: {
+          status: response.status,
+          success: response.ok,
+          response: result
+        }
+      }));
+      
       if (response.ok) {
         toast.success(`Test réussi: ${endpoint} (${method})`, {
           description: `Statut: ${response.status}. Réponse reçue.`
@@ -96,6 +107,15 @@ const NotionProxyConfigGuide: React.FC = () => {
       toast.error(`Échec du test: ${endpoint} (${method})`, {
         description: error instanceof Error ? error.message : 'Erreur inconnue'
       });
+      
+      setTestResults(prev => ({
+        ...prev,
+        [testId]: {
+          status: 0,
+          success: false,
+          response: error instanceof Error ? error.message : 'Erreur inconnue'
+        }
+      }));
     } finally {
       setTestingEndpoint(null);
     }

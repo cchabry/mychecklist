@@ -1,4 +1,3 @@
-
 import { mockNotionResponse } from './mockData';
 import { 
   NOTION_API_VERSION, 
@@ -54,30 +53,63 @@ async function tryServerlessProxy<T>(
   customHeaders: Record<string, string> = {}
 ): Promise<T> {
   const proxyUrl = getServerlessProxyUrl();
-  console.log(`🔹 Tentative via proxy serverless (${getDeploymentType()}): ${proxyUrl}`);
+  const deploymentType = getDeploymentType();
+  console.log(`🔹 Tentative via proxy serverless (${deploymentType}): ${proxyUrl}`);
   
-  const response = await fetch(proxyUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...customHeaders
-    },
-    body: JSON.stringify({
-      endpoint,
-      method,
-      body,
-      token
-    })
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ Erreur du proxy serverless: ${response.status}`, errorText);
-    throw new Error(`Erreur proxy serverless: ${response.status} ${errorText}`);
+  try {
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...customHeaders
+      },
+      body: JSON.stringify({
+        endpoint,
+        method,
+        body,
+        token
+      })
+    });
+    
+    if (!response.ok) {
+      let errorData: any = null;
+      
+      try {
+        // Try to get JSON error
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json();
+        } else {
+          // Get text error
+          const errorText = await response.text();
+          errorData = { message: errorText };
+        }
+      } catch (parseError) {
+        console.warn('Could not parse error response', parseError);
+      }
+      
+      console.error(`❌ Erreur du proxy serverless: ${response.status}`, errorData);
+      throw new Error(`Erreur proxy serverless: ${response.status} ${errorData?.message || errorData?.error || ''}`);
+    }
+    
+    // Try to parse response as JSON
+    let responseData: any;
+    try {
+      responseData = await response.json();
+    } catch (jsonError) {
+      console.error('Failed to parse serverless proxy response as JSON:', jsonError);
+      
+      // Try to get as text
+      const textResponse = await response.text();
+      throw new Error(`Proxy response is not valid JSON: ${textResponse.substring(0, 100)}`);
+    }
+    
+    _usingServerlessProxy = true;
+    return responseData as T;
+  } catch (error) {
+    console.error('Serverless proxy error:', error);
+    throw error;
   }
-  
-  _usingServerlessProxy = true;
-  return await response.json();
 }
 
 /**
@@ -102,9 +134,6 @@ export const notionApiRequest = async <T = any>(
   const mockModeEnabled = localStorage.getItem('notion_mock_mode') === 'true';
   if (mockModeEnabled) {
     console.log(`🔷 [MOCK] Requête ${method} ${endpoint}`);
-    const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY) || 'no-api-key';
-    console.warn(`🔑 API Key (mocked): ${apiKey}`);
-    console.warn(`MODE MOCK: Les données ne sont pas réelles!`);
     return mockNotionResponse(endpoint, method, body) as T;
   }
   

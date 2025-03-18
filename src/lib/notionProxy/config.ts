@@ -35,13 +35,18 @@ export const STORAGE_KEYS = {
 export const getDeploymentType = (): 'vercel' | 'netlify' | 'local' | 'other' => {
   const hostname = window.location.hostname;
   
-  if (hostname.includes('netlify.app')) {
+  if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
     return 'netlify';
   } else if (hostname.includes('vercel.app')) {
     return 'vercel';
   } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'local';
   } else {
+    // Check if we're on a custom domain but deployed on Netlify
+    // Look for Netlify headers or other indicators
+    if (document.querySelector('meta[name="generator"][content*="Netlify"]')) {
+      return 'netlify';
+    }
     return 'other';
   }
 };
@@ -83,6 +88,10 @@ export const getServerlessProxyUrl = (): string => {
     case 'vercel':
       return '/api/notion-proxy';
     default:
+      // Detect if we have netlify functions by checking the environment
+      if (window.location.href.includes('.netlify.') || document.querySelector('meta[name="generator"][content*="Netlify"]')) {
+        return '/.netlify/functions/notion-proxy';
+      }
       return '/api/notion-proxy'; // Fallback sur le format Vercel
   }
 };
