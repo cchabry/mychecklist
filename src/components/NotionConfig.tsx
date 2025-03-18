@@ -14,8 +14,8 @@ interface NotionConfigProps {
 }
 
 const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [apiKey, setApiKey] = useState<string>(localStorage.getItem('NOTION_API_KEY') || '');
-  const [databaseId, setDatabaseId] = useState<string>(localStorage.getItem('NOTION_DATABASE_ID') || '');
+  const [apiKey, setApiKey] = useState<string>(localStorage.getItem('notion_api_key') || '');
+  const [databaseId, setDatabaseId] = useState<string>(localStorage.getItem('notion_database_id') || '');
   const [loading, setLoading] = useState<boolean>(false);
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,7 +31,17 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
         return;
       }
       
-      const success = configureNotion(apiKey, databaseId);
+      // Ensure proper format for database ID (remove any prefixes if present)
+      const formattedDbId = databaseId.includes('/') 
+        ? databaseId.split('/').pop() 
+        : databaseId;
+      
+      console.log('Configuring Notion with:', { 
+        apiKey: `${apiKey.substring(0, 10)}...`, 
+        databaseId: formattedDbId 
+      });
+      
+      const success = configureNotion(apiKey, formattedDbId || databaseId);
       
       if (success) {
         toast.success('Configuration Notion réussie', {
@@ -45,10 +55,10 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
         });
       }
     } catch (error) {
+      console.error('Erreur lors de la configuration:', error);
       toast.error('Erreur', {
         description: 'Une erreur est survenue pendant la configuration'
       });
-      console.error(error);
     } finally {
       setLoading(false);
     }

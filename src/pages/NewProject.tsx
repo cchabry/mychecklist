@@ -9,14 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, CheckSquare } from 'lucide-react';
+import { isNotionConfigured, createProjectInNotion } from '@/lib/notionService';
 
 const NewProject = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const usingNotion = isNotionConfigured();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name.trim() || !url.trim()) {
@@ -26,14 +28,39 @@ const NewProject = () => {
     
     setIsSubmitting(true);
     
-    // Simuler un appel API pour créer le projet
-    setTimeout(() => {
-      toast.success("Projet créé avec succès", {
-        description: "Vous pouvez maintenant commencer l'audit",
+    try {
+      // Si Notion est configuré, créer le projet dans Notion
+      if (usingNotion) {
+        console.log('Creating project in Notion', { name, url });
+        const project = await createProjectInNotion(name, url);
+        
+        if (project) {
+          toast.success("Projet créé avec succès", {
+            description: "Le projet a été ajouté à votre base de données Notion",
+          });
+          navigate('/');
+        } else {
+          toast.error("Erreur de création", {
+            description: "Impossible de créer le projet dans Notion. Vérifiez votre configuration.",
+          });
+        }
+      } else {
+        // Simuler un appel API pour créer le projet si Notion n'est pas configuré
+        setTimeout(() => {
+          toast.success("Projet créé avec succès", {
+            description: "Vous pouvez maintenant commencer l'audit",
+          });
+          navigate('/');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création du projet:', error);
+      toast.error("Erreur de création", {
+        description: "Une erreur est survenue lors de la création du projet",
       });
+    } finally {
       setIsSubmitting(false);
-      navigate('/');
-    }, 1500);
+    }
   };
   
   return (
@@ -65,6 +92,7 @@ const NewProject = () => {
                   <CardTitle className="text-2xl text-tmw-darkgray">Nouveau projet</CardTitle>
                   <CardDescription>
                     Créez un nouveau projet à auditer selon notre référentiel de bonnes pratiques.
+                    {usingNotion && <span className="block text-xs mt-1 text-tmw-teal">Le projet sera sauvegardé dans Notion</span>}
                   </CardDescription>
                 </div>
               </div>

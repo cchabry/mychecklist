@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { HelpCircle, Database, ArrowRight, Share2 } from 'lucide-react';
+import { HelpCircle, Database, ArrowRight, Share2, Copy } from 'lucide-react';
 import { isNotionConfigured } from '@/lib/notionService';
 
 interface NotionGuideProps {
@@ -85,6 +85,25 @@ const NotionGuide: React.FC<NotionGuideProps> = ({ onConnectClick }) => {
                 </ol>
                 <div className="bg-yellow-50 border border-yellow-200 p-2 rounded-md text-yellow-800 text-xs mt-2">
                   <strong>Important :</strong> Sans cette étape de partage, l'intégration ne pourra pas accéder à votre base de données, même si vous avez configuré la clé API correctement.
+                </div>
+              </li>
+              
+              <li className="flex gap-2 mt-4">
+                <ArrowRight size={16} className="text-tmw-teal shrink-0 mt-0.5" />
+                <span>Récupérez l'ID de votre base de données :</span>
+              </li>
+              <li className="ml-6 space-y-2 border-l-2 border-tmw-teal/30 pl-4">
+                <p><strong>Comment trouver l'ID de votre base de données :</strong></p>
+                <ol className="list-decimal pl-5 space-y-1.5">
+                  <li>Ouvrez votre base de données dans Notion</li>
+                  <li>Regardez l'URL dans la barre d'adresse de votre navigateur</li>
+                  <li>Le format est généralement: <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">notion.so/workspace/[nom]-[ID]</code></li>
+                  <li>L'ID de la base de données est la dernière partie de l'URL (après le dernier tiret)</li>
+                  <li>Par exemple, dans: <code className="bg-slate-100 px-1 py-0.5 rounded text-xs break-all">notion.so/workspace/MaBDD-abc123def456</code></li>
+                  <li>L'ID à copier est: <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">abc123def456</code></li>
+                </ol>
+                <div className="bg-blue-50 border border-blue-200 p-2 rounded-md text-blue-800 text-xs mt-2">
+                  <strong>Astuce :</strong> Vous pouvez également utiliser l'ID complet de la base de données (y compris le nom), l'application extraira automatiquement l'ID correct.
                 </div>
               </li>
             </ul>

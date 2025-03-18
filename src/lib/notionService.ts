@@ -1,4 +1,3 @@
-
 import { Client } from '@notionhq/client';
 import { 
   PageObjectResponse, 
@@ -18,6 +17,7 @@ export const isNotionConfigured = (): boolean => {
 
 export const configureNotion = (apiKey: string, dbId: string): boolean => {
   try {
+    console.log('Configuring Notion client with database ID:', dbId);
     notionClient = new Client({ auth: apiKey });
     databaseId = dbId;
     
@@ -45,9 +45,13 @@ export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
   }
   
   try {
+    console.log('Fetching projects from Notion, database ID:', databaseId);
+    
     const response = await notionClient.databases.query({
       database_id: databaseId
     });
+    
+    console.log('Notion response:', response.results.length, 'results');
     
     if (response.results.length === 0) return [];
     
@@ -58,6 +62,7 @@ export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
       if (!('properties' in page)) continue;
       
       const properties = page.properties;
+      console.log('Processing page with properties:', Object.keys(properties));
       
       // Helper functions pour extraire les valeurs des propriétés
       const getRichTextValue = (prop: any): string => {
@@ -89,17 +94,22 @@ export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
       };
       
       // Créer l'objet projet
-      const project: Project = {
-        id: getRichTextValue(properties.id) || page.id, // Utiliser l'ID Notion comme fallback
-        name: getTitleValue(properties.name) || 'Projet sans nom',
-        url: getUrlValue(properties.url) || '',
-        createdAt: page.created_time || new Date().toISOString(),
-        updatedAt: page.last_edited_time || new Date().toISOString(),
-        progress: getNumberValue(properties.progress),
-        itemsCount: getNumberValue(properties.itemsCount)
-      };
-      
-      projects.push(project);
+      try {
+        const project: Project = {
+          id: getRichTextValue(properties.id) || page.id, // Utiliser l'ID Notion comme fallback
+          name: getTitleValue(properties.name) || getTitleValue(properties.Name) || 'Projet sans nom',
+          url: getUrlValue(properties.url) || getUrlValue(properties.URL) || '',
+          createdAt: page.created_time || new Date().toISOString(),
+          updatedAt: page.last_edited_time || new Date().toISOString(),
+          progress: getNumberValue(properties.progress) || getNumberValue(properties.Progress),
+          itemsCount: getNumberValue(properties.itemsCount) || getNumberValue(properties.ItemsCount) || 0
+        };
+        
+        console.log('Added project:', project.name);
+        projects.push(project);
+      } catch (projectError) {
+        console.error('Erreur lors de la création du projet:', projectError);
+      }
     }
     
     return projects;
@@ -325,5 +335,77 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
   } catch (error) {
     console.error('Erreur lors de la sauvegarde de l\'audit:', error);
     return false;
+  }
+};
+
+export const createProjectInNotion = async (name: string, url: string): Promise<Project | null> => {
+  if (!notionClient || !databaseId) {
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
+    
+    if (!apiKey || !dbId) return null;
+    
+    notionClient = new Client({ auth: apiKey });
+    databaseId = dbId;
+  }
+  
+  try {
+    console.log('Creating project in Notion:', { name, url, databaseId });
+    
+    // Générer un ID unique pour le projet
+    const projectId = `project-${Date.now()}`;
+    
+    // Créer une nouvelle page (projet) dans la base de données Notion
+    const response = await notionClient.pages.create({
+      parent: {
+        database_id: databaseId
+      },
+      properties: {
+        // Adapter ces propriétés en fonction de la structure de votre base de données
+        "name": {
+          title: [
+            {
+              text: {
+                content: name
+              }
+            }
+          ]
+        },
+        "id": {
+          rich_text: [
+            {
+              text: {
+                content: projectId
+              }
+            }
+          ]
+        },
+        "url": {
+          url: url
+        },
+        "progress": {
+          number: 0
+        },
+        "itemsCount": {
+          number: 0
+        }
+      }
+    });
+    
+    console.log('Project created in Notion:', response.id);
+    
+    // Retourner le projet créé
+    return {
+      id: projectId,
+      name: name,
+      url: url,
+      createdAt: response.created_time,
+      updatedAt: response.last_edited_time,
+      progress: 0,
+      itemsCount: 0
+    };
+  } catch (error) {
+    console.error('Erreur lors de la création du projet dans Notion:', error);
+    return null;
   }
 };
