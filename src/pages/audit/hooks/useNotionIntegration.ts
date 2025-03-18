@@ -17,8 +17,8 @@ export const useNotionIntegration = () => {
   useEffect(() => {
     // Si Notion est configuré mais qu'on a eu une erreur CORS précédemment
     if (usingNotion && notionApi.mockMode.isActive()) {
-      toast.info('Mode démonstration Notion', {
-        description: 'Utilisation de données de test pour la démo'
+      toast.info('Mode démonstration Notion actif', {
+        description: 'L\'application utilise des données de test en raison des restrictions de sécurité du navigateur (CORS).'
       });
     }
   }, [usingNotion]);
@@ -29,6 +29,14 @@ export const useNotionIntegration = () => {
   
   const handleNotionConfigSuccess = () => {
     setUsingNotion(true);
+    
+    // Si le mode mock est actif, afficher un message explicatif supplémentaire
+    if (notionApi.mockMode.isActive()) {
+      toast.info('Limitation technique du navigateur', {
+        description: 'La connexion à l\'API Notion ne peut pas être établie directement depuis le navigateur. Un serveur intermédiaire serait nécessaire.',
+        duration: 8000,
+      });
+    }
   };
   
   const handleNotionConfigClose = () => {
@@ -67,15 +75,16 @@ export const useNotionIntegration = () => {
       // Gérer l'erreur CORS "Failed to fetch"
       if (error.message?.includes('Failed to fetch')) {
         showNotionError(
-          'Échec de la connexion à Notion: Failed to fetch', 
-          'Les restrictions de sécurité du navigateur empêchent l\'accès direct à l\'API Notion'
+          'Limitation technique: Failed to fetch', 
+          'Les restrictions de sécurité du navigateur (CORS) empêchent l\'accès direct à l\'API Notion. Un serveur intermédiaire serait nécessaire.'
         );
         
-        // Activer le mode mock
+        // Activer le mode mock et expliquer la situation
         notionApi.mockMode.activate();
         
         toast.warning('Mode démonstration activé', {
-          description: 'Utilisation de données de test car l\'API Notion n\'est pas accessible directement',
+          description: 'L\'application utilisera des données de test car l\'API Notion n\'est pas accessible directement depuis le navigateur.',
+          duration: 6000,
         });
         
         return true; // Permettre l'utilisation en mode mock
