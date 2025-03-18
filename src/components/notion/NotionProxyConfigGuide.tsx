@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Server, FileCode, Info, Github, Settings, ArrowDown, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,21 +37,41 @@ const NotionProxyConfigGuide: React.FC = () => {
       if (method === 'GET') {
         console.log(`Testing GET ${endpoint}`);
         response = await fetch(`${window.location.origin}${endpoint}`);
-        result = await response.text();
+        try {
+          result = await response.text();
+        } catch (error) {
+          console.error(`Error getting text from response:`, error);
+          result = 'Could not get response text';
+        }
       } else if (method === 'POST') {
         console.log(`Testing POST ${endpoint}`);
+        const testPayload = {
+          endpoint: '/ping',
+          method: 'GET',
+          token: 'test_token_for_manual_test'
+        };
+        console.log('POST test payload:', testPayload);
+        
         response = await fetch(`${window.location.origin}${endpoint}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            endpoint: '/ping',
-            method: 'GET',
-            token: 'test_token_for_manual_test'
-          })
+          body: JSON.stringify(testPayload)
         });
-        result = await response.text();
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+            result = JSON.stringify(result, null, 2);
+          } else {
+            result = await response.text();
+          }
+        } catch (error) {
+          console.error(`Error parsing response:`, error);
+          result = 'Could not parse response';
+        }
       }
       
       if (response.ok) {
@@ -150,6 +169,17 @@ const NotionProxyConfigGuide: React.FC = () => {
     { "source": "/api/notion-proxy", "destination": "/api/notion-proxy.ts" },
     { "source": "/api/ping", "destination": "/api/ping.ts" },
     { "source": "/api/vercel-debug", "destination": "/api/vercel-debug.ts" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
+      ]
+    }
   ]
 }`}
                       </pre>
