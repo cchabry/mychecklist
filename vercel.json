@@ -3,8 +3,8 @@
   "version": 2,
   "functions": {
     "api/*.ts": {
-      "memory": 1024,
-      "maxDuration": 10
+      "memory": 128,
+      "maxDuration": 5
     }
   },
   "routes": [
