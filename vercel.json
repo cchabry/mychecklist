@@ -2,7 +2,11 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/api/notion-proxy", "dest": "/api/notion-proxy.ts" },
+    { 
+      "src": "/api/notion-proxy", 
+      "dest": "/api/notion-proxy.ts",
+      "methods": ["GET", "POST", "OPTIONS"]
+    },
     { "src": "/api/ping", "dest": "/api/ping.ts" },
     { "src": "/api/vercel-debug", "dest": "/api/vercel-debug.ts" }
   ]

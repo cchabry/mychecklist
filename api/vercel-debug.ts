@@ -2,13 +2,23 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  // Minimal CORS
+  // Configuration CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
-  // Simple response with no environment variables or complex logic
+  // Pour OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  // Informations de débogage simples
   return res.status(200).json({
     status: 'ok',
-    message: 'Debug info',
-    timestamp: new Date().toISOString()
+    message: 'Vercel Debug Info',
+    nodeVersion: process.version,
+    timestamp: new Date().toISOString(),
+    headers: req.headers,
+    method: req.method
   });
 }
