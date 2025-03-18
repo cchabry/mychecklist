@@ -1,37 +1,55 @@
 
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle2, Server, FileCode, ExternalLink, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Server, FileCode, ExternalLink, RefreshCw, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VERCEL_PROXY_URL, verifyProxyDeployment } from '@/lib/notionProxy/config';
+import { 
+  VERCEL_PROXY_URL, 
+  verifyProxyDeployment, 
+  resetProxyCache 
+} from '@/lib/notionProxy/config';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 interface DeploymentStatus {
   ping: boolean;
-  proxy: boolean;
+  head: boolean;
+  post: boolean;
   deployed: boolean;
   message: string;
 }
 
 const NotionDeploymentChecker: React.FC = () => {
+  const { toast } = useToast();
   const [status, setStatus] = useState<DeploymentStatus>({
     ping: false,
-    proxy: false,
+    head: false,
+    post: false,
     deployed: false,
     message: 'Vérification du déploiement...'
   });
   
   const [checking, setChecking] = useState(true);
+  const [attempts, setAttempts] = useState(0);
   
-  const checkDeployment = async () => {
+  const checkDeployment = async (force: boolean = false) => {
     setChecking(true);
     setStatus({
       ping: false,
-      proxy: false,
+      head: false,
+      post: false,
       deployed: false,
       message: 'Vérification du déploiement en cours...'
     });
     
     try {
+      // Incrémenter le nombre de tentatives
+      setAttempts(prev => prev + 1);
+      
+      // Réinitialiser le cache si force est true
+      if (force) {
+        resetProxyCache();
+      }
+      
       // Vérifier ping
       let pingOk = false;
       try {
@@ -43,7 +61,6 @@ const NotionDeploymentChecker: React.FC = () => {
           cache: 'no-store'
         });
         pingOk = pingResponse.ok;
-        console.log('📡 Ping du proxy réussi:', pingResponse.status);
         
         setStatus(prev => ({ 
           ...prev, 
@@ -68,70 +85,100 @@ const NotionDeploymentChecker: React.FC = () => {
         return;
       }
       
-      // Vérifier proxy avec une requête HEAD (moins susceptible d'être bloquée par CORS)
-      let proxyExists = false;
+      // Vérifier proxy avec une requête HEAD
+      let headOk = false;
       try {
         const proxyUrl = `${window.location.origin}/api/notion-proxy`;
-        const proxyResponse = await fetch(proxyUrl, {
+        const headResponse = await fetch(proxyUrl, {
           method: 'HEAD',
           cache: 'no-store'
         });
         
-        proxyExists = proxyResponse.status !== 404;
+        // Une réponse 404 signifie que le fichier n'existe pas
+        headOk = headResponse.status !== 404;
+        
         setStatus(prev => ({ 
           ...prev, 
-          proxy: proxyExists, 
-          message: proxyExists 
-            ? 'Proxy trouvé, vérification du déploiement complet...' 
+          head: headOk, 
+          message: headOk 
+            ? 'Proxy trouvé, vérification du traitement des requêtes...' 
             : 'Erreur 404: fichier api/notion-proxy.ts non trouvé'
         }));
-      } catch (proxyError) {
+      } catch (headError) {
         // Une erreur CORS est normale ici et indique souvent que le fichier existe
-        console.log('Erreur lors de la vérification du proxy (peut être normale en cas de CORS):', proxyError);
-        
-        // Essayons une autre méthode avec une requête OPTIONS qui sera peut-être moins bloquée
-        try {
-          const proxyUrl = `${window.location.origin}/api/notion-proxy`;
-          await fetch(proxyUrl, { 
-            method: 'OPTIONS',
-            mode: 'no-cors' // Contourne les erreurs CORS mais ne permet pas de lire la réponse
-          });
-          
-          // Si on arrive ici sans erreur, c'est que le fichier existe probablement
-          proxyExists = true;
-        } catch (optionsError) {
-          console.error('Erreur lors de la seconde tentative de vérification du proxy:', optionsError);
-          // En cas d'échec, on suppose que le fichier existe mais on est prudent
-          proxyExists = false;
-        }
+        console.log('Erreur lors de la vérification HEAD du proxy (peut être normale en cas de CORS):', headError);
+        headOk = true; // On suppose que le fichier existe
         
         setStatus(prev => ({ 
           ...prev, 
-          proxy: proxyExists, 
-          message: proxyExists 
-            ? 'Proxy probablement présent (détection limitée par CORS)' 
-            : 'Proxy probablement absent - vérifiez le déploiement'
+          head: true, 
+          message: 'Proxy probablement présent (détection limitée par CORS)'
         }));
       }
       
-      // Vérifier configuration complète
-      const isConfigValid = VERCEL_PROXY_URL && VERCEL_PROXY_URL.includes('/api/notion-proxy');
-      const isDeployed = await verifyProxyDeployment();
+      // Vérifier avec une requête POST réelle
+      let postOk = false;
+      if (headOk) {
+        try {
+          const proxyUrl = `${window.location.origin}/api/notion-proxy`;
+          const postResponse = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              endpoint: '/ping',
+              method: 'GET',
+              token: 'test_token_for_diagnostics'
+            })
+          });
+          
+          // Une réponse 404 sur POST est plus grave car elle indique que le gestionnaire ne fonctionne pas
+          postOk = postResponse.status !== 404;
+          
+          setStatus(prev => ({ 
+            ...prev, 
+            post: postOk, 
+            message: postOk 
+              ? `Proxy répond avec statut ${postResponse.status}`
+              : 'Le proxy existe mais ne répond pas aux requêtes POST (404)'
+          }));
+        } catch (postError) {
+          console.error('Erreur lors de la vérification POST du proxy:', postError);
+          postOk = false;
+          
+          setStatus(prev => ({ 
+            ...prev, 
+            post: false, 
+            message: `Erreur lors de la requête POST: ${postError.message}`
+          }));
+        }
+      }
+      
+      // Vérifier configuration globale
+      const isVerified = await verifyProxyDeployment(force);
       
       setStatus({
         ping: pingOk,
-        proxy: proxyExists,
-        deployed: proxyExists && isConfigValid && isDeployed,
-        message: proxyExists && isConfigValid && isDeployed
+        head: headOk,
+        post: postOk,
+        deployed: isVerified,
+        message: isVerified
           ? 'Configuration prête! Le proxy Notion est correctement déployé.'
-          : 'Le proxy est peut-être déployé mais ne fonctionne pas correctement. Vérifiez votre déploiement Vercel.'
+          : headOk && !postOk
+          ? 'Le fichier proxy existe mais ne répond pas correctement aux requêtes POST (404)'
+          : !headOk
+          ? 'Le fichier api/notion-proxy.ts est introuvable (404) sur votre déploiement'
+          : 'Problème de configuration du proxy. Vérifiez votre déploiement Vercel.'
       });
       
     } catch (error) {
       console.error('Erreur lors de la vérification du déploiement:', error);
       setStatus({
         ping: false,
-        proxy: false,
+        head: false,
+        post: false,
         deployed: false,
         message: `Erreur lors de la vérification: ${error.message}`
       });
@@ -144,8 +191,20 @@ const NotionDeploymentChecker: React.FC = () => {
     checkDeployment();
   }, []);
   
+  const handleForcedCheck = () => {
+    toast({
+      title: "Vérification forcée",
+      description: "Réinitialisation du cache et nouvelle vérification du proxy"
+    });
+    checkDeployment(true);
+  };
+  
   // Extraire le domaine de déploiement pour affichage
   const deploymentDomain = window.location.origin;
+  
+  // Déterminer si on doit afficher une solution spécifique
+  const showMissingFileHelp = !status.head;
+  const showPostErrorHelp = status.head && !status.post;
   
   return (
     <div className="space-y-3">
@@ -166,10 +225,17 @@ const NotionDeploymentChecker: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              {status.proxy 
+              {status.head 
                 ? <CheckCircle2 size={16} className="text-green-600" /> 
                 : <AlertCircle size={16} className="text-amber-500" />}
-              <span>Fichier notion-proxy: {status.proxy ? 'Trouvé' : 'Introuvable (404)'}</span>
+              <span>Fichier notion-proxy: {status.head ? 'Trouvé' : 'Introuvable (404)'}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {status.post 
+                ? <CheckCircle2 size={16} className="text-green-600" /> 
+                : <AlertCircle size={16} className="text-amber-500" />}
+              <span>Requêtes POST: {status.post ? 'Fonctionnelles' : 'Non fonctionnelles'}</span>
             </div>
             
             <div className="flex items-center gap-2">
@@ -181,11 +247,15 @@ const NotionDeploymentChecker: React.FC = () => {
             
             <div className="mt-2 p-3 bg-gray-100 rounded text-sm">
               <p className="mb-2">{status.message}</p>
-              <div className="text-xs text-gray-600">Domaine de déploiement: {deploymentDomain}</div>
+              <div className="text-xs text-gray-600">
+                <div>URL du proxy: {VERCEL_PROXY_URL}</div>
+                <div>Domaine de déploiement: {deploymentDomain}</div>
+                <div>Tentatives: {attempts}</div>
+              </div>
             </div>
           </div>
           
-          {!status.proxy && (
+          {showMissingFileHelp && (
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs">
               <FileCode size={14} className="flex-shrink-0 mt-0.5 text-amber-600" />
               <div>
@@ -196,8 +266,29 @@ const NotionDeploymentChecker: React.FC = () => {
                   puisse communiquer avec l'API Notion.
                 </p>
                 <div className="bg-white/60 p-2 rounded text-amber-700">
-                  <strong>Solution:</strong> Vérifiez que le fichier existe dans votre projet et que votre 
-                  déploiement Vercel est à jour. Si nécessaire, redéployez l'application.
+                  <strong>Solution:</strong> Vérifiez que le fichier existe dans votre projet et qu'il est correctement 
+                  déployé sur Vercel. Si nécessaire, redéployez l'application.
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {showPostErrorHelp && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs">
+              <Server size={14} className="flex-shrink-0 mt-0.5 text-amber-600" />
+              <div>
+                <p className="font-medium mb-1">Problème de configuration du proxy</p>
+                <p className="mb-2">
+                  Le fichier <code className="bg-white/50 px-1 py-0.5 rounded">api/notion-proxy.ts</code> est 
+                  présent mais ne répond pas correctement aux requêtes POST. Le gestionnaire de la fonction API 
+                  n'est pas correctement configuré.
+                </p>
+                <div className="bg-white/60 p-2 rounded text-amber-700">
+                  <strong>Solution:</strong> Vérifiez que le fichier API est correctement implémenté. Il doit
+                  exporter une fonction par défaut qui gère les requêtes POST et traite correctement les paramètres
+                  <code className="bg-white/50 px-1 py-0.5 rounded ml-1">endpoint</code>, 
+                  <code className="bg-white/50 px-1 py-0.5 rounded ml-1">method</code>, et
+                  <code className="bg-white/50 px-1 py-0.5 rounded ml-1">token</code>.
                 </div>
               </div>
             </div>
@@ -207,7 +298,7 @@ const NotionDeploymentChecker: React.FC = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={checkDeployment}
+              onClick={handleForcedCheck}
               disabled={checking}
               className="flex-1 flex items-center justify-center gap-1"
             >
@@ -226,6 +317,25 @@ const NotionDeploymentChecker: React.FC = () => {
                 Dashboard Vercel
               </a>
             </Button>
+          </div>
+          
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800 text-xs">
+            <div className="flex items-start gap-2">
+              <HelpCircle size={14} className="flex-shrink-0 mt-0.5 text-blue-600" />
+              <div>
+                <p className="font-medium mb-1">Besoin d'aide?</p>
+                <p className="mb-2">
+                  Si le problème persiste après plusieurs tentatives, le fichier <code className="bg-white/50 px-1 py-0.5 rounded">api/notion-proxy.ts</code> 
+                  n'est peut-être pas correctement déployé ou configuré sur Vercel.
+                </p>
+                <ol className="list-decimal list-inside space-y-1 ml-1">
+                  <li>Vérifiez que le fichier existe dans votre projet</li>
+                  <li>Vérifiez que votre déploiement Vercel est à jour</li>
+                  <li>Vérifiez que les fonctions API sont activées dans votre projet Vercel</li>
+                  <li>Essayez de redéployer l'application</li>
+                </ol>
+              </div>
+            </div>
           </div>
         </>
       )}

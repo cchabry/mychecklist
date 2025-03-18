@@ -1,6 +1,10 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+/**
+ * Notion Proxy API handler
+ * Cette fonction sert de proxy entre le client et l'API Notion pour contourner les limitations CORS
+ */
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
@@ -29,6 +33,22 @@ export default async function handler(
   if (request.method === 'OPTIONS') {
     console.log('🔄 [Notion Proxy] Répondre à la requête OPTIONS (CORS preflight)');
     return response.status(200).end();
+  }
+  
+  // Pour les requêtes HEAD, retourner un statut 200 pour indiquer que l'endpoint existe
+  if (request.method === 'HEAD') {
+    console.log('🔄 [Notion Proxy] Répondre à la requête HEAD (vérification d\'existence)');
+    return response.status(200).end();
+  }
+  
+  // Gérer une requête ping spéciale sans nécessiter d'authentification
+  if (request.method === 'POST' && request.body?.endpoint === '/ping') {
+    console.log('📡 [Notion Proxy] Requête ping reçue');
+    return response.status(200).json({
+      status: 'ok',
+      message: 'Notion proxy is working correctly',
+      timestamp: new Date().toISOString()
+    });
   }
   
   console.log('📥 [Notion Proxy] Traitement de la requête:', request.method, request.url);

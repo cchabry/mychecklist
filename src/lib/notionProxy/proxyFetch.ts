@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { 
   NOTION_API_BASE, 
@@ -6,8 +7,17 @@ import {
   REQUEST_TIMEOUT_MS,
   MAX_RETRY_ATTEMPTS,
   STORAGE_KEYS,
-  isProxyUrlValid
+  isProxyUrlValid,
+  getValidProxyUrl
 } from './config';
+
+// Variable globale pour suivre l'état de la dernière erreur
+const proxyStatus = {
+  lastError: null,
+  proxyFound: false,
+  pingSuccessful: false,
+  postSuccessful: false
+};
 
 /**
  * Récupère la clé API depuis les paramètres ou localStorage
@@ -25,15 +35,19 @@ const getNotionToken = (apiKey?: string): string => {
 /**
  * Vérifie si l'URL du proxy est correctement configurée
  */
-const validateProxyUrl = (): void => {
-  if (!isProxyUrlValid()) {
+const validateProxyUrl = async (): Promise<string> => {
+  try {
+    // Essayer d'obtenir une URL de proxy valide dynamiquement
+    const proxyUrl = await getValidProxyUrl();
+    console.log(`🔄 Utilisation du proxy Vercel: ${proxyUrl}`);
+    return proxyUrl;
+  } catch (error) {
     console.warn('⚠️ URL du proxy mal configurée:', VERCEL_PROXY_URL);
     toast.error('Configuration du proxy incorrecte', {
       description: 'L\'URL du proxy Vercel n\'est pas correctement configurée',
     });
     throw new Error('URL du proxy Vercel invalide');
   }
-  console.log(`🔄 Utilisation du proxy Vercel: ${VERCEL_PROXY_URL}`);
 };
 
 /**
@@ -84,25 +98,122 @@ const calculateBackoffDelay = (retryCount: number): number => {
 };
 
 /**
+ * Test complet de la configuration du proxy
+ * Cette méthode effectue plusieurs tests pour déterminer précisément où se trouve le problème
+ */
+const runProxyDiagnostic = async (): Promise<{
+  pingOk: boolean;
+  headOk: boolean;
+  postOk: boolean;
+  message: string;
+}> => {
+  const result = {
+    pingOk: false,
+    headOk: false,
+    postOk: false,
+    message: 'Diagnostic incomplet'
+  };
+  
+  try {
+    // Test 1: Ping API
+    const pingUrl = `${window.location.origin}/api/ping`;
+    try {
+      const pingResponse = await fetch(pingUrl, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      
+      result.pingOk = pingResponse.ok;
+      if (!result.pingOk) {
+        result.message = `API Vercel inaccessible (${pingResponse.status})`;
+        return result;
+      }
+    } catch (pingError) {
+      result.message = `Erreur lors du ping API: ${pingError.message}`;
+      return result;
+    }
+    
+    // Test 2: HEAD request sur le proxy
+    const proxyUrl = `${window.location.origin}/api/notion-proxy`;
+    try {
+      const headResponse = await fetch(proxyUrl, {
+        method: 'HEAD',
+        cache: 'no-store'
+      });
+      
+      // Même un 404 est considéré comme "OK" pour un HEAD car ça signifie que l'URL existe
+      result.headOk = headResponse.status !== 404;
+      if (!result.headOk) {
+        result.message = 'Le fichier api/notion-proxy.ts est introuvable (404)';
+        return result;
+      }
+    } catch (headError) {
+      // Si on a une erreur CORS, on considère quand même que le fichier existe
+      result.headOk = true;
+      console.log('HEAD proxy request resulted in error (could be CORS):', headError.message);
+    }
+    
+    // Test 3: POST request sur le proxy (le vrai test)
+    try {
+      const postResponse = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          endpoint: '/ping',
+          method: 'GET',
+          token: 'test_token_for_diagnostics'
+        })
+      });
+      
+      result.postOk = postResponse.status !== 404;
+      if (!result.postOk) {
+        result.message = 'Le proxy ne répond pas aux requêtes POST (404)';
+        return result;
+      } else if (!postResponse.ok) {
+        result.message = `Le proxy répond avec une erreur: ${postResponse.status}`;
+        return result;
+      }
+    } catch (postError) {
+      result.message = `Erreur lors de la requête POST au proxy: ${postError.message}`;
+      return result;
+    }
+    
+    // Si on arrive ici, tout a réussi
+    result.message = 'Proxy accessible et fonctionnel';
+    return result;
+  } catch (error) {
+    result.message = `Erreur lors du diagnostic: ${error.message}`;
+    return result;
+  }
+};
+
+/**
  * Vérification de l'existence du fichier proxy par une requête directe
- * Cette méthode est plus fiable que la vérification par OPTIONS qui peut être bloquée par CORS
  */
 const checkProxyExists = async (): Promise<boolean> => {
   try {
-    // Construire une URL complète pour le fichier de proxy
-    const vercelApiUrl = `${window.location.origin}/api/notion-proxy`;
-    console.log('🔍 Vérification de l\'existence du proxy à:', vercelApiUrl);
+    // Diagnostiquer le proxy
+    const diagnostic = await runProxyDiagnostic();
     
-    // Utiliser une requête HEAD qui est moins susceptible d'être bloquée par CORS
-    const response = await fetch(vercelApiUrl, {
-      method: 'HEAD',
-      cache: 'no-store'
-    });
+    // Mettre à jour l'état global du proxy
+    proxyStatus.pingSuccessful = diagnostic.pingOk;
+    proxyStatus.proxyFound = diagnostic.headOk;
+    proxyStatus.postSuccessful = diagnostic.postOk;
     
-    console.log('🔍 Statut de la vérification du proxy:', response.status);
+    console.log('📊 Diagnostic du proxy:', diagnostic);
     
-    // Si on reçoit une réponse 404, c'est que le fichier API n'existe pas
-    if (response.status === 404) {
+    if (!diagnostic.pingOk) {
+      console.error('❌ L\'API Vercel est inaccessible');
+      toast.error('API Vercel inaccessible', {
+        description: 'Vérifiez votre déploiement Vercel et sa configuration.',
+      });
+      return false;
+    }
+    
+    if (!diagnostic.headOk) {
       console.error('❌ Le fichier api/notion-proxy n\'existe pas (404)');
       toast.error('Fichier proxy manquant', {
         description: 'Le fichier api/notion-proxy.ts est introuvable sur le serveur Vercel.',
@@ -110,28 +221,21 @@ const checkProxyExists = async (): Promise<boolean> => {
       return false;
     }
     
-    return true;
-  } catch (error) {
-    // En cas d'erreur CORS, essayer une autre méthode
-    try {
-      const vercelApiUrl = `${window.location.origin}/api/notion-proxy`;
-      await fetch(vercelApiUrl, { 
-        method: 'OPTIONS',
-        mode: 'no-cors' // Contourne les erreurs CORS mais ne permet pas de lire la réponse
-      });
-      
-      // Si on arrive ici sans erreur, c'est que le fichier existe probablement
-      console.log('🔍 Proxy détecté via méthode alternative no-cors');
-      return true;
-    } catch (corsError) {
-      console.warn('❓ Vérification du proxy échouée via les deux méthodes:', corsError);
-      
-      // En cas d'erreur avec les deux méthodes, on suppose que le proxy n'existe pas
-      toast.error('Impossible de vérifier le proxy', {
-        description: 'Le fichier api/notion-proxy.ts est peut-être manquant ou inaccessible.',
+    if (!diagnostic.postOk) {
+      console.error('❌ Le proxy ne répond pas aux requêtes POST');
+      toast.error('Proxy mal configuré', {
+        description: 'Le fichier proxy existe mais ne répond pas correctement aux requêtes.',
       });
       return false;
     }
+    
+    return true;
+  } catch (error) {
+    console.warn('❓ Vérification du proxy échouée:', error);
+    toast.error('Impossible de vérifier le proxy', {
+      description: 'Le fichier api/notion-proxy.ts est peut-être mal configuré.',
+    });
+    return false;
   }
 };
 
@@ -143,31 +247,15 @@ const pingProxyServer = async (): Promise<void> => {
     // Vérifier d'abord si le fichier d'API existe
     const proxyExists = await checkProxyExists();
     if (!proxyExists) {
-      toast.error('Fichier de proxy manquant', {
-        description: 'Vérifiez que le fichier api/notion-proxy.ts est bien déployé sur Vercel.',
+      toast.error('Problème avec le proxy Notion', {
+        description: 'Vérifiez que le fichier api/notion-proxy.ts est bien déployé et configuré sur Vercel.',
       });
       return;
     }
     
-    // Tester le ping endpoint qui est plus simple
-    const pingUrl = `${window.location.origin}/api/ping`;
-    console.log(`📡 Test de ping du proxy: ${pingUrl}`);
-    
-    const pingResponse = await fetch(pingUrl, {
-      method: 'GET',
-      cache: 'no-store'
-    });
-    
-    console.log('📡 Ping du proxy réussi:', pingResponse.status);
-    
-    if (pingResponse.ok) {
-      // Le ping a réussi mais le proxy ne fonctionne pas, donc c'est un problème de configuration
-      toast.error('Erreur de configuration du proxy', {
-        description: 'Le serveur est accessible mais le proxy Notion ne répond pas correctement aux requêtes.',
-      });
-    }
+    console.log('✅ Proxy Notion accessible');
   } catch (pingError) {
-    console.error('📡 Échec du ping au proxy:', pingError);
+    console.error('📡 Échec du diagnostic du proxy:', pingError);
     toast.error('Proxy inaccessible', {
       description: 'Impossible de contacter le proxy Vercel. Vérifiez le déploiement et l\'URL.',
     });
@@ -211,6 +299,7 @@ const parseProxyResponse = async (response: Response): Promise<any> => {
  * Effectue une seule tentative d'appel au proxy
  */
 const makeProxyAttempt = async (
+  proxyUrl: string,
   proxyData: any, 
   controller: AbortController, 
   retryCount: number
@@ -228,15 +317,23 @@ const makeProxyAttempt = async (
   const requestOptions = createProxyRequestOptions(proxyData, controller);
   
   // Appeler le proxy Vercel
-  const response = await fetch(VERCEL_PROXY_URL, requestOptions);
+  const response = await fetch(proxyUrl, requestOptions);
   
   // Vérifier le statut HTTP de la réponse
   if (!response.ok) {
     console.warn(`❌ Erreur HTTP du proxy: ${response.status} ${response.statusText}`);
     
+    // Mettre à jour l'état de la dernière erreur
+    proxyStatus.lastError = {
+      status: response.status,
+      message: response.statusText
+    };
+    
     // Pour l'erreur 404, on affiche un message spécifique
     if (response.status === 404) {
-      throw new Error(`Endpoint du proxy introuvable (404). Vérifiez le déploiement Vercel.`);
+      // Une erreur 404 sur une requête POST est différente d'une 404 sur HEAD/GET
+      // Cela suggère que le fichier existe mais que le gestionnaire ne répond pas
+      throw new Error(`Endpoint du proxy introuvable (404). Vérifiez que api/notion-proxy.ts est correctement implémenté.`);
     }
     
     // Pour les erreurs 500+, on va retenter
@@ -259,8 +356,8 @@ const callProxyWithRetry = async (
   options: RequestInit, 
   token: string
 ): Promise<any> => {
-  // Vérifier la configuration du proxy
-  validateProxyUrl();
+  // Vérifier la configuration du proxy et obtenir l'URL valide
+  const proxyUrl = await validateProxyUrl();
   
   // Préparer les données pour le proxy
   const proxyData = prepareProxyData(endpoint, options, token);
@@ -276,7 +373,7 @@ const callProxyWithRetry = async (
     
     while (retryCount < MAX_RETRY_ATTEMPTS) {
       try {
-        const result = await makeProxyAttempt(proxyData, controller, retryCount);
+        const result = await makeProxyAttempt(proxyUrl, proxyData, controller, retryCount);
         clearTimeout(timeoutId);
         return result;
       } catch (attemptError) {
@@ -302,7 +399,7 @@ const callProxyWithRetry = async (
     // Si toutes les tentatives ont échoué
     console.error('❌ Échec de toutes les tentatives de connexion au proxy');
     
-    // Vérifier si le proxy est accessible via un ping simple
+    // Vérifier si le proxy est accessible via un diagnostic
     await pingProxyServer();
     
     // Lancer l'erreur originale
@@ -341,11 +438,21 @@ export const notionApiRequest = async (
     
     // Erreur 404 spécifique
     if (proxyError.message?.includes('404')) {
-      toast.error('Proxy Notion introuvable', {
-        description: 'Vérifiez que le fichier api/notion-proxy.ts est bien déployé sur Vercel.',
+      // Afficher un toast spécifique d'erreur 404
+      toast.error('Proxy Notion non opérationnel', {
+        description: 'Vérifiez que le fichier api/notion-proxy.ts est correctement déployé et configuré sur Vercel.',
       });
     }
+    
+    // Conserver l'état de la dernière erreur pour diagnostic
+    proxyStatus.lastError = {
+      message: proxyError.message,
+      stack: proxyError.stack
+    };
     
     throw proxyError;
   }
 };
+
+// Exporter l'état du proxy pour diagnostic
+export const getProxyStatus = () => ({ ...proxyStatus });
