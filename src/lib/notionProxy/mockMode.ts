@@ -19,5 +19,23 @@ export const mockMode = {
   deactivate: (): void => {
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     console.log('Mode mock Notion désactivé');
+  },
+  
+  toggle: (): boolean => {
+    const currentState = mockMode.isActive();
+    if (currentState) {
+      mockMode.deactivate();
+      return false;
+    } else {
+      mockMode.activate();
+      return true;
+    }
+  },
+  
+  reset: (): void => {
+    // Désactiver le mode mock et effacer toute erreur précédente
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+    localStorage.removeItem('notion_last_error');
+    console.log('État du mock mode réinitialisé');
   }
 };

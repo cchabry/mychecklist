@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -10,13 +10,26 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, CheckSquare } from 'lucide-react';
 import { isNotionConfigured, createProjectInNotion } from '@/lib/notion';
+import { notionApi } from '@/lib/notionProxy';
 
 const NewProject = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const usingNotion = isNotionConfigured();
+  const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
+  
+  // Vérifier l'état de l'intégration Notion au chargement
+  useEffect(() => {
+    // Vérifier si le mode mock est actif
+    if (notionApi.mockMode.isActive()) {
+      console.log('NewProject: Mode mock Notion actif');
+    } else {
+      console.log('NewProject: Mode réel Notion actif');
+    }
+    
+    setUsingNotion(isNotionConfigured());
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,9 +42,9 @@ const NewProject = () => {
     setIsSubmitting(true);
     
     try {
-      // Si Notion est configuré, créer le projet dans Notion
-      if (usingNotion) {
-        console.log('Creating project in Notion', { name, url });
+      // Si Notion est configuré et qu'on n'est pas en mode mock, créer le projet dans Notion
+      if (usingNotion && !notionApi.mockMode.isActive()) {
+        console.log('Creating project in Notion (real mode)', { name, url });
         const project = await createProjectInNotion(name, url);
         
         if (project) {
@@ -45,10 +58,11 @@ const NewProject = () => {
           });
         }
       } else {
-        // Simuler un appel API pour créer le projet si Notion n'est pas configuré
+        console.log('Creating mock project (mode mock or Notion not configured)');
+        // Simuler un appel API pour créer le projet si Notion n'est pas configuré ou en mode mock
         setTimeout(() => {
           toast.success("Projet créé avec succès", {
-            description: "Vous pouvez maintenant commencer l'audit",
+            description: "Le projet a été ajouté (en mode simulation).",
           });
           navigate('/');
         }, 1500);
@@ -92,7 +106,12 @@ const NewProject = () => {
                   <CardTitle className="text-2xl text-tmw-darkgray">Nouveau projet</CardTitle>
                   <CardDescription>
                     Créez un nouveau projet à auditer selon notre référentiel de bonnes pratiques.
-                    {usingNotion && <span className="block text-xs mt-1 text-tmw-teal">Le projet sera sauvegardé dans Notion</span>}
+                    {usingNotion && !notionApi.mockMode.isActive() && 
+                      <span className="block text-xs mt-1 text-tmw-teal">Le projet sera sauvegardé dans Notion</span>
+                    }
+                    {notionApi.mockMode.isActive() && 
+                      <span className="block text-xs mt-1 text-amber-600">Mode démonstration actif - Les données ne seront pas sauvegardées dans Notion</span>
+                    }
                   </CardDescription>
                 </div>
               </div>

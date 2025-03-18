@@ -73,6 +73,12 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       tokenType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
     });
     
+    // Commencer par désactiver le mode mock s'il était activé
+    if (notionApi.mockMode.isActive()) {
+      console.log('Désactivation du mode mock avant test de connexion');
+      notionApi.mockMode.deactivate();
+    }
+    
     // Tester la connexion à l'API Notion via notre proxy
     try {
       console.log('Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
@@ -107,11 +113,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       toast.success('Configuration Notion réussie', {
         description: 'L\'intégration avec Notion est maintenant active'
       });
-      
-      // Désactiver le mode mock si c'était activé
-      if (notionApi.mockMode.isActive()) {
-        notionApi.mockMode.deactivate();
-      }
       
       if (onSuccess) onSuccess();
       onClose();

@@ -5,25 +5,21 @@ import { MOCK_PROJECTS } from '../mockData';
 import { notionApi } from '../notionProxy';
 
 export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
-  console.info('Fetching projects from Notion, database ID:', localStorage.getItem('notion_database_id'));
+  const dbId = localStorage.getItem('notion_database_id');
+  console.info('Fetching projects from Notion, database ID:', dbId);
   
   try {
+    // Vérifier si on est en mode mock
+    if (notionApi.mockMode.isActive()) {
+      console.info('Using mock project data (mode mock active)');
+      return { projects: MOCK_PROJECTS };
+    }
+    
     const { client, dbId } = getNotionClient();
     
     if (!client || !dbId) {
       console.error('Notion client or database ID is missing');
       return { projects: [] };
-    }
-    
-    // Vérifier la connexion à l'API Notion
-    if (!(await testNotionConnection(client))) {
-      throw new Error('Failed to connect to Notion API');
-    }
-    
-    // Si le mode mock est actif, retourner les données de test
-    if (notionApi.mockMode.isActive()) {
-      console.info('Using mock project data');
-      return { projects: MOCK_PROJECTS };
     }
     
     // Récupérer la clé API
@@ -32,12 +28,30 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
       throw new Error('API key is missing');
     }
     
+    // Vérifier la connexion à l'API Notion
+    try {
+      // Test simple de la connexion
+      await notionApi.users.me(apiKey);
+      console.log('Notion connection verified via proxy');
+    } catch (connError) {
+      console.error('Failed to connect to Notion API:', connError);
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401')) {
+        notionApi.mockMode.activate();
+        console.info('Switching to mock data due to connection error');
+        return { projects: MOCK_PROJECTS };
+      }
+      throw connError;
+    }
+    
     // Utiliser notre proxy pour interroger la base de données
+    console.log('Requesting database query via proxy...');
     const response = await notionApi.databases.query(dbId, {}, apiKey);
     
     if (!response || !response.results) {
       throw new Error('Invalid response from Notion API');
     }
+    
+    console.log(`Notion API returned ${response.results.length} projects`);
     
     // Mapper les résultats en projets
     const projects: ProjectData[] = response.results.map((page: any) => {
@@ -61,7 +75,7 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
     console.error('Erreur lors de la récupération des projets depuis Notion:', error);
     
     // Si le mode mock est activé ou si c'est une erreur de type 'Failed to fetch', utiliser les données de test
-    if (error.message?.includes('Failed to fetch') || notionApi.mockMode.isActive()) {
+    if (error.message?.includes('Failed to fetch')) {
       console.info('Switching to mock data due to API error');
       notionApi.mockMode.activate();
       return { projects: MOCK_PROJECTS };
@@ -75,13 +89,19 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
 // Récupérer un projet par son ID
 export const getProjectById = async (id: string): Promise<ProjectData | null> => {
   try {
+    // Vérifier si on est en mode mock
+    if (notionApi.mockMode.isActive()) {
+      console.log('Getting mock project by ID (mode mock active):', id);
+      const mockProject = MOCK_PROJECTS.find(project => project.id === id);
+      return mockProject || null;
+    }
+    
     // Vérifier si Notion est configuré
     const { client, dbId } = getNotionClient();
     
-    if (!client || !dbId || notionApi.mockMode.isActive()) {
-      // Utiliser les données de test en cas d'absence de configuration ou en mode mock
-      const mockProject = MOCK_PROJECTS.find(project => project.id === id);
-      return mockProject || null;
+    if (!client || !dbId) {
+      console.error('Notion client or database ID is missing');
+      return null;
     }
     
     // Récupérer la clé API
@@ -90,7 +110,23 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
       throw new Error('API key is missing');
     }
     
+    // Tester la connexion avant de continuer
+    try {
+      await notionApi.users.me(apiKey);
+      console.log('Notion connection verified before getting project');
+    } catch (connError) {
+      console.error('Connection test failed:', connError);
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401')) {
+        notionApi.mockMode.activate();
+        console.log('Switching to mock mode due to connection error');
+        const mockProject = MOCK_PROJECTS.find(project => project.id === id);
+        return mockProject || null;
+      }
+      throw connError;
+    }
+    
     // Utiliser notre proxy pour récupérer la page spécifique
+    console.log('Requesting page from Notion:', id);
     const response = await notionApi.pages.retrieve(id, apiKey);
     
     if (!response) {
@@ -115,8 +151,10 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
   } catch (error) {
     console.error('Erreur lors de la récupération du projet depuis Notion:', error);
     
-    // En cas d'erreur, utiliser les données de test
-    if (notionApi.mockMode.isActive()) {
+    // En cas d'erreur de connexion, utiliser les données de test
+    if (error.message?.includes('Failed to fetch')) {
+      notionApi.mockMode.activate();
+      console.log('Switching to mock mode due to fetch error');
       const mockProject = MOCK_PROJECTS.find(project => project.id === id);
       return mockProject || null;
     }
@@ -128,17 +166,9 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
 // Créer un nouveau projet dans Notion
 export const createProjectInNotion = async (name: string, url: string): Promise<ProjectData | null> => {
   try {
-    // Vérifier si Notion est configuré
-    const { client, dbId } = getNotionClient();
-    
-    if (!client || !dbId) {
-      console.error('Notion client or database ID is missing');
-      return null;
-    }
-    
-    // Si mode mock, retourner un projet fictif
+    // Vérifier si on est en mode mock
     if (notionApi.mockMode.isActive()) {
-      console.info('Using mock mode for project creation');
+      console.info('Creating mock project (mode mock active)');
       const newMockProject: ProjectData = {
         id: `project-${Date.now()}`,
         name,
@@ -154,10 +184,49 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       return newMockProject;
     }
     
+    // Vérifier si Notion est configuré
+    const { client, dbId } = getNotionClient();
+    
+    if (!client || !dbId) {
+      console.error('Notion client or database ID is missing');
+      return null;
+    }
+    
     // Récupérer la clé API
     const apiKey = localStorage.getItem('notion_api_key');
     if (!apiKey) {
       throw new Error('API key is missing');
+    }
+    
+    // Tester la connexion avant de créer
+    try {
+      await notionApi.users.me(apiKey);
+      console.log('Notion connection verified before creating project');
+      
+      // Tester l'accès à la base de données
+      await notionApi.databases.retrieve(dbId, apiKey);
+      console.log('Database access verified:', dbId);
+    } catch (connError) {
+      console.error('Connection test failed:', connError);
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401')) {
+        notionApi.mockMode.activate();
+        console.log('Switching to mock mode due to connection error');
+        
+        const newMockProject: ProjectData = {
+          id: `project-${Date.now()}`,
+          name,
+          url,
+          description: 'Projet créé en mode démonstration (après échec de connexion)',
+          status: 'Non démarré',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          progress: 0,
+          itemsCount: 15
+        };
+        
+        return newMockProject;
+      }
+      throw connError;
     }
     
     // Préparer les propriétés pour la création
@@ -194,6 +263,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     };
     
     // Créer la page dans Notion via le proxy
+    console.log('Creating project in Notion database:', dbId);
     const response = await notionApi.pages.create({
       parent: { database_id: dbId },
       properties
@@ -202,6 +272,8 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     if (!response || !response.id) {
       throw new Error('Failed to create project in Notion');
     }
+    
+    console.log('Project created successfully in Notion:', response.id);
     
     // Convertir la réponse en projet
     const newProject: ProjectData = {
@@ -223,6 +295,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     // Activer le mode mock en cas d'échec et retourner un projet fictif
     if (error.message?.includes('Failed to fetch')) {
       notionApi.mockMode.activate();
+      console.log('Switching to mock mode due to fetch error');
       
       const newMockProject: ProjectData = {
         id: `project-${Date.now()}`,

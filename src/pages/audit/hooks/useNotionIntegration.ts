@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
@@ -21,7 +20,7 @@ export const useNotionIntegration = () => {
       if (usingNotion) {
         try {
           // Vérifier si le proxy est correctement déployé
-          const proxyIsWorking = await verifyProxyDeployment(true);
+          const proxyIsWorking = await verifyProxyDeployment(false);
           
           if (!proxyIsWorking) {
             console.warn('⚠️ Proxy Notion non opérationnel, activation du mode démo');
@@ -43,21 +42,17 @@ export const useNotionIntegration = () => {
                 }
               });
             }
-          } else if (notionApi.mockMode.isActive()) {
-            // Le proxy fonctionne mais on est en mode mock, on peut essayer de le désactiver
-            toast.info('Mode démonstration Notion actif', {
-              description: 'L\'application utilise des données de test. Le proxy Notion semble fonctionnel, vous pouvez essayer de désactiver le mode démo.',
-              duration: 8000,
-              action: {
-                label: 'Désactiver',
-                onClick: () => {
-                  notionApi.mockMode.deactivate();
-                  toast.success('Mode démonstration désactivé', {
-                    description: 'L\'application utilise maintenant des données réelles de Notion.'
-                  });
-                }
-              }
-            });
+          } else {
+            // Le proxy fonctionne, désactiver le mode mock s'il est actif
+            if (notionApi.mockMode.isActive()) {
+              console.log('Proxy opérationnel, désactivation du mode mock');
+              notionApi.mockMode.deactivate();
+              toast.success('Connexion Notion rétablie', {
+                description: 'L\'application utilise maintenant des données réelles depuis Notion'
+              });
+            } else {
+              console.log('Proxy opérationnel, mode réel déjà actif');
+            }
           }
         } catch (error) {
           console.error('Erreur lors de la vérification du proxy:', error);

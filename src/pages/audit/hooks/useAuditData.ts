@@ -32,9 +32,13 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       let projectData = null;
       let auditData = null;
       
+      console.log('Loading project', projectId, 'usingNotion:', usingNotion, 'mockMode:', notionApi.mockMode.isActive());
+      
       // Try to load from Notion if configured and not in mock mode
       if (usingNotion && !notionApi.mockMode.isActive()) {
         try {
+          console.log('Attempting to load project from Notion');
+          
           // Use notionProxy API instead of direct client calls
           const apiKey = localStorage.getItem('notion_api_key');
           const dbId = localStorage.getItem('notion_database_id');
@@ -48,9 +52,11 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
               
               // Then try to get project data
               projectData = await getNotionProject(projectId);
+              console.log('Project data from Notion:', projectData);
               
               if (projectData) {
                 auditData = await getAuditForProject(projectId);
+                console.log('Audit data from Notion:', auditData);
               }
             } catch (proxyError) {
               console.error('Notion proxy error:', proxyError);
@@ -103,6 +109,7 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
         // Successfully loaded from Notion
         setProject(projectData);
         setAudit(auditData);
+        console.log('Successfully loaded data from Notion:', { project: projectData, audit: auditData });
       }
       
       setLoading(false);
@@ -144,7 +151,9 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       if (usingNotion && !notionApi.mockMode.isActive()) {
         // Sauvegarder dans Notion
         try {
+          console.log('Attempting to save audit to Notion:', audit);
           success = await saveAuditToNotion(audit);
+          console.log('Save to Notion result:', success);
         } catch (error) {
           console.error('Erreur lors de la sauvegarde dans Notion:', error);
           
@@ -169,6 +178,7 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
           }
         }
       } else {
+        console.log('Using mock save mode');
         // Simulation locale de sauvegarde
         success = true;
       }
