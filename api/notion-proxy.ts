@@ -8,7 +8,7 @@ const NOTION_API_BASE = 'https://api.notion.com/v1';
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
     console.log('Notion proxy received request:', request.method, request.url);
-    console.log('Request headers:', request.headers);
+    console.log('Request headers:', JSON.stringify(request.headers, null, 2));
     
     // Enable CORS for development
     response.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -22,7 +22,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return response.status(200).end();
     }
     
-    // Gérer les requêtes GET pour tester le proxy
+    // Handle GET request for testing the proxy
     if (request.method === 'GET') {
       console.log('Handling GET request to notion-proxy');
       return response.status(200).json({
@@ -33,25 +33,27 @@ export default async function handler(request: VercelRequest, response: VercelRe
       });
     }
 
-    // Gérer les requêtes POST pour effectuer des appels à Notion
+    // Handle POST request for making calls to Notion
     if (request.method === 'POST') {
       console.log('Handling POST request to notion-proxy');
-      console.log('Request body type:', typeof request.body);
+      console.log('Request body:', typeof request.body, request.body ? 'has content' : 'is empty');
       
-      // Vérifier que le body est bien présent
+      // Check that the body is present
       if (!request.body) {
-        console.log('Request body is missing');
+        console.error('Request body is missing');
         return response.status(400).json({
           error: 'Missing request body'
         });
       }
       
-      // Ensure body is parsed as JSON if it's a string
+      // Parse body if it's a string
       let parsedBody;
       try {
         parsedBody = typeof request.body === 'string' 
           ? JSON.parse(request.body) 
           : request.body;
+        
+        console.log('Parsed body:', JSON.stringify(parsedBody, null, 2));
       } catch (parseError) {
         console.error('Failed to parse request body:', parseError);
         return response.status(400).json({
@@ -60,60 +62,56 @@ export default async function handler(request: VercelRequest, response: VercelRe
       }
       
       const { endpoint, method, body, token } = parsedBody;
-      console.log('Request body parsed:', { 
+      console.log('Request parameters:', { 
         endpoint, 
         method, 
-        hasBody: !!body, 
-        hasToken: !!token,
-        tokenLength: token ? token.length : 0
+        bodyPresent: !!body, 
+        tokenPresent: !!token 
       });
 
-      // Valider les paramètres
+      // Validate parameters
       if (!endpoint) {
-        console.log('Missing endpoint parameter');
+        console.error('Missing endpoint parameter');
         return response.status(400).json({
           error: 'Missing required parameter: endpoint'
         });
       }
 
       if (!token) {
-        console.log('Missing token parameter');
+        console.error('Missing token parameter');
         return response.status(400).json({
           error: 'Missing required parameter: token'
         });
       }
 
-      // Construire l'URL complète de l'API Notion
+      // Build full Notion API URL
       const targetUrl = `${NOTION_API_BASE}${endpoint}`;
-      console.log(`Constructed target URL: ${targetUrl}`);
+      console.log(`Target URL: ${targetUrl}`);
 
-      // Préparer les headers pour l'API Notion
+      // Prepare headers for Notion API
       const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`,
         'Notion-Version': NOTION_API_VERSION,
         'Content-Type': 'application/json'
       };
       
-      // Logging request details
-      console.log(`Making ${method || 'GET'} request to Notion API at: ${targetUrl}`);
-      console.log('With headers:', Object.keys(headers).join(', '));
-
-      // Effectuer la requête vers l'API Notion
+      console.log(`Making ${method || 'GET'} request to Notion API`);
+      
+      // Make request to Notion API
       try {
-        console.log(`Proxying request to: ${targetUrl}`);
         const notionResponse = await fetch(targetUrl, {
           method: method || 'GET',
           headers,
           body: body ? JSON.stringify(body) : undefined
         });
         
-        console.log(`Response from Notion API: status ${notionResponse.status}`);
+        console.log('Notion API response status:', notionResponse.status);
         
-        // Récupérer le corps de la réponse
+        // Get response body
         let responseData;
         try {
           responseData = await notionResponse.json();
-          console.log('Response data received:', typeof responseData);
+          console.log('Response data type:', typeof responseData);
         } catch (jsonError) {
           console.error('Failed to parse response as JSON:', jsonError);
           const textResponse = await notionResponse.text();
@@ -121,7 +119,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
           return response.status(notionResponse.status).send(textResponse);
         }
 
-        // Renvoyer la réponse de l'API Notion
+        // Return Notion API response
         return response.status(notionResponse.status).json(responseData);
       } catch (fetchError) {
         console.error('Fetch error when calling Notion API:', fetchError);
@@ -132,8 +130,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       }
     }
 
-    // Méthode non supportée
-    console.log(`Unsupported method: ${request.method}`);
+    // Method not supported
+    console.error(`Unsupported method: ${request.method}`);
     return response.status(405).json({
       error: 'Method not allowed',
       message: 'This endpoint only supports GET and POST methods'
