@@ -22,9 +22,9 @@ const Index = () => {
       if (usingNotion) {
         setLoading(true);
         try {
-          const notionProjects = await getProjectsFromNotion();
-          if (notionProjects && notionProjects.length > 0) {
-            setProjects(notionProjects);
+          const notionProjectsData = await getProjectsFromNotion();
+          if (notionProjectsData && notionProjectsData.projects && notionProjectsData.projects.length > 0) {
+            setProjects(notionProjectsData.projects);
           }
         } catch (error) {
           console.error('Erreur lors du chargement des projets depuis Notion:', error);
