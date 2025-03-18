@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { verifyProxyDeployment } from '@/lib/notionProxy/config';
@@ -11,6 +11,29 @@ const NotionDeploymentChecker: React.FC = () => {
     isWorking?: boolean;
     message?: string;
   } | null>(null);
+  
+  // Vérifie l'état du déploiement au chargement initial une seule fois
+  useEffect(() => {
+    const checkDeploymentOnLoad = async () => {
+      // Seulement vérifier si nous avons une clé API configurée
+      const apiKey = localStorage.getItem('notion_api_key');
+      if (apiKey) {
+        // On ne montre pas l'indicateur de chargement pour le check initial
+        try {
+          const isWorking = await verifyProxyDeployment(false, apiKey);
+          if (isWorking) {
+            console.log("Proxy deployment verification on load: SUCCESS");
+          } else {
+            console.log("Proxy deployment verification on load: FAILED");
+          }
+        } catch (error) {
+          console.error("Initial proxy verification failed:", error);
+        }
+      }
+    };
+    
+    checkDeploymentOnLoad();
+  }, []);
   
   const checkDeployment = async () => {
     setIsChecking(true);
