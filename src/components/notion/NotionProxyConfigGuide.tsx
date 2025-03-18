@@ -4,9 +4,72 @@ import { Server, FileCode, Info, Github, Settings, ArrowDown, Loader2, ExternalL
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
+import { toast } from 'sonner';
 
 const NotionProxyConfigGuide: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
+  
+  // Vérifier si nous sommes dans un environnement de développement local
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  // Déterminer le contexte d'exécution (local, Vercel, Netlify, etc.)
+  const getDeploymentContext = () => {
+    if (isLocalDev) {
+      return 'développement local';
+    } else if (window.location.hostname.includes('vercel.app')) {
+      return 'Vercel';
+    } else if (window.location.hostname.includes('netlify.app')) {
+      return 'Netlify';
+    } else {
+      return 'production';
+    }
+  };
+  
+  // Tester un endpoint spécifique
+  const testEndpoint = async (endpoint: string, method: 'GET' | 'POST' = 'GET') => {
+    setTestingEndpoint(endpoint);
+    
+    try {
+      let response;
+      let result;
+      
+      if (method === 'GET') {
+        response = await fetch(`${window.location.origin}${endpoint}`);
+        result = await response.text();
+      } else if (method === 'POST') {
+        response = await fetch(`${window.location.origin}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            endpoint: '/ping',
+            method: 'GET',
+            token: 'test_token_for_manual_test'
+          })
+        });
+        result = await response.text();
+      }
+      
+      if (response.ok) {
+        toast.success(`Test réussi: ${endpoint}`, {
+          description: `Statut: ${response.status}. Réponse reçue.`
+        });
+      } else {
+        toast.error(`Erreur ${response.status}: ${endpoint}`, {
+          description: `Le endpoint a répondu avec un statut ${response.status}`
+        });
+      }
+    } catch (error) {
+      console.error(`Erreur lors du test de ${endpoint}:`, error);
+      toast.error(`Échec du test: ${endpoint}`, {
+        description: error instanceof Error ? error.message : 'Erreur inconnue'
+      });
+    } finally {
+      setTestingEndpoint(null);
+    }
+  };
   
   return (
     <>
@@ -130,70 +193,105 @@ const NotionProxyConfigGuide: React.FC = () => {
               </h3>
               
               <p className="text-sm text-green-700 mb-3">
-                Cliquez sur les boutons ci-dessous pour tester chaque endpoint. Une nouvelle fenêtre s'ouvrira avec le résultat.
+                {isLocalDev ? (
+                  <span className="text-amber-600 font-medium">
+                    Attention: Vous êtes en environnement de développement local ({window.location.origin}). 
+                    Les fonctions serverless ne fonctionneront pas sans configuration supplémentaire.
+                  </span>
+                ) : (
+                  <span>
+                    Vous êtes en environnement {getDeploymentContext()} ({window.location.origin}).
+                    Cliquez sur les boutons ci-dessous pour tester chaque endpoint.
+                  </span>
+                )}
               </p>
+              
+              <div className="space-y-2 mb-4">
+                <p className="text-xs text-amber-600 italic">
+                  Note: Les erreurs 404 indiquent que les fonctions serverless ne sont pas correctement déployées ou configurées.
+                </p>
+              </div>
               
               <div className="flex flex-wrap gap-3">
                 <Button 
                   variant="default" 
                   className="bg-green-600 hover:bg-green-700"
-                  onClick={() => window.open(`${window.location.origin}/api/ping`, '_blank')}
+                  onClick={() => testEndpoint('/api/ping')}
+                  disabled={testingEndpoint === '/api/ping'}
                 >
-                  Tester /api/ping
+                  {testingEndpoint === '/api/ping' ? (
+                    <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
+                  ) : (
+                    <>Tester /api/ping</>
+                  )}
                 </Button>
                 
                 <Button 
                   variant="default" 
                   className="bg-blue-600 hover:bg-blue-700"
-                  onClick={() => window.open(`${window.location.origin}/api/vercel-debug`, '_blank')}
+                  onClick={() => testEndpoint('/api/vercel-debug')}
+                  disabled={testingEndpoint === '/api/vercel-debug'}
                 >
-                  Tester /api/vercel-debug
+                  {testingEndpoint === '/api/vercel-debug' ? (
+                    <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
+                  ) : (
+                    <>Tester /api/vercel-debug</>
+                  )}
                 </Button>
                 
                 <Button 
                   variant="default" 
                   className="bg-purple-600 hover:bg-purple-700"
-                  onClick={() => window.open(`${window.location.origin}/api/notion-proxy`, '_blank')}
+                  onClick={() => testEndpoint('/api/notion-proxy')}
+                  disabled={testingEndpoint === '/api/notion-proxy'}
                 >
-                  Tester /api/notion-proxy (GET)
+                  {testingEndpoint === '/api/notion-proxy' ? (
+                    <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
+                  ) : (
+                    <>Tester /api/notion-proxy (GET)</>
+                  )}
                 </Button>
                 
                 <Button 
                   variant="default" 
                   className="bg-amber-600 hover:bg-amber-700"
-                  onClick={() => {
-                    const testPostRequest = async () => {
-                      try {
-                        const response = await fetch(`${window.location.origin}/api/notion-proxy`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            endpoint: '/ping',
-                            method: 'GET',
-                            token: 'test_token_for_manual_test'
-                          })
-                        });
-                        
-                        const result = await response.text();
-                        alert(`Statut: ${response.status}\n\nRéponse: ${result}`);
-                      } catch (error) {
-                        alert(`Erreur: ${error.message}`);
-                      }
-                    };
-                    
-                    testPostRequest();
-                  }}
+                  onClick={() => testEndpoint('/api/notion-proxy', 'POST')}
+                  disabled={testingEndpoint === '/api/notion-proxy-post'}
                 >
-                  Tester /api/notion-proxy (POST)
+                  {testingEndpoint === '/api/notion-proxy-post' ? (
+                    <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
+                  ) : (
+                    <>Tester /api/notion-proxy (POST)</>
+                  )}
                 </Button>
               </div>
               
-              <p className="text-xs text-green-700 mt-4">
-                Note: Pour le test POST, le résultat s'affichera dans une alerte. Si le test échoue, essayez de consulter 
-                la console de développement du navigateur (F12) pour plus de détails sur l'erreur.
-              </p>
+              <div className="mt-4 p-3 bg-white rounded-md border border-green-200">
+                <h4 className="text-sm font-medium mb-2 text-green-700">Comment ajouter ces APIs à votre projet</h4>
+                <p className="text-xs text-gray-600 mb-2">
+                  Si vous obtenez des erreurs 404, vous devez ajouter ces fichiers à votre projet dans le dossier <code className="bg-gray-100 px-1 rounded">api/</code> à la racine.
+                </p>
+                
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">
+                    <strong>1. Créez un dossier <code className="bg-gray-100 px-1 rounded">api</code> à la racine du projet</strong>
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    <strong>2. Créez les fichiers suivants à l'intérieur:</strong>
+                  </p>
+                  <ul className="text-xs text-gray-600 space-y-1 list-disc pl-5">
+                    <li><code className="bg-gray-100 px-1 rounded">api/ping.ts</code></li>
+                    <li><code className="bg-gray-100 px-1 rounded">api/vercel-debug.ts</code></li>
+                    <li><code className="bg-gray-100 px-1 rounded">api/notion-proxy.ts</code></li>
+                  </ul>
+                  <p className="text-xs text-gray-600">
+                    <strong>3. Ajoutez le fichier <code className="bg-gray-100 px-1 rounded">vercel.json</code> à la racine du projet</strong>
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    <strong>4. Déployez les changements sur Vercel</strong>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>
