@@ -42,7 +42,8 @@ export const notionApiRequest = async (
     
     // Essayer d'utiliser le proxy Vercel d'abord
     try {
-      console.log(`Utilisation du proxy Vercel pour: ${endpoint}`, VERCEL_PROXY_URL);
+      console.log(`🔄 Tentative de connexion via proxy Vercel pour: ${endpoint}`);
+      console.log(`📍 URL du proxy utilisée: ${VERCEL_PROXY_URL}`);
       
       // Préparer les données pour le proxy
       const proxyData = {
@@ -52,6 +53,13 @@ export const notionApiRequest = async (
         body: options.body ? JSON.parse(options.body as string) : undefined
       };
       
+      console.log('📦 Données envoyées au proxy:', {
+        endpoint: proxyData.endpoint,
+        method: proxyData.method,
+        hasToken: !!proxyData.token,
+        hasBody: !!proxyData.body
+      });
+      
       // Ajouter une logique de retry pour le proxy (3 tentatives)
       let retryCount = 0;
       let proxySuccess = false;
@@ -59,14 +67,16 @@ export const notionApiRequest = async (
       while (retryCount < MAX_RETRY_ATTEMPTS && !proxySuccess) {
         try {
           if (retryCount > 0) {
-            console.log(`Tentative ${retryCount + 1} d'appel au proxy Vercel...`);
+            console.log(`🔄 Tentative ${retryCount + 1} d'appel au proxy Vercel...`);
           }
           
-          // Appeler le proxy Vercel
+          // Appeler le proxy Vercel avec les options avancées
           response = await fetch(VERCEL_PROXY_URL, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify(proxyData),
             signal: controller.signal,
@@ -77,32 +87,39 @@ export const notionApiRequest = async (
             credentials: 'omit'
           });
           
+          console.log(`📥 Réponse du proxy reçue: ${response.status} ${response.statusText}`);
+          
+          // Obtenir le texte brut de la réponse
+          const responseText = await response.text();
+          console.log(`📄 Longueur de la réponse: ${responseText.length} caractères`);
+          
+          // Tenter de parser la réponse JSON
+          try {
+            result = JSON.parse(responseText);
+            console.log('✅ Réponse JSON parsée avec succès');
+          } catch (parseError) {
+            console.error('❌ Erreur lors du parsing de la réponse:', parseError);
+            result = { text: responseText, parseError: true };
+          }
+          
           // Vérifier si la réponse est OK
           if (response.ok) {
-            result = await response.json();
+            console.log('✅ Requête au proxy réussie');
             proxySuccess = true;
-            console.log('Réponse du proxy Vercel reçue avec succès', response.status);
             break;
           } else {
-            console.warn(`Échec de la réponse du proxy (${response.status}): ${response.statusText}`);
-            const errorText = await response.text();
-            console.warn('Détails de l\'erreur:', errorText);
-            try {
-              result = JSON.parse(errorText);
-            } catch (e) {
-              result = { error: errorText || 'Impossible de lire la réponse' };
-            }
-            console.warn('Réponse d\'erreur analysée:', result);
+            console.warn(`❌ Échec de la réponse du proxy (${response.status}): ${response.statusText}`);
+            console.warn('Détails de l\'erreur:', result);
           }
         } catch (retryError) {
-          console.warn(`Erreur lors de la tentative ${retryCount + 1}:`, retryError);
+          console.warn(`❌ Erreur lors de la tentative ${retryCount + 1}:`, retryError);
         }
         
         retryCount++;
         // Attendre un peu avant de réessayer (backoff exponentiel)
         if (retryCount < MAX_RETRY_ATTEMPTS) {
           const delayMs = 1000 * Math.pow(2, retryCount - 1);
-          console.log(`Attente de ${delayMs}ms avant la prochaine tentative...`);
+          console.log(`⏱️ Attente de ${delayMs}ms avant la prochaine tentative...`);
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
       }
@@ -113,14 +130,34 @@ export const notionApiRequest = async (
         return result;
       } else {
         // Tous les essais ont échoué
-        console.error('Toutes les tentatives d\'utilisation du proxy ont échoué');
-        throw new Error('Échec de la communication avec le proxy Notion');
+        console.error('❌ Toutes les tentatives d\'utilisation du proxy ont échoué');
+        
+        // Vérifier si les réponses contiennent des erreurs spécifiques
+        if (result && (result.error || result.message)) {
+          throw new Error(`Erreur du proxy: ${result.error || result.message}`);
+        } else {
+          throw new Error('Échec de la communication avec le proxy Notion');
+        }
       }
     } catch (proxyError) {
-      console.warn('Échec de l\'utilisation du proxy:', proxyError);
+      console.warn('❌ Échec de l\'utilisation du proxy:', proxyError);
       
       // Si c'est une erreur réseau générique, proposer un message plus informatif
       if (proxyError.message?.includes('Failed to fetch')) {
+        console.error('❌ Erreur réseau détectée (Failed to fetch)');
+        
+        // Tenter de ping le proxy pour vérifier s'il est accessible
+        try {
+          const pingResponse = await fetch(`${VERCEL_PROXY_URL}/ping`, { 
+            method: 'GET',
+            mode: 'no-cors',
+            cache: 'no-store'
+          });
+          console.log('📡 Ping du proxy Vercel:', pingResponse.status);
+        } catch (pingError) {
+          console.error('📡 Échec du ping vers le proxy:', pingError);
+        }
+        
         toast.error('Erreur de connexion au proxy', {
           description: 'Impossible de se connecter au proxy Notion. Vérifiez que le proxy est déployé et accessible.',
         });
@@ -128,10 +165,11 @@ export const notionApiRequest = async (
       }
       
       // Continuer avec l'appel direct si le proxy a échoué (qui échouera probablement avec CORS)
+      console.warn('⚠️ Tentative d\'appel direct à l\'API Notion (susceptible d\'échouer avec CORS)');
     }
     
     // Appel direct à l'API Notion (qui échouera probablement avec CORS dans le navigateur)
-    console.log(`Tentative d'appel direct à l'API Notion: ${NOTION_API_BASE}${endpoint}`);
+    console.log(`🔄 Tentative d'appel direct à l'API Notion: ${NOTION_API_BASE}${endpoint}`);
     
     response = await fetch(`${NOTION_API_BASE}${endpoint}`, {
       ...options,
@@ -144,7 +182,7 @@ export const notionApiRequest = async (
     // Vérifier si la réponse est OK
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
-      console.error('Erreur API Notion:', errorData);
+      console.error('❌ Erreur API Notion:', errorData);
       
       // Gérer les codes d'erreur courants
       if (response.status === 401) {
@@ -164,7 +202,7 @@ export const notionApiRequest = async (
     
     return await response.json();
   } catch (error) {
-    console.error('Échec de la requête Notion:', error);
+    console.error('❌ Échec de la requête Notion:', error);
     
     // Gérer les erreurs spécifiques
     if (error.name === 'AbortError') {
