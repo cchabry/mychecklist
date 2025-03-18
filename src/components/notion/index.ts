@@ -8,3 +8,4 @@ export { default as NotionFetchErrorSection } from './NotionFetchErrorSection';
 export { default as NotionSolutionsSection } from './NotionSolutionsSection';
 export { default as NotionAlternativesSection } from './NotionAlternativesSection';
 export { default as NotionErrorActions } from './NotionErrorActions';
+export { default as NotionProxyConfigGuide } from './NotionProxyConfigGuide';

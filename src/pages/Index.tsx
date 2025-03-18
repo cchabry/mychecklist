@@ -1,162 +1,115 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { ArrowRight, Database, Plus } from 'lucide-react';
 import Header from '@/components/Header';
+import { Button } from '@/components/ui/button';
 import ProjectCard from '@/components/ProjectCard';
-import { MOCK_PROJECTS } from '@/lib/mockData';
-import { Plus, CheckSquare, Database } from 'lucide-react';
-import { NotionConfig } from '@/components/notion';
-import NotionGuide from '@/components/NotionGuide';
-import { isNotionConfigured, getProjectsFromNotion } from '@/lib/notion';
+import { getAllProjects } from '@/lib/mockData';
+import { isNotionConfigured } from '@/lib/notion';
+import { NotionConfig, NotionProxyConfigGuide } from '@/components/notion';
 
 const Index = () => {
-  const [projects, setProjects] = useState(MOCK_PROJECTS);
-  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
-  const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
-  const [loading, setLoading] = useState(false);
-  
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [usingNotion, setUsingNotion] = useState(false);
+
   useEffect(() => {
-    const loadProjects = async () => {
-      if (usingNotion) {
-        setLoading(true);
-        try {
-          const notionProjectsData = await getProjectsFromNotion();
-          if (notionProjectsData && notionProjectsData.projects && notionProjectsData.projects.length > 0) {
-            setProjects(notionProjectsData.projects);
-          }
-        } catch (error) {
-          console.error('Erreur lors du chargement des projets depuis Notion:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    
-    loadProjects();
-  }, [usingNotion]);
-  
-  const handleConnectNotionClick = () => {
-    setNotionConfigOpen(true);
-  };
-  
-  const handleNotionConfigSuccess = () => {
-    setUsingNotion(true);
-    // Les projets seront rechargés par l'useEffect
-  };
-  
+    // Vérifie si Notion est configuré
+    const notionConfigured = isNotionConfigured();
+    setUsingNotion(notionConfigured);
+
+    // Charge les projets (simulé avec un délai pour l'UX)
+    setTimeout(() => {
+      setProjects(getAllProjects());
+      setIsLoading(false);
+    }, 500);
+  }, []);
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-tmw-teal/5">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="flex-1 container px-4 py-8 mx-auto">
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-12 text-center"
-        >
-          <div className="inline-flex items-center justify-center mb-6">
-            <div className="bg-tmw-teal rounded-full p-3">
-              <CheckSquare size={32} className="text-white" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold mb-3 text-tmw-teal">Audits Qualité Web</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Évaluez la qualité et la conformité de vos projets web en utilisant notre référentiel de bonnes pratiques.
-          </p>
-          {usingNotion && (
-            <div className="mt-4 text-sm text-tmw-teal font-medium flex items-center justify-center gap-2">
-              <Database size={16} />
-              Connecté à Notion
-            </div>
-          )}
-        </motion.section>
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-semibold text-tmw-darkgray">Projets</h2>
-              <NotionGuide onConnectClick={handleConnectNotionClick} />
-            </div>
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
-                onClick={handleConnectNotionClick}
-              >
-                <Database size={16} />
-                {usingNotion ? 'Reconfigurer Notion' : 'Connecter à Notion'}
-              </Button>
-              
-              <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90 transition-all duration-300">
-                <Link to="/new-project">
-                  <Plus size={16} className="mr-2" />
-                  Nouveau projet
-                </Link>
-              </Button>
-            </div>
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h1>
+            <p className="text-gray-600">Gérez vos audits d'accessibilité et suivez votre progression</p>
           </div>
           
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-tmw-teal/20 shadow-sm">
-              <div className="w-16 h-16 bg-tmw-teal/20 rounded-full flex items-center justify-center mb-4 animate-pulse">
-                <Database size={24} className="text-tmw-teal" />
-              </div>
-              <h3 className="text-xl font-medium mb-2 text-tmw-darkgray">Chargement des projets</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
-                Récupération des données depuis Notion...
-              </p>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-white/50 backdrop-blur-sm rounded-2xl border border-tmw-teal/20 shadow-sm">
-              <div className="w-16 h-16 bg-tmw-coral/20 rounded-full flex items-center justify-center mb-4">
-                <Plus size={24} className="text-tmw-coral" />
-              </div>
-              <h3 className="text-xl font-medium mb-2 text-tmw-darkgray">Aucun projet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
-                Vous n'avez pas encore créé de projet à auditer. Commencez par créer votre premier projet.
-              </p>
-              <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90 transition-all duration-300">
-                <Link to="/new-project">
-                  <Plus size={16} className="mr-2" />
-                  Créer un projet
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.map((project, index) => (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 * index }}
+          <div className="flex items-center gap-3 mt-4 md:mt-0">
+            <NotionProxyConfigGuide />
+            
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
+              onClick={() => setConfigOpen(true)}
+            >
+              <Database size={16} />
+              {usingNotion ? 'Reconfigurer Notion' : 'Connecter à Notion'}
+            </Button>
+            
+            <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90">
+              <Link to="/new-project" className="flex items-center gap-2">
+                <Plus size={16} />
+                Nouveau projet
+              </Link>
+            </Button>
+          </div>
+        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="w-10 h-10 border-4 border-t-tmw-teal border-tmw-teal/30 rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project) => (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ProjectCard project={project} />
+              </motion.div>
+            ))}
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
+              <Link 
+                to="/new-project"
+                className="flex flex-col items-center justify-center h-full min-h-[200px] p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-tmw-teal hover:bg-tmw-teal/5 transition-colors"
+              >
+                <div className="w-12 h-12 rounded-full bg-tmw-teal/10 flex items-center justify-center mb-4">
+                  <Plus size={24} className="text-tmw-teal" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">Nouveau projet</h3>
+                <p className="text-sm text-gray-500 text-center">Commencez un nouvel audit d'accessibilité</p>
+                <Button 
+                  variant="link" 
+                  className="mt-4 text-tmw-teal flex items-center gap-1"
                 >
-                  <ProjectCard project={project} />
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+                  Créer un projet
+                  <ArrowRight size={16} />
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        )}
       </main>
       
-      <footer className="py-6 border-t border-tmw-teal/10 bg-background">
-        <div className="container px-4 mx-auto text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} myChecklist - Audits Qualité Web
-          <div className="mt-2 text-xs text-muted-foreground/70">by ThinkMyWeb</div>
-        </div>
-      </footer>
-      
-      <NotionConfig 
-        isOpen={notionConfigOpen} 
-        onClose={() => setNotionConfigOpen(false)}
-        onSuccess={handleNotionConfigSuccess}
+      <NotionConfig
+        isOpen={configOpen}
+        onClose={() => setConfigOpen(false)}
+        onSuccess={() => {
+          setUsingNotion(true);
+        }}
       />
     </div>
   );
