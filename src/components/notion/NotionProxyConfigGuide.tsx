@@ -28,16 +28,19 @@ const NotionProxyConfigGuide: React.FC = () => {
   
   // Tester un endpoint spécifique
   const testEndpoint = async (endpoint: string, method: 'GET' | 'POST' = 'GET') => {
-    setTestingEndpoint(endpoint);
+    const testId = method === 'POST' ? `${endpoint}-post` : endpoint;
+    setTestingEndpoint(testId);
     
     try {
       let response;
       let result;
       
       if (method === 'GET') {
+        console.log(`Testing GET ${endpoint}`);
         response = await fetch(`${window.location.origin}${endpoint}`);
         result = await response.text();
       } else if (method === 'POST') {
+        console.log(`Testing POST ${endpoint}`);
         response = await fetch(`${window.location.origin}${endpoint}`, {
           method: 'POST',
           headers: {
@@ -53,17 +56,19 @@ const NotionProxyConfigGuide: React.FC = () => {
       }
       
       if (response.ok) {
-        toast.success(`Test réussi: ${endpoint}`, {
+        toast.success(`Test réussi: ${endpoint} (${method})`, {
           description: `Statut: ${response.status}. Réponse reçue.`
         });
+        console.log(`Response from ${endpoint}:`, result);
       } else {
-        toast.error(`Erreur ${response.status}: ${endpoint}`, {
+        toast.error(`Erreur ${response.status}: ${endpoint} (${method})`, {
           description: `Le endpoint a répondu avec un statut ${response.status}`
         });
+        console.error(`Error response from ${endpoint}:`, result);
       }
     } catch (error) {
-      console.error(`Erreur lors du test de ${endpoint}:`, error);
-      toast.error(`Échec du test: ${endpoint}`, {
+      console.error(`Erreur lors du test de ${endpoint} (${method}):`, error);
+      toast.error(`Échec du test: ${endpoint} (${method})`, {
         description: error instanceof Error ? error.message : 'Erreur inconnue'
       });
     } finally {
