@@ -1,27 +1,22 @@
 
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
   "functions": {
     "api/*.ts": {
-      "memory": 1024,
-      "maxDuration": 10
+      "memory": 512,
+      "maxDuration": 5
     }
   },
   "routes": [
     {
-      "src": "/api/notion-proxy",
-      "dest": "/api/notion-proxy.ts"
-    },
-    {
       "src": "/api/ping",
-      "dest": "/api/ping.ts"
+      "dest": "/api/ping.ts",
+      "methods": ["GET", "OPTIONS"]
     },
     {
-      "src": "/api/vercel-debug",
-      "dest": "/api/vercel-debug.ts"
+      "src": "/api/notion-proxy",
+      "dest": "/api/notion-proxy.ts",
+      "methods": ["GET", "POST", "OPTIONS"]
     }
   ]
 }
