@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Server, AlertTriangle, FileCode, Info, ExternalLink } from 'lucide-react';
+import { Server, AlertTriangle, FileCode, Info, ExternalLink, Github, Settings, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 
@@ -24,8 +24,12 @@ const NotionProxyConfigSection: React.FC = () => {
             <div className="flex items-start gap-1">
               <FileCode size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
               <span>
-                <strong>Vérifiez que le fichier <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/notion-proxy.ts</code> existe</strong> dans votre projet 
-                et est correctement déployé sur Vercel.
+                <strong>Vérifiez que les fichiers API existent</strong> et sont correctement déployés sur Vercel:
+                <ul className="list-disc pl-5 mt-1 space-y-1">
+                  <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/notion-proxy.ts</code> (principal)</li>
+                  <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/ping.ts</code> (diagnostic)</li>
+                  <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/vercel-debug.ts</code> (information)</li>
+                </ul>
               </span>
             </div>
           </li>
@@ -33,20 +37,47 @@ const NotionProxyConfigSection: React.FC = () => {
           <li className="text-sm">
             <div className="flex items-start gap-1">
               <Info size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
-              <span>
-                Assurez-vous que <strong>vercel.json</strong> contient la configuration suivante:
-              </span>
-            </div>
-            <pre className="bg-slate-100 p-2 rounded text-xs mt-2 overflow-x-auto">
+              <div>
+                <span>
+                  Assurez-vous que <strong>vercel.json</strong> contient la configuration suivante:
+                </span>
+                <pre className="bg-slate-100 p-2 rounded text-xs mt-2 overflow-x-auto">
 {`{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "functions": {
+    "api/*.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
-    { "source": "/api/notion-proxy", "destination": "/api/notion-proxy.ts" }
+    { "source": "/api/notion-proxy", "destination": "/api/notion-proxy.ts" },
+    { "source": "/api/ping", "destination": "/api/ping.ts" },
+    { "source": "/api/vercel-debug", "destination": "/api/vercel-debug.ts" }
   ]
 }`}
-            </pre>
-            <div className="mt-2 text-xs text-blue-600">
-              <strong>Où trouver vercel.json:</strong> Il doit se trouver à la racine de votre projet. Si vous utilisez GitHub, 
-              vous pouvez le voir directement dans votre dépôt.
+                </pre>
+                <div className="mt-2 pt-2 border-t border-blue-100">
+                  <p className="font-medium text-blue-700 mb-1">Comment localiser et vérifier vercel.json:</p>
+                  <ol className="list-decimal pl-5 space-y-1 text-blue-600">
+                    <li className="flex items-start gap-1">
+                      <Github size={14} className="flex-shrink-0 mt-0.5" />
+                      <span>Dans votre <strong>dépôt GitHub</strong>, vérifiez à la racine du projet</span>
+                    </li>
+                    <li className="flex items-start gap-1">
+                      <Settings size={14} className="flex-shrink-0 mt-0.5" />
+                      <span>Dans le <strong>dashboard Vercel</strong>: Project → Settings → Git → Root Directory</span>
+                    </li>
+                    <li className="flex items-start gap-1">
+                      <ArrowDown size={14} className="flex-shrink-0 mt-0.5" />
+                      <span>Téléchargez le code source via: Project → Settings → Git → "Download source code"</span>
+                    </li>
+                  </ol>
+                </div>
+              </div>
             </div>
           </li>
           
@@ -61,37 +92,72 @@ const NotionProxyConfigSection: React.FC = () => {
           <li className="text-sm">
             <div className="flex items-start gap-1">
               <ExternalLink size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
-              <span>
-                Vous pouvez manuellement tester l'existence de l'endpoint en ouvrant dans un nouvel onglet: 
-                <code className="bg-slate-100 px-1 py-0.5 rounded text-xs ml-1">{window.location.origin}/api/notion-proxy</code>
-              </span>
+              <div>
+                <span>
+                  Vérifiez les fonctions serverless dans le dashboard Vercel:
+                </span>
+                <div className="bg-white p-3 rounded-md border border-blue-100 mt-2 text-xs">
+                  <p className="font-medium text-blue-800 mb-2">Où trouver les fonctions serverless dans Vercel:</p>
+                  <ol className="list-decimal pl-4 space-y-1 text-blue-700">
+                    <li>Allez dans le dashboard Vercel de votre projet</li>
+                    <li>Cliquez sur votre déploiement le plus récent</li>
+                    <li>Allez dans l'onglet "Functions"</li>
+                    <li>Vous devriez voir les 3 fonctions: <code>api/notion-proxy.ts</code>, <code>api/ping.ts</code> et <code>api/vercel-debug.ts</code></li>
+                    <li>Si elles n'apparaissent pas, votre fichier vercel.json n'est peut-être pas correctement configuré ou le déploiement n'est pas à jour</li>
+                  </ol>
+                </div>
+              </div>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-2 text-xs"
-              asChild
-            >
-              <a href={`${window.location.origin}/api/notion-proxy`} target="_blank" rel="noopener noreferrer">
-                Tester l'endpoint
-              </a>
-            </Button>
+            <div className="mt-3">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs mr-2"
+                asChild
+              >
+                <a href={`${window.location.origin}/api/ping`} target="_blank" rel="noopener noreferrer">
+                  Tester /api/ping
+                </a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs mr-2"
+                asChild
+              >
+                <a href={`${window.location.origin}/api/vercel-debug`} target="_blank" rel="noopener noreferrer">
+                  Diagnostiquer Vercel
+                </a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                asChild
+              >
+                <a href={`${window.location.origin}/api/notion-proxy`} target="_blank" rel="noopener noreferrer">
+                  Tester /api/notion-proxy
+                </a>
+              </Button>
+            </div>
           </li>
         </ol>
         
         <div className="bg-amber-50 border border-amber-200 p-3 rounded-md mt-4 text-amber-800 text-xs">
           <p className="font-medium flex items-center gap-1">
             <AlertTriangle size={14} className="flex-shrink-0" />
-            Problème courant:
+            Problème courant avec les POST:
           </p>
-          <p className="mt-1">Si vous recevez une erreur 404, cela signifie que le fichier API n'est pas correctement déployé 
-          ou n'est pas accessible via le chemin spécifié dans vercel.json.</p>
-          <p className="mt-2">Vérifiez dans votre dashboard Vercel que le fichier est bien déployé et que la configuration 
-          est correcte.</p>
+          <p className="mt-1">Si vous recevez une erreur 404 uniquement lors des requêtes POST, cela peut indiquer:</p>
+          <ul className="list-disc pl-5 mt-1 space-y-1">
+            <li>Le fichier <code>api/notion-proxy.ts</code> existe mais sa fonction handler n'est pas correctement configurée pour les requêtes POST</li>
+            <li>La configuration de <code>vercel.json</code> comporte une erreur ou n'est pas appliquée (redéployez après modification)</li>
+            <li>Vercel utilise peut-être un cache pour les fichiers API, essayez un redéploiement forcé</li>
+          </ul>
         </div>
         
         <p className="text-sm mt-4 text-blue-700">
-          En attendant la résolution du problème, l'application fonctionnera en mode démonstration avec des données de test.
+          Si vous avez bien vérifié tous ces points et que le problème persiste, essayez de forcer un redéploiement complet du projet sur Vercel.
         </p>
       </div>
     </div>
