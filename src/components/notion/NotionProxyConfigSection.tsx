@@ -14,13 +14,16 @@ const NotionProxyConfigSection: React.FC = () => {
       </p>
       <ol className="space-y-3 list-decimal pl-5">
         <li className="text-sm">
-          Suivez les instructions du fichier README.md pour déployer le projet sur Vercel
+          Vérifiez que le fichier vercel.json contient bien des "rewrites" (et non des "routes")
         </li>
         <li className="text-sm">
-          Une fois déployé, mettez à jour l'URL du proxy dans le fichier notionProxy.ts
+          Assurez-vous que le proxy est correctement déployé sur Vercel (vérifiez les logs dans le dashboard Vercel)
         </li>
         <li className="text-sm">
-          Redéployez le projet et configurez à nouveau votre connexion Notion
+          Testez le point de terminaison /api/ping pour confirmer que les fonctions serverless fonctionnent
+        </li>
+        <li className="text-sm">
+          L'URL du proxy doit correspondre au domaine de votre application déployée + /api/notion-proxy
         </li>
       </ol>
       <p className="text-sm mt-3 text-blue-700">

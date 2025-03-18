@@ -1,6 +1,6 @@
-
 import { Client } from '@notionhq/client';
 import { toast } from 'sonner';
+import { notionApi } from '../notionProxy';
 
 // Singleton Notion client instance
 let notionClient: Client | null = null;
@@ -42,20 +42,10 @@ export const configureNotion = (apiKey: string, dbId: string): boolean => {
     const cleanDbId = extractNotionDatabaseId(dbId);
     console.log('Configuring Notion client with database ID:', cleanDbId, '(original:', dbId, ')');
     
+    // Note: We're still initializing the regular Notion client for compatibility,
+    // but all requests will go through our proxy
     notionClient = new Client({ 
-      auth: apiKey,
-      // Add options to improve connectivity
-      fetch: (url, options) => {
-        console.log('Fetching Notion API:', url);
-        return fetch(url, {
-          ...options,
-          // Add additional headers if needed
-          headers: {
-            ...options?.headers,
-            'Content-Type': 'application/json',
-          }
-        });
-      }
+      auth: apiKey
     });
     
     databaseId = cleanDbId;
@@ -130,22 +120,31 @@ export const notionPropertyExtractors = {
 };
 
 /**
- * Test Notion API connection
+ * Test Notion API connection - USING PROXY now
  */
 export const testNotionConnection = async (client: Client): Promise<boolean> => {
   try {
-    console.log('Testing Notion API connection...');
-    const test = await client.users.me({});
-    console.log('Notion API connection successful, user:', test.name);
+    console.log('Testing Notion API connection via proxy...');
     
-    // Assume notionClient is not null here
+    // Get API Key from localStorage (same as in the client)
+    const apiKey = localStorage.getItem('notion_api_key');
+    if (!apiKey) {
+      console.error('No API key found');
+      return false;
+    }
+    
+    // Use our proxy instead of direct Notion client
+    const userResponse = await notionApi.users.me(apiKey);
+    console.log('Notion API connection successful via proxy, user:', userResponse.name);
+    
+    // Check database access
     const { dbId } = getNotionClient();
     
     if (dbId) {
       try {
         console.log('Testing database access with ID:', dbId);
-        await client.databases.retrieve({ database_id: dbId });
-        console.log('Database access successful');
+        await notionApi.databases.retrieve(dbId, apiKey);
+        console.log('Database access successful via proxy');
       } catch (dbError) {
         console.error('Database access failed:', dbError);
         toast.error('Erreur d\'accès à la base de données', {
@@ -159,10 +158,20 @@ export const testNotionConnection = async (client: Client): Promise<boolean> => 
   } catch (testError) {
     console.error('Notion API connection test failed:', testError);
     
-    // Afficher un message approprié selon l'erreur
+    // Show appropriate message based on the error
     if (testError.message?.includes('401')) {
       toast.error('Clé API Notion invalide', {
         description: 'Vérifiez votre clé d\'intégration Notion'
+      });
+    } else if (testError.message?.includes('Failed to fetch')) {
+      toast.error('Erreur de connexion au proxy Notion', {
+        description: 'Vérifiez que le proxy est correctement déployé sur Vercel'
+      });
+      
+      // Activate mock mode automatically when proxy fails
+      notionApi.mockMode.activate();
+      toast.info('Mode démo activé', {
+        description: 'L\'application fonctionne avec des données de test'
       });
     } else {
       toast.error('Erreur de connexion à Notion API', {

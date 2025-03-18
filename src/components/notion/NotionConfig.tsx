@@ -26,17 +26,22 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     const cleanDbId = extractNotionDatabaseId(databaseId);
     console.log('Using database ID:', cleanDbId, '(original:', databaseId, ')');
     
-    // Tester la connexion à l'API Notion
+    // Tester la connexion à l'API Notion via notre proxy
     try {
       console.log('Testing connection to Notion API with key:', apiKey.substring(0, 5) + '...');
+      
+      // Configurer Notion d'abord pour définir les valeurs dans localStorage
+      configureNotion(apiKey, cleanDbId);
+      
+      // Tester la connexion via le proxy
       const user = await notionApi.users.me(apiKey);
-      console.log('Notion API connection successful, user:', user.name);
+      console.log('Notion API connection successful via proxy, user:', user.name);
       
       // Tester l'accès à la base de données
       try {
         console.log('Testing database access for ID:', cleanDbId);
         await notionApi.databases.retrieve(cleanDbId, apiKey);
-        console.log('Database access successful');
+        console.log('Database access successful via proxy');
       } catch (dbError) {
         console.error('Database access failed:', dbError);
         setError('Erreur d\'accès à la base de données: ' + (dbError.message || 'Vérifiez l\'ID et les permissions'));
@@ -44,32 +49,33 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
         throw dbError;
       }
       
-      // Si tous les tests réussissent, configurer Notion
-      const success = configureNotion(apiKey, cleanDbId);
+      // Si tous les tests réussissent
+      toast.success('Configuration Notion réussie', {
+        description: 'L\'intégration avec Notion est maintenant active'
+      });
       
-      if (success) {
-        toast.success('Configuration Notion réussie', {
-          description: 'L\'intégration avec Notion est maintenant active'
-        });
-        if (onSuccess) onSuccess();
-        onClose();
-      } else {
-        setError('Erreur lors de la configuration');
-        setErrorContext('Sauvegarde de la configuration');
-        throw new Error('Configuration error');
+      // Désactiver le mode mock si c'était activé
+      if (notionApi.mockMode.isActive()) {
+        notionApi.mockMode.deactivate();
       }
+      
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (connectionError) {
       console.error('Connection test failed:', connectionError);
       
       // Traitement spécifique pour "Failed to fetch"
       if (connectionError.message?.includes('Failed to fetch')) {
         setError('Échec de la connexion à Notion: ' + connectionError.message);
-        setErrorContext('Erreur CORS - Les limitations de sécurité du navigateur empêchent la connexion directe à l\'API Notion');
-        // Configurer quand même pour permettre la démo avec les données mockées
-        configureNotion(apiKey, cleanDbId);
+        setErrorContext('Problème de connexion au proxy - Vérifiez que le proxy Vercel est correctement déployé');
+        
+        // Activer le mode mock
+        notionApi.mockMode.activate();
         toast.warning('Mode démonstration activé', {
           description: 'Impossible de se connecter à l\'API Notion. L\'application utilisera des données de test.'
         });
+        
+        // Considérer comme un succès (avec mock data)
         if (onSuccess) onSuccess();
         
         // Montrer la popup de détails d'erreur
@@ -77,7 +83,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       } else {
         setError('Échec de la connexion à Notion: ' + (connectionError.message || 'Vérifiez votre clé API'));
         setErrorContext('Test de connexion à l\'API Notion');
-        throw connectionError;
       }
     }
   };

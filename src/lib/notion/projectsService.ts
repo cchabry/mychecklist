@@ -1,183 +1,71 @@
 
-import { Client } from '@notionhq/client';
-import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { Project } from './types';
-import { getNotionClient, testNotionConnection, notionPropertyExtractors } from './notionClient';
+import { getNotionClient, testNotionConnection } from './notionClient';
+import { ProjectData, ProjectsData } from './types';
+import { mockProjects } from '../mockData';
+import { notionApi } from '../notionProxy';
 
-/**
- * Fetches all projects from Notion
- */
-export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
-  const { client, dbId } = getNotionClient();
-  if (!client || !dbId) return null;
+export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
+  console.info('Fetching projects from Notion, database ID:', localStorage.getItem('notion_database_id'));
   
   try {
-    console.log('Fetching projects from Notion, database ID:', dbId);
+    const { client, dbId } = getNotionClient();
     
-    // Test the connection
-    const connectionOk = await testNotionConnection(client);
-    if (!connectionOk) throw new Error('Failed to connect to Notion API');
-    
-    const response = await client.databases.query({
-      database_id: dbId
-    });
-    
-    console.log('Notion response:', response.results.length, 'results');
-    
-    if (response.results.length === 0) return [];
-    
-    // Convert Notion results to projects
-    const projects: Project[] = [];
-    const { getRichTextValue, getTitleValue, getUrlValue, getNumberValue } = notionPropertyExtractors;
-    
-    for (const page of response.results as PageObjectResponse[]) {
-      if (!('properties' in page)) continue;
-      
-      const properties = page.properties;
-      console.log('Processing page with properties:', Object.keys(properties));
-      
-      // Create project object
-      try {
-        const project: Project = {
-          id: getRichTextValue(properties.id) || page.id, // Use Notion ID as fallback
-          name: getTitleValue(properties.name) || getTitleValue(properties.Name) || 'Projet sans nom',
-          url: getUrlValue(properties.url) || getUrlValue(properties.URL) || '',
-          createdAt: page.created_time || new Date().toISOString(),
-          updatedAt: page.last_edited_time || new Date().toISOString(),
-          progress: getNumberValue(properties.progress) || getNumberValue(properties.Progress),
-          itemsCount: getNumberValue(properties.itemsCount) || getNumberValue(properties.ItemsCount) || 0
-        };
-        
-        console.log('Added project:', project.name);
-        projects.push(project);
-      } catch (projectError) {
-        console.error('Erreur lors de la création du projet:', projectError);
-      }
+    if (!client || !dbId) {
+      console.error('Notion client or database ID is missing');
+      return { projects: [] };
     }
     
-    return projects;
+    // Vérifier la connexion à l'API Notion
+    if (!(await testNotionConnection(client))) {
+      throw new Error('Failed to connect to Notion API');
+    }
+    
+    // Si le mode mock est actif, retourner les données de test
+    if (notionApi.mockMode.isActive()) {
+      console.info('Using mock project data');
+      return { projects: mockProjects };
+    }
+    
+    // Récupérer la clé API
+    const apiKey = localStorage.getItem('notion_api_key');
+    if (!apiKey) {
+      throw new Error('API key is missing');
+    }
+    
+    // Utiliser notre proxy pour interroger la base de données
+    const response = await notionApi.databases.query(dbId, {}, apiKey);
+    
+    if (!response || !response.results) {
+      throw new Error('Invalid response from Notion API');
+    }
+    
+    // Mapper les résultats en projets
+    const projects: ProjectData[] = response.results.map((page: any) => {
+      const properties = page.properties;
+      
+      return {
+        id: page.id,
+        title: properties.Name?.title?.[0]?.plain_text || 'Sans titre',
+        description: properties.Description?.rich_text?.[0]?.plain_text || '',
+        status: properties.Status?.select?.name || 'Non démarré',
+        createdAt: new Date(page.created_time).toLocaleDateString(),
+        updatedAt: new Date(page.last_edited_time).toLocaleDateString(),
+        progress: properties.Progress?.number || 0
+      };
+    });
+    
+    return { projects };
   } catch (error) {
     console.error('Erreur lors de la récupération des projets depuis Notion:', error);
-    return null;
-  }
-};
-
-/**
- * Gets a specific project by ID
- */
-export const getProjectById = async (projectId: string): Promise<Project | null> => {
-  const { client, dbId } = getNotionClient();
-  if (!client || !dbId) return null;
-  
-  try {
-    const response = await client.databases.query({
-      database_id: dbId,
-      filter: {
-        property: 'id',
-        rich_text: {
-          equals: projectId
-        }
-      }
-    });
     
-    if (response.results.length === 0) return null;
-    
-    // Ensure we have a complete page response
-    const page = response.results[0] as PageObjectResponse;
-    
-    if (!('properties' in page)) {
-      console.error('Invalid page response from Notion');
-      return null;
+    // Si le mode mock est activé ou si c'est une erreur de type 'Failed to fetch', utiliser les données de test
+    if (error.message?.includes('Failed to fetch') || notionApi.mockMode.isActive()) {
+      console.info('Switching to mock data due to API error');
+      notionApi.mockMode.activate();
+      return { projects: mockProjects };
     }
     
-    const properties = page.properties;
-    const { getRichTextValue, getTitleValue, getUrlValue, getNumberValue } = notionPropertyExtractors;
-    
-    // Adapt Notion format to app format
-    return {
-      id: getRichTextValue(properties.id),
-      name: getTitleValue(properties.name),
-      url: getUrlValue(properties.url),
-      createdAt: page.created_time || new Date().toISOString(),
-      updatedAt: page.last_edited_time || new Date().toISOString(),
-      progress: getNumberValue(properties.progress),
-      itemsCount: getNumberValue(properties.itemsCount)
-    };
-  } catch (error) {
-    console.error('Erreur lors de la récupération du projet:', error);
-    return null;
-  }
-};
-
-/**
- * Creates a new project in Notion
- */
-export const createProjectInNotion = async (name: string, url: string): Promise<Project | null> => {
-  const { client, dbId } = getNotionClient();
-  if (!client || !dbId) return null;
-  
-  try {
-    console.log('Creating project in Notion:', { name, url, databaseId: dbId });
-    
-    // Test connection
-    const connectionOk = await testNotionConnection(client);
-    if (!connectionOk) throw new Error('Failed to connect to Notion API');
-    
-    // Generate a unique ID for the project
-    const projectId = `project-${Date.now()}`;
-    const creationTime = new Date().toISOString();
-    
-    // Create a new page (project) in the Notion database
-    const response = await client.pages.create({
-      parent: {
-        database_id: dbId
-      },
-      properties: {
-        // Adapt these properties to your database structure
-        "name": {
-          title: [
-            {
-              text: {
-                content: name
-              }
-            }
-          ]
-        },
-        "id": {
-          rich_text: [
-            {
-              text: {
-                content: projectId
-              }
-            }
-          ]
-        },
-        "url": {
-          url: url
-        },
-        "progress": {
-          number: 0
-        },
-        "itemsCount": {
-          number: 0
-        }
-      }
-    });
-    
-    console.log('Project created in Notion:', response.id);
-    
-    // Return the created project with current timestamps
-    return {
-      id: projectId,
-      name: name,
-      url: url,
-      createdAt: creationTime,
-      updatedAt: creationTime,
-      progress: 0,
-      itemsCount: 0
-    };
-  } catch (error) {
-    console.error('Erreur lors de la création du projet dans Notion:', error);
-    return null;
+    // Propager l'erreur pour d'autres types d'erreurs
+    throw error;
   }
 };

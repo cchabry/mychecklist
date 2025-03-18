@@ -8,8 +8,8 @@ export const NOTION_API_BASE = 'https://api.notion.com/v1';
 // Cette URL sera automatiquement déterminée en fonction de l'environnement
 export const VERCEL_PROXY_URL = 
   process.env.NODE_ENV === 'production'
-    ? 'https://mychecklist-sigma.vercel.app/api/notion-proxy'
-    : 'https://mychecklist-sigma.vercel.app/api/notion-proxy';
+    ? `${window.location.origin}/api/notion-proxy`
+    : `${window.location.origin}/api/notion-proxy`;
 
 // Notion API version
 export const NOTION_API_VERSION = '2022-06-28';
