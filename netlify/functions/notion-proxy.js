@@ -150,9 +150,19 @@ exports.handler = async (event, context) => {
       const targetUrl = `${NOTION_API_BASE}${endpoint}`;
       console.log(`Target URL: ${targetUrl}`);
 
+      // Préparer le token d'authentification au format Bearer
+      let authToken = token;
+      if (!token.startsWith('Bearer ')) {
+        // Si c'est juste le token brut, ajouter le préfixe Bearer
+        if (token.startsWith('secret_')) {
+          authToken = `Bearer ${token}`;
+          console.log('Formatted token with Bearer prefix for Notion API');
+        }
+      }
+
       // Prepare headers for Notion API
       const notionHeaders = {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authToken,
         'Notion-Version': NOTION_API_VERSION,
         'Content-Type': 'application/json'
       };
@@ -160,7 +170,7 @@ exports.handler = async (event, context) => {
       console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
         'Notion-Version': notionHeaders['Notion-Version'],
         'Content-Type': notionHeaders['Content-Type'],
-        'Authorization': 'Bearer ' + (token ? token.substring(0, 8) + '...' : 'none')
+        'Authorization': authToken.substring(0, 15) + '...'
       });
       
       // Make request to Notion API
@@ -202,7 +212,7 @@ exports.handler = async (event, context) => {
                 responseData.error_details = {
                   type: 'authentication_error',
                   message: 'Veuillez vérifier que votre clé d\'API est valide et n\'a pas expiré',
-                  help: 'Les clés d\'intégration commencent par "secret_"'
+                  help: 'Les clés d\'intégration commencent par "secret_" et doivent être utilisées avec le préfixe "Bearer"'
                 };
               }
             }

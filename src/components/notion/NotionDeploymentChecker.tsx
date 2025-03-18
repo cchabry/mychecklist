@@ -21,6 +21,15 @@ const NotionDeploymentChecker: React.FC = () => {
       const apiKey = localStorage.getItem('notion_api_key');
       console.log(`Using API key for proxy test: ${apiKey ? `${apiKey.substring(0, 8)}...` : 'none'}`);
       
+      if (!apiKey) {
+        throw new Error("Aucune clé API trouvée. Veuillez configurer Notion d'abord.");
+      }
+      
+      // Vérifier si on a une clé qui commence par secret_
+      if (!apiKey.startsWith('secret_')) {
+        throw new Error("Format de clé API incorrect. La clé doit commencer par 'secret_'");
+      }
+      
       const isWorking = await verifyProxyDeployment(true, apiKey);
       
       if (isWorking) {

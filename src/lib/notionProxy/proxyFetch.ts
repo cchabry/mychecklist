@@ -74,6 +74,26 @@ const extractNotionErrorMessage = (status: number, errorData: any): string => {
 };
 
 /**
+ * Prépare correctement le token d'authentification pour l'API Notion
+ * S'assure que le format est "Bearer secret_xxx"
+ */
+const prepareAuthorizationHeader = (token: string): string => {
+  // Si le token contient déjà "Bearer", ne pas le modifier
+  if (token.startsWith('Bearer ')) {
+    return token;
+  }
+  
+  // Vérifier si c'est un token OAuth
+  if (token.startsWith('ntn_')) {
+    console.error('Type de clé API incorrect: Vous utilisez un token OAuth (ntn_)');
+    throw new Error('Type de clé API incorrect: Vous devez utiliser une clé d\'intégration qui commence par "secret_", pas un token OAuth (ntn_)');
+  }
+  
+  // S'assurer qu'on a bien le format "Bearer token"
+  return `Bearer ${token}`;
+};
+
+/**
  * Tenter une requête via le proxy serverless (Vercel/Netlify)
  */
 async function tryServerlessProxy<T>(
@@ -88,6 +108,9 @@ async function tryServerlessProxy<T>(
   console.log(`🔹 Tentative via proxy serverless (${deploymentType}): ${proxyUrl}`);
   
   try {
+    // Log pour debug
+    console.log(`Envoi du token: ${token ? token.substring(0, 15) + '...' : 'non fourni'}`);
+    
     const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
@@ -183,14 +206,11 @@ export const notionApiRequest = async <T = any>(
     throw new Error('Clé API Notion manquante. Veuillez configurer votre clé API dans les paramètres.');
   }
   
-  // Vérifier le format de la clé API
-  if (token.startsWith('ntn_')) {
-    console.error('Type de clé API incorrect: Vous utilisez un token OAuth (ntn_)');
-    throw new Error('Type de clé API incorrect: Vous devez utiliser une clé d\'intégration qui commence par "secret_", pas un token OAuth (ntn_)');
-  }
+  // Vérifier et formatter le token d'authentification pour s'assurer que c'est "Bearer secret_xxx"
+  const cleanToken = token.trim();
   
   // Log pour debugging
-  console.log(`📡 Requête API Notion: ${method} ${endpoint} avec token: ${token.substring(0, 8)}...`);
+  console.log(`📡 Requête API Notion: ${method} ${endpoint} avec token: ${cleanToken.substring(0, 8)}...`);
   
   // Check if we're in mock mode
   const mockModeEnabled = localStorage.getItem('notion_mock_mode') === 'true';
@@ -202,7 +222,8 @@ export const notionApiRequest = async <T = any>(
   // First try the serverless proxy (Vercel/Netlify)
   if (getDeploymentType() !== 'local') {
     try {
-      const result = await tryServerlessProxy<T>(endpoint, method, body, token, customHeaders);
+      // Pour le proxy serverless, on envoie le token brut (sans Bearer) car le proxy ajoutera lui-même ce préfixe
+      const result = await tryServerlessProxy<T>(endpoint, method, body, cleanToken, customHeaders);
       
       // Clear any previous errors on success
       _lastError = null;
@@ -226,8 +247,13 @@ export const notionApiRequest = async <T = any>(
   try {
     const proxyUrl = buildProxyUrl(endpoint);
     
+    // Pour les requêtes directes et via proxy CORS, formater correctement l'en-tête Authorization
+    const authHeader = prepareAuthorizationHeader(cleanToken);
+    
+    console.log(`🔑 En-tête d'autorisation: ${authHeader.substring(0, 15)}...`);
+    
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': authHeader,
       'Notion-Version': NOTION_API_VERSION,
       'Content-Type': 'application/json',
       ...customHeaders

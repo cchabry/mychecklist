@@ -56,7 +56,10 @@ const AuditPage = () => {
             return;
           }
           
-          await notionApi.users.me(apiKey);
+          // S'assurer que la clé est envoyée correctement, sans 'Bearer' (la fonction l'ajoutera)
+          const cleanKey = apiKey.trim();
+          
+          await notionApi.users.me(cleanKey);
           console.log('Notion connection verified successfully');
           
           // Afficher un toast de succès
@@ -66,10 +69,28 @@ const AuditPage = () => {
         }
       } catch (error) {
         console.error('Notion connection test failed:', error);
-        toast.error("Problème de connexion à Notion", {
-          description: "Vérifiez votre connexion internet ou reconfigurez l'intégration Notion.",
-          duration: 5000,
-        });
+        
+        // Vérifier si c'est une erreur d'authentification 401
+        const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+        const is401Error = errorMessage.includes('401');
+        
+        if (is401Error) {
+          toast.error("Erreur d'authentification Notion", {
+            description: "La clé d'API fournie n'est pas valide ou a expiré. Veuillez reconfigurer Notion.",
+            action: {
+              label: 'Reconfigurer',
+              onClick: () => {
+                document.getElementById('notion-connect-button')?.click();
+              }
+            },
+            duration: 10000,
+          });
+        } else {
+          toast.error("Problème de connexion à Notion", {
+            description: "Vérifiez votre connexion internet ou reconfigurez l'intégration Notion.",
+            duration: 5000,
+          });
+        }
       } finally {
         setChecking(false);
       }

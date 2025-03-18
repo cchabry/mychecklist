@@ -67,7 +67,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
         endpoint, 
         method, 
         bodyPresent: !!body, 
-        tokenPresent: !!token 
+        tokenPresent: !!token,
+        tokenType: token ? (token.startsWith('secret_') ? 'integration' : 
+                           (token.startsWith('ntn_') ? 'oauth' : 'unknown')) : 'none',
+        tokenFirstChars: token ? token.substring(0, 8) + '...' : 'none'
       });
 
       // Validate parameters
@@ -89,14 +92,35 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const targetUrl = `${NOTION_API_BASE}${endpoint}`;
       console.log(`Target URL: ${targetUrl}`);
 
+      // Préparer le token d'authentification au format Bearer
+      let authToken = token;
+      if (!token.startsWith('Bearer ')) {
+        // Si c'est juste le token brut, ajouter le préfixe Bearer
+        if (token.startsWith('secret_')) {
+          authToken = `Bearer ${token}`;
+          console.log('Formatted token with Bearer prefix for Notion API');
+        } else if (token.startsWith('ntn_')) {
+          console.error('OAuth token detected, this will not work with integration API');
+          return response.status(401).json({
+            error: 'Invalid token type',
+            message: 'OAuth tokens (starting with ntn_) cannot be used with the integration API',
+            details: 'Use an integration token that starts with secret_'
+          });
+        }
+      }
+
       // Prepare headers for Notion API
       const headers: HeadersInit = {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authToken,
         'Notion-Version': NOTION_API_VERSION,
         'Content-Type': 'application/json'
       };
       
-      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, headers);
+      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
+        'Notion-Version': headers['Notion-Version'],
+        'Content-Type': headers['Content-Type'],
+        'Authorization': `${authToken.substring(0, 15)}...`
+      });
       
       // Make request to Notion API
       try {
@@ -113,6 +137,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
         try {
           responseData = await notionResponse.json();
           console.log('Response data type:', typeof responseData);
+          
+          // Si erreur 401, ajouter plus de détails
+          if (notionResponse.status === 401) {
+            console.error('Authentication error with Notion API:', responseData);
+            responseData.detailed_info = {
+              message: "Vérifiez que votre clé d'API commence par 'secret_' et qu'elle est valide",
+              help: "Les clés d'intégration commencent par 'secret_' et doivent être utilisées avec le préfixe 'Bearer'"
+            };
+          }
         } catch (jsonError) {
           console.error('Failed to parse response as JSON:', jsonError);
           const textResponse = await notionResponse.text();
