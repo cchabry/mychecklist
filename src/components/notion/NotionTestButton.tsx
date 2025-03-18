@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { notionApi } from '@/lib/notionProxy';
+import { testNotionConnection } from '@/lib/notion';
 import { toast } from 'sonner';
-import { Bug, CheckCircle, XCircle, Database } from 'lucide-react';
+import { Bug, CheckCircle, XCircle, Database, AlertTriangle } from 'lucide-react';
 
 const NotionTestButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,9 @@ const NotionTestButton = () => {
     error?: string;
     projectsCount?: number;
     checklistsCount?: number;
+    userName?: string;
+    projectsDbName?: string;
+    checklistsDbName?: string;
   }>({
     connection: 'idle',
     projectsTable: 'idle',
@@ -32,9 +36,10 @@ const NotionTestButton = () => {
     try {
       // Récupérer les infos de configuration
       const apiKey = localStorage.getItem('notion_api_key');
-      const dbId = localStorage.getItem('notion_database_id');
+      const projectsDbId = localStorage.getItem('notion_database_id');
+      const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
 
-      if (!apiKey || !dbId) {
+      if (!apiKey || !projectsDbId) {
         setTestResults({
           connection: 'error',
           projectsTable: 'idle',
@@ -45,74 +50,76 @@ const NotionTestButton = () => {
       }
 
       console.log('🧪 Test Notion - Vérification de la connexion avec la clé:', apiKey.substring(0, 8) + '...');
+      console.log('🧪 Test Notion - BDD Projets:', projectsDbId);
+      console.log('🧪 Test Notion - BDD Checklists:', checklistsDbId || '(non configurée)');
 
-      // Test 1: Tester la connexion à l'API Notion
+      // Test 1: Tester la connexion à l'API Notion et aux bases de données
       try {
-        const userResponse = await notionApi.users.me(apiKey);
-        console.log('✅ Test Notion - Connexion réussie:', userResponse.name);
+        // Utiliser la fonction de test centralisée
+        const testResult = await testNotionConnection();
+        
+        if (!testResult.success) {
+          setTestResults({
+            connection: 'error',
+            projectsTable: 'error',
+            checklistsTable: 'idle',
+            error: testResult.error || 'Erreur de connexion à Notion'
+          });
+          return;
+        }
         
         // Mise à jour du statut de connexion
         setTestResults(prev => ({
           ...prev,
           connection: 'success',
-          projectsTable: 'loading'
+          projectsTable: 'loading',
+          userName: testResult.user
         }));
 
         // Test 2: Tester l'accès à la base de données des projets
         try {
-          console.log('🧪 Test Notion - Vérification de la base de données:', dbId);
-          const dbResponse = await notionApi.databases.retrieve(dbId, apiKey);
-          console.log('✅ Test Notion - Base de données accessible:', dbResponse.title[0]?.plain_text || dbId);
-
-          // Maintenant, tester la requête sur cette base de données
-          console.log('🧪 Test Notion - Requête sur la base de données des projets');
-          const queryResponse = await notionApi.databases.query(dbId, {
-            page_size: 10
-          }, apiKey);
-
-          console.log('✅ Test Notion - Requête réussie, projets trouvés:', queryResponse.results.length);
-
+          console.log('🧪 Test Notion - Vérification de la base de données des projets');
+          
           // Mise à jour du statut des projets
           setTestResults(prev => ({
             ...prev,
             projectsTable: 'success',
-            checklistsTable: 'loading',
-            projectsCount: queryResponse.results.length
+            projectsDbName: testResult.projectsDbName,
+            checklistsTable: checklistsDbId ? 'loading' : 'idle'
           }));
 
-          // Test 3: Vérifier si on peut trouver une base de données de checklist liée
-          // Note: Ceci est un test simplifié, car normalement on aurait besoin de connaître
-          // l'ID de la base de données des checklists
-          try {
-            console.log('🧪 Test Notion - Recherche des bases de données liées');
+          // Test 3: Si l'ID de la base de données des checklists est fourni, tester son accès
+          if (checklistsDbId) {
+            console.log('🧪 Test Notion - Vérification de la base de données des checklists');
             
-            // Requête pour obtenir les premières bases de données accessibles
-            // Ceci est un test très simple qui vérifie juste si on peut lister des bases de données
-            const response = await notionApi.databases.list(apiKey);
-            console.log('✅ Test Notion - Bases de données accessibles:', response.results.length);
-
+            if (testResult.hasChecklistsDb) {
+              setTestResults(prev => ({
+                ...prev,
+                checklistsTable: 'success',
+                checklistsDbName: testResult.checklistsDbName
+              }));
+            } else {
+              setTestResults(prev => ({
+                ...prev,
+                checklistsTable: 'error',
+                error: 'Erreur d\'accès à la base de données des checklists'
+              }));
+            }
+          } else {
+            // Pas de base de données de checklists configurée
             setTestResults(prev => ({
               ...prev,
-              checklistsTable: 'success',
-              checklistsCount: response.results.length
-            }));
-
-          } catch (checklistError) {
-            console.error('❌ Test Notion - Erreur accès checklists:', checklistError);
-            setTestResults(prev => ({
-              ...prev,
-              checklistsTable: 'error',
-              error: `Erreur lors de la recherche des checklists: ${checklistError.message || 'Erreur inconnue'}`
+              checklistsTable: 'idle'
             }));
           }
 
         } catch (dbError) {
-          console.error('❌ Test Notion - Erreur accès base de données:', dbError);
+          console.error('❌ Test Notion - Erreur accès base de données des projets:', dbError);
           setTestResults(prev => ({
             ...prev,
             projectsTable: 'error',
             checklistsTable: 'idle',
-            error: `Erreur d'accès à la base de données: ${dbError.message || 'Erreur inconnue'}`
+            error: `Erreur d'accès à la base de données des projets: ${dbError.message || 'Erreur inconnue'}`
           }));
         }
 
@@ -217,32 +224,58 @@ const NotionTestButton = () => {
               <div className="divide-y">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm font-medium">Connexion à l'API</span>
-                  <span>{getStatusIcon(testResults.connection)}</span>
+                  <div className="flex items-center gap-2">
+                    {testResults.userName && testResults.connection === 'success' && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                        {testResults.userName}
+                      </span>
+                    )}
+                    <span>{getStatusIcon(testResults.connection)}</span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm font-medium">Base de données des projets</span>
                   <div className="flex items-center gap-2">
-                    {testResults.projectsCount !== undefined && testResults.projectsTable === 'success' && (
+                    {testResults.projectsDbName && testResults.projectsTable === 'success' && (
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                        {testResults.projectsCount} projet(s)
+                        {testResults.projectsDbName}
                       </span>
                     )}
                     {getStatusIcon(testResults.projectsTable)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm font-medium">Autres bases de données</span>
+                  <span className="text-sm font-medium">Base de données des checklists</span>
                   <div className="flex items-center gap-2">
-                    {testResults.checklistsCount !== undefined && testResults.checklistsTable === 'success' && (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                        {testResults.checklistsCount} trouvée(s)
+                    {testResults.checklistsTable === 'idle' && (
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        Non configurée
                       </span>
                     )}
-                    {getStatusIcon(testResults.checklistsTable)}
+                    {testResults.checklistsDbName && testResults.checklistsTable === 'success' && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                        {testResults.checklistsDbName}
+                      </span>
+                    )}
+                    {testResults.checklistsTable !== 'idle' && getStatusIcon(testResults.checklistsTable)}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Avertissement si la base de données des checklists n'est pas configurée */}
+            {testResults.projectsTable === 'success' && testResults.checklistsTable === 'idle' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm flex items-start gap-2">
+                <AlertTriangle size={16} className="text-amber-500 mt-0.5" />
+                <div>
+                  <div className="font-medium text-amber-800">Base de données des checklists non configurée</div>
+                  <p className="text-xs mt-1 text-amber-700">
+                    L'application fonctionnera avec les projets, mais vous ne pourrez pas synchroniser les checklists d'audit.
+                    Configurez une seconde base de données pour les checklists.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Message d'erreur */}
             {testResults.error && (

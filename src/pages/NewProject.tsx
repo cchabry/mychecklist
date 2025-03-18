@@ -19,6 +19,7 @@ const NewProject = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
   const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
+  const [hasChecklistDb, setHasChecklistDb] = useState(!!localStorage.getItem('notion_checklists_database_id'));
   
   // Vérifier l'état de l'intégration Notion au chargement et à l'intervalle
   useEffect(() => {
@@ -26,6 +27,11 @@ const NewProject = () => {
     const checkMockMode = () => {
       const mockActive = notionApi.mockMode.isActive();
       setIsMockMode(mockActive);
+      
+      // Vérifier si la base de données de checklists est configurée
+      const checklistDbId = localStorage.getItem('notion_checklists_database_id');
+      setHasChecklistDb(!!checklistDbId);
+      
       if (mockActive) {
         console.log('📢 NewProject: Mode mock Notion actif - données de DÉMONSTRATION');
       } else {
@@ -195,6 +201,11 @@ const NewProject = () => {
                     <strong>Mode réel actif</strong>
                     <p className="text-xs mt-0.5">
                       Le projet sera sauvegardé dans votre base Notion.
+                      {!hasChecklistDb && (
+                        <span className="block mt-1 text-amber-600">
+                          Base de données des checklists non configurée.
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

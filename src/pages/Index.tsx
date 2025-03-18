@@ -91,6 +91,8 @@ const Index = () => {
                     <p>Version: {import.meta.env.MODE}</p>
                     <p>Date de construction: {new Date().toLocaleDateString()}</p>
                     <p>Mode mock: {notionApi.mockMode.isActive() ? 'Actif' : 'Inactif'}</p>
+                    <p>Notion configuré: {usingNotion ? 'Oui' : 'Non'}</p>
+                    <p>Checklists DB: {localStorage.getItem('notion_checklists_database_id') ? 'Configurée' : 'Non configurée'}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

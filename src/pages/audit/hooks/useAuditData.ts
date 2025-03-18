@@ -17,6 +17,7 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
   const [audit, setAudit] = useState<Audit | null>(null);
   const [loading, setLoading] = useState(true);
   const [notionError, setNotionError] = useState<{ error: string, context?: string } | null>(null);
+  const [hasChecklistDb, setHasChecklistDb] = useState(!!localStorage.getItem('notion_checklists_database_id'));
   
   const loadProject = async () => {
     setLoading(true);
@@ -32,7 +33,11 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       let projectData = null;
       let auditData = null;
       
-      console.log('Loading project', projectId, 'usingNotion:', usingNotion, 'mockMode:', notionApi.mockMode.isActive());
+      // Vérifier si la base de données des checklists est configurée
+      const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
+      setHasChecklistDb(!!checklistsDbId);
+      
+      console.log('Loading project', projectId, 'usingNotion:', usingNotion, 'mockMode:', notionApi.mockMode.isActive(), 'checklistDb:', !!checklistsDbId);
       
       // Try to load from Notion if configured and not in mock mode
       if (usingNotion && !notionApi.mockMode.isActive()) {
@@ -55,8 +60,20 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
               console.log('Project data from Notion:', projectData);
               
               if (projectData) {
-                auditData = await getAuditForProject(projectId);
-                console.log('Audit data from Notion:', auditData);
+                // Si la base de données des checklists est configurée, essayer de charger l'audit
+                if (checklistsDbId) {
+                  try {
+                    auditData = await getAuditForProject(projectId);
+                    console.log('Audit data from Notion:', auditData);
+                  } catch (checklistError) {
+                    console.error('Erreur lors du chargement de l\'audit depuis Notion:', checklistError);
+                    toast.error('Erreur de chargement des checklists', {
+                      description: 'Impossible de charger les données d\'audit. Utilisation des données par défaut.'
+                    });
+                  }
+                } else {
+                  console.log('Base de données des checklists non configurée, utilisation des données mock pour l\'audit');
+                }
               }
             } catch (proxyError) {
               console.error('Notion proxy error:', proxyError);
@@ -108,6 +125,21 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       } else {
         // Successfully loaded from Notion
         setProject(projectData);
+        
+        // Si pas d'audit chargé depuis Notion (pas de base de données de checklists configurée)
+        // ou si l'audit est null, utiliser les données mock pour l'audit
+        if (!auditData) {
+          console.log('Utilisation des données mock pour l\'audit');
+          setTimeout(() => {
+            const mockAudit = projectData.progress === 0 
+              ? createNewAudit(projectId) 
+              : createMockAudit(projectId);
+            setAudit(mockAudit);
+            setLoading(false);
+          }, 400);
+          return; // Exit early as we're handling loading state in setTimeout
+        }
+        
         setAudit(auditData);
         console.log('Successfully loaded data from Notion:', { project: projectData, audit: auditData });
       }
@@ -115,8 +147,8 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       setLoading(false);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
-      toast.error('Erreur de chargement', {
-        description: 'Impossible de charger les données du projet'
+      toast.error("Erreur de chargement", {
+        description: "Impossible de charger les données du projet"
       });
       
       // Fallback to mock data
@@ -149,32 +181,43 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       let success = false;
       
       if (usingNotion && !notionApi.mockMode.isActive()) {
-        // Sauvegarder dans Notion
-        try {
-          console.log('Attempting to save audit to Notion:', audit);
-          success = await saveAuditToNotion(audit);
-          console.log('Save to Notion result:', success);
-        } catch (error) {
-          console.error('Erreur lors de la sauvegarde dans Notion:', error);
-          
-          // Gérer l'erreur CORS "Failed to fetch"
-          if (error.message?.includes('Failed to fetch')) {
-            setNotionError({
-              error: 'Échec de la connexion à Notion: Failed to fetch',
-              context: 'Les restrictions de sécurité du navigateur empêchent l\'accès direct à l\'API Notion'
-            });
+        // Vérifier si la base de données des checklists est configurée
+        const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
+        
+        if (!checklistsDbId) {
+          console.log('Base de données des checklists non configurée, sauvegarde en mode mock uniquement');
+          toast.warning('Base de données des checklists non configurée', {
+            description: 'Pour sauvegarder les audits dans Notion, configurez une base de données pour les checklists.'
+          });
+          success = true; // Simuler une sauvegarde réussie
+        } else {
+          // Sauvegarder dans Notion
+          try {
+            console.log('Attempting to save audit to Notion:', audit);
+            success = await saveAuditToNotion(audit);
+            console.log('Save to Notion result:', success);
+          } catch (error) {
+            console.error('Erreur lors de la sauvegarde dans Notion:', error);
             
-            // Activer le mode mock
-            notionApi.mockMode.activate();
-            
-            toast.warning('Mode démonstration activé', {
-              description: 'Sauvegarde en mode local uniquement car l\'API Notion n\'est pas accessible directement',
-            });
-            
-            // Simuler une sauvegarde réussie
-            success = true;
-          } else {
-            throw error;
+            // Gérer l'erreur CORS "Failed to fetch"
+            if (error.message?.includes('Failed to fetch')) {
+              setNotionError({
+                error: 'Échec de la connexion à Notion: Failed to fetch',
+                context: 'Les restrictions de sécurité du navigateur empêchent l\'accès direct à l\'API Notion'
+              });
+              
+              // Activer le mode mock
+              notionApi.mockMode.activate();
+              
+              toast.warning('Mode démonstration activé', {
+                description: 'Sauvegarde en mode local uniquement car l\'API Notion n\'est pas accessible directement',
+              });
+              
+              // Simuler une sauvegarde réussie
+              success = true;
+            } else {
+              throw error;
+            }
           }
         }
       } else {
@@ -201,6 +244,7 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
     audit,
     loading,
     notionError,
+    hasChecklistDb,
     setAudit,
     loadProject,
     handleSaveAudit

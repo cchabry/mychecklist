@@ -19,21 +19,25 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
   const [error, setError] = useState<string>('');
   const [errorContext, setErrorContext] = useState<string>('');
   const [initialApiKey, setInitialApiKey] = useState<string>('');
-  const [initialDatabaseId, setInitialDatabaseId] = useState<string>('');
+  const [initialProjectsDbId, setInitialProjectsDbId] = useState<string>('');
+  const [initialChecklistsDbId, setInitialChecklistsDbId] = useState<string>('');
   
   // Charger les valeurs initiales depuis localStorage à chaque ouverture
   useEffect(() => {
     if (isOpen) {
       const savedApiKey = localStorage.getItem('notion_api_key') || '';
-      const savedDatabaseId = localStorage.getItem('notion_database_id') || '';
+      const savedProjectsDbId = localStorage.getItem('notion_database_id') || '';
+      const savedChecklistsDbId = localStorage.getItem('notion_checklists_database_id') || '';
       
       setInitialApiKey(savedApiKey);
-      setInitialDatabaseId(savedDatabaseId);
+      setInitialProjectsDbId(savedProjectsDbId);
+      setInitialChecklistsDbId(savedChecklistsDbId);
       
       // Log pour debug
       console.log('📝 Modal Notion ouverte, chargement des valeurs:', {
         apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
-        databaseId: savedDatabaseId || 'vide'
+        projectsDbId: savedProjectsDbId || 'vide',
+        checklistsDbId: savedChecklistsDbId || 'vide'
       });
 
       // Réinitialiser les erreurs à chaque ouverture
@@ -42,7 +46,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     }
   }, [isOpen]);
   
-  const handleFormSubmit = async (apiKey: string, databaseId: string) => {
+  const handleFormSubmit = async (apiKey: string, projectsDbId: string, checklistsDbId: string) => {
     setError('');
     setErrorContext('');
     
@@ -59,17 +63,34 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       return;
     }
     
-    // Nettoyer l'ID de la base de données
-    const cleanDbId = extractNotionDatabaseId(databaseId);
-    console.log('🧹 Using database ID:', cleanDbId, '(original:', databaseId, ')');
+    // Nettoyer l'ID de la base de données des projets
+    const cleanProjectsDbId = extractNotionDatabaseId(projectsDbId);
+    if (!cleanProjectsDbId) {
+      setError('ID de base de données Projets invalide');
+      return;
+    }
+    
+    // Nettoyer l'ID de la base de données des checklists (optionnel pour le moment)
+    const cleanChecklistsDbId = checklistsDbId ? extractNotionDatabaseId(checklistsDbId) : '';
+    
+    console.log('🧹 Using database IDs:', {
+      projects: cleanProjectsDbId,
+      checklists: cleanChecklistsDbId || '(non fourni)'
+    });
     
     // Sauvegarder les valeurs dans localStorage immédiatement
     localStorage.setItem('notion_api_key', apiKey);
-    localStorage.setItem('notion_database_id', cleanDbId);
+    localStorage.setItem('notion_database_id', cleanProjectsDbId);
+    
+    // Sauvegarder l'ID de la base de données des checklists s'il est fourni
+    if (cleanChecklistsDbId) {
+      localStorage.setItem('notion_checklists_database_id', cleanChecklistsDbId);
+    }
     
     console.log('💾 Valeurs sauvegardées dans localStorage:', {
       apiKey: `${apiKey.substring(0, 8)}...`,
-      databaseId: cleanDbId,
+      projectsDbId: cleanProjectsDbId,
+      checklistsDbId: cleanChecklistsDbId || '(non fourni)',
       tokenType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
     });
     
@@ -84,26 +105,40 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       console.log('🔄 Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
       
       // Configurer Notion pour définir les valeurs
-      configureNotion(apiKey, cleanDbId);
+      configureNotion(apiKey, cleanProjectsDbId, cleanChecklistsDbId);
       
       // Tester la connexion via le proxy
       const user = await notionApi.users.me(apiKey);
       console.log('✅ Notion API connection successful via proxy, user:', user.name);
       
-      // Tester l'accès à la base de données
+      // Tester l'accès à la base de données des projets
       try {
-        console.log('🔄 Testing database access for ID:', cleanDbId);
-        await notionApi.databases.retrieve(cleanDbId, apiKey);
-        console.log('✅ Database access successful via proxy');
+        console.log('🔄 Testing projects database access for ID:', cleanProjectsDbId);
+        const dbResponse = await notionApi.databases.retrieve(cleanProjectsDbId, apiKey);
+        console.log('✅ Projects database access successful via proxy:', dbResponse.title?.[0]?.plain_text || cleanProjectsDbId);
+        
+        // Tester l'accès à la base de données des checklists si elle est fournie
+        if (cleanChecklistsDbId) {
+          try {
+            console.log('🔄 Testing checklists database access for ID:', cleanChecklistsDbId);
+            const checklistDbResponse = await notionApi.databases.retrieve(cleanChecklistsDbId, apiKey);
+            console.log('✅ Checklists database access successful via proxy:', checklistDbResponse.title?.[0]?.plain_text || cleanChecklistsDbId);
+          } catch (checklistDbError) {
+            console.error('❌ Checklists database access failed:', checklistDbError);
+            setError('Erreur d\'accès à la base de données des checklists: ' + (checklistDbError.message || 'Vérifiez l\'ID'));
+            setErrorContext('Vérifiez que votre intégration a été ajoutée à la base de données des checklists dans Notion');
+            return;
+          }
+        }
       } catch (dbError) {
-        console.error('❌ Database access failed:', dbError);
+        console.error('❌ Projects database access failed:', dbError);
         
         // Différencier les erreurs d'autorisation des erreurs d'ID invalide
         if (dbError.message?.includes('404') || dbError.message?.includes('not_found')) {
-          setError('Base de données introuvable: ' + (dbError.message || 'Vérifiez l\'ID'));
+          setError('Base de données des projets introuvable: ' + (dbError.message || 'Vérifiez l\'ID'));
           setErrorContext('L\'ID de base de données fourni n\'existe pas ou n\'est pas accessible');
         } else {
-          setError('Erreur d\'accès à la base de données: ' + (dbError.message || 'Vérifiez l\'ID et les permissions'));
+          setError('Erreur d\'accès à la base de données des projets: ' + (dbError.message || 'Vérifiez l\'ID et les permissions'));
           setErrorContext('Vérifiez que votre intégration a été ajoutée à la base de données dans Notion');
         }
         throw dbError;
@@ -154,7 +189,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Configuration Notion</DialogTitle>
             <DialogDescription>
-              Connectez votre base de données Notion pour synchroniser vos audits
+              Connectez vos bases de données Notion pour synchroniser vos audits
             </DialogDescription>
           </DialogHeader>
           
@@ -174,7 +209,8 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
             onSubmit={handleFormSubmit}
             onCancel={onClose}
             initialApiKey={initialApiKey}
-            initialDatabaseId={initialDatabaseId}
+            initialProjectsDbId={initialProjectsDbId}
+            initialChecklistsDbId={initialChecklistsDbId}
           />
         </DialogContent>
       </Dialog>
