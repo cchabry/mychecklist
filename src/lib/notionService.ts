@@ -85,7 +85,7 @@ export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
     
     // Tester la connexion
     try {
-      const test = await notionClient.users.me();
+      const test = await notionClient.users.me({});
       console.log('Notion API connection successful, user:', test.name);
     } catch (testError) {
       console.error('Notion API connection test failed:', testError);
@@ -399,7 +399,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     // Tester la connexion
     try {
-      const test = await notionClient.users.me();
+      const test = await notionClient.users.me({});
       console.log('Notion API connection successful, user:', test.name);
     } catch (testError) {
       console.error('Notion API connection test failed:', testError);
