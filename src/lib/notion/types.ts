@@ -9,6 +9,18 @@ export type { ComplianceStatus, Audit, AuditItem, Project };
 // Re-export values
 export { COMPLIANCE_VALUES };
 
+// Project data from Notion
+export interface ProjectData extends Project {
+  // Any additional Notion-specific fields can be added here
+  description?: string;
+  status?: string;
+}
+
+// Collection of projects
+export interface ProjectsData {
+  projects: ProjectData[];
+}
+
 // Notion-specific type definitions
 export interface NotionProperty {
   id: string;
