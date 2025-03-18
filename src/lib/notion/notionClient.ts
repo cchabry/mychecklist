@@ -18,6 +18,33 @@ export const getNotionClient = () => {
   };
 };
 
+export const notionPropertyExtractors = {
+  getRichTextValue: (property: any): string => {
+    if (!property || property.type !== 'rich_text') return '';
+    
+    if (Array.isArray(property.rich_text) && property.rich_text.length > 0) {
+      return property.rich_text.map((rt: any) => rt.plain_text).join('');
+    }
+    
+    return '';
+  },
+  
+  getNumberValue: (property: any): number => {
+    if (!property || property.type !== 'number') return 0;
+    return property.number || 0;
+  },
+  
+  getDateValue: (property: any): string | null => {
+    if (!property || property.type !== 'date' || !property.date) return null;
+    return property.date.start || null;
+  },
+  
+  getSelectValue: (property: any): string => {
+    if (!property || property.type !== 'select' || !property.select) return '';
+    return property.select.name || '';
+  }
+};
+
 export const testNotionConnection = async () => {
   try {
     const { client: apiKey, dbId, checklistsDbId } = getNotionClient();

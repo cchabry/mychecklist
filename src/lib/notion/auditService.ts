@@ -3,17 +3,18 @@ import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { Audit, AuditItem } from './types';
 import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
+import { notionApi } from '@/lib/notionProxy';
 
 /**
  * Gets the audit for a specific project
  */
 export const getAuditForProject = async (projectId: string): Promise<Audit | null> => {
-  const { client, dbId } = getNotionClient();
-  if (!client || !dbId) return null;
+  const { client: apiKey, dbId } = getNotionClient();
+  if (!apiKey || !dbId) return null;
   
   try {
     // Retrieve audit data
-    const response = await client.databases.query({
+    const response = await notionApi.databases.query({
       database_id: dbId,
       filter: {
         property: 'projectId',
@@ -21,7 +22,7 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
           equals: projectId
         }
       }
-    });
+    }, apiKey);
     
     if (response.results.length === 0) return null;
     
@@ -86,12 +87,12 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
  * Saves an audit to Notion
  */
 export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
-  const { client, dbId } = getNotionClient();
-  if (!client || !dbId) return false;
+  const { client: apiKey, dbId } = getNotionClient();
+  if (!apiKey || !dbId) return false;
   
   try {
     // Update the audit page
-    await client.pages.update({
+    await notionApi.pages.update({
       page_id: audit.id,
       properties: {
         score: {
@@ -103,11 +104,11 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
           }
         }
       }
-    });
+    }, apiKey);
     
     // Update individual items
     for (const item of audit.items) {
-      await client.pages.update({
+      await notionApi.pages.update({
         page_id: item.id,
         properties: {
           status: {
@@ -126,7 +127,7 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
             ]
           }
         }
-      });
+      }, apiKey);
     }
     
     return true;

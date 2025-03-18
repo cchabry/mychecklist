@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { notionApi } from '@/lib/notionProxy';
-import { InfoCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 interface NotionConfigFormProps {
   onSubmit: (apiKey: string, projectsDbId: string, checklistsDbId: string) => void;
@@ -96,7 +96,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       </div>
       
       <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
-        <InfoCircle size={14} />
+        <AlertCircle size={14} />
         <span>Les deux bases de données doivent être partagées avec votre intégration Notion</span>
       </div>
       

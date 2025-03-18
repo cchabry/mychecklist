@@ -4,7 +4,7 @@
 import { getNotionClient, testNotionConnection } from './notionClient';
 import { getProjectsFromNotion, getProjectById, createProjectInNotion } from './projectsService';
 import { getAuditForProject, saveAuditToNotion } from './auditService';
-import { ProjectData, AuditData, ChecklistItemData } from './types';
+import { ProjectData } from './types';
 
 // Configuration et initialisation
 export function configureNotion(apiKey: string, databaseId: string, checklistsDbId?: string) {
@@ -72,4 +72,4 @@ export {
 };
 
 // Types
-export type { ProjectData, AuditData, ChecklistItemData };
+export type { ProjectData };
