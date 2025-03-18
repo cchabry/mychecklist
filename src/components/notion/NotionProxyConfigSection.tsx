@@ -44,6 +44,10 @@ const NotionProxyConfigSection: React.FC = () => {
   ]
 }`}
             </pre>
+            <div className="mt-2 text-xs text-blue-600">
+              <strong>Où trouver vercel.json:</strong> Il doit se trouver à la racine de votre projet. Si vous utilisez GitHub, 
+              vous pouvez le voir directement dans votre dépôt.
+            </div>
           </li>
           
           <li className="text-sm flex items-start gap-1">
