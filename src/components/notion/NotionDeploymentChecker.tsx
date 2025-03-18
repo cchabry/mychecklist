@@ -31,9 +31,17 @@ const NotionDeploymentChecker: React.FC = () => {
         });
       }
     } catch (error) {
+      console.error("Proxy verification failed:", error);
+      
+      // Gérer spécifiquement l'erreur CORS "Failed to fetch"
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue lors de la vérification";
+      const isCorsError = errorMessage.includes('Failed to fetch');
+      
       setCheckResult({
         isWorking: false,
-        error: error instanceof Error ? error.message : "Erreur inconnue lors de la vérification"
+        error: isCorsError 
+          ? "Le proxy ne répond pas correctement aux requêtes (CORS error)"
+          : errorMessage
       });
     } finally {
       setIsChecking(false);
