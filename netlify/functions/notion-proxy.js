@@ -116,7 +116,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Vérifier le format de la clé API
+      // Test token détection
       if (token === 'test_token' || token === 'test_token_for_proxy_test') {
         console.log('Test token detected, this is just a connectivity test');
         return {
@@ -131,21 +131,6 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Vérifier si c'est un token OAuth
-      if (token && token.startsWith('ntn_')) {
-        console.warn('OAuth token detected instead of integration key');
-        return {
-          statusCode: 401,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            error: 'Type de clé API incorrect',
-            message: 'Vous utilisez un token OAuth (ntn_) au lieu d\'une clé d\'intégration (secret_)',
-            details: 'Les tokens OAuth commençant par ntn_ ne peuvent pas être utilisés avec l\'API d\'intégration. Créez une intégration et utilisez sa clé secrète qui commence par secret_.',
-            help_url: 'https://developers.notion.com/docs/authorization#integration-tokens'
-          })
-        };
-      }
-
       // Build full Notion API URL
       const targetUrl = `${NOTION_API_BASE}${endpoint}`;
       console.log(`Target URL: ${targetUrl}`);
@@ -153,10 +138,11 @@ exports.handler = async (event, context) => {
       // Préparer le token d'authentification au format Bearer
       let authToken = token;
       if (!token.startsWith('Bearer ')) {
-        // Si c'est juste le token brut, ajouter le préfixe Bearer
-        if (token.startsWith('secret_')) {
+        // Si c'est juste le token brut, ajouter le préfixe Bearer (pour les deux types)
+        if (token.startsWith('secret_') || token.startsWith('ntn_')) {
           authToken = `Bearer ${token}`;
           console.log('Formatted token with Bearer prefix for Notion API');
+          console.log(`Token type: ${token.startsWith('secret_') ? 'Integration key' : 'OAuth token'}`);
         }
       }
 
@@ -201,18 +187,24 @@ exports.handler = async (event, context) => {
             if (notionResponse.status === 401) {
               console.log('Authentication error from Notion API');
               
-              // Vérifier si c'est un token OAuth
+              // Ajouter des détails spécifiques selon le type de token
               if (token && token.startsWith('ntn_')) {
                 responseData.error_details = {
-                  type: 'wrong_token_type',
-                  message: 'Vous utilisez un token OAuth (ntn_) au lieu d\'une clé d\'intégration (secret_)',
-                  help: 'Les tokens OAuth commençant par ntn_ ne fonctionnent pas avec l\'API d\'intégration. Créez une intégration et utilisez sa clé secrète.'
+                  type: 'oauth_token',
+                  message: "Ce token OAuth (ntn_) peut ne pas fonctionner avec certaines API d'intégration",
+                  help: "Certaines API d'intégration nécessitent une clé d'intégration (secret_) au lieu d'un token OAuth"
+                };
+              } else if (token && token.startsWith('secret_')) {
+                responseData.error_details = {
+                  type: 'integration_key',
+                  message: "Veuillez vérifier que votre clé d'intégration est valide et n'a pas expiré",
+                  help: "Assurez-vous que votre intégration a accès à la base de données et aux pages"
                 };
               } else {
                 responseData.error_details = {
                   type: 'authentication_error',
-                  message: 'Veuillez vérifier que votre clé d\'API est valide et n\'a pas expiré',
-                  help: 'Les clés d\'intégration commencent par "secret_" et doivent être utilisées avec le préfixe "Bearer"'
+                  message: "Veuillez vérifier que votre clé d'API est valide et n'a pas expiré",
+                  help: "Les clés doivent être utilisées avec le préfixe 'Bearer'"
                 };
               }
             }

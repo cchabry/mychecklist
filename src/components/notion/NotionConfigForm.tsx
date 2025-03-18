@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { isOAuthToken, isIntegrationKey } from '@/lib/notionProxy/config';
 
 interface NotionConfigFormProps {
   onSubmit: (apiKey: string, databaseId: string) => Promise<void>;
@@ -31,12 +31,22 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   
   // Quand les props initialApiKey ou initialDatabaseId changent, mettre à jour les états
   useEffect(() => {
-    if (initialApiKey && initialApiKey !== apiKey) {
-      setApiKey(initialApiKey);
-    }
-    
-    if (initialDatabaseId && initialDatabaseId !== databaseId) {
-      setDatabaseId(initialDatabaseId);
+    if (isOpen) {
+      const savedApiKey = localStorage.getItem('notion_api_key') || '';
+      const savedDatabaseId = localStorage.getItem('notion_database_id') || '';
+      
+      setApiKey(savedApiKey);
+      setDatabaseId(savedDatabaseId);
+      
+      // Log pour debug
+      console.log('Modal ouverte, chargement des valeurs:', {
+        apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
+        databaseId: savedDatabaseId || 'vide'
+      });
+
+      // Réinitialiser les erreurs à chaque ouverture
+      setError('');
+      setShowErrorDetails(false);
     }
   }, [initialApiKey, initialDatabaseId]);
   
@@ -46,23 +56,27 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       return { valid: false, message: '' };
     }
     
-    // Si la clé commence par "ntn_", c'est un token OAuth, pas une clé d'intégration
-    if (apiKey.startsWith('ntn_')) {
+    // Accepter à la fois les tokens OAuth (ntn_) et les clés d'intégration (secret_)
+    if (isOAuthToken(apiKey)) {
       return { 
-        valid: false, 
-        message: "❌ Token OAuth détecté - vous devez utiliser une clé d'intégration (commence par 'secret_')" 
+        valid: true, 
+        message: "✓ Format OAuth détecté (commence par 'ntn_')" 
       };
     }
     
-    // Valider le format correct
-    if (!apiKey.startsWith('secret_')) {
+    // Valider le format des clés d'intégration
+    if (isIntegrationKey(apiKey)) {
       return { 
-        valid: false, 
-        message: "⚠️ Format incorrect - la clé d'intégration doit commencer par 'secret_'" 
+        valid: true, 
+        message: "✓ Format clé d'intégration correct (commence par 'secret_')" 
       };
     }
     
-    return { valid: true, message: "✓ Format correct" };
+    // Format invalide
+    return { 
+      valid: false, 
+      message: "⚠️ Format incorrect - la clé doit commencer par 'secret_' ou 'ntn_'" 
+    };
   };
   
   const apiKeyStatus = getApiKeyStatus();
@@ -79,9 +93,9 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         return;
       }
       
-      // Vérifier le format de la clé API - doit commencer par "secret_"
+      // Vérifier le format de la clé API - accepter les deux formats
       if (!apiKeyStatus.valid) {
-        setError('Format de clé API invalide. La clé d\'intégration doit commencer par "secret_", pas "ntn_"');
+        setError('Format de clé API invalide. La clé doit commencer par "secret_" (intégration) ou "ntn_" (OAuth)');
         setLoading(false);
         return;
       }
@@ -94,7 +108,8 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       
       console.log('Soumission des valeurs:', {
         apiKey: `${apiKey.substring(0, 8)}...`,
-        databaseId: databaseId
+        databaseId: databaseId,
+        apiKeyType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
       });
       
       await onSubmit(apiKey, databaseId);
@@ -110,14 +125,14 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Label htmlFor="apiKey">Clé API d'intégration Notion</Label>
+          <Label htmlFor="apiKey">Clé API Notion</Label>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <InfoIcon size={14} className="text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>La clé d'intégration commence par <code>secret_</code>, et non par <code>ntn_</code> (qui est un token OAuth)</p>
+                <p>Clé d'intégration (commence par <code>secret_</code>) ou token OAuth (commence par <code>ntn_</code>)</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -126,7 +141,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
           id="apiKey"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder="secret_xxxxxxxxxxx"
+          placeholder="secret_xxx ou ntn_xxx"
           required
           className={!apiKeyStatus.valid && apiKey.length > 0 ? 'border-red-300' : ''}
         />
@@ -134,7 +149,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
           <div className={`text-xs ${apiKeyStatus.valid ? 'text-green-600' : 'text-red-500'} flex items-center gap-1`}>
             {apiKeyStatus.valid ? 
               <CheckCircle size={14} /> : 
-              (apiKey.startsWith('ntn_') ? <XCircle size={14} /> : <AlertCircle size={14} />)
+              <AlertCircle size={14} />
             }
             {apiKeyStatus.message}
           </div>

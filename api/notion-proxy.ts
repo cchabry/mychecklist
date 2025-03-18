@@ -5,6 +5,10 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 const NOTION_API_VERSION = '2022-06-28';
 const NOTION_API_BASE = 'https://api.notion.com/v1';
 
+// Fonctions utilitaires
+const isOAuthToken = (token: string): boolean => token.startsWith('ntn_');
+const isIntegrationKey = (token: string): boolean => token.startsWith('secret_');
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
     // Log request details for debugging
@@ -68,8 +72,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
         method, 
         bodyPresent: !!body, 
         tokenPresent: !!token,
-        tokenType: token ? (token.startsWith('secret_') ? 'integration' : 
-                           (token.startsWith('ntn_') ? 'oauth' : 'unknown')) : 'none',
+        tokenType: token ? (isIntegrationKey(token) ? 'integration' : 
+                           (isOAuthToken(token) ? 'oauth' : 'unknown')) : 'none',
         tokenFirstChars: token ? token.substring(0, 8) + '...' : 'none'
       });
 
@@ -87,6 +91,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
           error: 'Missing required parameter: token'
         });
       }
+      
+      // Test token detection
+      if (token === 'test_token' || token === 'test_token_for_proxy_test') {
+        console.log('Test token detected, this is just a connectivity test');
+        return response.status(200).json({
+          status: 'ok',
+          message: 'Test proxy connectivity successful',
+          note: 'This was just a connectivity test with a test token',
+          actualApi: false
+        });
+      }
 
       // Build full Notion API URL
       const targetUrl = `${NOTION_API_BASE}${endpoint}`;
@@ -95,17 +110,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
       // Préparer le token d'authentification au format Bearer
       let authToken = token;
       if (!token.startsWith('Bearer ')) {
-        // Si c'est juste le token brut, ajouter le préfixe Bearer
-        if (token.startsWith('secret_')) {
+        // Ajouter le préfixe Bearer pour les deux types de tokens
+        if (isIntegrationKey(token) || isOAuthToken(token)) {
           authToken = `Bearer ${token}`;
-          console.log('Formatted token with Bearer prefix for Notion API');
-        } else if (token.startsWith('ntn_')) {
-          console.error('OAuth token detected, this will not work with integration API');
-          return response.status(401).json({
-            error: 'Invalid token type',
-            message: 'OAuth tokens (starting with ntn_) cannot be used with the integration API',
-            details: 'Use an integration token that starts with secret_'
-          });
+          console.log(`Formatted token with Bearer prefix for Notion API (${isOAuthToken(token) ? 'OAuth' : 'Integration'} token)`);
         }
       }
 
@@ -138,13 +146,29 @@ export default async function handler(request: VercelRequest, response: VercelRe
           responseData = await notionResponse.json();
           console.log('Response data type:', typeof responseData);
           
-          // Si erreur 401, ajouter plus de détails
+          // Si erreur 401, ajouter plus de détails selon le type de token
           if (notionResponse.status === 401) {
             console.error('Authentication error with Notion API:', responseData);
-            responseData.detailed_info = {
-              message: "Vérifiez que votre clé d'API commence par 'secret_' et qu'elle est valide",
-              help: "Les clés d'intégration commencent par 'secret_' et doivent être utilisées avec le préfixe 'Bearer'"
-            };
+            
+            if (isOAuthToken(token)) {
+              responseData.detailed_info = {
+                tokenType: 'oauth',
+                message: "Ce token OAuth (ntn_) peut ne pas fonctionner avec certaines API d'intégration",
+                help: "Certaines API nécessitent une clé d'intégration (secret_) au lieu d'un token OAuth"
+              };
+            } else if (isIntegrationKey(token)) {
+              responseData.detailed_info = {
+                tokenType: 'integration',
+                message: "Vérifiez que votre clé d'intégration est valide et que l'intégration a accès à cette ressource",
+                help: "Les clés d'intégration commencent par 'secret_' et doivent être utilisées avec le préfixe 'Bearer'"
+              };
+            } else {
+              responseData.detailed_info = {
+                tokenType: 'unknown',
+                message: "Format de token inconnu",
+                help: "Utilisez une clé d'intégration (secret_) ou un token OAuth (ntn_)"
+              };
+            }
           }
         } catch (jsonError) {
           console.error('Failed to parse response as JSON:', jsonError);

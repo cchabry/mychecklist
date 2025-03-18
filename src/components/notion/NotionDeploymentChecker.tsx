@@ -25,9 +25,9 @@ const NotionDeploymentChecker: React.FC = () => {
         throw new Error("Aucune clé API trouvée. Veuillez configurer Notion d'abord.");
       }
       
-      // Vérifier si on a une clé qui commence par secret_
-      if (!apiKey.startsWith('secret_')) {
-        throw new Error("Format de clé API incorrect. La clé doit commencer par 'secret_'");
+      // Accepter les deux formats de clé API : secret_ (intégration) et ntn_ (OAuth)
+      if (!apiKey.startsWith('secret_') && !apiKey.startsWith('ntn_')) {
+        throw new Error("Format de clé API incorrect. La clé doit commencer par 'secret_' ou 'ntn_'");
       }
       
       const isWorking = await verifyProxyDeployment(true, apiKey);

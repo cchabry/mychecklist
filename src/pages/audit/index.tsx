@@ -5,6 +5,7 @@ import { AuditContainer } from './AuditContainer';
 import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
+import { isOAuthToken, isIntegrationKey } from '@/lib/notionProxy/config';
 
 const AuditPage = () => {
   const [notionReady, setNotionReady] = useState<boolean>(false);
@@ -32,11 +33,15 @@ const AuditPage = () => {
         if (apiKey) {
           console.log('Tentative de connexion avec la clé depuis localStorage:', apiKey.substring(0, 8) + '...');
           
-          // Vérifier le format de la clé
-          if (!apiKey.startsWith('secret_')) {
+          // Déterminer le type de token et ajouter un log
+          const tokenType = isOAuthToken(apiKey) ? 'OAuth (ntn_)' : (isIntegrationKey(apiKey) ? 'Integration (secret_)' : 'Inconnu');
+          console.log(`Type de clé API détecté: ${tokenType}`);
+          
+          // Vérifier le format de la clé - accepter les deux types
+          if (!isOAuthToken(apiKey) && !isIntegrationKey(apiKey)) {
             console.error('Format de clé API incorrect. Clé actuelle:', apiKey.substring(0, 8) + '...');
             toast.error('Format de clé API incorrect', {
-              description: 'La clé d\'intégration doit commencer par "secret_"',
+              description: 'La clé doit commencer par "secret_" (intégration) ou "ntn_" (OAuth)',
               duration: 5000,
             });
             
@@ -56,15 +61,15 @@ const AuditPage = () => {
             return;
           }
           
-          // S'assurer que la clé est envoyée correctement, sans 'Bearer' (la fonction l'ajoutera)
+          // S'assurer que la clé est envoyée correctement
           const cleanKey = apiKey.trim();
           
           await notionApi.users.me(cleanKey);
           console.log('Notion connection verified successfully');
           
-          // Afficher un toast de succès
+          // Afficher un toast de succès avec mention du type de token
           toast.success('Connexion Notion établie', {
-            description: 'L\'intégration avec Notion est active.'
+            description: `L'intégration avec Notion est active (${tokenType})`,
           });
         }
       } catch (error) {

@@ -102,6 +102,47 @@ export const resetProxyCache = (): void => {
 };
 
 /**
+ * Vérifie si une clé API Notion est un token OAuth ou une clé d'intégration
+ */
+export const isOAuthToken = (token: string): boolean => {
+  return token.startsWith('ntn_');
+};
+
+/**
+ * Vérifie si une clé API Notion est une clé d'intégration
+ */
+export const isIntegrationKey = (token: string): boolean => {
+  return token.startsWith('secret_');
+};
+
+/**
+ * Prépare le token pour l'API Notion selon son type (OAuth ou Integration)
+ */
+export const prepareApiToken = (token: string): string => {
+  // Nettoyer le token (enlever les espaces)
+  const cleanToken = token.trim();
+  
+  // Si c'est déjà préfixé avec Bearer, le renvoyer tel quel
+  if (cleanToken.startsWith('Bearer ')) {
+    return cleanToken;
+  }
+  
+  // Pour les clés d'intégration, ajouter Bearer
+  if (isIntegrationKey(cleanToken)) {
+    return `Bearer ${cleanToken}`;
+  }
+  
+  // Pour les tokens OAuth, ils fonctionnent directement ou avec Bearer, on ajoute Bearer pour l'uniformité
+  if (isOAuthToken(cleanToken)) {
+    return `Bearer ${cleanToken}`;
+  }
+  
+  // Format inconnu, retourner tel quel mais c'est probablement une erreur
+  console.warn('Format de token inconnu, ni secret_ ni ntn_:', cleanToken.substring(0, 6) + '...');
+  return cleanToken;
+};
+
+/**
  * Recherche un proxy CORS fonctionnel
  */
 export const findWorkingProxy = async (): Promise<string | null> => {
@@ -118,7 +159,7 @@ export const findWorkingProxy = async (): Promise<string | null> => {
       const response = await fetch(testUrl, {
         method: 'HEAD',
         headers: {
-          'Authorization': `Bearer ${apiKey || 'test_token'}`,
+          'Authorization': prepareApiToken(apiKey || 'test_token'),
           'Notion-Version': NOTION_API_VERSION
         }
       });
@@ -174,7 +215,7 @@ export const verifyProxyDeployment = async (showSuccess = false, customApiKey?: 
       body: JSON.stringify({
         endpoint: '/users/me',
         method: 'GET',
-        token: apiKey || 'test_token'
+        token: apiKey || 'test_token_for_proxy_test'
       })
     });
     
