@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, InfoIcon, CheckCircle } from 'lucide-react';
+import { AlertCircle, InfoIcon, CheckCircle, XCircle } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
@@ -43,6 +43,33 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
     }
   }, []);
   
+  // Validation de la clé API Notion
+  const getApiKeyStatus = (): { valid: boolean; message: string } => {
+    if (!apiKey) {
+      return { valid: false, message: '' };
+    }
+    
+    // Si la clé commence par "ntn_", c'est un token OAuth, pas une clé d'intégration
+    if (apiKey.startsWith('ntn_')) {
+      return { 
+        valid: false, 
+        message: "❌ Token OAuth détecté - vous devez utiliser une clé d'intégration (commence par 'secret_')" 
+      };
+    }
+    
+    // Valider le format correct
+    if (!apiKey.startsWith('secret_')) {
+      return { 
+        valid: false, 
+        message: "⚠️ Format incorrect - la clé d'intégration doit commencer par 'secret_'" 
+      };
+    }
+    
+    return { valid: true, message: "✓ Format correct" };
+  };
+  
+  const apiKeyStatus = getApiKeyStatus();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -56,8 +83,8 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       }
       
       // Vérifier le format de la clé API - doit commencer par "secret_"
-      if (!apiKey.startsWith('secret_')) {
-        setError('Format de clé API invalide. La clé d\'intégration doit commencer par "secret_"');
+      if (!apiKeyStatus.valid) {
+        setError('Format de clé API invalide. La clé d\'intégration doit commencer par "secret_", pas "ntn_"');
         setLoading(false);
         return;
       }
@@ -103,12 +130,16 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
           onChange={(e) => setApiKey(e.target.value)}
           placeholder="secret_xxxxxxxxxxx"
           required
-          className={!apiKey.startsWith('secret_') && apiKey.length > 0 ? 'border-red-300' : ''}
+          className={!apiKeyStatus.valid && apiKey.length > 0 ? 'border-red-300' : ''}
         />
-        {!apiKey.startsWith('secret_') && apiKey.length > 0 && (
-          <p className="text-xs text-red-500">
-            ⚠️ La clé doit commencer par "secret_" et non "ntn_"
-          </p>
+        {apiKey.length > 0 && (
+          <div className={`text-xs ${apiKeyStatus.valid ? 'text-green-600' : 'text-red-500'} flex items-center gap-1`}>
+            {apiKeyStatus.valid ? 
+              <CheckCircle size={14} /> : 
+              (apiKey.startsWith('ntn_') ? <XCircle size={14} /> : <AlertCircle size={14} />)
+            }
+            {apiKeyStatus.message}
+          </div>
         )}
         <p className="text-xs text-muted-foreground">
           Créez une intégration sur <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-tmw-teal underline">notion.so/my-integrations</a>
@@ -180,7 +211,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         <Button 
           type="submit" 
           className="bg-tmw-teal hover:bg-tmw-teal/90"
-          disabled={loading}
+          disabled={loading || (apiKey.length > 0 && !apiKeyStatus.valid)}
         >
           {loading ? (
             <>

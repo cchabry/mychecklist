@@ -1,4 +1,3 @@
-
 import { mockNotionResponse } from './mockData';
 import { 
   NOTION_API_VERSION, 
@@ -127,7 +126,12 @@ async function tryServerlessProxy<T>(
       
       // Improved error handling for common Notion API errors
       if (response.status === 401) {
-        throw new Error(`Erreur d'authentification Notion: La clé d'API est invalide ou a expiré`);
+        // Vérifier si le token commence par ntn_ (OAuth) au lieu de secret_ (Integration)
+        if (token && token.startsWith('ntn_')) {
+          throw new Error(`Erreur d'authentification: Vous utilisez un token OAuth (ntn_) au lieu d'une clé d'intégration (secret_)`);
+        } else {
+          throw new Error(`Erreur d'authentification Notion: La clé d'API est invalide ou a expiré`);
+        }
       } else if (response.status === 403) {
         throw new Error(`Erreur d'autorisation Notion: L'intégration n'a pas accès à cette ressource`);
       } else if (response.status === 404 && errorData?.code === 'object_not_found') {
@@ -174,6 +178,12 @@ export const notionApiRequest = async <T = any>(
   
   if (!token) {
     throw new Error('Clé API Notion manquante. Veuillez configurer votre clé API dans les paramètres.');
+  }
+  
+  // Vérifier le format de la clé API
+  if (token.startsWith('ntn_')) {
+    console.error('Type de clé API incorrect: Vous utilisez un token OAuth (ntn_)');
+    throw new Error('Type de clé API incorrect: Vous devez utiliser une clé d\'intégration qui commence par "secret_", pas un token OAuth (ntn_)');
   }
   
   // Check if we're in mock mode

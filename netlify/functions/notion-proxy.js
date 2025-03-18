@@ -1,4 +1,3 @@
-
 // Configuration
 const NOTION_API_VERSION = '2022-06-28';
 const NOTION_API_BASE = 'https://api.notion.com/v1';
@@ -86,6 +85,8 @@ exports.handler = async (event, context) => {
         bodyPresent: !!body, 
         tokenPresent: !!token,
         tokenLength: token ? token.length : 0,
+        tokenType: token ? (token.startsWith('secret_') ? 'integration' : 
+                           (token.startsWith('ntn_') ? 'oauth' : 'unknown')) : 'none',
         tokenFirstChars: token ? token.substring(0, 5) + '...' : 'none'
       });
 
@@ -110,6 +111,21 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ 
             error: 'Missing required parameter: token',
             receivedParameters: Object.keys(parsedBody).join(', ')
+          })
+        };
+      }
+
+      // Vérifier le format de la clé API
+      if (token && token.startsWith('ntn_')) {
+        console.warn('OAuth token detected instead of integration key');
+        return {
+          statusCode: 401,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            error: 'Type de clé API incorrect',
+            message: 'Vous utilisez un token OAuth (ntn_) au lieu d\'une clé d\'intégration (secret_)',
+            details: 'Les tokens OAuth commençant par ntn_ ne peuvent pas être utilisés avec l\'API d\'intégration. Créez une intégration et utilisez sa clé secrète qui commence par secret_.',
+            help_url: 'https://developers.notion.com/docs/authorization#integration-tokens'
           })
         };
       }
@@ -158,11 +174,21 @@ exports.handler = async (event, context) => {
             // Si l'erreur est une erreur d'authentification (401), ajouter des détails
             if (notionResponse.status === 401) {
               console.log('Authentication error from Notion API');
-              responseData.error_details = {
-                type: 'authentication_error',
-                message: 'Veuillez vérifier que votre clé d\'API commence par "secret_" et non "ntn_"',
-                help: 'Les jetons commençant par "ntn_" sont des jetons OAuth et non des clés d\'intégration'
-              };
+              
+              // Vérifier si c'est un token OAuth
+              if (token && token.startsWith('ntn_')) {
+                responseData.error_details = {
+                  type: 'wrong_token_type',
+                  message: 'Vous utilisez un token OAuth (ntn_) au lieu d\'une clé d\'intégration (secret_)',
+                  help: 'Les tokens OAuth commençant par ntn_ ne fonctionnent pas avec l\'API d\'intégration. Créez une intégration et utilisez sa clé secrète.'
+                };
+              } else {
+                responseData.error_details = {
+                  type: 'authentication_error',
+                  message: 'Veuillez vérifier que votre clé d\'API est valide et n\'a pas expiré',
+                  help: 'Les clés d\'intégration commencent par "secret_"'
+                };
+              }
             }
           } catch (jsonError) {
             console.warn('Could not parse response as JSON, returning as text');
