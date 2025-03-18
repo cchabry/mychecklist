@@ -9,6 +9,7 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
+  // Log détaillé pour le debugging
   console.log('==========================================');
   console.log('⚡ [Notion Proxy] Fonction API appelée');
   console.log('Méthode:', request.method);
@@ -54,7 +55,7 @@ export default async function handler(
       message: 'Notion proxy is operational',
       timestamp: new Date().toISOString(),
       environment: process.env.VERCEL_ENV || 'development',
-      version: '1.0.1'
+      version: '1.0.2'
     });
   }
   
@@ -64,6 +65,15 @@ export default async function handler(
     return response.status(405).json({ 
       error: `Méthode ${request.method} non supportée`,
       message: 'Seules les méthodes POST, GET, HEAD et OPTIONS sont supportées'
+    });
+  }
+  
+  // Vérifier que le corps de la requête existe
+  if (!request.body) {
+    console.error('❌ [Notion Proxy] Corps de requête manquant');
+    return response.status(400).json({ 
+      error: 'Corps de requête manquant',
+      message: 'Le corps de la requête est requis pour les requêtes POST'
     });
   }
   

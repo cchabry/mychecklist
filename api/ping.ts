@@ -1,6 +1,9 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+/**
+ * API de ping - fournit un endpoint basique pour tester le déploiement
+ */
 export default function handler(
   request: VercelRequest,
   response: VercelResponse
@@ -26,12 +29,16 @@ export default function handler(
   // Return a detailed response with deployment info
   return response.status(200).json({
     status: 'ok',
-    message: 'Notion proxy server is running',
+    message: 'API server is running',
     timestamp: new Date().toISOString(),
     deployment: {
       url: deploymentUrl,
       environment: environment,
       region: process.env.VERCEL_REGION || 'unknown'
+    },
+    proxyStatus: {
+      expectedPath: '/api/notion-proxy',
+      checkTime: new Date().toISOString()
     },
     headers: request.headers
   });
