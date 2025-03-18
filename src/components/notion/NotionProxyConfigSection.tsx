@@ -134,38 +134,6 @@ const NotionProxyConfigSection: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="mt-3">
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs mr-2"
-                asChild
-              >
-                <a href={`${window.location.origin}/api/ping`} target="_blank" rel="noopener noreferrer">
-                  Tester /api/ping
-                </a>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs mr-2"
-                asChild
-              >
-                <a href={`${window.location.origin}/api/vercel-debug`} target="_blank" rel="noopener noreferrer">
-                  Diagnostiquer Vercel
-                </a>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs"
-                asChild
-              >
-                <a href={`${window.location.origin}/api/notion-proxy`} target="_blank" rel="noopener noreferrer">
-                  Tester /api/notion-proxy
-                </a>
-              </Button>
-            </div>
           </li>
         </ol>
         
@@ -182,6 +150,80 @@ const NotionProxyConfigSection: React.FC = () => {
             <li>Vérifiez les logs Vercel pour identifier toute erreur persistante</li>
           </ul>
         </div>
+      </div>
+      
+      {/* Section de test des endpoints avec des boutons plus visibles */}
+      <div className="bg-green-50 p-4 rounded-md border border-green-200">
+        <h3 className="font-medium mb-3 flex items-center gap-2 text-green-700">
+          <ExternalLink size={16} />
+          Tester les endpoints
+        </h3>
+        
+        <p className="text-sm text-green-700 mb-3">
+          Cliquez sur les boutons ci-dessous pour tester chaque endpoint. Une nouvelle fenêtre s'ouvrira avec le résultat.
+        </p>
+        
+        <div className="flex flex-wrap gap-3">
+          <Button 
+            variant="default" 
+            className="bg-green-600 hover:bg-green-700"
+            onClick={() => window.open(`${window.location.origin}/api/ping`, '_blank')}
+          >
+            Tester /api/ping
+          </Button>
+          
+          <Button 
+            variant="default" 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => window.open(`${window.location.origin}/api/vercel-debug`, '_blank')}
+          >
+            Tester /api/vercel-debug
+          </Button>
+          
+          <Button 
+            variant="default" 
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={() => window.open(`${window.location.origin}/api/notion-proxy`, '_blank')}
+          >
+            Tester /api/notion-proxy (GET)
+          </Button>
+          
+          <Button 
+            variant="default" 
+            className="bg-amber-600 hover:bg-amber-700"
+            onClick={() => {
+              const testPostRequest = async () => {
+                try {
+                  const response = await fetch(`${window.location.origin}/api/notion-proxy`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      endpoint: '/ping',
+                      method: 'GET',
+                      token: 'test_token_for_manual_test'
+                    })
+                  });
+                  
+                  const result = await response.text();
+                  alert(`Statut: ${response.status}\n\nRéponse: ${result}`);
+                } catch (error) {
+                  alert(`Erreur: ${error.message}`);
+                }
+              };
+              
+              testPostRequest();
+            }}
+          >
+            Tester /api/notion-proxy (POST)
+          </Button>
+        </div>
+        
+        <p className="text-xs text-green-700 mt-4">
+          Note: Pour le test POST, le résultat s'affichera dans une alerte. Si le test échoue, essayez de consulter 
+          la console de développement du navigateur (F12) pour plus de détails sur l'erreur.
+        </p>
       </div>
     </div>
   );
