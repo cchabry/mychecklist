@@ -6,6 +6,7 @@ import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import NotionErrorDetails from './NotionErrorDetails';
 import NotionConfigForm from './NotionConfigForm';
+import { isOAuthToken, isIntegrationKey } from '@/lib/notionProxy/config';
 
 interface NotionConfigProps {
   isOpen: boolean;
@@ -51,9 +52,10 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       return;
     }
     
-    if (!apiKey.startsWith('secret_')) {
+    // Accepter à la fois les tokens OAuth (ntn_) et les clés d'intégration (secret_)
+    if (!isOAuthToken(apiKey) && !isIntegrationKey(apiKey)) {
       setError('Format de clé API invalide');
-      setErrorContext('La clé d\'intégration doit commencer par "secret_"');
+      setErrorContext('La clé doit commencer par "secret_" (intégration) ou "ntn_" (OAuth)');
       return;
     }
     
@@ -67,7 +69,8 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     
     console.log('Valeurs sauvegardées dans localStorage:', {
       apiKey: `${apiKey.substring(0, 8)}...`,
-      databaseId: cleanDbId
+      databaseId: cleanDbId,
+      tokenType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
     });
     
     // Tester la connexion à l'API Notion via notre proxy

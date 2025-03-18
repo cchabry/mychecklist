@@ -30,6 +30,10 @@ const NotionDeploymentChecker: React.FC = () => {
         throw new Error("Format de clé API incorrect. La clé doit commencer par 'secret_' ou 'ntn_'");
       }
       
+      // Noter que les deux types utilisent Bearer token pour l'authentification
+      console.log(`Type de token détecté: ${apiKey.startsWith('ntn_') ? 'OAuth (ntn_)' : 'Integration (secret_)'}`);
+      console.log("Les deux types utilisent l'authentification Bearer");
+      
       const isWorking = await verifyProxyDeployment(true, apiKey);
       
       if (isWorking) {

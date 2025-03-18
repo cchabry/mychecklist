@@ -31,23 +31,21 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   
   // Quand les props initialApiKey ou initialDatabaseId changent, mettre à jour les états
   useEffect(() => {
-    if (isOpen) {
-      const savedApiKey = localStorage.getItem('notion_api_key') || '';
-      const savedDatabaseId = localStorage.getItem('notion_database_id') || '';
-      
-      setApiKey(savedApiKey);
-      setDatabaseId(savedDatabaseId);
-      
-      // Log pour debug
-      console.log('Modal ouverte, chargement des valeurs:', {
-        apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
-        databaseId: savedDatabaseId || 'vide'
-      });
+    const savedApiKey = localStorage.getItem('notion_api_key') || '';
+    const savedDatabaseId = localStorage.getItem('notion_database_id') || '';
+    
+    setApiKey(savedApiKey);
+    setDatabaseId(savedDatabaseId);
+    
+    // Log pour debug
+    console.log('Chargement des valeurs depuis localStorage:', {
+      apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
+      databaseId: savedDatabaseId || 'vide'
+    });
 
-      // Réinitialiser les erreurs à chaque ouverture
-      setError('');
-      setShowErrorDetails(false);
-    }
+    // Réinitialiser les erreurs
+    setError('');
+    setShowErrorDetails(false);
   }, [initialApiKey, initialDatabaseId]);
   
   // Validation de la clé API Notion
