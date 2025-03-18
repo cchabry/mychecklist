@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { 
   NOTION_API_BASE, 
@@ -85,34 +84,54 @@ const calculateBackoffDelay = (retryCount: number): number => {
 };
 
 /**
- * Vérification de l'erreur 404 sur le proxy
+ * Vérification de l'existence du fichier proxy par une requête directe
+ * Cette méthode est plus fiable que la vérification par OPTIONS qui peut être bloquée par CORS
  */
 const checkProxyExists = async (): Promise<boolean> => {
   try {
-    // Vérifier si le fichier notion-proxy.js est accessible
+    // Construire une URL complète pour le fichier de proxy
     const vercelApiUrl = `${window.location.origin}/api/notion-proxy`;
+    console.log('🔍 Vérification de l\'existence du proxy à:', vercelApiUrl);
+    
+    // Utiliser une requête HEAD qui est moins susceptible d'être bloquée par CORS
     const response = await fetch(vercelApiUrl, {
-      method: 'OPTIONS',
-      headers: { 'Accept': 'application/json' },
-      mode: 'no-cors',
+      method: 'HEAD',
       cache: 'no-store'
     });
     
-    console.log('🔍 Vérification de l\'existence du proxy:', response.status);
+    console.log('🔍 Statut de la vérification du proxy:', response.status);
     
     // Si on reçoit une réponse 404, c'est que le fichier API n'existe pas
     if (response.status === 404) {
-      console.error('❌ Le fichier api/notion-proxy n\'existe pas');
+      console.error('❌ Le fichier api/notion-proxy n\'existe pas (404)');
       toast.error('Fichier proxy manquant', {
-        description: 'Le fichier api/notion-proxy.js est introuvable sur le serveur Vercel.',
+        description: 'Le fichier api/notion-proxy.ts est introuvable sur le serveur Vercel.',
       });
       return false;
     }
     
     return true;
   } catch (error) {
-    console.warn('❓ Vérification du proxy échouée, mais continuons:', error);
-    return true; // En cas d'erreur CORS, on continue quand même
+    // En cas d'erreur CORS, essayer une autre méthode
+    try {
+      const vercelApiUrl = `${window.location.origin}/api/notion-proxy`;
+      await fetch(vercelApiUrl, { 
+        method: 'OPTIONS',
+        mode: 'no-cors' // Contourne les erreurs CORS mais ne permet pas de lire la réponse
+      });
+      
+      // Si on arrive ici sans erreur, c'est que le fichier existe probablement
+      console.log('🔍 Proxy détecté via méthode alternative no-cors');
+      return true;
+    } catch (corsError) {
+      console.warn('❓ Vérification du proxy échouée via les deux méthodes:', corsError);
+      
+      // En cas d'erreur avec les deux méthodes, on suppose que le proxy n'existe pas
+      toast.error('Impossible de vérifier le proxy', {
+        description: 'Le fichier api/notion-proxy.ts est peut-être manquant ou inaccessible.',
+      });
+      return false;
+    }
   }
 };
 
@@ -130,20 +149,21 @@ const pingProxyServer = async (): Promise<void> => {
       return;
     }
     
+    // Tester le ping endpoint qui est plus simple
     const pingUrl = `${window.location.origin}/api/ping`;
     console.log(`📡 Test de ping du proxy: ${pingUrl}`);
     
     const pingResponse = await fetch(pingUrl, {
       method: 'GET',
-      mode: 'no-cors',
       cache: 'no-store'
     });
     
     console.log('📡 Ping du proxy réussi:', pingResponse.status);
     
     if (pingResponse.ok) {
-      toast.error('Erreur de communication avec le proxy', {
-        description: 'Le proxy est accessible mais ne répond pas correctement aux requêtes Notion',
+      // Le ping a réussi mais le proxy ne fonctionne pas, donc c'est un problème de configuration
+      toast.error('Erreur de configuration du proxy', {
+        description: 'Le serveur est accessible mais le proxy Notion ne répond pas correctement aux requêtes.',
       });
     }
   } catch (pingError) {
