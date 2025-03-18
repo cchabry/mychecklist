@@ -5,8 +5,11 @@
 export const NOTION_API_BASE = 'https://api.notion.com/v1';
 
 // URL de notre fonction serverless Vercel déployée
-// ⚠️ Assurez-vous de mettre à jour cette URL avec votre domaine Vercel réel
-export const VERCEL_PROXY_URL = 'https://YOUR-VERCEL-PROJECT.vercel.app/api/notion-proxy';
+// Cette URL sera automatiquement déterminée en fonction de l'environnement
+export const VERCEL_PROXY_URL = 
+  process.env.NODE_ENV === 'production'
+    ? 'https://mychecklist-sigma.vercel.app/api/notion-proxy'
+    : 'https://mychecklist-sigma.vercel.app/api/notion-proxy';
 
 // Notion API version
 export const NOTION_API_VERSION = '2022-06-28';

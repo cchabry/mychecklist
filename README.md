@@ -1,5 +1,5 @@
 
-# Audit Projet Vercel
+# MyChecklist - Audit de projets avec Notion
 
 Ce projet utilise Vercel pour déployer une fonction serverless qui sert de proxy pour l'API Notion, permettant de contourner les limitations CORS du navigateur.
 
@@ -9,37 +9,51 @@ Ce projet utilise Vercel pour déployer une fonction serverless qui sert de prox
 1. Un compte [GitHub](https://github.com)
 2. Un compte [Vercel](https://vercel.com)
 
-### Étapes de déploiement
+### Étapes de déploiement rapide
 
-1. **Créer un dépôt GitHub**
-   - Créer un nouveau dépôt sur GitHub
-   - Cloner le dépôt localement
-   - Copier tous les fichiers de ce projet dans le dépôt local
-   - Commiter et pousser les changements vers GitHub
+1. **Déployer directement sur Vercel**
+   - Forker ce dépôt sur GitHub
+   - Connecter votre compte Vercel
+   - Importer le dépôt GitHub dans Vercel
+   - Vercel détectera automatiquement la configuration et déploiera le projet
 
-2. **Déployer sur Vercel**
-   - Se connecter à [Vercel](https://vercel.com)
-   - Cliquer sur "Add New..." puis "Project"
-   - Sélectionner le dépôt GitHub contenant votre projet
-   - Dans les paramètres de déploiement:
-     - Framework Preset: Autre
-     - Build Command: `npm run build`
-     - Output Directory: `dist`
-   - Cliquer sur "Deploy"
+2. **Configuration spécifique (si nécessaire)**
+   - Framework preset: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Environment Variables: Aucune requise
 
-3. **Configurer le frontend**
-   - Après le déploiement, Vercel vous fournira une URL (exemple: `https://votre-projet.vercel.app`)
-   - Ouvrez le fichier `src/lib/notionProxy.ts`
-   - Remplacez la ligne `const VERCEL_PROXY_URL = '/api/notion-proxy';` par:
-     ```javascript
-     const VERCEL_PROXY_URL = 'https://votre-projet.vercel.app/api/notion-proxy';
-     ```
-   - Commiter et pousser ces changements vers GitHub pour déclencher un nouveau déploiement
+3. **Vérifier le déploiement**
+   - Après le déploiement réussi, vous pourrez accéder à votre application à l'URL fournie par Vercel
+   - Testez le proxy Notion en utilisant l'endpoint `/api/ping`
 
-4. **Tester l'intégration**
-   - Une fois déployé, configurez la connexion Notion dans l'application
-   - L'application devrait maintenant pouvoir communiquer avec l'API Notion via le proxy Vercel
+## Dépannage des déploiements Vercel
+
+Si le déploiement échoue, vérifiez ces points courants:
+
+1. **Problèmes de build**
+   - Vérifiez les logs de build dans l'interface Vercel
+   - Assurez-vous que toutes les dépendances sont correctement installées
+
+2. **Problèmes de fonctions serverless**
+   - Vérifiez que le fichier `vercel.json` est correctement configuré
+   - Les routes API devraient pointer vers les fichiers .ts corrects
+
+3. **Problèmes CORS**
+   - Les en-têtes CORS sont configurés dans `vercel.json`
+   - Testez l'endpoint `/api/ping` pour vérifier l'accès au serveur
+
+4. **Redéploiement**
+   - Parfois, un simple redéploiement résout les problèmes temporaires
+   - Utilisez l'option "Redeploy" dans le tableau de bord Vercel
+
+## Structure du projet
+
+- `/api` - Fonctions serverless Vercel
+- `/src` - Code source de l'application
+  - `/lib/notionProxy` - Utilitaires pour communiquer avec l'API Notion via le proxy
+  - `/components` - Composants React réutilisables
 
 ## Notes importantes
-- Les fonctions serverless Vercel ont une limite de 10 secondes d'exécution dans le plan gratuit.
+- Les fonctions serverless Vercel ont une limite de 10 secondes d'exécution dans le plan gratuit (étendue à 30s dans notre configuration).
 - Si vous rencontrez des problèmes, vérifiez les logs dans le dashboard Vercel.

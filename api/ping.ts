@@ -5,20 +5,34 @@ export default function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
+  console.log('📡 [Ping] Ping endpoint hit');
+  
   // Enable CORS for all origins
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+  response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   
   // Handle OPTIONS request (pre-flight)
   if (request.method === 'OPTIONS') {
+    console.log('📡 [Ping] Responding to OPTIONS request');
     return response.status(200).end();
   }
   
-  // Return a simple success response
+  // Get deployment information
+  const deploymentUrl = process.env.VERCEL_URL || 'local-development';
+  const environment = process.env.VERCEL_ENV || 'development';
+  
+  // Return a detailed response with deployment info
   return response.status(200).json({
     status: 'ok',
     message: 'Notion proxy server is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    deployment: {
+      url: deploymentUrl,
+      environment: environment,
+      region: process.env.VERCEL_REGION || 'unknown'
+    },
+    headers: request.headers
   });
 }
