@@ -10,7 +10,7 @@ let databaseId: string | null = null;
  * Extracts the clean database ID from various formats
  */
 export const extractNotionDatabaseId = (id: string): string => {
-  // If the ID contains a tiret, extract the part after the tiret
+  // If the ID contains a hyphen, extract the part after the hyphen
   if (id.includes('-')) {
     return id.split('-').pop() || id;
   }
@@ -134,14 +134,42 @@ export const notionPropertyExtractors = {
  */
 export const testNotionConnection = async (client: Client): Promise<boolean> => {
   try {
+    console.log('Testing Notion API connection...');
     const test = await client.users.me({});
     console.log('Notion API connection successful, user:', test.name);
+    
+    // Assume notionClient is not null here
+    const { dbId } = getNotionClient();
+    
+    if (dbId) {
+      try {
+        console.log('Testing database access with ID:', dbId);
+        await client.databases.retrieve({ database_id: dbId });
+        console.log('Database access successful');
+      } catch (dbError) {
+        console.error('Database access failed:', dbError);
+        toast.error('Erreur d\'accès à la base de données', {
+          description: 'Vérifiez l\'ID de base de données et les permissions de l\'intégration'
+        });
+        return false;
+      }
+    }
+    
     return true;
   } catch (testError) {
     console.error('Notion API connection test failed:', testError);
-    toast.error('Erreur de connexion à Notion API', {
-      description: 'Vérifiez votre clé API et votre connexion internet'
-    });
+    
+    // Afficher un message approprié selon l'erreur
+    if (testError.message?.includes('401')) {
+      toast.error('Clé API Notion invalide', {
+        description: 'Vérifiez votre clé d\'intégration Notion'
+      });
+    } else {
+      toast.error('Erreur de connexion à Notion API', {
+        description: 'Vérifiez votre connexion internet et vos paramètres Notion'
+      });
+    }
+    
     return false;
   }
 };

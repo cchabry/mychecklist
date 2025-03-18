@@ -28,7 +28,9 @@ export const notionApiRequest = async (
   try {
     // Add timeout to fetch
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout (increased from 10s)
+    
+    console.log(`Fetching Notion API: ${NOTION_API_BASE}${endpoint}`);
     
     const response = await fetch(`${NOTION_API_BASE}${endpoint}`, {
       ...options,
@@ -40,9 +42,23 @@ export const notionApiRequest = async (
     
     // Check if response is ok
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Notion API error:', error);
-      throw new Error(`Notion API error: ${error.message || 'Unknown error'}`);
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      console.error('Notion API error:', errorData);
+      
+      // Handle common error codes
+      if (response.status === 401) {
+        throw new Error('Erreur d\'authentification Notion: Clé API invalide ou expirée');
+      }
+      
+      if (response.status === 404) {
+        throw new Error('Ressource Notion introuvable: Vérifiez l\'ID de la base de données');
+      }
+      
+      if (response.status === 429) {
+        throw new Error('Trop de requêtes Notion: Veuillez réessayer plus tard');
+      }
+      
+      throw new Error(`Erreur Notion: ${errorData.message || response.statusText || 'Erreur inconnue'}`);
     }
     
     return await response.json();
@@ -52,14 +68,14 @@ export const notionApiRequest = async (
     // Handle specific errors
     if (error.name === 'AbortError') {
       toast.error('Requête Notion expirée', {
-        description: 'La connexion à Notion a pris trop de temps',
+        description: 'La connexion à Notion a pris trop de temps. Vérifiez votre connexion internet.',
       });
       throw new Error('Notion request timeout');
     }
     
     if (error.message?.includes('Failed to fetch')) {
       toast.error('Erreur de connexion à Notion', {
-        description: 'Vérifiez votre connexion internet et les paramètres de Notion',
+        description: 'Vérifiez votre connexion internet et les paramètres réseau',
       });
     }
     
@@ -72,38 +88,76 @@ export const notionApi = {
   // User-related endpoints
   users: {
     me: async (apiKey?: string) => {
-      return await notionApiRequest('/users/me', {}, apiKey);
+      try {
+        return await notionApiRequest('/users/me', {}, apiKey);
+      } catch (error) {
+        console.error('Failed to get Notion user:', error);
+        throw error;
+      }
     }
   },
   
   // Database endpoints
   databases: {
     query: async (databaseId: string, params: any = {}, apiKey?: string) => {
-      return await notionApiRequest(`/databases/${databaseId}/query`, {
-        method: 'POST',
-        body: JSON.stringify(params)
-      }, apiKey);
+      try {
+        // Ensure the database ID is clean
+        const cleanId = databaseId.replace(/-/g, '');
+        return await notionApiRequest(`/databases/${cleanId}/query`, {
+          method: 'POST',
+          body: JSON.stringify(params)
+        }, apiKey);
+      } catch (error) {
+        console.error(`Failed to query Notion database ${databaseId}:`, error);
+        throw error;
+      }
+    },
+    
+    retrieve: async (databaseId: string, apiKey?: string) => {
+      try {
+        // Ensure the database ID is clean
+        const cleanId = databaseId.replace(/-/g, '');
+        return await notionApiRequest(`/databases/${cleanId}`, {}, apiKey);
+      } catch (error) {
+        console.error(`Failed to retrieve Notion database ${databaseId}:`, error);
+        throw error;
+      }
     }
   },
   
   // Page endpoints
   pages: {
     retrieve: async (pageId: string, apiKey?: string) => {
-      return await notionApiRequest(`/pages/${pageId}`, {}, apiKey);
+      try {
+        return await notionApiRequest(`/pages/${pageId}`, {}, apiKey);
+      } catch (error) {
+        console.error(`Failed to retrieve Notion page ${pageId}:`, error);
+        throw error;
+      }
     },
     
     create: async (params: any, apiKey?: string) => {
-      return await notionApiRequest('/pages', {
-        method: 'POST',
-        body: JSON.stringify(params)
-      }, apiKey);
+      try {
+        return await notionApiRequest('/pages', {
+          method: 'POST',
+          body: JSON.stringify(params)
+        }, apiKey);
+      } catch (error) {
+        console.error('Failed to create Notion page:', error);
+        throw error;
+      }
     },
     
     update: async (pageId: string, params: any, apiKey?: string) => {
-      return await notionApiRequest(`/pages/${pageId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(params)
-      }, apiKey);
+      try {
+        return await notionApiRequest(`/pages/${pageId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(params)
+        }, apiKey);
+      } catch (error) {
+        console.error(`Failed to update Notion page ${pageId}:`, error);
+        throw error;
+      }
     }
   }
 };
