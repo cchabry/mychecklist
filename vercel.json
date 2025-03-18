@@ -10,9 +10,9 @@
       "maxDuration": 30
     }
   },
-  "routes": [
-    { "src": "/api/notion-proxy", "dest": "/api/notion-proxy.ts" },
-    { "src": "/api/ping", "dest": "/api/ping.ts" }
+  "rewrites": [
+    { "source": "/api/notion-proxy", "destination": "/api/notion-proxy.ts" },
+    { "source": "/api/ping", "destination": "/api/ping.ts" }
   ],
   "headers": [
     {

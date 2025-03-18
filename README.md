@@ -36,8 +36,9 @@ Si le déploiement échoue, vérifiez ces points courants:
    - Assurez-vous que toutes les dépendances sont correctement installées
 
 2. **Problèmes de fonctions serverless**
-   - Vérifiez que le fichier `vercel.json` est correctement configuré
-   - Les routes API devraient pointer vers les fichiers .ts corrects
+   - Vérifiez que le fichier `vercel.json` est correctement configuré 
+   - Utilisez des `rewrites` au lieu de `routes` pour éviter les conflits de configuration
+   - Les redirections API devraient pointer vers les fichiers .ts corrects
 
 3. **Problèmes CORS**
    - Les en-têtes CORS sont configurés dans `vercel.json`
@@ -57,3 +58,4 @@ Si le déploiement échoue, vérifiez ces points courants:
 ## Notes importantes
 - Les fonctions serverless Vercel ont une limite de 10 secondes d'exécution dans le plan gratuit (étendue à 30s dans notre configuration).
 - Si vous rencontrez des problèmes, vérifiez les logs dans le dashboard Vercel.
+- Le déploiement de ce projet utilise des `rewrites` au lieu de `routes` pour assurer la compatibilité avec les nouvelles versions de Vercel.
