@@ -7,10 +7,11 @@ const NOTION_API_BASE = 'https://api.notion.com/v1';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
+    // Log request details for debugging
     console.log('Notion proxy received request:', request.method, request.url);
     console.log('Request headers:', JSON.stringify(request.headers, null, 2));
     
-    // Enable CORS for development
+    // Set CORS headers for all responses
     response.setHeader('Access-Control-Allow-Credentials', 'true');
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -36,9 +37,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     // Handle POST request for making calls to Notion
     if (request.method === 'POST') {
       console.log('Handling POST request to notion-proxy');
-      console.log('Request body:', typeof request.body, request.body ? 'has content' : 'is empty');
+      console.log('Request body type:', typeof request.body);
+      console.log('Request body has content:', request.body ? 'Yes' : 'No');
       
-      // Check that the body is present
       if (!request.body) {
         console.error('Request body is missing');
         return response.status(400).json({
@@ -95,7 +96,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         'Content-Type': 'application/json'
       };
       
-      console.log(`Making ${method || 'GET'} request to Notion API`);
+      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, headers);
       
       // Make request to Notion API
       try {

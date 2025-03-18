@@ -167,6 +167,7 @@ const NotionProxyConfigGuide: React.FC = () => {
   },
   "rewrites": [
     { "source": "/api/notion-proxy", "destination": "/api/notion-proxy.ts" },
+    { "source": "/api/notion-proxy/(.*)", "destination": "/api/notion-proxy.ts" },
     { "source": "/api/ping", "destination": "/api/ping.ts" },
     { "source": "/api/vercel-debug", "destination": "/api/vercel-debug.ts" }
   ],
