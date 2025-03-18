@@ -14,15 +14,18 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
   
   try {
     // Retrieve audit data
-    const response = await notionApi.databases.query({
-      database_id: dbId,
-      filter: {
-        property: 'projectId',
-        rich_text: {
-          equals: projectId
+    const response = await notionApi.databases.query(
+      dbId,
+      {
+        filter: {
+          property: 'projectId',
+          rich_text: {
+            equals: projectId
+          }
         }
-      }
-    }, apiKey);
+      },
+      apiKey
+    );
     
     if (response.results.length === 0) return null;
     
@@ -92,42 +95,48 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
   
   try {
     // Update the audit page
-    await notionApi.pages.update({
-      page_id: audit.id,
-      properties: {
-        score: {
-          number: audit.score
-        },
-        updatedAt: {
-          date: {
-            start: new Date().toISOString()
+    await notionApi.pages.update(
+      {
+        page_id: audit.id,
+        properties: {
+          score: {
+            number: audit.score
+          },
+          updatedAt: {
+            date: {
+              start: new Date().toISOString()
+            }
           }
         }
-      }
-    }, apiKey);
+      },
+      apiKey
+    );
     
     // Update individual items
     for (const item of audit.items) {
-      await notionApi.pages.update({
-        page_id: item.id,
-        properties: {
-          status: {
-            select: {
-              name: item.status
-            }
-          },
-          comment: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: item.comment || ''
-                }
+      await notionApi.pages.update(
+        {
+          page_id: item.id,
+          properties: {
+            status: {
+              select: {
+                name: item.status
               }
-            ]
+            },
+            comment: {
+              rich_text: [
+                {
+                  type: 'text',
+                  text: {
+                    content: item.comment || ''
+                  }
+                }
+              ]
+            }
           }
-        }
-      }, apiKey);
+        },
+        apiKey
+      );
     }
     
     return true;
