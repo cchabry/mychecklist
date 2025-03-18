@@ -5,6 +5,48 @@ import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 
 const NotionProxyConfigSection: React.FC = () => {
+  // Helper function to get the correct API URL based on environment
+  const getApiUrl = (endpoint: string) => {
+    // In LovablePreview or dev environment, use relative paths
+    // This is crucial because window.location.origin may not point to the correct API endpoint
+    return process.env.NODE_ENV === 'production' 
+      ? `${window.location.origin}${endpoint}`
+      : endpoint;
+  };
+
+  // Function to test POST requests with better error handling
+  const testPostRequest = async () => {
+    try {
+      const apiUrl = getApiUrl('/api/notion-proxy');
+      console.log('Testing POST request to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: '/ping',
+          method: 'GET',
+          token: 'test_token_for_manual_test'
+        })
+      });
+      
+      let responseText;
+      try {
+        responseText = await response.text();
+      } catch (e) {
+        responseText = 'Impossible de lire la réponse';
+      }
+      
+      alert(`Statut: ${response.status}\n\nRéponse: ${responseText}`);
+      console.log('POST test response:', { status: response.status, body: responseText });
+    } catch (error) {
+      console.error('Erreur lors du test POST:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <NotionDeploymentChecker />
@@ -12,22 +54,22 @@ const NotionProxyConfigSection: React.FC = () => {
       <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
         <h3 className="font-medium mb-2 flex items-center gap-2 text-red-700">
           <AlertTriangle size={16} />
-          Erreur fonction serverless détectée (500)
+          Erreur fonction serverless détectée (404)
         </h3>
         
         <p className="text-sm text-red-700 mb-3">
-          L'erreur <code className="bg-white px-1 py-0.5 rounded">FUNCTION_INVOCATION_FAILED</code> indique que la fonction <code>api/notion-proxy.ts</code> existe mais rencontre une erreur durant son exécution. Voici les solutions possibles:
+          L'erreur <code className="bg-white px-1 py-0.5 rounded">404 Not Found</code> indique que les fonctions API ne sont pas accessibles. Voici les solutions possibles:
         </p>
         
         <ol className="space-y-3 list-decimal pl-5 text-sm text-red-700">
           <li>
-            <strong>Vérifiez que le fichier est correctement formaté</strong> - Assurez-vous qu'il n'y a pas d'erreurs de syntaxe dans le code
+            <strong>Vérifiez que les fichiers API existent</strong> - Assurez-vous que les fichiers <code>api/notion-proxy.ts</code>, <code>api/ping.ts</code> et <code>api/vercel-debug.ts</code> sont bien présents
           </li>
           <li>
-            <strong>Essayez une version simplifiée du code</strong> - Parfois les logs ou fonctionnalités complexes peuvent causer des problèmes
+            <strong>Vérifiez vercel.json</strong> - Assurez-vous que le fichier contient les bonnes redirections pour les API
           </li>
           <li>
-            <strong>Vérifiez les logs Vercel</strong> - Consultez les logs d'exécution de la fonction dans le dashboard Vercel
+            <strong>Redéployez l'application</strong> - Un nouveau déploiement peut résoudre certains problèmes de configuration
           </li>
         </ol>
       </div>
@@ -167,7 +209,7 @@ const NotionProxyConfigSection: React.FC = () => {
           <Button 
             variant="default" 
             className="bg-green-600 hover:bg-green-700"
-            onClick={() => window.open(`${window.location.origin}/api/ping`, '_blank')}
+            onClick={() => window.open(getApiUrl('/api/ping'), '_blank')}
           >
             Tester /api/ping
           </Button>
@@ -175,7 +217,7 @@ const NotionProxyConfigSection: React.FC = () => {
           <Button 
             variant="default" 
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => window.open(`${window.location.origin}/api/vercel-debug`, '_blank')}
+            onClick={() => window.open(getApiUrl('/api/vercel-debug'), '_blank')}
           >
             Tester /api/vercel-debug
           </Button>
@@ -183,7 +225,7 @@ const NotionProxyConfigSection: React.FC = () => {
           <Button 
             variant="default" 
             className="bg-purple-600 hover:bg-purple-700"
-            onClick={() => window.open(`${window.location.origin}/api/notion-proxy`, '_blank')}
+            onClick={() => window.open(getApiUrl('/api/notion-proxy'), '_blank')}
           >
             Tester /api/notion-proxy (GET)
           </Button>
@@ -191,37 +233,14 @@ const NotionProxyConfigSection: React.FC = () => {
           <Button 
             variant="default" 
             className="bg-amber-600 hover:bg-amber-700"
-            onClick={() => {
-              const testPostRequest = async () => {
-                try {
-                  const response = await fetch(`${window.location.origin}/api/notion-proxy`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      endpoint: '/ping',
-                      method: 'GET',
-                      token: 'test_token_for_manual_test'
-                    })
-                  });
-                  
-                  const result = await response.text();
-                  alert(`Statut: ${response.status}\n\nRéponse: ${result}`);
-                } catch (error) {
-                  alert(`Erreur: ${error.message}`);
-                }
-              };
-              
-              testPostRequest();
-            }}
+            onClick={testPostRequest}
           >
             Tester /api/notion-proxy (POST)
           </Button>
         </div>
         
         <p className="text-xs text-green-700 mt-4">
-          Note: Pour le test POST, le résultat s'affichera dans une alerte. Si le test échoue, essayez de consulter 
+          Note: Pour le test POST, le résultat s'affichera dans une alerte. Si le test échoue, consultez 
           la console de développement du navigateur (F12) pour plus de détails sur l'erreur.
         </p>
       </div>
