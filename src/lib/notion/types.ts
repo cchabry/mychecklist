@@ -1,17 +1,13 @@
 
 // Importing shared types from the main types file
-import { ComplianceStatus, Audit, AuditItem, Project } from '../types';
+import type { Audit, AuditItem, Project } from '../types';
+import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
 
 // Re-export types that are used in the Notion services
 export type { ComplianceStatus, Audit, AuditItem, Project };
 
-// Helper constant for compliance values calculation
-export const COMPLIANCE_VALUES = {
-  [ComplianceStatus.NonCompliant]: 0,
-  [ComplianceStatus.PartiallyCompliant]: 0.5,
-  [ComplianceStatus.Compliant]: 1,
-  [ComplianceStatus.NotEvaluated]: 0
-};
+// Re-export values
+export { COMPLIANCE_VALUES };
 
 // Notion-specific type definitions
 export interface NotionProperty {

@@ -23,5 +23,5 @@ export {
 } from './auditService';
 
 // Types re-export
-export type { ComplianceStatus } from './types';
-export { COMPLIANCE_VALUES } from './types';
+export type { ComplianceStatus } from '../types';
+export { COMPLIANCE_VALUES } from '../types';
