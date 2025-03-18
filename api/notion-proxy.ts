@@ -14,6 +14,11 @@ export default async function handler(
   console.log('Méthode:', request.method);
   console.log('URL:', request.url);
   console.log('Headers:', JSON.stringify(request.headers, null, 2));
+  
+  // Afficher le corps de la requête pour les requêtes POST
+  if (request.method === 'POST') {
+    console.log('Body:', JSON.stringify(request.body, null, 2));
+  }
   console.log('==========================================');
 
   // Configuration CORS avancée
@@ -41,8 +46,29 @@ export default async function handler(
     return response.status(200).end();
   }
   
+  // Ajouter un point d'accès de diagnostic directement à la route
+  if (request.method === 'GET') {
+    console.log('📊 [Notion Proxy] Requête GET reçue, renvoi d\'informations de diagnostic');
+    return response.status(200).json({
+      status: 'ok',
+      message: 'Notion proxy is operational',
+      timestamp: new Date().toISOString(),
+      environment: process.env.VERCEL_ENV || 'development',
+      version: '1.0.1'
+    });
+  }
+  
+  // Vérifier que c'est bien une requête POST
+  if (request.method !== 'POST') {
+    console.error(`❌ [Notion Proxy] Méthode non supportée: ${request.method}`);
+    return response.status(405).json({ 
+      error: `Méthode ${request.method} non supportée`,
+      message: 'Seules les méthodes POST, GET, HEAD et OPTIONS sont supportées'
+    });
+  }
+  
   // Gérer une requête ping spéciale sans nécessiter d'authentification
-  if (request.method === 'POST' && request.body?.endpoint === '/ping') {
+  if (request.body?.endpoint === '/ping') {
     console.log('📡 [Notion Proxy] Requête ping reçue');
     return response.status(200).json({
       status: 'ok',
@@ -51,7 +77,7 @@ export default async function handler(
     });
   }
   
-  console.log('📥 [Notion Proxy] Traitement de la requête:', request.method, request.url);
+  console.log('📥 [Notion Proxy] Traitement de la requête POST...');
   
   try {
     // Extraire les informations de la requête
