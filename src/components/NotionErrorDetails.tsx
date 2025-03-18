@@ -8,7 +8,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle, Copy, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle, Copy, ExternalLink, Globe, Shield, Zap } from 'lucide-react';
 
 interface NotionErrorDetailsProps {
   isOpen: boolean;
@@ -34,6 +34,9 @@ Date: ${new Date().toISOString()}
     navigator.clipboard.writeText(details);
   };
   
+  // Vérifier si c'est une erreur "Failed to fetch"
+  const isFailedToFetch = error.includes('Failed to fetch');
+  
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-md">
@@ -58,27 +61,49 @@ Date: ${new Date().toISOString()}
             )}
           </div>
           
-          <div className="bg-muted p-4 rounded-md">
-            <h3 className="font-medium mb-3">Solutions possibles</h3>
-            <ul className="space-y-2 text-sm">
-              <li className="flex gap-2">
-                <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Vérifiez que votre clé API commence par "secret_" et est correctement copiée</span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Assurez-vous que l'intégration a accès à la base de données (partagez la base avec l'intégration)</span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Vérifiez l'ID de base de données dans l'URL Notion</span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Vérifiez votre connexion internet</span>
-              </li>
-            </ul>
-          </div>
+          {isFailedToFetch ? (
+            <div className="bg-amber-50 p-4 rounded-md border border-amber-200">
+              <h3 className="font-medium mb-3 flex items-center gap-2 text-amber-700">
+                <Shield size={16} />
+                Problème de sécurité du navigateur
+              </h3>
+              <p className="text-sm text-amber-700 mb-3">
+                L'erreur "Failed to fetch" est généralement causée par des restrictions de sécurité du navigateur (CORS) qui empêchent l'accès direct à l'API Notion.
+              </p>
+              <div className="space-y-2">
+                <div className="flex gap-2 items-start">
+                  <Globe size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Les applications frontend ne peuvent pas accéder directement à l'API Notion sans un serveur intermédiaire</span>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <Zap size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Pour une démonstration locale, nous utilisons des données de test</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-muted p-4 rounded-md">
+              <h3 className="font-medium mb-3">Solutions possibles</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex gap-2">
+                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                  <span>Vérifiez que votre clé API commence par "secret_" et est correctement copiée</span>
+                </li>
+                <li className="flex gap-2">
+                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                  <span>Assurez-vous que l'intégration a accès à la base de données (partagez la base avec l'intégration)</span>
+                </li>
+                <li className="flex gap-2">
+                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                  <span>Vérifiez l'ID de base de données dans l'URL Notion</span>
+                </li>
+                <li className="flex gap-2">
+                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                  <span>Vérifiez votre connexion internet</span>
+                </li>
+              </ul>
+            </div>
+          )}
           
           <div className="flex flex-col sm:flex-row gap-3">
             <Button 

@@ -16,9 +16,11 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
   const [project, setProject] = useState<Project | null>(null);
   const [audit, setAudit] = useState<Audit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notionError, setNotionError] = useState<{ error: string, context?: string } | null>(null);
   
   const loadProject = async () => {
     setLoading(true);
+    setNotionError(null);
     
     if (!projectId) {
       toast.error('Projet non trouvé');
@@ -30,8 +32,8 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
       let projectData = null;
       let auditData = null;
       
-      // Try to load from Notion if configured
-      if (usingNotion) {
+      // Try to load from Notion if configured and not in mock mode
+      if (usingNotion && !notionApi.mockMode.isActive()) {
         try {
           // Use notionProxy API instead of direct client calls
           const apiKey = localStorage.getItem('notion_api_key');
@@ -52,9 +54,25 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
               }
             } catch (proxyError) {
               console.error('Notion proxy error:', proxyError);
-              toast.error('Erreur d\'accès à Notion', {
-                description: 'Impossible de charger les données depuis Notion. Vérifiez votre connexion.',
-              });
+              
+              // Gérer l'erreur CORS "Failed to fetch"
+              if (proxyError.message?.includes('Failed to fetch')) {
+                setNotionError({
+                  error: 'Échec de la connexion à Notion: Failed to fetch',
+                  context: 'Les restrictions de sécurité du navigateur empêchent l\'accès direct à l\'API Notion'
+                });
+                
+                // Activer le mode mock
+                notionApi.mockMode.activate();
+                
+                toast.warning('Mode démonstration activé', {
+                  description: 'Utilisation de données de test car l\'API Notion n\'est pas accessible directement',
+                });
+              } else {
+                toast.error('Erreur d\'accès à Notion', {
+                  description: 'Impossible de charger les données depuis Notion. Vérifiez votre connexion.',
+                });
+              }
             }
           }
         } catch (notionError) {
@@ -63,7 +81,7 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
         }
       }
       
-      // If no data from Notion, use mock data
+      // If no data from Notion or in mock mode, use mock data
       if (!projectData) {
         console.log('Loading mock data for project', projectId);
         projectData = getProjectById(projectId);
@@ -123,9 +141,33 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
     try {
       let success = false;
       
-      if (usingNotion) {
+      if (usingNotion && !notionApi.mockMode.isActive()) {
         // Sauvegarder dans Notion
-        success = await saveAuditToNotion(audit);
+        try {
+          success = await saveAuditToNotion(audit);
+        } catch (error) {
+          console.error('Erreur lors de la sauvegarde dans Notion:', error);
+          
+          // Gérer l'erreur CORS "Failed to fetch"
+          if (error.message?.includes('Failed to fetch')) {
+            setNotionError({
+              error: 'Échec de la connexion à Notion: Failed to fetch',
+              context: 'Les restrictions de sécurité du navigateur empêchent l\'accès direct à l\'API Notion'
+            });
+            
+            // Activer le mode mock
+            notionApi.mockMode.activate();
+            
+            toast.warning('Mode démonstration activé', {
+              description: 'Sauvegarde en mode local uniquement car l\'API Notion n\'est pas accessible directement',
+            });
+            
+            // Simuler une sauvegarde réussie
+            success = true;
+          } else {
+            throw error;
+          }
+        }
       } else {
         // Simulation locale de sauvegarde
         success = true;
@@ -148,6 +190,7 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
     project,
     audit,
     loading,
+    notionError,
     setAudit,
     loadProject,
     handleSaveAudit

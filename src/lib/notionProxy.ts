@@ -74,9 +74,9 @@ export const notionApiRequest = async (
     }
     
     if (error.message?.includes('Failed to fetch')) {
-      toast.error('Erreur de connexion à Notion', {
-        description: 'Vérifiez votre connexion internet et les paramètres réseau',
-      });
+      const corsError = new Error('Failed to fetch');
+      corsError.message = 'Failed to fetch - CORS limitation';
+      throw corsError;
     }
     
     throw error;
@@ -158,6 +158,22 @@ export const notionApi = {
         console.error(`Failed to update Notion page ${pageId}:`, error);
         throw error;
       }
+    }
+  },
+  
+  // Mock data support
+  mockMode: {
+    isActive: (): boolean => {
+      // Vérifier si on est en mode mock (pas de vraie API Notion)
+      return localStorage.getItem('notion_mock_mode') === 'true';
+    },
+    activate: (): void => {
+      localStorage.setItem('notion_mock_mode', 'true');
+      console.log('Notion mock mode activated');
+    },
+    deactivate: (): void => {
+      localStorage.removeItem('notion_mock_mode');
+      console.log('Notion mock mode deactivated');
     }
   }
 };
