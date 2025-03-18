@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AuditContainer } from './AuditContainer';
 import { toast } from 'sonner';
-import { isNotionConfigured } from '@/lib/notionService';
+import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 
 const AuditPage = () => {

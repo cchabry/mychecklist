@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { configureNotion, isNotionConfigured } from '@/lib/notionService';
+import { configureNotion, isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 

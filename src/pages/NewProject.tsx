@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, CheckSquare } from 'lucide-react';
-import { isNotionConfigured, createProjectInNotion } from '@/lib/notionService';
+import { isNotionConfigured, createProjectInNotion } from '@/lib/notion';
 
 const NewProject = () => {
   const navigate = useNavigate();

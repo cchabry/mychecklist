@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { HelpCircle, Database, ArrowRight, Share2, Copy } from 'lucide-react';
-import { isNotionConfigured } from '@/lib/notionService';
+import { isNotionConfigured } from '@/lib/notion';
 
 interface NotionGuideProps {
   onConnectClick: () => void;

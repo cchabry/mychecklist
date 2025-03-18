@@ -5,7 +5,12 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { getProjectById, createMockAudit, createNewAudit } from '@/lib/mockData';
 import { Audit } from '@/lib/types';
-import { getProjectById as getNotionProject, getAuditForProject, saveAuditToNotion, isNotionConfigured } from '@/lib/notionService';
+import {
+  getProjectById as getNotionProject,
+  getAuditForProject, 
+  saveAuditToNotion, 
+  isNotionConfigured
+} from '@/lib/notion';
 import Header from '@/components/Header';
 import AuditHeader from './components/AuditHeader';
 import AuditProgress from './components/AuditProgress';
