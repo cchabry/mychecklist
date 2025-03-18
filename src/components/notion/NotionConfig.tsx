@@ -31,7 +31,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       setInitialDatabaseId(savedDatabaseId);
       
       // Log pour debug
-      console.log('Modal ouverte, chargement des valeurs:', {
+      console.log('📝 Modal Notion ouverte, chargement des valeurs:', {
         apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
         databaseId: savedDatabaseId || 'vide'
       });
@@ -61,13 +61,13 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     
     // Nettoyer l'ID de la base de données
     const cleanDbId = extractNotionDatabaseId(databaseId);
-    console.log('Using database ID:', cleanDbId, '(original:', databaseId, ')');
+    console.log('🧹 Using database ID:', cleanDbId, '(original:', databaseId, ')');
     
     // Sauvegarder les valeurs dans localStorage immédiatement
     localStorage.setItem('notion_api_key', apiKey);
     localStorage.setItem('notion_database_id', cleanDbId);
     
-    console.log('Valeurs sauvegardées dans localStorage:', {
+    console.log('💾 Valeurs sauvegardées dans localStorage:', {
       apiKey: `${apiKey.substring(0, 8)}...`,
       databaseId: cleanDbId,
       tokenType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
@@ -75,28 +75,28 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     
     // Commencer par désactiver le mode mock s'il était activé
     if (notionApi.mockMode.isActive()) {
-      console.log('Désactivation du mode mock avant test de connexion');
+      console.log('🔄 Désactivation du mode mock avant test de connexion');
       notionApi.mockMode.deactivate();
     }
     
     // Tester la connexion à l'API Notion via notre proxy
     try {
-      console.log('Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
+      console.log('🔄 Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
       
       // Configurer Notion pour définir les valeurs
       configureNotion(apiKey, cleanDbId);
       
       // Tester la connexion via le proxy
       const user = await notionApi.users.me(apiKey);
-      console.log('Notion API connection successful via proxy, user:', user.name);
+      console.log('✅ Notion API connection successful via proxy, user:', user.name);
       
       // Tester l'accès à la base de données
       try {
-        console.log('Testing database access for ID:', cleanDbId);
+        console.log('🔄 Testing database access for ID:', cleanDbId);
         await notionApi.databases.retrieve(cleanDbId, apiKey);
-        console.log('Database access successful via proxy');
+        console.log('✅ Database access successful via proxy');
       } catch (dbError) {
-        console.error('Database access failed:', dbError);
+        console.error('❌ Database access failed:', dbError);
         
         // Différencier les erreurs d'autorisation des erreurs d'ID invalide
         if (dbError.message?.includes('404') || dbError.message?.includes('not_found')) {
@@ -117,7 +117,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       if (onSuccess) onSuccess();
       onClose();
     } catch (connectionError) {
-      console.error('Connection test failed:', connectionError);
+      console.error('❌ Connection test failed:', connectionError);
       
       // Traitement spécifique pour les erreurs d'authentification
       if (connectionError.message?.includes('401') || connectionError.message?.includes('authentication')) {
@@ -157,6 +157,18 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
               Connectez votre base de données Notion pour synchroniser vos audits
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Afficher si le mode mock est actif */}
+          {notionApi.mockMode.isActive() && (
+            <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mb-4">
+              <p className="text-sm text-amber-700 font-medium">
+                Mode démonstration actuellement actif
+              </p>
+              <p className="text-xs text-amber-600 mt-1">
+                En configurant Notion, vous tenterez de désactiver le mode démonstration.
+              </p>
+            </div>
+          )}
           
           <NotionConfigForm 
             onSubmit={handleFormSubmit}

@@ -1,14 +1,30 @@
 
 import React from 'react';
-import { Wifi, AlertTriangle, FileCode, Info, ExternalLink, Globe, RefreshCw } from 'lucide-react';
+import { Wifi, AlertTriangle, FileCode, Info, ExternalLink, Globe, RefreshCw, ToggleLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 import { findWorkingProxy, PUBLIC_CORS_PROXIES, getSelectedProxy, setSelectedProxy } from '@/lib/notionProxy/config';
 import { resetAllProxyCaches } from '@/lib/notionProxy/proxyFetch';
+import { notionApi } from '@/lib/notionProxy';
+import { toast } from 'sonner';
 
 const NotionProxyConfigSection: React.FC = () => {
   const [selectedProxy, setSelectedProxyState] = React.useState<string>(getSelectedProxy());
   const [testing, setTesting] = React.useState<string | null>(null);
+  const [isMockMode, setIsMockMode] = React.useState<boolean>(notionApi.mockMode.isActive());
+
+  // Observer le changement d'état du mode mock
+  React.useEffect(() => {
+    const checkMockMode = () => {
+      setIsMockMode(notionApi.mockMode.isActive());
+    };
+    
+    // Vérifier tout de suite et à intervalle régulier
+    checkMockMode();
+    const interval = setInterval(checkMockMode, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Test a specific proxy
   const testProxy = async (proxyUrl: string) => {
@@ -30,12 +46,33 @@ const NotionProxyConfigSection: React.FC = () => {
       if (isWorking) {
         setSelectedProxy(proxyUrl);
         setSelectedProxyState(proxyUrl);
-        alert(`✅ Proxy testé avec succès: ${proxyUrl}`);
+        toast.success('Proxy testé avec succès', {
+          description: `Le proxy ${proxyUrl} fonctionne et a été sélectionné`
+        });
+        
+        // Si le proxy fonctionne et que le mode mock est actif, proposer de le désactiver
+        if (notionApi.mockMode.isActive()) {
+          toast.info('Le proxy fonctionne', {
+            description: 'Voulez-vous désactiver le mode démonstration?',
+            action: {
+              label: 'Désactiver',
+              onClick: () => {
+                notionApi.mockMode.deactivate();
+                setIsMockMode(false);
+              }
+            },
+            duration: 8000
+          });
+        }
       } else {
-        alert(`❌ Erreur: Le proxy n'a pas pu contacter l'API Notion (statut: ${response.status})`);
+        toast.error('Test échoué', {
+          description: `Le proxy n'a pas pu contacter l'API Notion (statut: ${response.status})`
+        });
       }
     } catch (error) {
-      alert(`❌ Erreur: ${error.message}`);
+      toast.error('Erreur de test', {
+        description: error.message
+      });
     }
     setTesting(null);
   };
@@ -48,12 +85,32 @@ const NotionProxyConfigSection: React.FC = () => {
       
       if (bestProxy) {
         setSelectedProxyState(bestProxy);
-        alert(`✅ Proxy fonctionnel trouvé: ${bestProxy}`);
+        toast.success('Proxy trouvé', {
+          description: `Proxy fonctionnel trouvé: ${bestProxy}`
+        });
+        
+        // Si un proxy fonctionnel est trouvé, proposer de désactiver le mode mock
+        if (notionApi.mockMode.isActive()) {
+          toast.info('Voulez-vous désactiver le mode démonstration?', {
+            action: {
+              label: 'Désactiver',
+              onClick: () => {
+                notionApi.mockMode.deactivate();
+                setIsMockMode(false);
+              }
+            },
+            duration: 8000
+          });
+        }
       } else {
-        alert('❌ Aucun proxy fonctionnel trouvé. Veuillez essayer plus tard ou choisir manuellement.');
+        toast.error('Aucun proxy fonctionnel', {
+          description: 'Aucun proxy n\'a pu être trouvé. Essayez plus tard ou choisissez-en un manuellement.'
+        });
       }
     } catch (error) {
-      alert(`❌ Erreur: ${error.message}`);
+      toast.error('Erreur de recherche', {
+        description: error.message
+      });
     }
     setTesting(null);
   };
@@ -64,11 +121,45 @@ const NotionProxyConfigSection: React.FC = () => {
     const defaultProxy = PUBLIC_CORS_PROXIES[1];
     setSelectedProxy(defaultProxy);
     setSelectedProxyState(defaultProxy);
+    toast.success('Proxy réinitialisé', {
+      description: `Les paramètres du proxy ont été réinitialisés à ${defaultProxy}`
+    });
+  };
+
+  // Toggle mock mode
+  const toggleMockMode = () => {
+    const newState = notionApi.mockMode.toggle();
+    setIsMockMode(newState);
   };
 
   return (
     <div className="space-y-4">
       <NotionDeploymentChecker />
+      
+      {/* Grand indicateur de mode mock */}
+      <div className={`p-4 rounded-md border ${isMockMode 
+        ? 'bg-amber-100 border-amber-300 text-amber-800' 
+        : 'bg-green-100 border-green-300 text-green-800'}`}>
+        <h3 className="font-medium flex items-center gap-2">
+          <ToggleLeft size={20} />
+          Mode de fonctionnement: {isMockMode ? 'DÉMONSTRATION' : 'RÉEL'}
+        </h3>
+        <p className="text-sm mt-1">
+          {isMockMode 
+            ? 'L\'application utilise des données fictives. Aucune synchronisation avec Notion n\'est active.' 
+            : 'L\'application est connectée à Notion et utilise des données réelles.'}
+        </p>
+        <div className="mt-3">
+          <Button
+            variant={isMockMode ? "default" : "destructive"}
+            size="sm"
+            onClick={toggleMockMode}
+            className={isMockMode ? "bg-green-600 hover:bg-green-700" : ""}
+          >
+            {isMockMode ? "Activer le mode réel" : "Activer le mode démonstration"}
+          </Button>
+        </div>
+      </div>
       
       <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
         <h3 className="font-medium mb-3 flex items-center gap-2 text-blue-700">

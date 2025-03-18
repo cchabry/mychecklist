@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CheckSquare } from 'lucide-react';
+import { ArrowLeft, CheckSquare, AlertCircle } from 'lucide-react';
 import { isNotionConfigured, createProjectInNotion } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -18,17 +18,42 @@ const NewProject = () => {
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
+  const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
   
-  // Vérifier l'état de l'intégration Notion au chargement
+  // Vérifier l'état de l'intégration Notion au chargement et à l'intervalle
   useEffect(() => {
     // Vérifier si le mode mock est actif
-    if (notionApi.mockMode.isActive()) {
-      console.log('NewProject: Mode mock Notion actif');
-    } else {
-      console.log('NewProject: Mode réel Notion actif');
-    }
+    const checkMockMode = () => {
+      const mockActive = notionApi.mockMode.isActive();
+      setIsMockMode(mockActive);
+      if (mockActive) {
+        console.log('📢 NewProject: Mode mock Notion actif - données de DÉMONSTRATION');
+      } else {
+        console.log('📢 NewProject: Mode réel Notion actif - données RÉELLES');
+      }
+    };
     
+    // Vérifier au chargement
+    checkMockMode();
     setUsingNotion(isNotionConfigured());
+    
+    // Vérifier à nouveau à chaque fois que le composant devient visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkMockMode();
+        setUsingNotion(isNotionConfigured());
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Verifier toutes les 5 secondes au cas où
+    const interval = setInterval(checkMockMode, 5000);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
   }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,33 +67,62 @@ const NewProject = () => {
     setIsSubmitting(true);
     
     try {
+      // Double vérification du mode mock juste avant création
+      const isMockModeActive = notionApi.mockMode.isActive();
+      console.log(`📊 Mode mock au moment de créer un projet: ${isMockModeActive ? 'ACTIF' : 'INACTIF'}`);
+      
       // Si Notion est configuré et qu'on n'est pas en mode mock, créer le projet dans Notion
-      if (usingNotion && !notionApi.mockMode.isActive()) {
-        console.log('Creating project in Notion (real mode)', { name, url });
-        const project = await createProjectInNotion(name, url);
+      if (usingNotion && !isMockModeActive) {
+        console.log('🔄 Création de projet dans Notion (mode RÉEL)', { name, url });
         
-        if (project) {
-          toast.success("Projet créé avec succès", {
-            description: "Le projet a été ajouté à votre base de données Notion",
-          });
-          navigate('/');
-        } else {
-          toast.error("Erreur de création", {
-            description: "Impossible de créer le projet dans Notion. Vérifiez votre configuration.",
-          });
+        // Essayer de créer le projet dans Notion
+        try {
+          const project = await createProjectInNotion(name, url);
+          
+          if (project) {
+            console.log('✅ Projet créé avec succès dans Notion:', project);
+            toast.success("Projet créé avec succès", {
+              description: "Le projet a été ajouté à votre base de données Notion",
+            });
+            navigate('/');
+          } else {
+            console.error('❌ Échec de création dans Notion (null)');
+            throw new Error("Impossible de créer le projet dans Notion");
+          }
+        } catch (notionError) {
+          console.error('❌ Erreur lors de la création dans Notion:', notionError);
+          
+          // Si erreur de type "Failed to fetch", activer le mode mock
+          if (notionError.message?.includes('Failed to fetch')) {
+            console.log('🚨 Erreur "Failed to fetch" détectée, activation du mode mock');
+            notionApi.mockMode.activate();
+            
+            // Créer un projet fictif après l'erreur
+            console.log('🔄 Création de projet fictif après échec Notion');
+            toast.success("Projet créé en mode démonstration", {
+              description: "Le projet a été créé en mode démonstration suite à un problème de connexion à Notion.",
+            });
+            navigate('/');
+          } else {
+            // Autre type d'erreur
+            throw notionError;
+          }
         }
       } else {
-        console.log('Creating mock project (mode mock or Notion not configured)');
-        // Simuler un appel API pour créer le projet si Notion n'est pas configuré ou en mode mock
+        // Mode mock - créer un projet fictif
+        console.log('🔄 Création de projet fictif (mode DÉMONSTRATION)');
+        
+        // Simulation de création
         setTimeout(() => {
-          toast.success("Projet créé avec succès", {
-            description: "Le projet a été ajouté (en mode simulation).",
+          console.log('✅ Projet fictif créé avec succès');
+          toast.success("Projet créé en mode démonstration", {
+            description: "Le projet a été ajouté en mode simulation.",
           });
           navigate('/');
-        }, 1500);
+        }, 1000);
       }
     } catch (error) {
-      console.error('Erreur lors de la création du projet:', error);
+      console.error('❌ Erreur générale lors de la création du projet:', error);
       toast.error("Erreur de création", {
         description: "Une erreur est survenue lors de la création du projet",
       });
@@ -106,15 +160,45 @@ const NewProject = () => {
                   <CardTitle className="text-2xl text-tmw-darkgray">Nouveau projet</CardTitle>
                   <CardDescription>
                     Créez un nouveau projet à auditer selon notre référentiel de bonnes pratiques.
-                    {usingNotion && !notionApi.mockMode.isActive() && 
-                      <span className="block text-xs mt-1 text-tmw-teal">Le projet sera sauvegardé dans Notion</span>
-                    }
-                    {notionApi.mockMode.isActive() && 
-                      <span className="block text-xs mt-1 text-amber-600">Mode démonstration actif - Les données ne seront pas sauvegardées dans Notion</span>
-                    }
                   </CardDescription>
                 </div>
               </div>
+              
+              {/* Indicateur de mode mock très visible */}
+              {isMockMode && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-md p-2 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-amber-700">
+                    <strong>Mode démonstration actif</strong>
+                    <p className="text-xs mt-0.5">
+                      Les projets créés ne seront pas sauvegardés dans Notion.
+                      <Button 
+                        variant="link" 
+                        className="text-xs p-0 h-auto underline text-amber-700 pl-1"
+                        onClick={() => {
+                          notionApi.mockMode.deactivate();
+                          setIsMockMode(false);
+                        }}
+                      >
+                        Désactiver
+                      </Button>
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Indicateur de mode réel */}
+              {usingNotion && !isMockMode && (
+                <div className="mt-3 bg-green-50 border border-green-200 rounded-md p-2 flex items-start gap-2">
+                  <CheckSquare size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-green-700">
+                    <strong>Mode réel actif</strong>
+                    <p className="text-xs mt-0.5">
+                      Le projet sera sauvegardé dans votre base Notion.
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             
             <form onSubmit={handleSubmit}>
