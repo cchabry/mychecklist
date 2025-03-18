@@ -85,7 +85,8 @@ exports.handler = async (event, context) => {
         method, 
         bodyPresent: !!body, 
         tokenPresent: !!token,
-        tokenLength: token ? token.length : 0
+        tokenLength: token ? token.length : 0,
+        tokenFirstChars: token ? token.substring(0, 5) + '...' : 'none'
       });
 
       // Validate parameters
@@ -124,7 +125,11 @@ exports.handler = async (event, context) => {
         'Content-Type': 'application/json'
       };
       
-      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, notionHeaders);
+      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
+        'Notion-Version': notionHeaders['Notion-Version'],
+        'Content-Type': notionHeaders['Content-Type'],
+        'Authorization': 'Bearer ' + (token ? token.substring(0, 5) + '...' : 'none')
+      });
       
       // Make request to Notion API
       try {
@@ -143,12 +148,22 @@ exports.handler = async (event, context) => {
         
         try {
           responseText = await notionResponse.text();
-          console.log('Response text:', responseText);
+          console.log('Response text preview:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
           
           // Try to parse as JSON
           try {
             responseData = JSON.parse(responseText);
-            console.log('Response data type:', typeof responseData);
+            console.log('Response parsed as JSON:', typeof responseData);
+            
+            // Si l'erreur est une erreur d'authentification (401), ajouter des détails
+            if (notionResponse.status === 401) {
+              console.log('Authentication error from Notion API');
+              responseData.error_details = {
+                type: 'authentication_error',
+                message: 'Veuillez vérifier que votre clé d\'API commence par "secret_" et non "ntn_"',
+                help: 'Les jetons commençant par "ntn_" sont des jetons OAuth et non des clés d\'intégration'
+              };
+            }
           } catch (jsonError) {
             console.warn('Could not parse response as JSON, returning as text');
             return {

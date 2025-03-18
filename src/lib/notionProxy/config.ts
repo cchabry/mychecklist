@@ -33,22 +33,40 @@ export const STORAGE_KEYS = {
  * Déterminer le type de déploiement (Vercel, Netlify, local)
  */
 export const getDeploymentType = (): 'vercel' | 'netlify' | 'local' | 'other' => {
-  const hostname = window.location.hostname;
-  
-  if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
-    return 'netlify';
-  } else if (hostname.includes('vercel.app')) {
-    return 'vercel';
-  } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'local';
-  } else {
-    // Check if we're on a custom domain but deployed on Netlify
-    // Look for Netlify headers or other indicators
-    if (document.querySelector('meta[name="generator"][content*="Netlify"]')) {
+  // Essayer de détecter l'environnement côté client
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
       return 'netlify';
+    } else if (hostname.includes('vercel.app')) {
+      return 'vercel';
+    } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'local';
+    } else {
+      // Vérifier s'il y a des headers ou méta spécifiques à Netlify
+      if (document.querySelector('meta[name="generator"][content*="Netlify"]')) {
+        return 'netlify';
+      }
+      
+      // Vérifier si nous sommes sur un domaine personnalisé mais déployé sur Netlify
+      // en recherchant pour un header ou un élément qui indiquerait Netlify
+      try {
+        if (window.location.href.includes('.netlify.') || 
+            document.querySelector('[data-netlify]') ||
+            document.querySelector('meta[name="netlify"]')) {
+          return 'netlify';
+        }
+      } catch (e) {
+        console.error('Erreur lors de la détection Netlify:', e);
+      }
+      
+      return 'other';
     }
-    return 'other';
   }
+  
+  // Fallback pour SSR ou autres environnements
+  return 'other';
 };
 
 /**
@@ -88,8 +106,10 @@ export const getServerlessProxyUrl = (): string => {
     case 'vercel':
       return '/api/notion-proxy';
     default:
-      // Detect if we have netlify functions by checking the environment
-      if (window.location.href.includes('.netlify.') || document.querySelector('meta[name="generator"][content*="Netlify"]')) {
+      // Détecter si nous avons des fonctions Netlify en vérifiant l'environnement
+      if (window.location.href.includes('.netlify.') || 
+          document.querySelector('meta[name="generator"][content*="Netlify"]') ||
+          document.querySelector('[data-netlify]')) {
         return '/.netlify/functions/notion-proxy';
       }
       return '/api/notion-proxy'; // Fallback sur le format Vercel

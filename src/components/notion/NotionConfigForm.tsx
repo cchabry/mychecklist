@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, InfoIcon } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface NotionConfigFormProps {
   onSubmit: (apiKey: string, databaseId: string) => Promise<void>;
@@ -39,6 +40,13 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         return;
       }
       
+      // Vérifier le format de la clé API - doit commencer par "secret_"
+      if (!apiKey.startsWith('secret_')) {
+        setError('Format de clé API invalide. La clé d\'intégration doit commencer par "secret_"');
+        setLoading(false);
+        return;
+      }
+      
       await onSubmit(apiKey, databaseId);
     } catch (error) {
       console.error('Erreur lors de la soumission du formulaire:', error);
@@ -51,14 +59,32 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
       <div className="space-y-2">
-        <Label htmlFor="apiKey">Clé API d'intégration Notion</Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="apiKey">Clé API d'intégration Notion</Label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <InfoIcon size={14} className="text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>La clé d'intégration commence par <code>secret_</code>, et non par <code>ntn_</code> (qui est un token OAuth)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <Input
           id="apiKey"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           placeholder="secret_xxxxxxxxxxx"
           required
+          className={!apiKey.startsWith('secret_') && apiKey.length > 0 ? 'border-red-300' : ''}
         />
+        {!apiKey.startsWith('secret_') && apiKey.length > 0 && (
+          <p className="text-xs text-red-500">
+            ⚠️ La clé doit commencer par "secret_" et non "ntn_"
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Créez une intégration sur <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-tmw-teal underline">notion.so/my-integrations</a>
         </p>

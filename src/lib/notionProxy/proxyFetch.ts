@@ -1,3 +1,4 @@
+
 import { mockNotionResponse } from './mockData';
 import { 
   NOTION_API_VERSION, 
@@ -43,6 +44,36 @@ export const getProxyStatus = () => {
 };
 
 /**
+ * Extrait un message d'erreur plus lisible des réponses d'erreur de Notion
+ */
+const extractNotionErrorMessage = (status: number, errorData: any): string => {
+  if (!errorData) return `Erreur ${status}`;
+  
+  // Erreurs d'authentification
+  if (status === 401) {
+    return "Erreur d'authentification: La clé d'API Notion est invalide ou a expiré";
+  }
+  
+  // Problèmes d'autorisation
+  if (status === 403) {
+    return "Erreur d'autorisation: Votre intégration Notion n'a pas accès à cette ressource";
+  }
+  
+  // Problèmes de ressource non trouvée
+  if (status === 404) {
+    if (errorData.code === 'object_not_found') {
+      return "Ressource introuvable: L'ID de base de données ou de page n'existe pas";
+    }
+    return "Ressource introuvable: Vérifiez les identifiants utilisés";
+  }
+  
+  // Renvoyer le message d'erreur fourni par Notion si disponible
+  return errorData.message || errorData.code 
+    ? `Erreur Notion (${status}): ${errorData.message || errorData.code}`
+    : `Erreur inattendue (${status})`;
+};
+
+/**
  * Tenter une requête via le proxy serverless (Vercel/Netlify)
  */
 async function tryServerlessProxy<T>(
@@ -73,6 +104,7 @@ async function tryServerlessProxy<T>(
     
     if (!response.ok) {
       let errorData: any = null;
+      let errorText = '';
       
       try {
         // Try to get JSON error
@@ -81,15 +113,29 @@ async function tryServerlessProxy<T>(
           errorData = await response.json();
         } else {
           // Get text error
-          const errorText = await response.text();
+          errorText = await response.text();
+          console.log('Réponse texte d\'erreur:', errorText);
           errorData = { message: errorText };
         }
       } catch (parseError) {
         console.warn('Could not parse error response', parseError);
+        errorData = { message: `Couldn't parse error response: ${parseError.message}` };
       }
       
+      // Log details about the error
       console.error(`❌ Erreur du proxy serverless: ${response.status}`, errorData);
-      throw new Error(`Erreur proxy serverless: ${response.status} ${errorData?.message || errorData?.error || ''}`);
+      
+      // Improved error handling for common Notion API errors
+      if (response.status === 401) {
+        throw new Error(`Erreur d'authentification Notion: La clé d'API est invalide ou a expiré`);
+      } else if (response.status === 403) {
+        throw new Error(`Erreur d'autorisation Notion: L'intégration n'a pas accès à cette ressource`);
+      } else if (response.status === 404 && errorData?.code === 'object_not_found') {
+        throw new Error(`Ressource Notion introuvable: Vérifiez l'ID de la base de données ou de la page`);
+      } else {
+        const message = errorData?.message || errorData?.error || errorText;
+        throw new Error(`Erreur proxy serverless: ${response.status} ${message}`);
+      }
     }
     
     // Try to parse response as JSON
@@ -149,6 +195,13 @@ export const notionApiRequest = async <T = any>(
       return result;
     } catch (serverlessError) {
       console.error(`❌ Erreur avec le proxy serverless:`, serverlessError);
+      
+      // Si l'erreur est d'authentification (401), ne pas essayer le proxy client
+      if (serverlessError.message?.includes('authentification') || 
+          serverlessError.message?.includes('401')) {
+        throw serverlessError; // Propager directement l'erreur d'authentification
+      }
+      
       // Continue to client-side proxy as fallback
     }
   }
