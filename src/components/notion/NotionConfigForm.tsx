@@ -29,19 +29,16 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   const [error, setError] = useState<string>('');
   const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
   
-  // Charger les valeurs depuis localStorage au démarrage
+  // Quand les props initialApiKey ou initialDatabaseId changent, mettre à jour les états
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('notion_api_key') || '';
-    const savedDatabaseId = localStorage.getItem('notion_database_id') || '';
-    
-    if (savedApiKey && !apiKey) {
-      setApiKey(savedApiKey);
+    if (initialApiKey && initialApiKey !== apiKey) {
+      setApiKey(initialApiKey);
     }
     
-    if (savedDatabaseId && !databaseId) {
-      setDatabaseId(savedDatabaseId);
+    if (initialDatabaseId && initialDatabaseId !== databaseId) {
+      setDatabaseId(initialDatabaseId);
     }
-  }, []);
+  }, [initialApiKey, initialDatabaseId]);
   
   // Validation de la clé API Notion
   const getApiKeyStatus = (): { valid: boolean; message: string } => {
@@ -89,14 +86,15 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         return;
       }
       
-      // Sauvegarder temporairement les valeurs pour que l'utilisateur les voit même avant soumission
-      localStorage.setItem('notion_api_key', apiKey);
-      localStorage.setItem('notion_database_id', databaseId);
-      
-      // Toast de confirmation pour montrer que les valeurs sont sauvegardées
-      toast.info('Paramètres sauvegardés', {
+      // Afficher la confirmation de soumission
+      toast.info('Paramètres enregistrés', {
         description: 'Test de connexion en cours...',
         duration: 3000
+      });
+      
+      console.log('Soumission des valeurs:', {
+        apiKey: `${apiKey.substring(0, 8)}...`,
+        databaseId: databaseId
       });
       
       await onSubmit(apiKey, databaseId);
@@ -168,8 +166,12 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
             <div>
               <p className="font-medium">Configuration actuelle</p>
               <ul className="text-xs mt-1 space-y-1">
-                <li>Clé API: {localStorage.getItem('notion_api_key') ? '✓ Définie' : '❌ Non définie'}</li>
-                <li>Base de données: {localStorage.getItem('notion_database_id') ? '✓ Définie' : '❌ Non définie'}</li>
+                <li>Clé API: {localStorage.getItem('notion_api_key') ? 
+                  `✓ Définie (${localStorage.getItem('notion_api_key')?.substring(0, 8)}...)` : 
+                  '❌ Non définie'}</li>
+                <li>Base de données: {localStorage.getItem('notion_database_id') ? 
+                  `✓ Définie (${localStorage.getItem('notion_database_id')})` : 
+                  '❌ Non définie'}</li>
               </ul>
             </div>
           </div>

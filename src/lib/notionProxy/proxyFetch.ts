@@ -1,3 +1,4 @@
+
 import { mockNotionResponse } from './mockData';
 import { 
   NOTION_API_VERSION, 
@@ -172,8 +173,10 @@ export const notionApiRequest = async <T = any>(
   token?: string,
   customHeaders: Record<string, string> = {}
 ): Promise<T> => {
+  // Si token est fourni explicitement, l'utiliser, sinon récupérer depuis localStorage
   if (!token) {
     token = localStorage.getItem('notion_api_key') || '';
+    console.log('Token récupéré depuis localStorage:', token ? `${token.substring(0, 8)}...` : 'vide');
   }
   
   if (!token) {
@@ -185,6 +188,9 @@ export const notionApiRequest = async <T = any>(
     console.error('Type de clé API incorrect: Vous utilisez un token OAuth (ntn_)');
     throw new Error('Type de clé API incorrect: Vous devez utiliser une clé d\'intégration qui commence par "secret_", pas un token OAuth (ntn_)');
   }
+  
+  // Log pour debugging
+  console.log(`📡 Requête API Notion: ${method} ${endpoint} avec token: ${token.substring(0, 8)}...`);
   
   // Check if we're in mock mode
   const mockModeEnabled = localStorage.getItem('notion_mock_mode') === 'true';

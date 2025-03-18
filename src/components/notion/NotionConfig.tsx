@@ -34,6 +34,10 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
         apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
         databaseId: savedDatabaseId || 'vide'
       });
+
+      // Réinitialiser les erreurs à chaque ouverture
+      setError('');
+      setErrorContext('');
     }
   }, [isOpen]);
   
@@ -41,22 +45,36 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     setError('');
     setErrorContext('');
     
+    // Vérifier que la clé est bien fournie et dans le bon format
+    if (!apiKey) {
+      setError('La clé API est requise');
+      return;
+    }
+    
+    if (!apiKey.startsWith('secret_')) {
+      setError('Format de clé API invalide');
+      setErrorContext('La clé d\'intégration doit commencer par "secret_"');
+      return;
+    }
+    
     // Nettoyer l'ID de la base de données
     const cleanDbId = extractNotionDatabaseId(databaseId);
     console.log('Using database ID:', cleanDbId, '(original:', databaseId, ')');
     
-    // Vérifier le type de clé API
-    if (apiKey.startsWith('ntn_')) {
-      setError('Type de clé API incorrect: Vous utilisez un token OAuth (ntn_)');
-      setErrorContext('Vous devez utiliser une clé d\'intégration qui commence par "secret_"');
-      return;
-    }
+    // Sauvegarder les valeurs dans localStorage immédiatement
+    localStorage.setItem('notion_api_key', apiKey);
+    localStorage.setItem('notion_database_id', cleanDbId);
+    
+    console.log('Valeurs sauvegardées dans localStorage:', {
+      apiKey: `${apiKey.substring(0, 8)}...`,
+      databaseId: cleanDbId
+    });
     
     // Tester la connexion à l'API Notion via notre proxy
     try {
       console.log('Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
       
-      // Configurer Notion d'abord pour définir les valeurs dans localStorage
+      // Configurer Notion pour définir les valeurs
       configureNotion(apiKey, cleanDbId);
       
       // Tester la connexion via le proxy
@@ -100,7 +118,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       // Traitement spécifique pour les erreurs d'authentification
       if (connectionError.message?.includes('401') || connectionError.message?.includes('authentication')) {
         setError('Erreur d\'authentification: Clé API invalide');
-        setErrorContext('Vérifiez que vous utilisez une clé d\'intégration qui commence par "secret_" et non un token OAuth (ntn_)');
+        setErrorContext('Vérifiez que vous utilisez une clé d\'intégration valide et que votre intégration est correctement configurée');
       }
       // Traitement spécifique pour "Failed to fetch"
       else if (connectionError.message?.includes('Failed to fetch')) {

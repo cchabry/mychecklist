@@ -30,6 +30,19 @@ const AuditPage = () => {
       try {
         const apiKey = localStorage.getItem('notion_api_key');
         if (apiKey) {
+          console.log('Tentative de connexion avec la clé depuis localStorage:', apiKey.substring(0, 8) + '...');
+          
+          // Vérifier le format de la clé
+          if (!apiKey.startsWith('secret_')) {
+            console.error('Format de clé API incorrect. Clé actuelle:', apiKey.substring(0, 8) + '...');
+            toast.error('Format de clé API incorrect', {
+              description: 'La clé d\'intégration doit commencer par "secret_"',
+              duration: 5000,
+            });
+            setChecking(false);
+            return;
+          }
+          
           await notionApi.users.me(apiKey);
           console.log('Notion connection verified successfully');
         }
