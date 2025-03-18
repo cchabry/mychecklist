@@ -2,21 +2,43 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Database, Plus } from 'lucide-react';
+import { ArrowRight, Database, Plus, Info } from 'lucide-react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import ProjectCard from '@/components/ProjectCard';
 import { getAllProjects } from '@/lib/mockData';
 import { isNotionConfigured } from '@/lib/notion';
 import { NotionConfig, NotionProxyConfigGuide } from '@/components/notion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Index = () => {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [configOpen, setConfigOpen] = useState(false);
   const [usingNotion, setUsingNotion] = useState(false);
+  const [environment, setEnvironment] = useState({
+    type: 'Unknown',
+    host: window.location.hostname,
+    isVercel: false,
+    isLocalhost: false,
+    isLovable: false
+  });
 
   useEffect(() => {
+    // Déterminer l'environnement
+    const hostname = window.location.hostname;
+    const isVercel = hostname.includes('vercel.app');
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLovable = hostname.includes('lovable');
+    
+    setEnvironment({
+      type: isVercel ? 'Vercel' : isLovable ? 'Lovable Preview' : isLocalhost ? 'Développement local' : 'Autre',
+      host: hostname,
+      isVercel,
+      isLocalhost,
+      isLovable
+    });
+
     // Vérifie si Notion est configuré
     const notionConfigured = isNotionConfigured();
     setUsingNotion(notionConfigured);
@@ -37,6 +59,28 @@ const Index = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h1>
             <p className="text-gray-600">Gérez vos audits d'accessibilité et suivez votre progression</p>
+            <div className="mt-2 flex items-center">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                environment.isVercel ? 'bg-blue-100 text-blue-800' : 
+                environment.isLovable ? 'bg-purple-100 text-purple-800' : 
+                environment.isLocalhost ? 'bg-green-100 text-green-800' : 
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {environment.type}
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info size={16} className="ml-2 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Hôte: {environment.host}</p>
+                    <p>Version: {import.meta.env.MODE}</p>
+                    <p>Date de construction: {new Date().toLocaleDateString()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           
           <div className="flex items-center gap-3 mt-4 md:mt-0">
