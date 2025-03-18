@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import ProjectCard from '@/components/ProjectCard';
 import { MOCK_PROJECTS } from '@/lib/mockData';
 import { Plus, CheckSquare, Database } from 'lucide-react';
-import NotionConfig from '@/components/NotionConfig';
+import { NotionConfig } from '@/components/notion';
 import NotionGuide from '@/components/NotionGuide';
 import { isNotionConfigured, getProjectsFromNotion } from '@/lib/notion';
 

@@ -1,7 +1,6 @@
-
 import React from 'react';
 import Header from '@/components/Header';
-import NotionConfig from '@/components/NotionConfig';
+import { NotionConfig } from '@/components/notion';
 
 interface AuditLayoutProps {
   children: React.ReactNode;
