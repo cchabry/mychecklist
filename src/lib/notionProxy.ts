@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 // URL de base pour l'API Notion (direct ou via proxy)
@@ -29,7 +30,7 @@ export const notionApiRequest = async (
   try {
     // Ajouter un timeout à la requête
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout (augmenté)
     
     let response;
     let result;
@@ -46,32 +47,77 @@ export const notionApiRequest = async (
         body: options.body ? JSON.parse(options.body as string) : undefined
       };
       
-      // Appeler le proxy Vercel
-      response = await fetch(VERCEL_PROXY_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(proxyData),
-        signal: controller.signal
-      });
+      // Ajouter une logique de retry pour le proxy (3 tentatives)
+      let retryCount = 0;
+      const maxRetries = 3;
+      let proxySuccess = false;
       
-      result = await response.json();
+      while (retryCount < maxRetries && !proxySuccess) {
+        try {
+          if (retryCount > 0) {
+            console.log(`Tentative ${retryCount + 1} d'appel au proxy Vercel...`);
+          }
+          
+          // Appeler le proxy Vercel
+          response = await fetch(VERCEL_PROXY_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(proxyData),
+            signal: controller.signal,
+            // Désactiver la mise en cache pour les requêtes au proxy
+            cache: 'no-store',
+            // Nécessaire pour les requêtes cross-origin
+            mode: 'cors',
+            credentials: 'omit'
+          });
+          
+          // Vérifier si la réponse est OK
+          if (response.ok) {
+            result = await response.json();
+            proxySuccess = true;
+            console.log('Réponse du proxy Vercel reçue avec succès', response.status);
+            break;
+          } else {
+            console.warn(`Échec de la réponse du proxy (${response.status}): ${response.statusText}`);
+            result = await response.json().catch(() => ({ error: 'Impossible de lire la réponse' }));
+            console.warn('Détails de l\'erreur:', result);
+          }
+        } catch (retryError) {
+          console.warn(`Erreur lors de la tentative ${retryCount + 1}:`, retryError);
+        }
+        
+        retryCount++;
+        // Attendre un peu avant de réessayer (backoff exponentiel)
+        if (retryCount < maxRetries) {
+          const delayMs = 1000 * Math.pow(2, retryCount - 1);
+          console.log(`Attente de ${delayMs}ms avant la prochaine tentative...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
       
       // Si le proxy a répondu avec succès
-      if (response.ok) {
+      if (proxySuccess) {
         clearTimeout(timeoutId);
         return result;
       } else {
-        // Si le proxy a échoué mais que ce n'est pas une erreur CORS, retourner l'erreur
-        if (!response.statusText.includes('cors') && !response.statusText.includes('Failed to fetch')) {
-          throw new Error(`Erreur proxy: ${result.error || response.statusText}`);
-        }
-        // Sinon, essayer l'appel direct (qui échouera probablement avec CORS)
+        // Tous les essais ont échoué
+        console.error('Toutes les tentatives d\'utilisation du proxy ont échoué');
+        throw new Error('Échec de la communication avec le proxy Notion');
       }
     } catch (proxyError) {
-      console.warn('Échec de l\'utilisation du proxy, tentative d\'appel direct:', proxyError);
-      // Continuer avec l'appel direct si le proxy a échoué
+      console.warn('Échec de l\'utilisation du proxy:', proxyError);
+      
+      // Si c'est une erreur réseau générique, proposer un message plus informatif
+      if (proxyError.message?.includes('Failed to fetch')) {
+        toast.error('Erreur de connexion au proxy', {
+          description: 'Impossible de se connecter au proxy Notion. Vérifiez que le proxy est déployé et accessible.',
+        });
+        throw new Error('Failed to fetch - Échec de connexion au proxy Notion');
+      }
+      
+      // Continuer avec l'appel direct si le proxy a échoué (qui échouera probablement avec CORS)
     }
     
     // Appel direct à l'API Notion (qui échouera probablement avec CORS dans le navigateur)
