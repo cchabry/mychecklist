@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { 
   NOTION_API_BASE, 
@@ -10,13 +9,15 @@ import {
   isProxyUrlValid,
   getValidProxyUrl
 } from './config';
+import { fallbackNotionRequest, resetCorsProxyCache } from './fallbackProxy';
 
 // Variable globale pour suivre l'état de la dernière erreur
 const proxyStatus = {
   lastError: null,
   proxyFound: false,
   pingSuccessful: false,
-  postSuccessful: false
+  postSuccessful: false,
+  usingFallbackProxy: false
 };
 
 /**
@@ -422,37 +423,55 @@ export const notionApiRequest = async (
     // Récupérer la clé API
     const token = getNotionToken(apiKey);
     
-    // Appeler le proxy avec une logique de retry
-    return await callProxyWithRetry(endpoint, options, token);
-  } catch (proxyError) {
-    console.error('💥 Erreur proxy globale:', proxyError);
+    // Essayer d'abord avec le proxy Vercel
+    try {
+      // Appeler le proxy avec une logique de retry
+      const result = await callProxyWithRetry(endpoint, options, token);
+      proxyStatus.usingFallbackProxy = false;
+      return result;
+    } catch (proxyError) {
+      console.warn('⚠️ Échec du proxy Vercel, passage au proxy alternatif', proxyError);
+      
+      // Si le proxy Vercel échoue, essayer le proxy alternatif
+      toast.info('Utilisation du proxy CORS alternatif', {
+        description: 'Le proxy Vercel ne répond pas, nous essayons une méthode alternative.'
+      });
+      
+      proxyStatus.usingFallbackProxy = true;
+      
+      // Utiliser le proxy CORS public comme solution de repli
+      return await fallbackNotionRequest(endpoint, options, token);
+    }
+  } catch (error) {
+    console.error('💥 Erreur proxy globale:', error);
     
     // Gérer l'erreur CORS explicitement
-    if (proxyError.message?.includes('Failed to fetch')) {
+    if (error.message?.includes('Failed to fetch')) {
       const corsError = new Error('Failed to fetch - Limitation CORS');
       toast.error('Erreur CORS détectée', {
-        description: 'Le navigateur bloque les requêtes cross-origin. Utilisez le proxy Vercel correctement configuré.',
+        description: 'Le navigateur bloque les requêtes cross-origin. Nous avons essayé plusieurs solutions de proxy sans succès.',
       });
       throw corsError;
     }
     
-    // Erreur 404 spécifique
-    if (proxyError.message?.includes('404')) {
-      // Afficher un toast spécifique d'erreur 404
-      toast.error('Proxy Notion non opérationnel', {
-        description: 'Vérifiez que le fichier api/notion-proxy.ts est correctement déployé et configuré sur Vercel.',
-      });
-    }
-    
     // Conserver l'état de la dernière erreur pour diagnostic
     proxyStatus.lastError = {
-      message: proxyError.message,
-      stack: proxyError.stack
+      message: error.message,
+      stack: error.stack
     };
     
-    throw proxyError;
+    throw error;
   }
 };
 
 // Exporter l'état du proxy pour diagnostic
-export const getProxyStatus = () => ({ ...proxyStatus });
+export const getProxyStatus = () => ({ 
+  ...proxyStatus,
+  // Ajouter l'information d'utilisation du proxy de secours
+  usingFallbackProxy: proxyStatus.usingFallbackProxy 
+});
+
+// Réinitialiser tous les caches de proxy
+export const resetAllProxyCaches = () => {
+  resetCorsProxyCache();
+}
