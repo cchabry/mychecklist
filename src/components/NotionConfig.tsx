@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { configureNotion, isNotionConfigured } from '@/lib/notionService';
+import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 
 interface NotionConfigProps {
@@ -18,7 +19,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
   const [databaseId, setDatabaseId] = useState<string>(localStorage.getItem('notion_database_id') || '');
   const [loading, setLoading] = useState<boolean>(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
@@ -36,23 +37,45 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
         ? databaseId.split('/').pop() 
         : databaseId;
       
-      console.log('Configuring Notion with:', { 
-        apiKey: `${apiKey.substring(0, 10)}...`, 
-        databaseId: formattedDbId 
-      });
+      console.log('Testing Notion connection with API key');
       
-      const success = configureNotion(apiKey, formattedDbId || databaseId);
-      
-      if (success) {
-        toast.success('Configuration Notion réussie', {
-          description: 'L\'intégration avec Notion est maintenant active'
+      // Test connection using the new proxy API
+      try {
+        const user = await notionApi.users.me(apiKey);
+        console.log('Notion API connection successful, user:', user.name);
+        
+        // Test database access
+        if (formattedDbId) {
+          try {
+            await notionApi.databases.query(formattedDbId, { page_size: 1 }, apiKey);
+            console.log('Database access successful');
+          } catch (dbError) {
+            console.error('Database access failed:', dbError);
+            toast.error('Erreur d\'accès à la base de données', {
+              description: 'Vérifiez l\'ID de base de données et les permissions de l\'intégration'
+            });
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // If all tests pass, configure Notion
+        const success = configureNotion(apiKey, formattedDbId || databaseId);
+        
+        if (success) {
+          toast.success('Configuration Notion réussie', {
+            description: 'L\'intégration avec Notion est maintenant active'
+          });
+          if (onSuccess) onSuccess();
+          onClose();
+        }
+      } catch (connectionError) {
+        console.error('Connection test failed:', connectionError);
+        toast.error('Échec de la connexion à Notion', {
+          description: 'Vérifiez votre clé API et votre connexion internet'
         });
-        if (onSuccess) onSuccess();
-        onClose();
-      } else {
-        toast.error('Erreur de configuration', {
-          description: 'Impossible de configurer l\'intégration Notion'
-        });
+        setLoading(false);
+        return;
       }
     } catch (error) {
       console.error('Erreur lors de la configuration:', error);
@@ -117,7 +140,12 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
               className="bg-tmw-teal hover:bg-tmw-teal/90"
               disabled={loading}
             >
-              {loading ? "Configuration..." : "Connecter Notion"}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Test en cours...
+                </>
+              ) : "Connecter Notion"}
             </Button>
           </DialogFooter>
         </form>
