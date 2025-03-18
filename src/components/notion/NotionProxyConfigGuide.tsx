@@ -1,28 +1,34 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Server, FileCode, Info, Github, Settings, ArrowDown, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 import { toast } from 'sonner';
+import { getDeploymentType } from '@/lib/notionProxy/config';
 
 const NotionProxyConfigGuide: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
+  const [deploymentType, setDeploymentType] = useState<'vercel' | 'netlify' | 'local' | 'other'>('other');
+  
+  // Vérifier le type de déploiement au chargement
+  useEffect(() => {
+    setDeploymentType(getDeploymentType());
+  }, []);
   
   // Vérifier si nous sommes dans un environnement de développement local
   const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   
   // Déterminer le contexte d'exécution (local, Vercel, Netlify, etc.)
   const getDeploymentContext = () => {
-    if (isLocalDev) {
-      return 'développement local';
-    } else if (window.location.hostname.includes('vercel.app')) {
-      return 'Vercel';
-    } else if (window.location.hostname.includes('netlify.app')) {
-      return 'Netlify';
-    } else {
-      return 'production';
-    }
+    return deploymentType === 'local' 
+      ? 'développement local' 
+      : deploymentType === 'vercel' 
+        ? 'Vercel' 
+        : deploymentType === 'netlify'
+          ? 'Netlify'
+          : 'production';
   };
   
   // Tester un endpoint spécifique
@@ -95,6 +101,26 @@ const NotionProxyConfigGuide: React.FC = () => {
     }
   };
   
+  // Générer les endpoints à tester en fonction du type de déploiement
+  const getTestEndpoints = () => {
+    if (deploymentType === 'netlify') {
+      return {
+        ping: '/.netlify/functions/ping',
+        debug: '/.netlify/functions/netlify-debug',
+        notionProxy: '/.netlify/functions/notion-proxy'
+      };
+    } else {
+      // Vercel ou autre
+      return {
+        ping: '/api/ping',
+        debug: '/api/vercel-debug',
+        notionProxy: '/api/notion-proxy'
+      };
+    }
+  };
+  
+  const endpoints = getTestEndpoints();
+  
   return (
     <>
       <Button 
@@ -103,7 +129,7 @@ const NotionProxyConfigGuide: React.FC = () => {
         onClick={() => setIsOpen(true)}
       >
         <Server size={16} />
-        Guide de configuration du proxy Vercel
+        Guide de configuration du proxy {deploymentType === 'netlify' ? 'Netlify' : 'Vercel'}
       </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -111,10 +137,10 @@ const NotionProxyConfigGuide: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
               <Server size={20} className="text-blue-500" />
-              Guide de configuration du proxy Vercel
+              Guide de configuration du proxy {deploymentType === 'netlify' ? 'Netlify' : 'Vercel'}
             </DialogTitle>
             <DialogDescription>
-              Instructions pour configurer le proxy Vercel pour l'API Notion
+              Instructions pour configurer le proxy pour l'API Notion
             </DialogDescription>
           </DialogHeader>
           
@@ -124,7 +150,7 @@ const NotionProxyConfigGuide: React.FC = () => {
             <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
               <h3 className="font-medium mb-3 flex items-center gap-2 text-blue-700">
                 <Server size={16} />
-                Guide de configuration du proxy Vercel
+                Guide de configuration du proxy {deploymentType === 'netlify' ? 'Netlify' : 'Vercel'}
               </h3>
               
               <p className="text-sm text-blue-700 mb-3">
@@ -136,11 +162,21 @@ const NotionProxyConfigGuide: React.FC = () => {
                   <div className="flex items-start gap-1">
                     <FileCode size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
                     <span>
-                      <strong>Vérifiez que les fichiers API existent</strong> et sont correctement déployés sur Vercel:
+                      <strong>Vérifiez que les fichiers API existent</strong> et sont correctement déployés:
                       <ul className="list-disc pl-5 mt-1 space-y-1">
-                        <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/notion-proxy.ts</code> (principal)</li>
-                        <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/ping.ts</code> (diagnostic)</li>
-                        <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/vercel-debug.ts</code> (information)</li>
+                        {deploymentType === 'netlify' ? (
+                          <>
+                            <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">netlify/functions/notion-proxy.js</code> (principal)</li>
+                            <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">netlify/functions/ping.js</code> (diagnostic)</li>
+                            <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">netlify/functions/netlify-debug.js</code> (information)</li>
+                          </>
+                        ) : (
+                          <>
+                            <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/notion-proxy.ts</code> (principal)</li>
+                            <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/ping.ts</code> (diagnostic)</li>
+                            <li><code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/vercel-debug.ts</code> (information)</li>
+                          </>
+                        )}
                       </ul>
                     </span>
                   </div>
@@ -151,10 +187,27 @@ const NotionProxyConfigGuide: React.FC = () => {
                     <Info size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <span>
-                        Assurez-vous que <strong>vercel.json</strong> contient la configuration suivante:
+                        Assurez-vous que {deploymentType === 'netlify' ? <strong>netlify.toml</strong> : <strong>vercel.json</strong>} contient la configuration suivante:
                       </span>
                       <pre className="bg-slate-100 p-2 rounded text-xs mt-2 overflow-x-auto">
-{`{
+                        {deploymentType === 'netlify' ? 
+                          `[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# Configuration redirects/rewrites
+[[redirects]]
+  from = "/api/notion-proxy"
+  to = "/.netlify/functions/notion-proxy"
+  status = 200
+
+[[redirects]]
+  from = "/api/notion-proxy/*"
+  to = "/.netlify/functions/notion-proxy"
+  status = 200` :
+                          
+                          `{
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
@@ -170,22 +223,10 @@ const NotionProxyConfigGuide: React.FC = () => {
     { "source": "/api/notion-proxy/(.*)", "destination": "/api/notion-proxy.ts" },
     { "source": "/api/ping", "destination": "/api/ping.ts" },
     { "source": "/api/vercel-debug", "destination": "/api/vercel-debug.ts" }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
-      ]
-    }
-  ]
-}`}
+  ]`}
                       </pre>
                       <div className="mt-2 pt-2 border-t border-blue-100">
-                        <p className="font-medium text-blue-700 mb-1">Comment localiser et vérifier vercel.json:</p>
+                        <p className="font-medium text-blue-700 mb-1">Comment localiser et vérifier {deploymentType === 'netlify' ? 'netlify.toml' : 'vercel.json'}:</p>
                         <ol className="list-decimal pl-5 space-y-1 text-blue-600">
                           <li className="flex items-start gap-1">
                             <Github size={14} className="flex-shrink-0 mt-0.5" />
@@ -193,11 +234,11 @@ const NotionProxyConfigGuide: React.FC = () => {
                           </li>
                           <li className="flex items-start gap-1">
                             <Settings size={14} className="flex-shrink-0 mt-0.5" />
-                            <span>Dans le <strong>dashboard Vercel</strong>: Project → Settings → Git → Root Directory</span>
+                            <span>Dans le <strong>dashboard {deploymentType === 'netlify' ? 'Netlify' : 'Vercel'}</strong>: Project → Settings → Git</span>
                           </li>
                           <li className="flex items-start gap-1">
                             <ArrowDown size={14} className="flex-shrink-0 mt-0.5" />
-                            <span>Téléchargez le code source via: Project → Settings → Git → "Download source code"</span>
+                            <span>Téléchargez le code source pour vérifier</span>
                           </li>
                         </ol>
                       </div>
@@ -213,10 +254,10 @@ const NotionProxyConfigGuide: React.FC = () => {
                 </p>
                 <p className="mt-1">Pour que les changements prennent effet:</p>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li>Assurez-vous que le code est correctement déployé sur Vercel</li>
+                  <li>Assurez-vous que le code est correctement déployé</li>
                   <li>Si vous avez modifié le code localement, redéployez l'application</li>
                   <li>Après le déploiement, essayez à nouveau de tester les endpoints</li>
-                  <li>Vérifiez les logs Vercel pour identifier toute erreur persistante</li>
+                  <li>Vérifiez les logs pour identifier toute erreur persistante</li>
                 </ul>
               </div>
             </div>
@@ -252,52 +293,52 @@ const NotionProxyConfigGuide: React.FC = () => {
                 <Button 
                   variant="default" 
                   className="bg-green-600 hover:bg-green-700"
-                  onClick={() => testEndpoint('/api/ping')}
-                  disabled={testingEndpoint === '/api/ping'}
+                  onClick={() => testEndpoint(endpoints.ping)}
+                  disabled={testingEndpoint === endpoints.ping}
                 >
-                  {testingEndpoint === '/api/ping' ? (
+                  {testingEndpoint === endpoints.ping ? (
                     <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
                   ) : (
-                    <>Tester /api/ping</>
+                    <>Tester {endpoints.ping}</>
                   )}
                 </Button>
                 
                 <Button 
                   variant="default" 
                   className="bg-blue-600 hover:bg-blue-700"
-                  onClick={() => testEndpoint('/api/vercel-debug')}
-                  disabled={testingEndpoint === '/api/vercel-debug'}
+                  onClick={() => testEndpoint(endpoints.debug)}
+                  disabled={testingEndpoint === endpoints.debug}
                 >
-                  {testingEndpoint === '/api/vercel-debug' ? (
+                  {testingEndpoint === endpoints.debug ? (
                     <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
                   ) : (
-                    <>Tester /api/vercel-debug</>
+                    <>Tester {endpoints.debug}</>
                   )}
                 </Button>
                 
                 <Button 
                   variant="default" 
                   className="bg-purple-600 hover:bg-purple-700"
-                  onClick={() => testEndpoint('/api/notion-proxy')}
-                  disabled={testingEndpoint === '/api/notion-proxy'}
+                  onClick={() => testEndpoint(endpoints.notionProxy)}
+                  disabled={testingEndpoint === endpoints.notionProxy}
                 >
-                  {testingEndpoint === '/api/notion-proxy' ? (
+                  {testingEndpoint === endpoints.notionProxy ? (
                     <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
                   ) : (
-                    <>Tester /api/notion-proxy (GET)</>
+                    <>Tester {endpoints.notionProxy} (GET)</>
                   )}
                 </Button>
                 
                 <Button 
                   variant="default" 
                   className="bg-amber-600 hover:bg-amber-700"
-                  onClick={() => testEndpoint('/api/notion-proxy', 'POST')}
-                  disabled={testingEndpoint === '/api/notion-proxy-post'}
+                  onClick={() => testEndpoint(endpoints.notionProxy, 'POST')}
+                  disabled={testingEndpoint === `${endpoints.notionProxy}-post`}
                 >
-                  {testingEndpoint === '/api/notion-proxy-post' ? (
+                  {testingEndpoint === `${endpoints.notionProxy}-post` ? (
                     <><Loader2 size={14} className="mr-2 animate-spin" /> Test en cours...</>
                   ) : (
-                    <>Tester /api/notion-proxy (POST)</>
+                    <>Tester {endpoints.notionProxy} (POST)</>
                   )}
                 </Button>
               </div>
@@ -305,26 +346,36 @@ const NotionProxyConfigGuide: React.FC = () => {
               <div className="mt-4 p-3 bg-white rounded-md border border-green-200">
                 <h4 className="text-sm font-medium mb-2 text-green-700">Comment ajouter ces APIs à votre projet</h4>
                 <p className="text-xs text-gray-600 mb-2">
-                  Si vous obtenez des erreurs 404, vous devez ajouter ces fichiers à votre projet dans le dossier <code className="bg-gray-100 px-1 rounded">api/</code> à la racine.
+                  Si vous obtenez des erreurs 404, vous devez ajouter ces fichiers à votre projet {deploymentType === 'netlify' ? 'dans le dossier netlify/functions/' : 'dans le dossier api/'} à la racine.
                 </p>
                 
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600">
-                    <strong>1. Créez un dossier <code className="bg-gray-100 px-1 rounded">api</code> à la racine du projet</strong>
+                    <strong>1. Créez un dossier {deploymentType === 'netlify' ? 'netlify/functions' : 'api'} à la racine du projet</strong>
                   </p>
                   <p className="text-xs text-gray-600">
                     <strong>2. Créez les fichiers suivants à l'intérieur:</strong>
                   </p>
                   <ul className="text-xs text-gray-600 space-y-1 list-disc pl-5">
-                    <li><code className="bg-gray-100 px-1 rounded">api/ping.ts</code></li>
-                    <li><code className="bg-gray-100 px-1 rounded">api/vercel-debug.ts</code></li>
-                    <li><code className="bg-gray-100 px-1 rounded">api/notion-proxy.ts</code></li>
+                    {deploymentType === 'netlify' ? (
+                      <>
+                        <li><code className="bg-gray-100 px-1 rounded">netlify/functions/ping.js</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">netlify/functions/netlify-debug.js</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">netlify/functions/notion-proxy.js</code></li>
+                      </>
+                    ) : (
+                      <>
+                        <li><code className="bg-gray-100 px-1 rounded">api/ping.ts</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">api/vercel-debug.ts</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">api/notion-proxy.ts</code></li>
+                      </>
+                    )}
                   </ul>
                   <p className="text-xs text-gray-600">
-                    <strong>3. Ajoutez le fichier <code className="bg-gray-100 px-1 rounded">vercel.json</code> à la racine du projet</strong>
+                    <strong>3. Ajoutez le fichier {deploymentType === 'netlify' ? 'netlify.toml' : 'vercel.json'} à la racine du projet</strong>
                   </p>
                   <p className="text-xs text-gray-600">
-                    <strong>4. Déployez les changements sur Vercel</strong>
+                    <strong>4. Déployez les changements</strong>
                   </p>
                 </div>
               </div>

@@ -30,6 +30,23 @@ export const STORAGE_KEYS = {
 };
 
 /**
+ * Déterminer le type de déploiement (Vercel, Netlify, local)
+ */
+export const getDeploymentType = (): 'vercel' | 'netlify' | 'local' | 'other' => {
+  const hostname = window.location.hostname;
+  
+  if (hostname.includes('netlify.app')) {
+    return 'netlify';
+  } else if (hostname.includes('vercel.app')) {
+    return 'vercel';
+  } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'local';
+  } else {
+    return 'other';
+  }
+};
+
+/**
  * Get the currently selected CORS proxy
  */
 export const getSelectedProxy = (): string => {
@@ -54,11 +71,45 @@ export const buildProxyUrl = (endpoint: string): string => {
 };
 
 /**
+ * Récupère l'URL du serverless proxy en fonction du déploiement
+ */
+export const getServerlessProxyUrl = (): string => {
+  const deploymentType = getDeploymentType();
+  
+  // Format de l'URL en fonction du type de déploiement
+  switch (deploymentType) {
+    case 'netlify':
+      return '/.netlify/functions/notion-proxy';
+    case 'vercel':
+      return '/api/notion-proxy';
+    default:
+      return '/api/notion-proxy'; // Fallback sur le format Vercel
+  }
+};
+
+/**
  * Verify if the selected proxy is working
  */
 export const verifyProxyDeployment = async (force: boolean = false): Promise<boolean> => {
   try {
-    // Try a simple GET request to Notion API through the proxy
+    // D'abord, vérifier si nous avons un serverless proxy
+    const deploymentType = getDeploymentType();
+    const serverlessUrl = getServerlessProxyUrl();
+    
+    if (deploymentType === 'netlify' || deploymentType === 'vercel') {
+      // Tester le serverless proxy
+      try {
+        const response = await fetch(serverlessUrl);
+        if (response.ok) {
+          console.log(`Serverless proxy (${deploymentType}) test: SUCCESS`);
+          return true;
+        }
+      } catch (error) {
+        console.warn(`Serverless proxy (${deploymentType}) test failed:`, error);
+      }
+    }
+    
+    // Si le serverless proxy échoue ou n'est pas disponible, tester le proxy CORS client
     const proxyUrl = getSelectedProxy();
     const testUrl = `${proxyUrl}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
 
@@ -73,7 +124,7 @@ export const verifyProxyDeployment = async (force: boolean = false): Promise<boo
     // Even a 401 Unauthorized is fine - it means the proxy successfully contacted Notion
     const proxyWorking = response.status !== 0 && response.status !== 404;
     
-    console.log(`Proxy test result for ${proxyUrl}: ${proxyWorking ? 'SUCCESS' : 'FAILED'} (status: ${response.status})`);
+    console.log(`CORS Proxy test result for ${proxyUrl}: ${proxyWorking ? 'SUCCESS' : 'FAILED'} (status: ${response.status})`);
     
     return proxyWorking;
   } catch (error) {
@@ -126,6 +177,7 @@ export const findWorkingProxy = async (): Promise<string | null> => {
 export const getProxyStatus = () => {
   return {
     currentProxy: getSelectedProxy(),
+    deploymentType: getDeploymentType(),
     usingClientSideProxy: true
   };
 };

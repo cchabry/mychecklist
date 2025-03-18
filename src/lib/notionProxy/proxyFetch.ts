@@ -7,12 +7,15 @@ import {
   buildProxyUrl,
   findWorkingProxy,
   getSelectedProxy,
-  STORAGE_KEYS
+  STORAGE_KEYS,
+  getDeploymentType,
+  getServerlessProxyUrl
 } from './config';
 
 // Status variables
 let _lastError: Error | null = null;
 let _usingFallbackProxy = false;
+let _usingServerlessProxy = false;
 
 /**
  * Reset all proxy caches and status
@@ -20,6 +23,7 @@ let _usingFallbackProxy = false;
 export const resetAllProxyCaches = () => {
   _lastError = null;
   _usingFallbackProxy = false;
+  _usingServerlessProxy = false;
   localStorage.removeItem('notion_last_error');
   console.log('Proxy caches reset');
 };
@@ -33,9 +37,48 @@ export const getProxyStatus = () => {
   return {
     lastError: lastErrorString ? JSON.parse(lastErrorString) : _lastError,
     currentProxy: getSelectedProxy(),
-    usingFallbackProxy: _usingFallbackProxy
+    usingFallbackProxy: _usingFallbackProxy,
+    usingServerlessProxy: _usingServerlessProxy,
+    deploymentType: getDeploymentType()
   };
 };
+
+/**
+ * Tenter une requête via le proxy serverless (Vercel/Netlify)
+ */
+async function tryServerlessProxy<T>(
+  endpoint: string,
+  method: string,
+  body?: any,
+  token?: string,
+  customHeaders: Record<string, string> = {}
+): Promise<T> {
+  const proxyUrl = getServerlessProxyUrl();
+  console.log(`🔹 Tentative via proxy serverless (${getDeploymentType()}): ${proxyUrl}`);
+  
+  const response = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...customHeaders
+    },
+    body: JSON.stringify({
+      endpoint,
+      method,
+      body,
+      token
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ Erreur du proxy serverless: ${response.status}`, errorText);
+    throw new Error(`Erreur proxy serverless: ${response.status} ${errorText}`);
+  }
+  
+  _usingServerlessProxy = true;
+  return await response.json();
+}
 
 /**
  * Make a request to the Notion API via the CORS proxy
@@ -65,7 +108,23 @@ export const notionApiRequest = async <T = any>(
     return mockNotionResponse(endpoint, method, body) as T;
   }
   
-  // First try the client-side CORS proxy
+  // First try the serverless proxy (Vercel/Netlify)
+  if (getDeploymentType() !== 'local') {
+    try {
+      const result = await tryServerlessProxy<T>(endpoint, method, body, token, customHeaders);
+      
+      // Clear any previous errors on success
+      _lastError = null;
+      localStorage.removeItem('notion_last_error');
+      
+      return result;
+    } catch (serverlessError) {
+      console.error(`❌ Erreur avec le proxy serverless:`, serverlessError);
+      // Continue to client-side proxy as fallback
+    }
+  }
+  
+  // If serverless proxy failed, try the client-side CORS proxy
   try {
     const proxyUrl = buildProxyUrl(endpoint);
     
