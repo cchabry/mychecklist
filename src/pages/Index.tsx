@@ -9,7 +9,9 @@ import ProjectCard from '@/components/ProjectCard';
 import { getAllProjects } from '@/lib/mockData';
 import { isNotionConfigured } from '@/lib/notion';
 import { NotionConfig, NotionProxyConfigGuide } from '@/components/notion';
+import NotionTestButton from '@/components/notion/NotionTestButton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { notionApi } from '@/lib/notionProxy';
 
 const Index = () => {
   const [projects, setProjects] = useState([]);
@@ -43,6 +45,9 @@ const Index = () => {
     const notionConfigured = isNotionConfigured();
     setUsingNotion(notionConfigured);
 
+    // Afficher l'état du mode mock dans la console
+    console.log(`🔍 Index - Mode mock: ${notionApi.mockMode.isActive() ? 'ACTIF' : 'INACTIF'}`);
+
     // Charge les projets (simulé avec un délai pour l'UX)
     setTimeout(() => {
       setProjects(getAllProjects());
@@ -59,7 +64,7 @@ const Index = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h1>
             <p className="text-gray-600">Gérez vos audits d'accessibilité et suivez votre progression</p>
-            <div className="mt-2 flex items-center">
+            <div className="mt-2 flex items-center gap-2">
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                 environment.isVercel ? 'bg-blue-100 text-blue-800' : 
                 environment.isLovable ? 'bg-purple-100 text-purple-800' : 
@@ -68,6 +73,14 @@ const Index = () => {
               }`}>
                 {environment.type}
               </span>
+              
+              {/* Indicateur de mode mock */}
+              {notionApi.mockMode.isActive() && (
+                <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                  Mode démo actif
+                </span>
+              )}
+              
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
@@ -77,6 +90,7 @@ const Index = () => {
                     <p>Hôte: {environment.host}</p>
                     <p>Version: {import.meta.env.MODE}</p>
                     <p>Date de construction: {new Date().toLocaleDateString()}</p>
+                    <p>Mode mock: {notionApi.mockMode.isActive() ? 'Actif' : 'Inactif'}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -84,6 +98,9 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-3 mt-4 md:mt-0">
+            {/* Bouton de test Notion */}
+            <NotionTestButton />
+            
             <NotionProxyConfigGuide />
             
             <Button
