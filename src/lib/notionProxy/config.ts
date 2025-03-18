@@ -15,8 +15,8 @@ export const VERCEL_PROXY_URL =
 export const NOTION_API_VERSION = '2022-06-28';
 
 // Timeout settings
-export const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
-export const MAX_RETRY_ATTEMPTS = 3;
+export const REQUEST_TIMEOUT_MS = 15000; // Réduit à 15 secondes pour des réponses plus rapides
+export const MAX_RETRY_ATTEMPTS = 2;
 
 // Local storage keys
 export const STORAGE_KEYS = {
@@ -27,16 +27,64 @@ export const STORAGE_KEYS = {
 // Configuration des chemins alternatifs pour le proxy
 export const PROXY_PATHS = [
   '/api/notion-proxy',       // Chemin standard
-  '/api/notion-proxy.js',    // Chemin alternatif .js 
+  '/.netlify/functions/notion-proxy', // Support Netlify
   '/api/notion-proxy/index', // Structure avec index
   '/api/notionproxy',        // Alternative sans tiret
 ];
 
+// Vérification simple du statut de déploiement
+let _isDeploymentVerified = false;
+let _validProxyPath: string | null = null;
+
+// Fonction pour vérifier si le proxy est déployé
+export const verifyProxyDeployment = async (): Promise<boolean> => {
+  // En développement, on considère que c'est déployé
+  if (process.env.NODE_ENV !== 'production') {
+    return true;
+  }
+  
+  try {
+    // Vérifier d'abord le ping
+    const pingResponse = await fetch(`${window.location.origin}/api/ping`, {
+      method: 'GET',
+      cache: 'no-store'
+    });
+    
+    if (!pingResponse.ok) {
+      console.error('❌ Ping API failed:', pingResponse.status);
+      return false;
+    }
+    
+    console.log('✅ API ping successful');
+    
+    // Puis vérifier le proxy
+    const proxyResponse = await fetch(`${window.location.origin}/api/notion-proxy`, {
+      method: 'HEAD',
+      cache: 'no-store'
+    }).catch(() => null);
+    
+    // Si on a une réponse (même avec erreur), c'est que le fichier existe
+    _isDeploymentVerified = !!proxyResponse;
+    return _isDeploymentVerified;
+  } catch (error) {
+    console.error('❌ Deployment verification failed:', error);
+    return false;
+  }
+};
+
 // Fonction pour déterminer l'URL valide du proxy
 export const getValidProxyUrl = async (): Promise<string> => {
+  // Si on a déjà trouvé un chemin valide, on le retourne
+  if (_validProxyPath) {
+    return process.env.NODE_ENV === 'production' 
+      ? `${window.location.origin}${_validProxyPath}`
+      : _validProxyPath;
+  }
+  
   // En développement, utiliser toujours l'URL relative
   if (process.env.NODE_ENV !== 'production') {
-    return '/api/notion-proxy';
+    _validProxyPath = '/api/notion-proxy';
+    return _validProxyPath;
   }
   
   // En production, tester les différents chemins possibles
@@ -46,18 +94,19 @@ export const getValidProxyUrl = async (): Promise<string> => {
     const url = `${baseUrl}${path}`;
     
     try {
-      // Faire une requête OPTIONS pour tester l'existence de l'endpoint
+      // Faire une requête HEAD pour tester l'existence de l'endpoint
       const response = await fetch(url, {
-        method: 'OPTIONS',
-        headers: { 'Accept': 'application/json' },
-        mode: 'no-cors',
+        method: 'HEAD',
         cache: 'no-store'
       });
       
       console.log(`Tested proxy URL: ${url}, status: ${response.status}`);
       
-      // Si la requête ne génère pas d'erreur, considérer l'URL comme valide
-      return url;
+      // Si la requête ne génère pas d'erreur 404, considérer l'URL comme valide
+      if (response.status !== 404) {
+        _validProxyPath = path;
+        return url;
+      }
     } catch (error) {
       console.log(`Failed to access ${url}: ${error.message}`);
       // Continuer avec le prochain chemin
@@ -81,3 +130,6 @@ export const isProxyUrlValid = () => {
   
   return !!url && url.includes('/api/notion-proxy');
 };
+
+// Statut du déploiement
+export const isDeploymentVerified = () => _isDeploymentVerified;

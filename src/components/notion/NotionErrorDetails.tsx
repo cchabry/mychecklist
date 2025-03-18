@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { AlertCircle, FileCode } from 'lucide-react';
+import { AlertCircle, FileCode, ExternalLink } from 'lucide-react';
 import NotionErrorStatusSection from './NotionErrorStatusSection';
 import NotionProxyConfigSection from './NotionProxyConfigSection';
 import NotionFetchErrorSection from './NotionFetchErrorSection';
@@ -48,39 +48,46 @@ Date: ${new Date().toISOString()}
                          error.includes('introuvable');
   
   // Déterminer s'il s'agit d'une erreur 404 spécifique au proxy
-  const isProxy404Error = error.includes('404') && error.includes('proxy');
+  const isProxy404Error = error.includes('404') || 
+                         (error.includes('introuvable') && error.includes('proxy'));
+  
+  // Déterminer le titre et la description en fonction de l'erreur
+  let title = 'Limitation technique Notion';
+  let description = 'Explication du problème et des solutions possibles';
+  
+  if (isProxy404Error) {
+    title = 'Fichier API manquant';
+    description = 'Le fichier api/notion-proxy.ts est introuvable sur le serveur';
+  } else if (isProxyMessage) {
+    title = 'Configuration du proxy Notion';
+    description = 'Instructions pour finaliser la configuration du proxy';
+  }
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-md max-h-screen overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center text-amber-600 gap-2 mb-2">
             {isProxy404Error ? (
               <FileCode size={20} />
+            ) : isProxyMessage ? (
+              <ExternalLink size={20} />
             ) : (
               <AlertCircle size={20} />
             )}
             <SheetTitle className="text-amber-600">
-              {isProxy404Error 
-                ? 'Fichier API manquant' 
-                : isProxyMessage 
-                  ? 'Configuration du proxy Notion' 
-                  : 'Limitation technique Notion'}
+              {title}
             </SheetTitle>
           </div>
           <SheetDescription>
-            {isProxy404Error 
-              ? 'Le fichier api/notion-proxy.ts est introuvable sur le serveur' 
-              : isProxyMessage 
-                ? 'Instructions pour finaliser la configuration du proxy' 
-                : 'Explication du problème et des solutions possibles'}
+            {description}
           </SheetDescription>
         </SheetHeader>
         
         <div className="mt-6 space-y-6">
           <NotionErrorStatusSection error={error} context={context} />
           
-          {isProxyMessage ? (
+          {(isProxyMessage || isProxy404Error) ? (
             <NotionProxyConfigSection />
           ) : isFailedToFetch ? (
             <NotionFetchErrorSection />
@@ -94,7 +101,7 @@ Date: ${new Date().toISOString()}
           
           <NotionErrorActions 
             onCopyDetails={copyErrorDetails} 
-            isProxyMessage={isProxyMessage} 
+            isProxyMessage={isProxyMessage || isProxy404Error} 
           />
         </div>
       </SheetContent>
