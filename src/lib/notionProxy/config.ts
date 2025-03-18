@@ -5,7 +5,8 @@
 export const NOTION_API_BASE = 'https://api.notion.com/v1';
 
 // URL de notre fonction serverless Vercel déployée
-export const VERCEL_PROXY_URL = 'https://mychecklist-six.vercel.app/api/notion-proxy';
+// Remplacez cette URL par celle de votre déploiement Vercel actuel
+export const VERCEL_PROXY_URL = 'https://mychecklist.vercel.app/api/notion-proxy';
 
 // Notion API version
 export const NOTION_API_VERSION = '2022-06-28';

@@ -10,19 +10,30 @@ export default async function handler(
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader('Access-Control-Allow-Headers', 
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
   // Gérer les requêtes OPTIONS (pre-flight CORS)
   if (request.method === 'OPTIONS') {
+    console.log('[Notion Proxy] Handling OPTIONS request (CORS preflight)');
     return response.status(200).end();
   }
+  
+  console.log('[Notion Proxy] Received request:', request.method, request.url);
   
   try {
     // Extraire les informations de la requête
     const { endpoint, method = 'GET', body, token } = request.body;
     
+    console.log('[Notion Proxy] Request details:', { 
+      endpoint, 
+      method,
+      hasBody: !!body,
+      hasToken: !!token
+    });
+    
     // Vérifier les paramètres requis
     if (!endpoint || !token) {
+      console.error('[Notion Proxy] Missing parameters:', { hasEndpoint: !!endpoint, hasToken: !!token });
       return response.status(400).json({ 
         error: 'Paramètres manquants: endpoint et token sont requis' 
       });
@@ -31,7 +42,7 @@ export default async function handler(
     // Construire l'URL complète pour l'API Notion
     const url = `https://api.notion.com/v1${endpoint}`;
     
-    console.log(`[Notion Proxy] Requête ${method} vers ${url}`);
+    console.log(`[Notion Proxy] Making ${method} request to ${url}`);
     
     // Définir les options de la requête
     const fetchOptions: RequestInit = {
@@ -51,14 +62,16 @@ export default async function handler(
     }
     
     // Effectuer la requête à l'API Notion
+    console.log('[Notion Proxy] Sending request to Notion API...');
     const notionResponse = await fetch(url, fetchOptions);
+    console.log('[Notion Proxy] Got response from Notion API:', notionResponse.status);
     
     // Récupérer le corps de la réponse
     const responseData = await notionResponse.json();
     
     // Si la réponse n'est pas OK, retourner l'erreur
     if (!notionResponse.ok) {
-      console.error(`[Notion Proxy] Erreur ${notionResponse.status}: ${JSON.stringify(responseData)}`);
+      console.error(`[Notion Proxy] Error ${notionResponse.status}: ${JSON.stringify(responseData)}`);
       return response.status(notionResponse.status).json({
         error: responseData.message || 'Erreur API Notion',
         details: responseData,
@@ -67,9 +80,10 @@ export default async function handler(
     }
     
     // Retourner les données de l'API Notion
+    console.log('[Notion Proxy] Successfully proxied Notion API response');
     return response.status(200).json(responseData);
   } catch (error) {
-    console.error('[Notion Proxy] Erreur non gérée:', error);
+    console.error('[Notion Proxy] Unhandled error:', error);
     
     // Formater l'erreur de manière cohérente
     const errorMessage = error.message || 'Erreur serveur inconnue';

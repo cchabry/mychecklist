@@ -42,7 +42,7 @@ export const notionApiRequest = async (
     
     // Essayer d'utiliser le proxy Vercel d'abord
     try {
-      console.log(`Utilisation du proxy Vercel pour: ${endpoint}`);
+      console.log(`Utilisation du proxy Vercel pour: ${endpoint}`, VERCEL_PROXY_URL);
       
       // Préparer les données pour le proxy
       const proxyData = {
@@ -85,8 +85,14 @@ export const notionApiRequest = async (
             break;
           } else {
             console.warn(`Échec de la réponse du proxy (${response.status}): ${response.statusText}`);
-            result = await response.json().catch(() => ({ error: 'Impossible de lire la réponse' }));
-            console.warn('Détails de l\'erreur:', result);
+            const errorText = await response.text();
+            console.warn('Détails de l\'erreur:', errorText);
+            try {
+              result = JSON.parse(errorText);
+            } catch (e) {
+              result = { error: errorText || 'Impossible de lire la réponse' };
+            }
+            console.warn('Réponse d\'erreur analysée:', result);
           }
         } catch (retryError) {
           console.warn(`Erreur lors de la tentative ${retryCount + 1}:`, retryError);
