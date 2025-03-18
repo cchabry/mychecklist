@@ -3,7 +3,7 @@
 import { ComplianceStatus, Audit, AuditItem, Project } from '../types';
 
 // Re-export types that are used in the Notion services
-export { ComplianceStatus, Audit, AuditItem, Project };
+export type { ComplianceStatus, Audit, AuditItem, Project };
 
 // Helper constant for compliance values calculation
 export const COMPLIANCE_VALUES = {

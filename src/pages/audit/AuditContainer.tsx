@@ -11,6 +11,7 @@ import {
   saveAuditToNotion, 
   isNotionConfigured
 } from '@/lib/notion';
+import { notionApi } from '@/lib/notionProxy';
 import Header from '@/components/Header';
 import AuditHeader from './components/AuditHeader';
 import AuditProgress from './components/AuditProgress';
@@ -47,10 +48,29 @@ export const AuditContainer = () => {
       // Try to load from Notion if configured
       if (usingNotion) {
         try {
-          projectData = await getNotionProject(projectId);
+          // Use notionProxy API instead of direct client calls
+          const apiKey = localStorage.getItem('notion_api_key');
+          const dbId = localStorage.getItem('notion_database_id');
           
-          if (projectData) {
-            auditData = await getAuditForProject(projectId);
+          if (apiKey && dbId) {
+            // Attempt to fetch project data using the proxy
+            try {
+              // First test the connection
+              await notionApi.users.me(apiKey);
+              console.log('Notion connection verified via proxy');
+              
+              // Then try to get project data
+              projectData = await getNotionProject(projectId);
+              
+              if (projectData) {
+                auditData = await getAuditForProject(projectId);
+              }
+            } catch (proxyError) {
+              console.error('Notion proxy error:', proxyError);
+              toast.error('Erreur d\'accès à Notion', {
+                description: 'Impossible de charger les données depuis Notion. Vérifiez votre connexion.',
+              });
+            }
           }
         } catch (notionError) {
           console.error('Erreur Notion:', notionError);
@@ -218,3 +238,4 @@ export const AuditContainer = () => {
     </div>
   );
 };
+
