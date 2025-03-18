@@ -1,15 +1,9 @@
 
 {
   "version": 2,
-  "functions": {
-    "api/*.ts": {
-      "memory": 128,
-      "maxDuration": 5
-    }
-  },
   "routes": [
-    { "src": "/api/ping", "dest": "/api/ping.ts" },
     { "src": "/api/notion-proxy", "dest": "/api/notion-proxy.ts" },
+    { "src": "/api/ping", "dest": "/api/ping.ts" },
     { "src": "/api/vercel-debug", "dest": "/api/vercel-debug.ts" }
   ]
 }

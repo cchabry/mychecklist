@@ -2,12 +2,9 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  // Minimal CORS
+  // Set simple CORS header
   res.setHeader('Access-Control-Allow-Origin', '*');
   
-  // Simplest possible response
-  return res.status(200).json({
-    status: 'ok',
-    message: 'pong'
-  });
+  // Respond with a simple message
+  return res.status(200).json({ message: 'pong' });
 }
