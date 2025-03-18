@@ -2,7 +2,8 @@ import { Client } from '@notionhq/client';
 import { 
   PageObjectResponse, 
   PropertyItemObjectResponse,
-  RichTextItemResponse
+  RichTextItemResponse,
+  CreatePageResponse
 } from '@notionhq/client/build/src/api-endpoints';
 import { ComplianceStatus, Audit, AuditItem, Project } from './types';
 
@@ -354,6 +355,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     // Générer un ID unique pour le projet
     const projectId = `project-${Date.now()}`;
+    const creationTime = new Date().toISOString();
     
     // Créer une nouvelle page (projet) dans la base de données Notion
     const response = await notionClient.pages.create({
@@ -394,13 +396,13 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     console.log('Project created in Notion:', response.id);
     
-    // Retourner le projet créé
+    // Retourner le projet créé avec les timestamps actuels
     return {
       id: projectId,
       name: name,
       url: url,
-      createdAt: response.created_time,
-      updatedAt: response.last_edited_time,
+      createdAt: creationTime,
+      updatedAt: creationTime,
       progress: 0,
       itemsCount: 0
     };
