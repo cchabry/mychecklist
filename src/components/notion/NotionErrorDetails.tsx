@@ -38,11 +38,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
             )}
             
             <div className="mt-6 mb-2">
-              <NotionSolutionsSection 
-                showCorsProxy={true} 
-                showMockMode={true}
-                showApiKey={!error?.includes('proxy')}
-              />
+              <NotionSolutionsSection />
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

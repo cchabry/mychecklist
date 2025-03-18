@@ -1,8 +1,8 @@
 
 import { notionApiRequest } from './proxyFetch';
-import { usersApi } from './endpoints/users';
-import { databasesApi } from './endpoints/databases';
-import { pagesApi } from './endpoints/pages';
+import * as users from './endpoints/users';
+import * as databases from './endpoints/databases';
+import * as pages from './endpoints/pages';
 import { mockMode } from './mockMode';
 
 // Exporter toutes les API de Notion depuis un point d'entrée unique
@@ -11,9 +11,9 @@ export const notionApi = {
   request: notionApiRequest,
   
   // Points d'accès organisés par entité
-  users: usersApi,
-  databases: databasesApi,
-  pages: pagesApi,
+  users,
+  databases,
+  pages,
   
   // Support pour les données de test
   mockMode
