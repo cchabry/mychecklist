@@ -1,6 +1,6 @@
 
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { Audit, AuditItem, ComplianceStatus } from './types';
+import { Audit, AuditItem, ComplianceStatus, COMPLIANCE_VALUES } from './types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
 
 /**
