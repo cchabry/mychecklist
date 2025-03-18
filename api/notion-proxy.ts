@@ -9,111 +9,70 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
-  // Log détaillé pour le debugging
-  console.log('==========================================');
-  console.log('⚡ [Notion Proxy] Fonction API appelée');
-  console.log('Méthode:', request.method);
-  console.log('URL:', request.url);
-  console.log('Headers:', JSON.stringify(request.headers, null, 2));
-  
-  // Afficher le corps de la requête pour les requêtes POST
-  if (request.method === 'POST') {
-    try {
-      console.log('Body:', JSON.stringify(request.body, null, 2));
-    } catch (e) {
-      console.error('Erreur lors de la sérialisation du body:', e);
-      console.log('Body (raw):', request.body);
-    }
-  }
-  console.log('==========================================');
-
-  // Configuration CORS avancée
+  // Configurer les headers CORS
   response.setHeader('Access-Control-Allow-Credentials', 'true');
-  // Autoriser n'importe quelle origine pour le développement, à restreindre en production
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader('Access-Control-Allow-Headers', 
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version');
-
-  // Désactiver la mise en cache pour toutes les réponses
+  
+  // Désactiver la mise en cache
   response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   response.setHeader('Pragma', 'no-cache');
   response.setHeader('Expires', '0');
 
   // Gérer les requêtes OPTIONS (pre-flight CORS)
   if (request.method === 'OPTIONS') {
-    console.log('🔄 [Notion Proxy] Répondre à la requête OPTIONS (CORS preflight)');
     return response.status(200).end();
   }
   
-  // Pour les requêtes HEAD, retourner un statut 200 pour indiquer que l'endpoint existe
+  // Pour les requêtes HEAD, retourner un statut 200
   if (request.method === 'HEAD') {
-    console.log('🔄 [Notion Proxy] Répondre à la requête HEAD (vérification d\'existence)');
     return response.status(200).end();
   }
   
-  // Ajouter un point d'accès de diagnostic directement à la route
+  // Diagnostic pour les requêtes GET
   if (request.method === 'GET') {
-    console.log('📊 [Notion Proxy] Requête GET reçue, renvoi d\'informations de diagnostic');
     return response.status(200).json({
       status: 'ok',
       message: 'Notion proxy is operational',
       timestamp: new Date().toISOString(),
-      environment: process.env.VERCEL_ENV || 'development',
-      version: '1.0.3',
-      debug: {
-        method: request.method,
-        url: request.url,
-        headers: request.headers
-      }
+      version: '1.0.4',
+      environment: process.env.VERCEL_ENV || 'development'
     });
   }
   
   // Vérifier que c'est bien une requête POST
   if (request.method !== 'POST') {
-    console.error(`❌ [Notion Proxy] Méthode non supportée: ${request.method}`);
     return response.status(405).json({ 
       error: `Méthode ${request.method} non supportée`,
       message: 'Seules les méthodes POST, GET, HEAD et OPTIONS sont supportées'
     });
   }
   
-  // Vérifier que le corps de la requête existe
-  if (!request.body) {
-    console.error('❌ [Notion Proxy] Corps de requête manquant');
-    return response.status(400).json({ 
-      error: 'Corps de requête manquant',
-      message: 'Le corps de la requête est requis pour les requêtes POST'
-    });
-  }
-  
-  // Gérer une requête ping spéciale sans nécessiter d'authentification
-  if (request.body?.endpoint === '/ping') {
-    console.log('📡 [Notion Proxy] Requête ping reçue');
-    return response.status(200).json({
-      status: 'ok',
-      message: 'Notion proxy is working correctly',
-      timestamp: new Date().toISOString()
-    });
-  }
-  
-  console.log('📥 [Notion Proxy] Traitement de la requête POST...');
-  
   try {
+    // Vérifier que le corps de la requête existe
+    if (!request.body) {
+      return response.status(400).json({ 
+        error: 'Corps de requête manquant',
+        message: 'Le corps de la requête est requis pour les requêtes POST'
+      });
+    }
+    
+    // Gérer une requête ping spéciale sans nécessiter d'authentification
+    if (request.body?.endpoint === '/ping') {
+      return response.status(200).json({
+        status: 'ok',
+        message: 'Notion proxy is working correctly',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     // Extraire les informations de la requête
     const { endpoint, method = 'GET', body, token } = request.body || {};
     
-    console.log('📋 [Notion Proxy] Détails de la requête:', { 
-      endpoint, 
-      method,
-      hasBody: !!body,
-      hasToken: !!token,
-      bodyKeys: body ? Object.keys(body) : []
-    });
-    
     // Vérifier les paramètres requis
     if (!endpoint || !token) {
-      console.error('❌ [Notion Proxy] Paramètres manquants:', { hasEndpoint: !!endpoint, hasToken: !!token });
       return response.status(400).json({ 
         error: 'Paramètres manquants: endpoint et token sont requis',
         received: { hasEndpoint: !!endpoint, hasToken: !!token }
@@ -123,8 +82,6 @@ export default async function handler(
     // Construire l'URL complète pour l'API Notion
     const url = `https://api.notion.com/v1${endpoint}`;
     
-    console.log(`🔗 [Notion Proxy] Préparation de la requête ${method} vers ${url}`);
-    
     // Définir les options de la requête
     const fetchOptions: RequestInit = {
       method,
@@ -132,21 +89,16 @@ export default async function handler(
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'Notion-Version': '2022-06-28'
-      },
-      // Ajouter un timeout de 25 secondes
-      signal: AbortSignal.timeout(25000)
+      }
     };
     
     // Ajouter le corps de la requête si nécessaire
     if (body && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
       fetchOptions.body = JSON.stringify(body);
-      console.log('📦 [Notion Proxy] Corps de la requête ajouté:', typeof fetchOptions.body, 'taille:', fetchOptions.body.length);
     }
     
     // Effectuer la requête à l'API Notion
-    console.log('🚀 [Notion Proxy] Envoi de la requête à l\'API Notion...');
     const notionResponse = await fetch(url, fetchOptions);
-    console.log('✅ [Notion Proxy] Réponse reçue de l\'API Notion:', notionResponse.status, notionResponse.statusText);
     
     // Récupérer le corps de la réponse
     const responseText = await notionResponse.text();
@@ -154,15 +106,12 @@ export default async function handler(
     
     try {
       responseData = JSON.parse(responseText);
-      console.log('📄 [Notion Proxy] Réponse JSON parsée avec succès');
     } catch (parseError) {
-      console.error('❌ [Notion Proxy] Erreur de parsing JSON:', parseError);
       responseData = { text: responseText };
     }
     
     // Si la réponse n'est pas OK, retourner l'erreur
     if (!notionResponse.ok) {
-      console.error(`❌ [Notion Proxy] Erreur ${notionResponse.status}: ${JSON.stringify(responseData)}`);
       return response.status(notionResponse.status).json({
         error: responseData.message || 'Erreur API Notion',
         details: responseData,
@@ -171,19 +120,13 @@ export default async function handler(
     }
     
     // Retourner les données de l'API Notion
-    console.log('✨ [Notion Proxy] Proxy réussi, renvoi de la réponse au client');
     return response.status(200).json(responseData);
   } catch (error) {
-    console.error('💥 [Notion Proxy] Erreur non gérée:', error);
-    
-    // Formater l'erreur de manière cohérente
-    const errorMessage = error.message || 'Erreur serveur inconnue';
-    const errorDetails = error.stack || '';
+    const errorMessage = error instanceof Error ? error.message : 'Erreur serveur inconnue';
     
     return response.status(500).json({ 
       error: 'Erreur serveur lors de la communication avec l\'API Notion',
-      message: errorMessage,
-      details: errorDetails
+      message: errorMessage
     });
   }
 }

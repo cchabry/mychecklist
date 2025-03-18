@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Server, AlertTriangle, FileCode, Info, ExternalLink, Github, Settings, ArrowDown } from 'lucide-react';
+import { Server, AlertTriangle, FileCode, Info, ExternalLink, Github, Settings, ArrowDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 
@@ -8,6 +8,29 @@ const NotionProxyConfigSection: React.FC = () => {
   return (
     <div className="space-y-4">
       <NotionDeploymentChecker />
+      
+      <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
+        <h3 className="font-medium mb-2 flex items-center gap-2 text-red-700">
+          <AlertTriangle size={16} />
+          Erreur fonction serverless détectée (500)
+        </h3>
+        
+        <p className="text-sm text-red-700 mb-3">
+          L'erreur <code className="bg-white px-1 py-0.5 rounded">FUNCTION_INVOCATION_FAILED</code> indique que la fonction <code>api/notion-proxy.ts</code> existe mais rencontre une erreur durant son exécution. Voici les solutions possibles:
+        </p>
+        
+        <ol className="space-y-3 list-decimal pl-5 text-sm text-red-700">
+          <li>
+            <strong>Vérifiez que le fichier est correctement formaté</strong> - Assurez-vous qu'il n'y a pas d'erreurs de syntaxe dans le code
+          </li>
+          <li>
+            <strong>Essayez une version simplifiée du code</strong> - Parfois les logs ou fonctionnalités complexes peuvent causer des problèmes
+          </li>
+          <li>
+            <strong>Vérifiez les logs Vercel</strong> - Consultez les logs d'exécution de la fonction dans le dashboard Vercel
+          </li>
+        </ol>
+      </div>
       
       <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
         <h3 className="font-medium mb-3 flex items-center gap-2 text-blue-700">
@@ -81,12 +104,15 @@ const NotionProxyConfigSection: React.FC = () => {
             </div>
           </li>
           
-          <li className="text-sm flex items-start gap-1">
-            <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-            <span>
-              Si l'erreur 404 persiste, vérifiez le <strong>nom exact du fichier</strong> dans votre projet: 
-              il doit être <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">api/notion-proxy.ts</code> et non dans un sous-dossier
-            </span>
+          <li className="text-sm">
+            <div className="flex items-start gap-1">
+              <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Problème actuel : Erreur 500 (Erreur d'exécution du serveur)</strong><br/>
+                La fonction existe mais rencontre une erreur lors de son exécution. Vérifiez et simplifiez le code 
+                de la fonction pour résoudre les problèmes potentiels.
+              </span>
+            </div>
           </li>
           
           <li className="text-sm">
@@ -94,16 +120,16 @@ const NotionProxyConfigSection: React.FC = () => {
               <ExternalLink size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
               <div>
                 <span>
-                  Vérifiez les fonctions serverless dans le dashboard Vercel:
+                  Vérifiez les logs et les fonctions dans le dashboard Vercel:
                 </span>
                 <div className="bg-white p-3 rounded-md border border-blue-100 mt-2 text-xs">
-                  <p className="font-medium text-blue-800 mb-2">Où trouver les fonctions serverless dans Vercel:</p>
+                  <p className="font-medium text-blue-800 mb-2">Comment consulter les logs d'erreur:</p>
                   <ol className="list-decimal pl-4 space-y-1 text-blue-700">
                     <li>Allez dans le dashboard Vercel de votre projet</li>
                     <li>Cliquez sur votre déploiement le plus récent</li>
                     <li>Allez dans l'onglet "Functions"</li>
-                    <li>Vous devriez voir les 3 fonctions: <code>api/notion-proxy.ts</code>, <code>api/ping.ts</code> et <code>api/vercel-debug.ts</code></li>
-                    <li>Si elles n'apparaissent pas, votre fichier vercel.json n'est peut-être pas correctement configuré ou le déploiement n'est pas à jour</li>
+                    <li>Trouvez la fonction <code>api/notion-proxy.ts</code> et cliquez dessus</li>
+                    <li>Consultez les logs d'erreur qui peuvent indiquer la source du problème</li>
                   </ol>
                 </div>
               </div>
@@ -143,22 +169,19 @@ const NotionProxyConfigSection: React.FC = () => {
           </li>
         </ol>
         
-        <div className="bg-amber-50 border border-amber-200 p-3 rounded-md mt-4 text-amber-800 text-xs">
+        <div className="bg-white border border-blue-200 p-3 rounded-md mt-4 text-blue-800 text-xs">
           <p className="font-medium flex items-center gap-1">
-            <AlertTriangle size={14} className="flex-shrink-0" />
-            Problème courant avec les POST:
+            <Loader2 size={14} className="animate-spin" />
+            Après avoir effectué des modifications:
           </p>
-          <p className="mt-1">Si vous recevez une erreur 404 uniquement lors des requêtes POST, cela peut indiquer:</p>
+          <p className="mt-1">Pour que les changements prennent effet:</p>
           <ul className="list-disc pl-5 mt-1 space-y-1">
-            <li>Le fichier <code>api/notion-proxy.ts</code> existe mais sa fonction handler n'est pas correctement configurée pour les requêtes POST</li>
-            <li>La configuration de <code>vercel.json</code> comporte une erreur ou n'est pas appliquée (redéployez après modification)</li>
-            <li>Vercel utilise peut-être un cache pour les fichiers API, essayez un redéploiement forcé</li>
+            <li>Assurez-vous que le code est correctement déployé sur Vercel</li>
+            <li>Si vous avez modifié le code localement, redéployez l'application</li>
+            <li>Après le déploiement, essayez à nouveau de tester les endpoints</li>
+            <li>Vérifiez les logs Vercel pour identifier toute erreur persistante</li>
           </ul>
         </div>
-        
-        <p className="text-sm mt-4 text-blue-700">
-          Si vous avez bien vérifié tous ces points et que le problème persiste, essayez de forcer un redéploiement complet du projet sur Vercel.
-        </p>
       </div>
     </div>
   );
