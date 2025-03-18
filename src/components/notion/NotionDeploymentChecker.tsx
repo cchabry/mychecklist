@@ -9,6 +9,7 @@ import {
 } from '@/lib/notionProxy/config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface DeploymentStatus {
   ping: boolean;
@@ -16,10 +17,11 @@ interface DeploymentStatus {
   post: boolean;
   deployed: boolean;
   message: string;
+  debug?: any;
 }
 
 const NotionDeploymentChecker: React.FC = () => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [status, setStatus] = useState<DeploymentStatus>({
     ping: false,
     head: false,
@@ -30,6 +32,7 @@ const NotionDeploymentChecker: React.FC = () => {
   
   const [checking, setChecking] = useState(true);
   const [attempts, setAttempts] = useState(0);
+  const [debug, setDebug] = useState<any>(null);
   
   const checkDeployment = async (force: boolean = false) => {
     setChecking(true);
@@ -48,6 +51,29 @@ const NotionDeploymentChecker: React.FC = () => {
       // Réinitialiser le cache si force est true
       if (force) {
         resetProxyCache();
+      }
+      
+      // Essayer le nouveau endpoint de debug
+      try {
+        const debugUrl = `${window.location.origin}/api/vercel-debug`;
+        console.log('📊 Test de l\'outil de diagnostic:', debugUrl);
+        
+        const debugResponse = await fetch(debugUrl, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        
+        if (debugResponse.ok) {
+          const debugData = await debugResponse.json();
+          console.log('✅ Données de diagnostic récupérées:', debugData);
+          setDebug(debugData);
+          
+          toast.info('Diagnostic Vercel réussi', {
+            description: 'Les données de configuration Vercel ont été récupérées.'
+          });
+        }
+      } catch (debugError) {
+        console.error('❌ Erreur lors de la récupération des données de diagnostic:', debugError);
       }
       
       // Vérifier ping
@@ -89,6 +115,8 @@ const NotionDeploymentChecker: React.FC = () => {
       let headOk = false;
       try {
         const proxyUrl = `${window.location.origin}/api/notion-proxy`;
+        console.log('🔍 Test HEAD du proxy:', proxyUrl);
+        
         const headResponse = await fetch(proxyUrl, {
           method: 'HEAD',
           cache: 'no-store'
@@ -96,6 +124,7 @@ const NotionDeploymentChecker: React.FC = () => {
         
         // Une réponse 404 signifie que le fichier n'existe pas
         headOk = headResponse.status !== 404;
+        console.log('Réponse HEAD:', headResponse.status);
         
         setStatus(prev => ({ 
           ...prev, 
@@ -116,11 +145,45 @@ const NotionDeploymentChecker: React.FC = () => {
         }));
       }
       
+      // Vérifier avec une requête GET
+      let getOk = false;
+      try {
+        const proxyUrl = `${window.location.origin}/api/notion-proxy`;
+        console.log('🔍 Test GET du proxy:', proxyUrl);
+        
+        const getResponse = await fetch(proxyUrl, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        
+        getOk = getResponse.status === 200;
+        console.log('Réponse GET:', getResponse.status);
+        
+        if (getOk) {
+          try {
+            const data = await getResponse.json();
+            console.log('✅ Données GET du proxy:', data);
+            
+            setStatus(prev => ({ 
+              ...prev, 
+              debug: data,
+              message: `Proxy répond en GET avec succès. Version: ${data.version || 'inconnue'}`
+            }));
+          } catch (e) {
+            console.error('Erreur lors de la lecture des données GET:', e);
+          }
+        }
+      } catch (getError) {
+        console.error('❌ Erreur lors de la requête GET au proxy:', getError);
+      }
+      
       // Vérifier avec une requête POST réelle
       let postOk = false;
       if (headOk) {
         try {
           const proxyUrl = `${window.location.origin}/api/notion-proxy`;
+          console.log('🔍 Test POST du proxy:', proxyUrl);
+          
           const postResponse = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
@@ -134,8 +197,19 @@ const NotionDeploymentChecker: React.FC = () => {
             })
           });
           
+          console.log('Réponse POST:', postResponse.status);
+          
           // Une réponse 404 sur POST est plus grave car elle indique que le gestionnaire ne fonctionne pas
           postOk = postResponse.status !== 404;
+          
+          if (postOk && postResponse.ok) {
+            try {
+              const data = await postResponse.json();
+              console.log('✅ Données POST du proxy:', data);
+            } catch (e) {
+              console.error('Erreur lors de la lecture des données POST:', e);
+            }
+          }
           
           setStatus(prev => ({ 
             ...prev, 
@@ -164,6 +238,7 @@ const NotionDeploymentChecker: React.FC = () => {
         head: headOk,
         post: postOk,
         deployed: isVerified,
+        debug: debug,
         message: isVerified
           ? 'Configuration prête! Le proxy Notion est correctement déployé.'
           : headOk && !postOk
@@ -192,7 +267,7 @@ const NotionDeploymentChecker: React.FC = () => {
   }, []);
   
   const handleForcedCheck = () => {
-    toast({
+    uiToast({
       title: "Vérification forcée",
       description: "Réinitialisation du cache et nouvelle vérification du proxy"
     });
@@ -255,6 +330,18 @@ const NotionDeploymentChecker: React.FC = () => {
             </div>
           </div>
           
+          {debug && (
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Informations de diagnostic Vercel</h3>
+              <div className="text-xs text-blue-700 space-y-1">
+                <p>Environnement: {debug.environment?.env || 'inconnu'}</p>
+                <p>Node: {debug.environment?.node || 'inconnu'}</p>
+                <p>URL de déploiement: {debug.environment?.url || 'inconnu'}</p>
+                <p>Endpoints configurés: {debug.endpoints?.length || 0}</p>
+              </div>
+            </div>
+          )}
+          
           {showMissingFileHelp && (
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs">
               <FileCode size={14} className="flex-shrink-0 mt-0.5 text-amber-600" />
@@ -281,14 +368,16 @@ const NotionDeploymentChecker: React.FC = () => {
                 <p className="mb-2">
                   Le fichier <code className="bg-white/50 px-1 py-0.5 rounded">api/notion-proxy.ts</code> est 
                   présent mais ne répond pas correctement aux requêtes POST. Le gestionnaire de la fonction API 
-                  n'est pas correctement configuré.
+                  n'est pas correctement configuré. Problème probable: conflit dans vercel.json ou problème de déploiement.
                 </p>
                 <div className="bg-white/60 p-2 rounded text-amber-700">
-                  <strong>Solution:</strong> Vérifiez que le fichier API est correctement implémenté. Il doit
-                  exporter une fonction par défaut qui gère les requêtes POST et traite correctement les paramètres
-                  <code className="bg-white/50 px-1 py-0.5 rounded ml-1">endpoint</code>, 
-                  <code className="bg-white/50 px-1 py-0.5 rounded ml-1">method</code>, et
-                  <code className="bg-white/50 px-1 py-0.5 rounded ml-1">token</code>.
+                  <strong>Solution:</strong> Vérifiez que:
+                  <ol className="list-decimal list-inside mt-1 space-y-1">
+                    <li>vercel.json contient le rewrite correct</li>
+                    <li>le déploiement Vercel est à jour avec les dernières modifications</li>
+                    <li>aucun autre fichier n'entre en conflit avec api/notion-proxy.ts</li>
+                    <li>essayez de renommer le fichier et mettre à jour vercel.json en conséquence</li>
+                  </ol>
                 </div>
               </div>
             </div>
@@ -323,16 +412,31 @@ const NotionDeploymentChecker: React.FC = () => {
             <div className="flex items-start gap-2">
               <HelpCircle size={14} className="flex-shrink-0 mt-0.5 text-blue-600" />
               <div>
-                <p className="font-medium mb-1">Besoin d'aide?</p>
-                <p className="mb-2">
-                  Si le problème persiste après plusieurs tentatives, le fichier <code className="bg-white/50 px-1 py-0.5 rounded">api/notion-proxy.ts</code> 
-                  n'est peut-être pas correctement déployé ou configuré sur Vercel.
-                </p>
-                <ol className="list-decimal list-inside space-y-1 ml-1">
-                  <li>Vérifiez que le fichier existe dans votre projet</li>
-                  <li>Vérifiez que votre déploiement Vercel est à jour</li>
-                  <li>Vérifiez que les fonctions API sont activées dans votre projet Vercel</li>
-                  <li>Essayez de redéployer l'application</li>
+                <p className="font-medium mb-1">Comment vérifier la configuration Vercel</p>
+                <ol className="list-decimal list-inside space-y-2 mt-2">
+                  <li>
+                    <strong>Vérifiez le Dashboard Vercel</strong>
+                    <ul className="list-disc list-inside ml-4 mt-1 text-blue-700">
+                      <li>Connectez-vous à votre compte Vercel</li>
+                      <li>Dans votre projet, allez dans l'onglet "Deployments"</li>
+                      <li>Cliquez sur votre déploiement le plus récent</li>
+                      <li>Vérifiez dans l'onglet "Functions" si <code className="bg-white/50 px-1 py-0.5 rounded">api/notion-proxy.ts</code> apparaît</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Vérifiez votre fichier vercel.json</strong>
+                    <ul className="list-disc list-inside ml-4 mt-1 text-blue-700">
+                      <li>Assurez-vous que les "rewrites" sont correctement configurés</li>
+                      <li>Vérifiez que <code className="bg-white/50 px-1 py-0.5 rounded">/api/notion-proxy</code> pointe vers <code className="bg-white/50 px-1 py-0.5 rounded">/api/notion-proxy.ts</code></li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Vérifiez les logs de déploiement</strong>
+                    <ul className="list-disc list-inside ml-4 mt-1 text-blue-700">
+                      <li>Dans le dashboard Vercel, consultez les logs du build</li>
+                      <li>Recherchez des erreurs liées aux fonctions serverless</li>
+                    </ul>
+                  </li>
                 </ol>
               </div>
             </div>

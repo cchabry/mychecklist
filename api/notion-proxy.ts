@@ -18,7 +18,12 @@ export default async function handler(
   
   // Afficher le corps de la requête pour les requêtes POST
   if (request.method === 'POST') {
-    console.log('Body:', JSON.stringify(request.body, null, 2));
+    try {
+      console.log('Body:', JSON.stringify(request.body, null, 2));
+    } catch (e) {
+      console.error('Erreur lors de la sérialisation du body:', e);
+      console.log('Body (raw):', request.body);
+    }
   }
   console.log('==========================================');
 
@@ -55,7 +60,12 @@ export default async function handler(
       message: 'Notion proxy is operational',
       timestamp: new Date().toISOString(),
       environment: process.env.VERCEL_ENV || 'development',
-      version: '1.0.2'
+      version: '1.0.3',
+      debug: {
+        method: request.method,
+        url: request.url,
+        headers: request.headers
+      }
     });
   }
   
