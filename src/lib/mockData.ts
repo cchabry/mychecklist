@@ -319,3 +319,8 @@ export const createNewAudit = (projectId: string): Audit => {
     score: 0
   };
 };
+
+// Fonction pour récupérer tous les projets
+export const getAllProjects = () => {
+  return MOCK_PROJECTS;
+};
