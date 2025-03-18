@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AlertCircle } from 'lucide-react'; // Add the missing import
 import { configureNotion, isNotionConfigured, extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Add useNavigate import
 import { useNotionIntegration } from './hooks/useNotionIntegration';
 import { useAuditData } from './hooks/useAuditData';
 
@@ -15,6 +15,7 @@ import NotionErrorDetails from '@/components/NotionErrorDetails';
 
 export const AuditContainer = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate(); // Add navigate hook
   
   const { 
     usingNotion, 
@@ -54,15 +55,15 @@ export const AuditContainer = () => {
       {loading ? (
         <AuditLoader />
       ) : !project || !audit ? (
-        <AuditNotFound />
+        <AuditNotFound navigate={navigate} /> // Pass the navigate prop
       ) : (
         <>
           <div className="mb-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
               <AuditHeader 
                 project={project} 
-                audit={audit} 
                 onSave={handleSaveAudit} 
+                onBack={() => navigate('/')} // Add onBack prop
               />
               
               <div className="flex items-center gap-4">
@@ -78,7 +79,7 @@ export const AuditContainer = () => {
           
           <AuditChecklist 
             audit={audit} 
-            onAuditChange={setAudit} 
+            onUpdateAudit={setAudit} // Rename onAuditChange to onUpdateAudit
           />
         </>
       )}

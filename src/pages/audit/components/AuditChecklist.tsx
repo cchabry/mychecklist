@@ -10,7 +10,7 @@ import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 
 interface AuditChecklistProps {
   audit: Audit;
-  onUpdateAudit: (audit: Audit) => void;
+  onUpdateAudit: (audit: Audit) => void; // Changed from onUpdateAudit to match container
 }
 
 const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit }) => {
