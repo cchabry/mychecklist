@@ -24,6 +24,50 @@ export const STORAGE_KEYS = {
   MOCK_MODE: 'notion_mock_mode',
 };
 
+// Configuration des chemins alternatifs pour le proxy
+export const PROXY_PATHS = [
+  '/api/notion-proxy',       // Chemin standard
+  '/api/notion-proxy.js',    // Chemin alternatif .js 
+  '/api/notion-proxy/index', // Structure avec index
+  '/api/notionproxy',        // Alternative sans tiret
+];
+
+// Fonction pour déterminer l'URL valide du proxy
+export const getValidProxyUrl = async (): Promise<string> => {
+  // En développement, utiliser toujours l'URL relative
+  if (process.env.NODE_ENV !== 'production') {
+    return '/api/notion-proxy';
+  }
+  
+  // En production, tester les différents chemins possibles
+  const baseUrl = window.location.origin;
+  
+  for (const path of PROXY_PATHS) {
+    const url = `${baseUrl}${path}`;
+    
+    try {
+      // Faire une requête OPTIONS pour tester l'existence de l'endpoint
+      const response = await fetch(url, {
+        method: 'OPTIONS',
+        headers: { 'Accept': 'application/json' },
+        mode: 'no-cors',
+        cache: 'no-store'
+      });
+      
+      console.log(`Tested proxy URL: ${url}, status: ${response.status}`);
+      
+      // Si la requête ne génère pas d'erreur, considérer l'URL comme valide
+      return url;
+    } catch (error) {
+      console.log(`Failed to access ${url}: ${error.message}`);
+      // Continuer avec le prochain chemin
+    }
+  }
+  
+  // Par défaut, retourner le chemin standard
+  return `${baseUrl}/api/notion-proxy`;
+};
+
 // Vérification de la configuration de l'URL du proxy
 export const isProxyUrlValid = () => {
   // En développement local, on utilise une URL relative
