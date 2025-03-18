@@ -1,10 +1,9 @@
-
 import { toast } from 'sonner';
 
 // URL de base pour l'API Notion (direct ou via proxy)
 const NOTION_API_BASE = 'https://api.notion.com/v1';
-// URL de notre fonction serverless Vercel (à remplacer par votre URL après déploiement)
-const VERCEL_PROXY_URL = '/api/notion-proxy';
+// URL de notre fonction serverless Vercel déployée
+const VERCEL_PROXY_URL = 'https://mychecklist-six.vercel.app/api/notion-proxy';
 
 // Fonction pour effectuer des requêtes à l'API Notion (directement ou via proxy)
 export const notionApiRequest = async (
