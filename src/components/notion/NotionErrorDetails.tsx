@@ -33,6 +33,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
 Erreur Notion: ${error}
 Contexte: ${context || 'Non spécifié'}
 Navigateur: ${navigator.userAgent}
+URL: ${window.location.href}
 Date: ${new Date().toISOString()}
     `.trim();
     
@@ -41,11 +42,11 @@ Date: ${new Date().toISOString()}
   
   // Vérifier si c'est une erreur "Failed to fetch"
   const isFailedToFetch = error.includes('Failed to fetch');
-  const isProxyMessage = error.includes('Tentative de connexion via proxy');
+  const isProxyMessage = error.includes('Tentative de connexion via proxy') || error.includes('404') || error.includes('proxy');
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center text-amber-600 gap-2 mb-2">
             <AlertCircle size={20} />
