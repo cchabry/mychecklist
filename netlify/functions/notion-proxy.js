@@ -1,3 +1,4 @@
+
 // Configuration
 const NOTION_API_VERSION = '2022-06-28';
 const NOTION_API_BASE = 'https://api.notion.com/v1';
@@ -87,7 +88,7 @@ exports.handler = async (event, context) => {
         tokenLength: token ? token.length : 0,
         tokenType: token ? (token.startsWith('secret_') ? 'integration' : 
                            (token.startsWith('ntn_') ? 'oauth' : 'unknown')) : 'none',
-        tokenFirstChars: token ? token.substring(0, 5) + '...' : 'none'
+        tokenFirstChars: token ? token.substring(0, 8) + '...' : 'none'
       });
 
       // Validate parameters
@@ -116,6 +117,21 @@ exports.handler = async (event, context) => {
       }
 
       // Vérifier le format de la clé API
+      if (token === 'test_token' || token === 'test_token_for_proxy_test') {
+        console.log('Test token detected, this is just a connectivity test');
+        return {
+          statusCode: 200,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'ok',
+            message: 'Test proxy connectivity successful',
+            note: 'This was just a connectivity test with a test token',
+            actualApi: false
+          })
+        };
+      }
+
+      // Vérifier si c'est un token OAuth
       if (token && token.startsWith('ntn_')) {
         console.warn('OAuth token detected instead of integration key');
         return {
@@ -144,7 +160,7 @@ exports.handler = async (event, context) => {
       console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
         'Notion-Version': notionHeaders['Notion-Version'],
         'Content-Type': notionHeaders['Content-Type'],
-        'Authorization': 'Bearer ' + (token ? token.substring(0, 5) + '...' : 'none')
+        'Authorization': 'Bearer ' + (token ? token.substring(0, 8) + '...' : 'none')
       });
       
       // Make request to Notion API

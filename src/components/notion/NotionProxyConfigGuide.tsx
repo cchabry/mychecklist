@@ -52,13 +52,21 @@ const NotionProxyConfigGuide: React.FC = () => {
         }
       } else if (method === 'POST') {
         console.log(`Testing POST ${endpoint}`);
-        // Simplified test payload - just for testing connectivity
+        
+        // Récupérer la clé API Notion depuis localStorage pour le test
+        const apiKey = localStorage.getItem('notion_api_key');
+        console.log(`Using Notion API key for test: ${apiKey ? `${apiKey.substring(0, 8)}...` : 'none'}`);
+        
+        // Test payload with actual API key if available
         const testPayload = {
           endpoint: '/users/me',
           method: 'GET',
-          token: 'test_token_for_proxy_test'
+          token: apiKey || 'test_token_for_proxy_test'
         };
-        console.log('POST test payload:', testPayload);
+        console.log('POST test payload:', {
+          ...testPayload,
+          token: testPayload.token ? `${testPayload.token.substring(0, 8)}...` : 'none'
+        });
         
         response = await fetch(`${window.location.origin}${endpoint}`, {
           method: 'POST',

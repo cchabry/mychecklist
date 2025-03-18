@@ -17,7 +17,11 @@ const NotionDeploymentChecker: React.FC = () => {
     setCheckResult(null);
     
     try {
-      const isWorking = await verifyProxyDeployment(true);
+      // Récupérer la clé API pour le test
+      const apiKey = localStorage.getItem('notion_api_key');
+      console.log(`Using API key for proxy test: ${apiKey ? `${apiKey.substring(0, 8)}...` : 'none'}`);
+      
+      const isWorking = await verifyProxyDeployment(true, apiKey);
       
       if (isWorking) {
         setCheckResult({

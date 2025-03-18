@@ -1,212 +1,197 @@
 
-// Configuration constants for the Notion API proxy
+import { toast } from 'sonner';
 
-// URL de base pour l'API Notion (direct ou via proxy)
-export const NOTION_API_BASE = 'https://api.notion.com/v1';
+// Constantes pour l'API Notion
+export const NOTION_API_VERSION = '2022-06-28';
+export const REQUEST_TIMEOUT_MS = 10000;
+export const MAX_RETRY_ATTEMPTS = 3;
 
-// Public CORS proxies
+// Liste des proxies CORS publics disponibles
 export const PUBLIC_CORS_PROXIES = [
-  'https://cors-anywhere.herokuapp.com/',
   'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url='
+  'https://cors-anywhere.herokuapp.com/',
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-proxy.htmldriven.com/?url=',
+  'https://crossorigin.me/'
 ];
 
-// Default CORS proxy to use
-export const DEFAULT_CORS_PROXY = PUBLIC_CORS_PROXIES[1]; // corsproxy.io is more reliable
-
-// Notion API version
-export const NOTION_API_VERSION = '2022-06-28';
-
-// Timeout settings
-export const REQUEST_TIMEOUT_MS = 15000; // Réduit à 15 secondes pour des réponses plus rapides
-export const MAX_RETRY_ATTEMPTS = 2;
-
-// Local storage keys
+// Clés de stockage local
 export const STORAGE_KEYS = {
-  API_KEY: 'notion_api_key',
-  MOCK_MODE: 'notion_mock_mode',
   SELECTED_PROXY: 'notion_selected_proxy',
-  LAST_PROXY_CHECK: 'notion_last_proxy_check',
+  MOCK_MODE: 'notion_mock_mode',
+  API_KEY: 'notion_api_key',
+  DATABASE_ID: 'notion_database_id',
 };
 
 /**
- * Déterminer le type de déploiement (Vercel, Netlify, local)
+ * Détecte le type de déploiement
  */
 export const getDeploymentType = (): 'vercel' | 'netlify' | 'local' | 'other' => {
-  // Essayer de détecter l'environnement côté client
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    
-    if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
-      return 'netlify';
-    } else if (hostname.includes('vercel.app')) {
-      return 'vercel';
-    } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'local';
-    } else {
-      // Vérifier s'il y a des headers ou méta spécifiques à Netlify
-      if (document.querySelector('meta[name="generator"][content*="Netlify"]')) {
-        return 'netlify';
-      }
-      
-      // Vérifier si nous sommes sur un domaine personnalisé mais déployé sur Netlify
-      // en recherchant pour un header ou un élément qui indiquerait Netlify
-      try {
-        if (window.location.href.includes('.netlify.') || 
-            document.querySelector('[data-netlify]') ||
-            document.querySelector('meta[name="netlify"]')) {
-          return 'netlify';
-        }
-      } catch (e) {
-        console.error('Erreur lors de la détection Netlify:', e);
-      }
-      
-      return 'other';
-    }
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'local';
   }
   
-  // Fallback pour SSR ou autres environnements
+  // Détection de Vercel
+  if (hostname.includes('vercel.app') || hostname.includes('.now.sh')) {
+    return 'vercel';
+  }
+  
+  // Détection de Netlify
+  if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
+    return 'netlify';
+  }
+  
   return 'other';
 };
 
 /**
- * Get the currently selected CORS proxy
- */
-export const getSelectedProxy = (): string => {
-  const savedProxy = localStorage.getItem(STORAGE_KEYS.SELECTED_PROXY);
-  return savedProxy || DEFAULT_CORS_PROXY;
-};
-
-/**
- * Set the current CORS proxy
- */
-export const setSelectedProxy = (proxyUrl: string): void => {
-  localStorage.setItem(STORAGE_KEYS.SELECTED_PROXY, proxyUrl);
-};
-
-/**
- * Build the full proxy URL for Notion API
- */
-export const buildProxyUrl = (endpoint: string): string => {
-  const proxyUrl = getSelectedProxy();
-  const targetUrl = `${NOTION_API_BASE}${endpoint}`;
-  return `${proxyUrl}${encodeURIComponent(targetUrl)}`;
-};
-
-/**
- * Récupère l'URL du serverless proxy en fonction du déploiement
+ * Obtient l'URL du proxy serverless
  */
 export const getServerlessProxyUrl = (): string => {
   const deploymentType = getDeploymentType();
   
-  // Format de l'URL en fonction du type de déploiement
-  switch (deploymentType) {
-    case 'netlify':
-      return '/.netlify/functions/notion-proxy';
-    case 'vercel':
-      return '/api/notion-proxy';
-    default:
-      // Détecter si nous avons des fonctions Netlify en vérifiant l'environnement
-      if (window.location.href.includes('.netlify.') || 
-          document.querySelector('meta[name="generator"][content*="Netlify"]') ||
-          document.querySelector('[data-netlify]')) {
-        return '/.netlify/functions/notion-proxy';
-      }
-      return '/api/notion-proxy'; // Fallback sur le format Vercel
+  if (deploymentType === 'netlify') {
+    return '/.netlify/functions/notion-proxy';
   }
+  
+  return '/api/notion-proxy';
 };
 
 /**
- * Verify if the selected proxy is working
+ * Obtient le proxy CORS sélectionné
  */
-export const verifyProxyDeployment = async (force: boolean = false): Promise<boolean> => {
-  try {
-    // D'abord, vérifier si nous avons un serverless proxy
-    const deploymentType = getDeploymentType();
-    const serverlessUrl = getServerlessProxyUrl();
-    
-    if (deploymentType === 'netlify' || deploymentType === 'vercel') {
-      // Tester le serverless proxy
-      try {
-        const response = await fetch(serverlessUrl);
-        if (response.ok) {
-          console.log(`Serverless proxy (${deploymentType}) test: SUCCESS`);
-          return true;
-        }
-      } catch (error) {
-        console.warn(`Serverless proxy (${deploymentType}) test failed:`, error);
-      }
-    }
-    
-    // Si le serverless proxy échoue ou n'est pas disponible, tester le proxy CORS client
-    const proxyUrl = getSelectedProxy();
-    const testUrl = `${proxyUrl}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
-
-    const response = await fetch(testUrl, {
-      method: 'HEAD',
-      headers: {
-        'Authorization': 'Bearer test_token',
-        'Notion-Version': NOTION_API_VERSION
-      }
-    });
-
-    // Even a 401 Unauthorized is fine - it means the proxy successfully contacted Notion
-    const proxyWorking = response.status !== 0 && response.status !== 404;
-    
-    console.log(`CORS Proxy test result for ${proxyUrl}: ${proxyWorking ? 'SUCCESS' : 'FAILED'} (status: ${response.status})`);
-    
-    return proxyWorking;
-  } catch (error) {
-    console.error('Proxy verification failed:', error);
-    return false;
+export const getSelectedProxy = (): string => {
+  const selectedProxy = localStorage.getItem(STORAGE_KEYS.SELECTED_PROXY);
+  if (selectedProxy) {
+    console.log(`Proxy CORS sélectionné: ${selectedProxy}`);
+    return selectedProxy;
   }
+  
+  // Proxy par défaut
+  const defaultProxy = PUBLIC_CORS_PROXIES[0];
+  console.log(`Aucun proxy sélectionné, utilisation par défaut: ${defaultProxy}`);
+  return defaultProxy;
 };
 
 /**
- * Reset all proxy-related settings
+ * Définit le proxy CORS à utiliser
+ */
+export const setSelectedProxy = (proxyUrl: string): void => {
+  localStorage.setItem(STORAGE_KEYS.SELECTED_PROXY, proxyUrl);
+  console.log(`Nouveau proxy CORS configuré: ${proxyUrl}`);
+};
+
+/**
+ * Construit l'URL complète pour la requête via le proxy CORS
+ */
+export const buildProxyUrl = (endpoint: string): string => {
+  const proxy = getSelectedProxy();
+  const targetUrl = `https://api.notion.com/v1${endpoint}`;
+  return `${proxy}${encodeURIComponent(targetUrl)}`;
+};
+
+/**
+ * Réinitialise le cache du proxy
  */
 export const resetProxyCache = (): void => {
-  localStorage.removeItem(STORAGE_KEYS.SELECTED_PROXY);
-  console.log('🔄 Proxy settings reset');
+  // Effacer la dernière erreur
+  localStorage.removeItem('notion_last_error');
+  console.log('Cache du proxy réinitialisé');
 };
 
 /**
- * Try all available proxies and select the first working one
+ * Recherche un proxy CORS fonctionnel
  */
 export const findWorkingProxy = async (): Promise<string | null> => {
-  for (const proxyUrl of PUBLIC_CORS_PROXIES) {
+  console.log('Recherche d\'un proxy CORS fonctionnel...');
+  
+  // Récupérer la clé API pour le test si disponible
+  const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+  
+  for (const proxy of PUBLIC_CORS_PROXIES) {
+    console.log(`Test du proxy: ${proxy}`);
     try {
-      const testUrl = `${proxyUrl}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
+      const testUrl = `${proxy}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
       
       const response = await fetch(testUrl, {
         method: 'HEAD',
         headers: {
-          'Authorization': 'Bearer test_token',
+          'Authorization': `Bearer ${apiKey || 'test_token'}`,
           'Notion-Version': NOTION_API_VERSION
         }
       });
       
-      // Even a 401 is good - it means we reached Notion's API
-      if (response.status !== 0 && response.status !== 404) {
-        console.log(`Found working proxy: ${proxyUrl}`);
-        setSelectedProxy(proxyUrl);
-        return proxyUrl;
+      // Même un 401 est bon - cela signifie que nous avons atteint l'API Notion
+      const isWorking = response.status !== 0 && response.status !== 404;
+      
+      console.log(`CORS Proxy test result for ${proxy}: ${isWorking ? 'SUCCESS' : 'FAILED'} (status: ${response.status})`);
+      
+      if (isWorking) {
+        setSelectedProxy(proxy);
+        return proxy;
       }
     } catch (error) {
-      console.log(`Proxy ${proxyUrl} test failed:`, error);
+      console.error(`Failed to test proxy ${proxy}:`, error);
     }
   }
   
+  console.error('No working proxy found!');
   return null;
 };
 
 /**
- * Check the status of the current proxy solution
+ * Vérifie si le déploiement du proxy est opérationnel
  */
-export const getProxyStatus = () => {
-  return {
-    currentProxy: getSelectedProxy(),
-    deploymentType: getDeploymentType(),
-    usingClientSideProxy: true
-  };
+export const verifyProxyDeployment = async (showSuccess = false, customApiKey?: string): Promise<boolean> => {
+  const deploymentType = getDeploymentType();
+  const apiUrl = deploymentType === 'netlify' ? '/.netlify/functions/ping' : '/api/ping';
+  const apiProxyUrl = getServerlessProxyUrl();
+  console.log(`Vérification du déploiement du proxy: ${apiUrl} / ${apiProxyUrl}`);
+  
+  try {
+    // D'abord, tester le ping simple
+    console.log(`Tentative de ping: ${apiUrl}`);
+    const pingResponse = await fetch(apiUrl);
+    
+    if (!pingResponse.ok) {
+      console.warn(`Le ping a échoué avec le statut: ${pingResponse.status}`);
+    } else {
+      console.log(`Ping réussi: ${apiUrl}`);
+    }
+    
+    // Ensuite, tester le proxy Notion lui-même
+    console.log(`Tentative de post vers le proxy: ${apiProxyUrl}`);
+    
+    // Utiliser la clé API personnalisée si fournie, sinon récupérer depuis localStorage
+    const apiKey = customApiKey || localStorage.getItem(STORAGE_KEYS.API_KEY);
+    console.log(`Using API key for test: ${apiKey ? `${apiKey.substring(0, 8)}...` : 'none'}`);
+    
+    const notionProxyResponse = await fetch(apiProxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: '/users/me',
+        method: 'GET',
+        token: apiKey || 'test_token'
+      })
+    });
+    
+    // Même un 401 est bon - cela signifie que le proxy fonctionne mais que l'API key est invalide
+    const proxyWorks = notionProxyResponse.status !== 404 && notionProxyResponse.status !== 0;
+    
+    console.log(`Proxy test result: ${proxyWorks ? 'SUCCESS' : 'FAILED'} (status: ${notionProxyResponse.status})`);
+    
+    if (proxyWorks && showSuccess) {
+      toast.success('Proxy Notion opérationnel', {
+        description: 'Le proxy pour les requêtes Notion est correctement déployé.'
+      });
+    }
+    
+    return proxyWorks;
+  } catch (error) {
+    console.error('Error testing proxy deployment:', error);
+    return false;
+  }
 };

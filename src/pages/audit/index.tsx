@@ -39,12 +39,30 @@ const AuditPage = () => {
               description: 'La clé d\'intégration doit commencer par "secret_"',
               duration: 5000,
             });
+            
+            // Demander à l'utilisateur s'il souhaite effacer cette clé incorrecte
+            toast.error('Clé API Notion incorrecte', {
+              description: 'La clé actuelle n\'est pas au bon format. Souhaitez-vous la reconfigurer?',
+              action: {
+                label: 'Configurer',
+                onClick: () => {
+                  document.getElementById('notion-connect-button')?.click();
+                }
+              },
+              duration: 10000,
+            });
+            
             setChecking(false);
             return;
           }
           
           await notionApi.users.me(apiKey);
           console.log('Notion connection verified successfully');
+          
+          // Afficher un toast de succès
+          toast.success('Connexion Notion établie', {
+            description: 'L\'intégration avec Notion est active.'
+          });
         }
       } catch (error) {
         console.error('Notion connection test failed:', error);
