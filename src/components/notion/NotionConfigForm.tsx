@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, InfoIcon } from 'lucide-react';
+import { AlertCircle, InfoIcon, CheckCircle } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 
 interface NotionConfigFormProps {
   onSubmit: (apiKey: string, databaseId: string) => Promise<void>;
@@ -28,6 +29,20 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   const [error, setError] = useState<string>('');
   const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
   
+  // Charger les valeurs depuis localStorage au démarrage
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('notion_api_key') || '';
+    const savedDatabaseId = localStorage.getItem('notion_database_id') || '';
+    
+    if (savedApiKey && !apiKey) {
+      setApiKey(savedApiKey);
+    }
+    
+    if (savedDatabaseId && !databaseId) {
+      setDatabaseId(savedDatabaseId);
+    }
+  }, []);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -46,6 +61,16 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         setLoading(false);
         return;
       }
+      
+      // Sauvegarder temporairement les valeurs pour que l'utilisateur les voit même avant soumission
+      localStorage.setItem('notion_api_key', apiKey);
+      localStorage.setItem('notion_database_id', databaseId);
+      
+      // Toast de confirmation pour montrer que les valeurs sont sauvegardées
+      toast.info('Paramètres sauvegardés', {
+        description: 'Test de connexion en cours...',
+        duration: 3000
+      });
       
       await onSubmit(apiKey, databaseId);
     } catch (error) {
@@ -103,6 +128,22 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
           Trouvez l'ID dans l'URL de votre base de données Notion
         </p>
       </div>
+      
+      {/* État de la configuration actuelle */}
+      {(localStorage.getItem('notion_api_key') || localStorage.getItem('notion_database_id')) && (
+        <div className="bg-green-50 text-green-700 p-3 rounded-md text-sm border border-green-200">
+          <div className="flex items-start gap-2">
+            <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">Configuration actuelle</p>
+              <ul className="text-xs mt-1 space-y-1">
+                <li>Clé API: {localStorage.getItem('notion_api_key') ? '✓ Définie' : '❌ Non définie'}</li>
+                <li>Base de données: {localStorage.getItem('notion_database_id') ? '✓ Définie' : '❌ Non définie'}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
       
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm border border-red-200">

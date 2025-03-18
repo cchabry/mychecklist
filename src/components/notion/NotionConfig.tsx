@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { configureNotion, extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
@@ -17,6 +17,16 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
   const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [errorContext, setErrorContext] = useState<string>('');
+  const [initialApiKey, setInitialApiKey] = useState<string>('');
+  const [initialDatabaseId, setInitialDatabaseId] = useState<string>('');
+  
+  // Charger les valeurs initiales depuis localStorage à chaque ouverture
+  useEffect(() => {
+    if (isOpen) {
+      setInitialApiKey(localStorage.getItem('notion_api_key') || '');
+      setInitialDatabaseId(localStorage.getItem('notion_database_id') || '');
+    }
+  }, [isOpen]);
   
   const handleFormSubmit = async (apiKey: string, databaseId: string) => {
     setError('');
@@ -28,7 +38,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     
     // Tester la connexion à l'API Notion via notre proxy
     try {
-      console.log('Testing connection to Notion API with key:', apiKey.substring(0, 5) + '...');
+      console.log('Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
       
       // Configurer Notion d'abord pour définir les valeurs dans localStorage
       configureNotion(apiKey, cleanDbId);
@@ -101,8 +111,8 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
           <NotionConfigForm 
             onSubmit={handleFormSubmit}
             onCancel={onClose}
-            initialApiKey={localStorage.getItem('notion_api_key') || ''}
-            initialDatabaseId={localStorage.getItem('notion_database_id') || ''}
+            initialApiKey={initialApiKey}
+            initialDatabaseId={initialDatabaseId}
           />
         </DialogContent>
       </Dialog>
