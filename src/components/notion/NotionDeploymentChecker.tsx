@@ -1,22 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, AlertTriangle, Loader2, RefreshCw, Server, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Check, AlertTriangle, Loader2, RefreshCw, Server, Wifi, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getProxyStatus, resetAllProxyCaches } from '@/lib/notionProxy/proxyFetch';
-import { verifyProxyDeployment } from '@/lib/notionProxy/config';
+import { verifyProxyDeployment, findWorkingProxy, getSelectedProxy, PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';
 
 const NotionDeploymentChecker: React.FC = () => {
   const [status, setStatus] = useState<{
     checking: boolean;
-    proxyDeployed: boolean | null;
+    proxyWorking: boolean | null;
     error: string | null;
-    usingFallbackProxy: boolean;
+    currentProxy: string | null;
     diagnosticInfo: Record<string, any> | null;
   }>({
     checking: true,
-    proxyDeployed: null,
+    proxyWorking: null,
     error: null,
-    usingFallbackProxy: false,
+    currentProxy: null,
     diagnosticInfo: null
   });
   
@@ -24,79 +24,76 @@ const NotionDeploymentChecker: React.FC = () => {
     setStatus(prev => ({ ...prev, checking: true, error: null }));
     
     try {
-      // Test direct au ping pour vérifier les APIs
-      let pingResult = null;
-      try {
-        const pingUrl = `${window.location.origin}/api/ping`;
-        console.log("Testing ping endpoint:", pingUrl);
-        const pingResponse = await fetch(pingUrl, { 
-          method: 'GET',
-          cache: 'no-store'
-        });
-        pingResult = {
-          status: pingResponse.status,
-          ok: pingResponse.ok,
-          data: pingResponse.ok ? await pingResponse.json() : null
-        };
-      } catch (pingError) {
-        console.error("Ping test failed:", pingError);
-        pingResult = {
-          error: pingError.message,
-          ok: false
-        };
+      // Test if the current proxy is working
+      const isWorking = await verifyProxyDeployment(true);
+      
+      if (!isWorking) {
+        console.log("Current proxy not working, trying to find a working one...");
+        // Try to find another working proxy
+        await findWorkingProxy();
       }
       
-      // Test sur le proxy lui-même
-      let proxyResult = null;
-      try {
-        const proxyUrl = `${window.location.origin}/api/notion-proxy`;
-        console.log("Testing proxy endpoint:", proxyUrl);
-        const proxyResponse = await fetch(proxyUrl, { 
-          method: 'GET',
-          cache: 'no-store'
-        });
-        proxyResult = {
-          status: proxyResponse.status,
-          ok: proxyResponse.ok,
-          data: proxyResponse.ok ? await proxyResponse.json() : null
-        };
-      } catch (proxyError) {
-        console.error("Proxy test failed:", proxyError);
-        proxyResult = {
-          error: proxyError.message,
-          ok: false
-        };
-      }
-      
-      // Utiliser la fonction de vérification existante
-      const isDeployed = await verifyProxyDeployment(true);
-      
-      // Récupérer le statut complet du proxy
+      // Get current proxy information
+      const currentProxy = getSelectedProxy();
       const proxyStatus = getProxyStatus();
+      
+      // Test a direct connection to Notion API (will fail due to CORS but good for diagnostics)
+      let directApiTest = { error: 'Not tested' };
+      try {
+        await fetch('https://api.notion.com/v1/users/me', { 
+          method: 'HEAD',
+          headers: { 'Notion-Version': '2022-06-28' }
+        });
+        directApiTest = { success: true };
+      } catch (error) {
+        directApiTest = { error: error.message };
+      }
+      
+      // Test the current proxy with a simple request
+      let proxyTest = { error: 'Not tested' };
+      try {
+        const proxyUrl = `${currentProxy}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
+        const response = await fetch(proxyUrl, { 
+          method: 'HEAD',
+          headers: {
+            'Notion-Version': '2022-06-28',
+            'Authorization': 'Bearer test_token'
+          }
+        });
+        proxyTest = {
+          status: response.status,
+          ok: response.status !== 0 && response.status !== 404
+        };
+      } catch (error) {
+        proxyTest = { error: error.message };
+      }
       
       setStatus({
         checking: false,
-        proxyDeployed: isDeployed,
-        error: isDeployed ? null : "Le proxy n'est pas accessible ou correctement configuré",
-        usingFallbackProxy: proxyStatus.usingFallbackProxy,
+        proxyWorking: isWorking,
+        error: isWorking ? null : "Le proxy CORS n'est pas accessible ou correctement configuré",
+        currentProxy,
         diagnosticInfo: {
-          pingTest: pingResult,
-          proxyTest: proxyResult,
-          origin: window.location.origin,
-          proxyStatus
+          currentProxy,
+          availableProxies: PUBLIC_CORS_PROXIES,
+          directApiTest,
+          proxyTest,
+          proxyStatus,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString()
         }
       });
     } catch (error) {
-      console.error("Deployment check failed:", error);
+      console.error("Proxy check failed:", error);
       setStatus({
         checking: false,
-        proxyDeployed: false,
+        proxyWorking: false,
         error: error.message,
-        usingFallbackProxy: getProxyStatus().usingFallbackProxy,
+        currentProxy: getSelectedProxy(),
         diagnosticInfo: {
           error: error.message,
           stack: error.stack,
-          origin: window.location.origin
+          timestamp: new Date().toISOString()
         }
       });
     }
@@ -114,7 +111,7 @@ const NotionDeploymentChecker: React.FC = () => {
         diagWindow.document.write(`
           <html>
             <head>
-              <title>Diagnostic du proxy Notion</title>
+              <title>Diagnostic du proxy CORS</title>
               <style>
                 body { font-family: monospace; padding: 20px; background: #f5f5f5; }
                 pre { background: white; padding: 15px; border-radius: 5px; overflow: auto; }
@@ -136,8 +133,8 @@ const NotionDeploymentChecker: React.FC = () => {
     <div className="bg-slate-50 border rounded-md p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium flex items-center gap-2">
-          <Server size={16} />
-          État du déploiement du proxy
+          <Wifi size={16} />
+          État du proxy CORS
         </h3>
         <div className="flex gap-2">
           <Button
@@ -172,17 +169,22 @@ const NotionDeploymentChecker: React.FC = () => {
         {status.checking ? (
           <div className="flex items-center text-sm text-slate-600">
             <Loader2 size={16} className="mr-2 animate-spin" />
-            Vérification du déploiement du proxy...
+            Vérification du proxy CORS...
           </div>
-        ) : status.proxyDeployed ? (
+        ) : status.proxyWorking ? (
           <div className="flex items-center text-sm text-green-600">
             <Check size={16} className="mr-2" />
-            Le proxy Notion est correctement déployé sur Vercel
+            Le proxy CORS est fonctionnel
+            {status.currentProxy && (
+              <span className="ml-1 text-xs text-gray-500">
+                ({status.currentProxy.replace(/https?:\/\//, '')})
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex items-center text-sm text-amber-600">
             <AlertTriangle size={16} className="mr-2" />
-            Le proxy Notion n'est pas correctement déployé sur Vercel
+            Le proxy CORS n'est pas correctement configuré
             {status.error && (
               <span className="block text-xs mt-1 text-red-500 ml-6">
                 Erreur: {status.error}
@@ -190,18 +192,17 @@ const NotionDeploymentChecker: React.FC = () => {
             )}
           </div>
         )}
-        
-        {status.usingFallbackProxy && (
-          <div className="flex items-center text-sm text-blue-600 mt-2 p-2 bg-blue-50 rounded-md">
-            <ShieldAlert size={16} className="mr-2" />
-            <div>
-              <span className="font-medium">Mode proxy alternatif actif</span>
-              <p className="text-xs mt-1">
-                Le proxy alternatif via CORS est utilisé comme solution de secours.
-              </p>
-            </div>
+
+        <div className="mt-3 text-xs text-gray-600 bg-gray-50 p-2 rounded border">
+          <div className="font-medium mb-1 flex items-center gap-1">
+            <Server size={12} className="text-gray-500" />
+            À propos du proxy CORS
           </div>
-        )}
+          <p>
+            Cette application utilise désormais un proxy CORS côté client pour communiquer avec l'API Notion,
+            sans nécessiter de fonctions serverless Vercel.
+          </p>
+        </div>
       </div>
     </div>
   );
