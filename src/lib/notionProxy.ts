@@ -1,38 +1,84 @@
 
 import { toast } from 'sonner';
 
-// Base URL for Notion API
+// URL de base pour l'API Notion (direct ou via proxy)
 const NOTION_API_BASE = 'https://api.notion.com/v1';
+// URL de notre fonction serverless Vercel (à remplacer par votre URL après déploiement)
+const VERCEL_PROXY_URL = '/api/notion-proxy';
 
-// Function to make Notion API requests through a proxy pattern
+// Fonction pour effectuer des requêtes à l'API Notion (directement ou via proxy)
 export const notionApiRequest = async (
   endpoint: string, 
   options: RequestInit = {},
   apiKey?: string
 ): Promise<any> => {
-  // Get API key from params or localStorage
+  // Récupérer la clé API depuis les paramètres ou localStorage
   const token = apiKey || localStorage.getItem('notion_api_key');
   
   if (!token) {
-    throw new Error('Notion API key not found');
+    throw new Error('Clé API Notion introuvable');
   }
   
-  // Prepare headers with authorization
+  // Préparer les en-têtes avec l'autorisation
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
     'Notion-Version': '2022-06-28',
     ...options.headers
   };
-  
+
   try {
-    // Add timeout to fetch
+    // Ajouter un timeout à la requête
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout (increased from 10s)
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
     
-    console.log(`Fetching Notion API: ${NOTION_API_BASE}${endpoint}`);
+    let response;
+    let result;
     
-    const response = await fetch(`${NOTION_API_BASE}${endpoint}`, {
+    // Essayer d'utiliser le proxy Vercel d'abord
+    try {
+      console.log(`Utilisation du proxy Vercel pour: ${endpoint}`);
+      
+      // Préparer les données pour le proxy
+      const proxyData = {
+        endpoint,
+        method: options.method || 'GET',
+        token,
+        body: options.body ? JSON.parse(options.body as string) : undefined
+      };
+      
+      // Appeler le proxy Vercel
+      response = await fetch(VERCEL_PROXY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(proxyData),
+        signal: controller.signal
+      });
+      
+      result = await response.json();
+      
+      // Si le proxy a répondu avec succès
+      if (response.ok) {
+        clearTimeout(timeoutId);
+        return result;
+      } else {
+        // Si le proxy a échoué mais que ce n'est pas une erreur CORS, retourner l'erreur
+        if (!response.statusText.includes('cors') && !response.statusText.includes('Failed to fetch')) {
+          throw new Error(`Erreur proxy: ${result.error || response.statusText}`);
+        }
+        // Sinon, essayer l'appel direct (qui échouera probablement avec CORS)
+      }
+    } catch (proxyError) {
+      console.warn('Échec de l\'utilisation du proxy, tentative d\'appel direct:', proxyError);
+      // Continuer avec l'appel direct si le proxy a échoué
+    }
+    
+    // Appel direct à l'API Notion (qui échouera probablement avec CORS dans le navigateur)
+    console.log(`Tentative d'appel direct à l'API Notion: ${NOTION_API_BASE}${endpoint}`);
+    
+    response = await fetch(`${NOTION_API_BASE}${endpoint}`, {
       ...options,
       headers,
       signal: controller.signal
@@ -40,12 +86,12 @@ export const notionApiRequest = async (
     
     clearTimeout(timeoutId);
     
-    // Check if response is ok
+    // Vérifier si la réponse est OK
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      console.error('Notion API error:', errorData);
+      const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
+      console.error('Erreur API Notion:', errorData);
       
-      // Handle common error codes
+      // Gérer les codes d'erreur courants
       if (response.status === 401) {
         throw new Error('Erreur d\'authentification Notion: Clé API invalide ou expirée');
       }
@@ -63,19 +109,19 @@ export const notionApiRequest = async (
     
     return await response.json();
   } catch (error) {
-    console.error('Notion request failed:', error);
+    console.error('Échec de la requête Notion:', error);
     
-    // Handle specific errors
+    // Gérer les erreurs spécifiques
     if (error.name === 'AbortError') {
       toast.error('Requête Notion expirée', {
         description: 'La connexion à Notion a pris trop de temps. Vérifiez votre connexion internet.',
       });
-      throw new Error('Notion request timeout');
+      throw new Error('Délai d\'attente de la requête Notion dépassé');
     }
     
     if (error.message?.includes('Failed to fetch')) {
       const corsError = new Error('Failed to fetch');
-      corsError.message = 'Failed to fetch - CORS limitation';
+      corsError.message = 'Failed to fetch - Limitation CORS';
       throw corsError;
     }
     
@@ -83,55 +129,55 @@ export const notionApiRequest = async (
   }
 };
 
-// Specific API endpoints
+// Points d'accès spécifiques à l'API
 export const notionApi = {
-  // User-related endpoints
+  // Points d'accès pour les utilisateurs
   users: {
     me: async (apiKey?: string) => {
       try {
         return await notionApiRequest('/users/me', {}, apiKey);
       } catch (error) {
-        console.error('Failed to get Notion user:', error);
+        console.error('Échec de la récupération de l\'utilisateur Notion:', error);
         throw error;
       }
     }
   },
   
-  // Database endpoints
+  // Points d'accès pour les bases de données
   databases: {
     query: async (databaseId: string, params: any = {}, apiKey?: string) => {
       try {
-        // Ensure the database ID is clean
+        // S'assurer que l'ID de la base de données est propre
         const cleanId = databaseId.replace(/-/g, '');
         return await notionApiRequest(`/databases/${cleanId}/query`, {
           method: 'POST',
           body: JSON.stringify(params)
         }, apiKey);
       } catch (error) {
-        console.error(`Failed to query Notion database ${databaseId}:`, error);
+        console.error(`Échec de la requête à la base de données Notion ${databaseId}:`, error);
         throw error;
       }
     },
     
     retrieve: async (databaseId: string, apiKey?: string) => {
       try {
-        // Ensure the database ID is clean
+        // S'assurer que l'ID de la base de données est propre
         const cleanId = databaseId.replace(/-/g, '');
         return await notionApiRequest(`/databases/${cleanId}`, {}, apiKey);
       } catch (error) {
-        console.error(`Failed to retrieve Notion database ${databaseId}:`, error);
+        console.error(`Échec de la récupération de la base de données Notion ${databaseId}:`, error);
         throw error;
       }
     }
   },
   
-  // Page endpoints
+  // Points d'accès pour les pages
   pages: {
     retrieve: async (pageId: string, apiKey?: string) => {
       try {
         return await notionApiRequest(`/pages/${pageId}`, {}, apiKey);
       } catch (error) {
-        console.error(`Failed to retrieve Notion page ${pageId}:`, error);
+        console.error(`Échec de la récupération de la page Notion ${pageId}:`, error);
         throw error;
       }
     },
@@ -143,7 +189,7 @@ export const notionApi = {
           body: JSON.stringify(params)
         }, apiKey);
       } catch (error) {
-        console.error('Failed to create Notion page:', error);
+        console.error('Échec de la création de la page Notion:', error);
         throw error;
       }
     },
@@ -155,13 +201,13 @@ export const notionApi = {
           body: JSON.stringify(params)
         }, apiKey);
       } catch (error) {
-        console.error(`Failed to update Notion page ${pageId}:`, error);
+        console.error(`Échec de la mise à jour de la page Notion ${pageId}:`, error);
         throw error;
       }
     }
   },
   
-  // Mock data support
+  // Support pour les données de test
   mockMode: {
     isActive: (): boolean => {
       // Vérifier si on est en mode mock (pas de vraie API Notion)
@@ -169,11 +215,11 @@ export const notionApi = {
     },
     activate: (): void => {
       localStorage.setItem('notion_mock_mode', 'true');
-      console.log('Notion mock mode activated');
+      console.log('Mode mock Notion activé');
     },
     deactivate: (): void => {
       localStorage.removeItem('notion_mock_mode');
-      console.log('Notion mock mode deactivated');
+      console.log('Mode mock Notion désactivé');
     }
   }
 };

@@ -1,69 +1,45 @@
-# Welcome to your Lovable project
 
-## Project info
+# Audit Projet Vercel
 
-**URL**: https://lovable.dev/projects/5b2f6b0e-03a8-4522-b426-0776d66c2b2a
+Ce projet utilise Vercel pour déployer une fonction serverless qui sert de proxy pour l'API Notion, permettant de contourner les limitations CORS du navigateur.
 
-## How can I edit this code?
+## Déploiement sur Vercel
 
-There are several ways of editing your application.
+### Prérequis
+1. Un compte [GitHub](https://github.com)
+2. Un compte [Vercel](https://vercel.com)
 
-**Use Lovable**
+### Étapes de déploiement
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5b2f6b0e-03a8-4522-b426-0776d66c2b2a) and start prompting.
+1. **Créer un dépôt GitHub**
+   - Créer un nouveau dépôt sur GitHub
+   - Cloner le dépôt localement
+   - Copier tous les fichiers de ce projet dans le dépôt local
+   - Commiter et pousser les changements vers GitHub
 
-Changes made via Lovable will be committed automatically to this repo.
+2. **Déployer sur Vercel**
+   - Se connecter à [Vercel](https://vercel.com)
+   - Cliquer sur "Add New..." puis "Project"
+   - Sélectionner le dépôt GitHub contenant votre projet
+   - Dans les paramètres de déploiement:
+     - Framework Preset: Autre
+     - Build Command: `npm run build`
+     - Output Directory: `dist`
+   - Cliquer sur "Deploy"
 
-**Use your preferred IDE**
+3. **Configurer le frontend**
+   - Après le déploiement, Vercel vous fournira une URL (exemple: `https://votre-projet.vercel.app`)
+   - Ouvrez le fichier `src/lib/notionProxy.ts`
+   - Remplacez la ligne `const VERCEL_PROXY_URL = '/api/notion-proxy';` par:
+     ```javascript
+     const VERCEL_PROXY_URL = 'https://votre-projet.vercel.app/api/notion-proxy';
+     ```
+   - Commiter et pousser ces changements vers GitHub pour déclencher un nouveau déploiement
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+4. **Tester l'intégration**
+   - Une fois déployé, configurez la connexion Notion dans l'application
+   - L'application devrait maintenant pouvoir communiquer avec l'API Notion via le proxy Vercel
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/5b2f6b0e-03a8-4522-b426-0776d66c2b2a) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Notes importantes
+- Les fonctions serverless Vercel ont une limite de 10 secondes d'exécution dans le plan gratuit.
+- Si vous rencontrez des problèmes, vérifiez les logs dans le dashboard Vercel.

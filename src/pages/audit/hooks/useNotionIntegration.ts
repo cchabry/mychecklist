@@ -18,7 +18,7 @@ export const useNotionIntegration = () => {
     // Si Notion est configuré mais qu'on a eu une erreur CORS précédemment
     if (usingNotion && notionApi.mockMode.isActive()) {
       toast.info('Mode démonstration Notion actif', {
-        description: 'L\'application utilise des données de test en raison des restrictions de sécurité du navigateur (CORS).'
+        description: 'L\'application utilise des données de test jusqu\'à ce que la connexion au proxy Notion soit établie.'
       });
     }
   }, [usingNotion]);
@@ -30,11 +30,11 @@ export const useNotionIntegration = () => {
   const handleNotionConfigSuccess = () => {
     setUsingNotion(true);
     
-    // Si le mode mock est actif, afficher un message explicatif supplémentaire
+    // Si le mode mock est actif, afficher un message explicatif
     if (notionApi.mockMode.isActive()) {
-      toast.info('Limitation technique du navigateur', {
-        description: 'La connexion à l\'API Notion ne peut pas être établie directement depuis le navigateur. Un serveur intermédiaire serait nécessaire.',
-        duration: 8000,
+      toast.info('Notion configuré avec succès', {
+        description: 'Les requêtes Notion passeront par un proxy pour contourner les limitations CORS.',
+        duration: 5000,
       });
     }
   };
@@ -67,23 +67,32 @@ export const useNotionIntegration = () => {
       if (!apiKey) return false;
       
       await notionApi.users.me(apiKey);
-      console.log('Notion connection verified via proxy');
+      console.log('Connexion Notion vérifiée via proxy');
+      
+      // Si on était en mode mock et que ça fonctionne maintenant, désactiver le mode mock
+      if (notionApi.mockMode.isActive()) {
+        notionApi.mockMode.deactivate();
+        toast.success('Connexion avec l\'API Notion établie', {
+          description: 'Le mode démonstration a été désactivé, vous utilisez maintenant des données réelles.',
+        });
+      }
+      
       return true;
     } catch (error) {
-      console.error('Notion connection verification failed:', error);
+      console.error('Échec de la vérification de la connexion Notion:', error);
       
       // Gérer l'erreur CORS "Failed to fetch"
       if (error.message?.includes('Failed to fetch')) {
         showNotionError(
-          'Limitation technique: Failed to fetch', 
-          'Les restrictions de sécurité du navigateur (CORS) empêchent l\'accès direct à l\'API Notion. Un serveur intermédiaire serait nécessaire.'
+          'Tentative de connexion via proxy en cours', 
+          'Si les données réelles ne s\'affichent pas, le proxy Vercel n\'est pas encore configuré correctement.'
         );
         
         // Activer le mode mock et expliquer la situation
         notionApi.mockMode.activate();
         
-        toast.warning('Mode démonstration activé', {
-          description: 'L\'application utilisera des données de test car l\'API Notion n\'est pas accessible directement depuis le navigateur.',
+        toast.warning('Mode démonstration activé temporairement', {
+          description: 'L\'application utilisera des données de test pendant la configuration du proxy.',
           duration: 6000,
         });
         
