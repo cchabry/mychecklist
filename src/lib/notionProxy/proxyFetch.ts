@@ -1,19 +1,24 @@
 
 import { toast } from 'sonner';
+import { 
+  NOTION_API_BASE, 
+  VERCEL_PROXY_URL, 
+  NOTION_API_VERSION, 
+  REQUEST_TIMEOUT_MS,
+  MAX_RETRY_ATTEMPTS,
+  STORAGE_KEYS
+} from './config';
 
-// URL de base pour l'API Notion (direct ou via proxy)
-const NOTION_API_BASE = 'https://api.notion.com/v1';
-// URL de notre fonction serverless Vercel déployée
-const VERCEL_PROXY_URL = 'https://mychecklist-six.vercel.app/api/notion-proxy';
-
-// Fonction pour effectuer des requêtes à l'API Notion (directement ou via proxy)
+/**
+ * Fonction principale pour effectuer des requêtes à l'API Notion (directement ou via proxy)
+ */
 export const notionApiRequest = async (
   endpoint: string, 
   options: RequestInit = {},
   apiKey?: string
 ): Promise<any> => {
   // Récupérer la clé API depuis les paramètres ou localStorage
-  const token = apiKey || localStorage.getItem('notion_api_key');
+  const token = apiKey || localStorage.getItem(STORAGE_KEYS.API_KEY);
   
   if (!token) {
     throw new Error('Clé API Notion introuvable');
@@ -23,14 +28,14 @@ export const notionApiRequest = async (
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
-    'Notion-Version': '2022-06-28',
+    'Notion-Version': NOTION_API_VERSION,
     ...options.headers
   };
 
   try {
     // Ajouter un timeout à la requête
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout (augmenté)
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     
     let response;
     let result;
@@ -49,10 +54,9 @@ export const notionApiRequest = async (
       
       // Ajouter une logique de retry pour le proxy (3 tentatives)
       let retryCount = 0;
-      const maxRetries = 3;
       let proxySuccess = false;
       
-      while (retryCount < maxRetries && !proxySuccess) {
+      while (retryCount < MAX_RETRY_ATTEMPTS && !proxySuccess) {
         try {
           if (retryCount > 0) {
             console.log(`Tentative ${retryCount + 1} d'appel au proxy Vercel...`);
@@ -90,7 +94,7 @@ export const notionApiRequest = async (
         
         retryCount++;
         // Attendre un peu avant de réessayer (backoff exponentiel)
-        if (retryCount < maxRetries) {
+        if (retryCount < MAX_RETRY_ATTEMPTS) {
           const delayMs = 1000 * Math.pow(2, retryCount - 1);
           console.log(`Attente de ${delayMs}ms avant la prochaine tentative...`);
           await new Promise(resolve => setTimeout(resolve, delayMs));
@@ -171,100 +175,5 @@ export const notionApiRequest = async (
     }
     
     throw error;
-  }
-};
-
-// Points d'accès spécifiques à l'API
-export const notionApi = {
-  // Points d'accès pour les utilisateurs
-  users: {
-    me: async (apiKey?: string) => {
-      try {
-        return await notionApiRequest('/users/me', {}, apiKey);
-      } catch (error) {
-        console.error('Échec de la récupération de l\'utilisateur Notion:', error);
-        throw error;
-      }
-    }
-  },
-  
-  // Points d'accès pour les bases de données
-  databases: {
-    query: async (databaseId: string, params: any = {}, apiKey?: string) => {
-      try {
-        // S'assurer que l'ID de la base de données est propre
-        const cleanId = databaseId.replace(/-/g, '');
-        return await notionApiRequest(`/databases/${cleanId}/query`, {
-          method: 'POST',
-          body: JSON.stringify(params)
-        }, apiKey);
-      } catch (error) {
-        console.error(`Échec de la requête à la base de données Notion ${databaseId}:`, error);
-        throw error;
-      }
-    },
-    
-    retrieve: async (databaseId: string, apiKey?: string) => {
-      try {
-        // S'assurer que l'ID de la base de données est propre
-        const cleanId = databaseId.replace(/-/g, '');
-        return await notionApiRequest(`/databases/${cleanId}`, {}, apiKey);
-      } catch (error) {
-        console.error(`Échec de la récupération de la base de données Notion ${databaseId}:`, error);
-        throw error;
-      }
-    }
-  },
-  
-  // Points d'accès pour les pages
-  pages: {
-    retrieve: async (pageId: string, apiKey?: string) => {
-      try {
-        return await notionApiRequest(`/pages/${pageId}`, {}, apiKey);
-      } catch (error) {
-        console.error(`Échec de la récupération de la page Notion ${pageId}:`, error);
-        throw error;
-      }
-    },
-    
-    create: async (params: any, apiKey?: string) => {
-      try {
-        return await notionApiRequest('/pages', {
-          method: 'POST',
-          body: JSON.stringify(params)
-        }, apiKey);
-      } catch (error) {
-        console.error('Échec de la création de la page Notion:', error);
-        throw error;
-      }
-    },
-    
-    update: async (pageId: string, params: any, apiKey?: string) => {
-      try {
-        return await notionApiRequest(`/pages/${pageId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(params)
-        }, apiKey);
-      } catch (error) {
-        console.error(`Échec de la mise à jour de la page Notion ${pageId}:`, error);
-        throw error;
-      }
-    }
-  },
-  
-  // Support pour les données de test
-  mockMode: {
-    isActive: (): boolean => {
-      // Vérifier si on est en mode mock (pas de vraie API Notion)
-      return localStorage.getItem('notion_mock_mode') === 'true';
-    },
-    activate: (): void => {
-      localStorage.setItem('notion_mock_mode', 'true');
-      console.log('Mode mock Notion activé');
-    },
-    deactivate: (): void => {
-      localStorage.removeItem('notion_mock_mode');
-      console.log('Mode mock Notion désactivé');
-    }
   }
 };
