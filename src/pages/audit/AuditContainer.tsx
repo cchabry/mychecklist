@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; // Add useNavigate import
 import { useNotionIntegration } from './hooks/useNotionIntegration';
@@ -11,7 +10,7 @@ import AuditNotFound from './components/AuditNotFound';
 import AuditProgress from './components/AuditProgress';
 import AuditChecklist from './components/AuditChecklist';
 import NotionConnectButton from './components/NotionConnectButton';
-import NotionErrorDetails from '@/components/NotionErrorDetails';
+import { NotionErrorDetails } from '@/components/notion';
 
 export const AuditContainer = () => {
   const { projectId } = useParams<{ projectId: string }>();
