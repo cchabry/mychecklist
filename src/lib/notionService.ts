@@ -1,3 +1,4 @@
+
 import { Client } from '@notionhq/client';
 import { 
   PageObjectResponse, 
@@ -10,6 +11,22 @@ import { ComplianceStatus, Audit, AuditItem, Project } from './types';
 let notionClient: Client | null = null;
 let databaseId: string | null = null;
 
+// Helper pour extraire l'ID propre de la base de données Notion
+const extractNotionDatabaseId = (id: string): string => {
+  // Si l'ID contient un tiret, extraire la partie après le tiret
+  if (id.includes('-')) {
+    return id.split('-').pop() || id;
+  }
+  
+  // Si l'ID contient une barre oblique (URL), extraire la dernière partie
+  if (id.includes('/')) {
+    return id.split('/').pop() || id;
+  }
+  
+  // Supprimer tout ce qui n'est pas alphanumérique ou un tiret
+  return id.replace(/[^a-zA-Z0-9]/g, '');
+};
+
 export const isNotionConfigured = (): boolean => {
   const apiKey = localStorage.getItem('notion_api_key');
   const dbId = localStorage.getItem('notion_database_id');
@@ -18,13 +35,31 @@ export const isNotionConfigured = (): boolean => {
 
 export const configureNotion = (apiKey: string, dbId: string): boolean => {
   try {
-    console.log('Configuring Notion client with database ID:', dbId);
-    notionClient = new Client({ auth: apiKey });
-    databaseId = dbId;
+    // Nettoyer l'ID de la base de données
+    const cleanDbId = extractNotionDatabaseId(dbId);
+    console.log('Configuring Notion client with database ID:', cleanDbId, '(original:', dbId, ')');
+    
+    notionClient = new Client({ 
+      auth: apiKey,
+      // Ajouter des options pour améliorer la connectivité
+      fetch: (url, options) => {
+        console.log('Fetching Notion API:', url);
+        return fetch(url, {
+          ...options,
+          // Ajouter des headers supplémentaires si nécessaire
+          headers: {
+            ...options?.headers,
+            'Content-Type': 'application/json',
+          }
+        });
+      }
+    });
+    
+    databaseId = cleanDbId;
     
     // Stocker dans localStorage
     localStorage.setItem('notion_api_key', apiKey);
-    localStorage.setItem('notion_database_id', dbId);
+    localStorage.setItem('notion_database_id', cleanDbId);
     
     return true;
   } catch (error) {
@@ -47,6 +82,15 @@ export const getProjectsFromNotion = async (): Promise<Project[] | null> => {
   
   try {
     console.log('Fetching projects from Notion, database ID:', databaseId);
+    
+    // Tester la connexion
+    try {
+      const test = await notionClient.users.me();
+      console.log('Notion API connection successful, user:', test.name);
+    } catch (testError) {
+      console.error('Notion API connection test failed:', testError);
+      throw new Error(`Échec de connexion à l'API Notion: ${testError}`);
+    }
     
     const response = await notionClient.databases.query({
       database_id: databaseId
@@ -352,6 +396,15 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
   
   try {
     console.log('Creating project in Notion:', { name, url, databaseId });
+    
+    // Tester la connexion
+    try {
+      const test = await notionClient.users.me();
+      console.log('Notion API connection successful, user:', test.name);
+    } catch (testError) {
+      console.error('Notion API connection test failed:', testError);
+      throw new Error(`Échec de connexion à l'API Notion: ${testError}`);
+    }
     
     // Générer un ID unique pour le projet
     const projectId = `project-${Date.now()}`;
