@@ -7,13 +7,19 @@
       "maxDuration": 30
     }
   },
-  "routes": [
-    { 
-      "src": "/api/notion-proxy", 
-      "dest": "/api/notion-proxy.ts",
-      "methods": ["GET", "POST", "OPTIONS"]
-    },
-    { "src": "/api/ping", "dest": "/api/ping.ts" },
-    { "src": "/api/vercel-debug", "dest": "/api/vercel-debug.ts" }
+  "rewrites": [
+    { "source": "/api/notion-proxy", "destination": "/api/notion-proxy.ts" },
+    { "source": "/api/ping", "destination": "/api/ping.ts" },
+    { "source": "/api/vercel-debug", "destination": "/api/vercel-debug.ts" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    }
   ]
 }

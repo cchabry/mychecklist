@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Server, AlertTriangle, FileCode, Info, ExternalLink, Github, Settings, ArrowDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,11 @@ import NotionDeploymentChecker from './NotionDeploymentChecker';
 const NotionProxyConfigSection: React.FC = () => {
   // Helper function to get the correct API URL based on environment
   const getApiUrl = (endpoint: string) => {
-    // In LovablePreview or dev environment, use relative paths
-    // This is crucial because window.location.origin may not point to the correct API endpoint
-    return process.env.NODE_ENV === 'production' 
-      ? `${window.location.origin}${endpoint}`
-      : endpoint;
+    // Always construct a full URL for API endpoints
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${endpoint}`;
+    }
+    return endpoint;
   };
 
   // Function to test POST requests with better error handling
@@ -34,9 +33,14 @@ const NotionProxyConfigSection: React.FC = () => {
       
       let responseText;
       try {
-        responseText = await response.text();
+        const responseData = await response.json();
+        responseText = JSON.stringify(responseData, null, 2);
       } catch (e) {
-        responseText = 'Impossible de lire la réponse';
+        try {
+          responseText = await response.text();
+        } catch (e2) {
+          responseText = 'Impossible de lire la réponse';
+        }
       }
       
       alert(`Statut: ${response.status}\n\nRéponse: ${responseText}`);
