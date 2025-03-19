@@ -30,9 +30,23 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   
-  // Charger la date de dernière sauvegarde au chargement
+  // Charger la date de dernière sauvegarde et s'assurer que les champs sont bien remplis
   useEffect(() => {
-    const { lastConfigDate } = getNotionConfig();
+    const { lastConfigDate, apiKey: savedApiKey, databaseId: savedProjectsDbId, checklistsDbId: savedChecklistsDbId } = getNotionConfig();
+    
+    // S'assurer que les champs sont remplis avec les valeurs du localStorage si disponibles
+    if (savedApiKey && (!apiKey || apiKey !== savedApiKey)) {
+      setApiKey(savedApiKey);
+    }
+    
+    if (savedProjectsDbId && (!projectsDbId || projectsDbId !== savedProjectsDbId)) {
+      setProjectsDbId(savedProjectsDbId);
+    }
+    
+    if (savedChecklistsDbId && (!checklistsDbId || checklistsDbId !== savedChecklistsDbId)) {
+      setChecklistsDbId(savedChecklistsDbId);
+    }
+    
     if (lastConfigDate) {
       try {
         const date = new Date(lastConfigDate);
@@ -41,10 +55,14 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         console.error('Erreur de format de date:', e);
       }
     }
-  }, []);
+  }, [apiKey, projectsDbId, checklistsDbId]);
   
   // Déterminer si les tests de connexion peuvent être affichés
-  const canShowTests = (initialApiKey && initialProjectsDbId) || (apiKey && projectsDbId);
+  // Vérifier à la fois les valeurs dans les champs ET les valeurs dans localStorage
+  const storedApiKey = localStorage.getItem('notion_api_key');
+  const storedDbId = localStorage.getItem('notion_database_id');
+  
+  const canShowTests = (apiKey && projectsDbId) || (storedApiKey && storedDbId);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +146,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         <div>
           <p className="font-semibold">Important : Connectez votre intégration</p>
           <p className="mt-1">Les bases de données doivent être connectées à votre intégration Notion :</p>
-          <ol className="list-decimal list-inside mt-1 space-y-1">
+          <ol className="mt-1 space-y-1 list-decimal list-inside">
             <li>Dans Notion, ouvrez votre base de données</li>
             <li>Cliquez sur les <strong>...</strong> (trois points) en haut à droite</li>
             <li>Sélectionnez <strong>Connexions</strong> dans le menu</li>
@@ -138,7 +156,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         </div>
       </div>
       
-      {/* Section de test de connexion - Affichée si les valeurs initiales ou saisies sont présentes */}
+      {/* Section de test de connexion - TOUJOURS affichée si valeurs dans localStorage, même si les champs sont vides */}
       {canShowTests && (
         <div className="flex flex-col gap-2 pt-2">
           <p className="text-xs font-medium text-gray-500">Tests de connexion :</p>

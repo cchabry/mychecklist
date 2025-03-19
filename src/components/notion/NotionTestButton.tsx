@@ -7,7 +7,7 @@ import { isNotionConfigured } from '@/lib/notion';
 import { toast } from 'sonner';
 
 interface NotionTestButtonProps {
-  onSuccess?: () => void; // Add onSuccess prop as optional
+  onSuccess?: () => void;
 }
 
 const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
@@ -15,9 +15,13 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const handleTestConnection = async () => {
-    if (!isNotionConfigured()) {
-      toast.error('Notion n\'est pas configuré', {
-        description: 'Veuillez configurer votre clé API et votre base de données Notion.'
+    // Vérifier d'abord les valeurs dans localStorage
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
+    
+    if (!apiKey || !dbId) {
+      toast.error('Configuration Notion requise', {
+        description: 'Veuillez d\'abord configurer votre clé API et votre base de données Notion.'
       });
       return;
     }
@@ -26,10 +30,7 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
     setTestStatus('idle');
     
     try {
-      const apiKey = localStorage.getItem('notion_api_key');
-      if (!apiKey) {
-        throw new Error('Clé API manquante');
-      }
+      console.log('🔄 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
       
       // Tenter de récupérer l'utilisateur Notion (me)
       const user = await notionApi.users.me(apiKey);

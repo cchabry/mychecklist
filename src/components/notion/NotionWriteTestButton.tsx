@@ -26,9 +26,13 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const handleTestWrite = async () => {
-    if (!isNotionConfigured()) {
-      toast.error('Notion n\'est pas configuré', {
-        description: 'Veuillez configurer votre clé API et votre base de données Notion.'
+    // Toujours vérifier d'abord les valeurs dans localStorage
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
+    
+    if (!apiKey || !dbId) {
+      toast.error('Configuration Notion requise', {
+        description: 'Veuillez d\'abord configurer votre clé API et votre base de données Notion.'
       });
       return;
     }
@@ -43,19 +47,13 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       notionApi.mockMode.forceReset();
       console.log('🔄 Test d\'écriture: Mode réel forcé temporairement');
       
-      const apiKey = localStorage.getItem('notion_api_key');
-      const dbId = localStorage.getItem('notion_database_id');
-      
-      if (!apiKey || !dbId) {
-        throw new Error('Configuration Notion incomplète');
-      }
-      
       // Créer un objet de test avec un timestamp pour garantir l'unicité
       const timestamp = new Date().toISOString();
       const testTitle = `Test d'écriture ${timestamp}`;
       
       console.log(`📝 Tentative d'écriture dans Notion: "${testTitle}"`);
       console.log(`📝 Utilisation de la base de données: "${dbId}"`);
+      console.log(`📝 Utilisation de la clé API: "${apiKey.substring(0, 8)}..."`);
       
       // Préparation des données pour la création de page
       const createData: NotionCreateData = {
@@ -124,7 +122,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       console.error('❌ Test d\'écriture Notion échoué:', error);
       setTestStatus('error');
       
-      // Afficher un message d'erreur détaillé
+      // Afficher un message d'erreur détaillé et plus explicite
       let errorMessage = 'Échec du test d\'écriture';
       let errorDescription = '';
       
@@ -139,14 +137,14 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         errorDescription = 'Vérifiez l\'ID de base de données et assurez-vous qu\'elle existe toujours.';
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('network') || error.message?.includes('CORS')) {
         errorMessage = 'Problème de réseau';
-        errorDescription = 'Erreur CORS ou connexion internet. Le proxy ne fonctionne peut-être pas correctement.';
+        errorDescription = 'Erreur CORS ou connexion internet. Le proxy ne fonctionne peut-être pas correctement. Vérifiez que le proxy est correctement déployé.';
       } else {
         errorDescription = error.message || 'Erreur inconnue lors du test d\'écriture.';
       }
       
       toast.error(errorMessage, {
         description: errorDescription,
-        duration: 5000,
+        duration: 8000,
         action: {
           label: 'Réinitialiser',
           onClick: () => {
