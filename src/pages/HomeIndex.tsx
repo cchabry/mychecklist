@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { MOCK_PROJECTS } from '@/lib/mockData';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
-import NotionDiagnosticTool from '@/components/notion/NotionDiagnosticTool';
+import { NotionDiagnosticTool } from '@/components/notion';
 import NotionGuide from '@/components/NotionGuide';
 import { NotionConfig } from '@/components/notion';
 
@@ -19,7 +18,6 @@ const IndexPage = () => {
   const [currentTab, setCurrentTab] = useState('projects');
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   
-  // Vérifier si Notion est configuré
   const notionConfigured = isNotionConfigured();
   const mockModeActive = notionApi.mockMode.isActive();
   
@@ -29,11 +27,10 @@ const IndexPage = () => {
   
   const handleNotionConfigClose = () => {
     setNotionConfigOpen(false);
-    window.location.reload(); // Reload to reflect new configuration
+    window.location.reload();
   };
   
   const handleNotionConfigSuccess = () => {
-    // Reload to reflect new configuration
     window.location.reload();
   };
   
