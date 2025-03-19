@@ -2,16 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Database, Plus, Info } from 'lucide-react';
+import { ArrowRight, Database, Plus, Info, RefreshCw } from 'lucide-react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import ProjectCard from '@/components/ProjectCard';
 import { getAllProjects } from '@/lib/mockData';
-import { isNotionConfigured } from '@/lib/notion';
+import { isNotionConfigured, getProjectsFromNotion } from '@/lib/notion';
 import { NotionConfig, NotionProxyConfigGuide } from '@/components/notion';
 import NotionTestButton from '@/components/notion/NotionTestButton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { notionApi } from '@/lib/notionProxy';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [projects, setProjects] = useState([]);
@@ -25,6 +26,50 @@ const Index = () => {
     isLocalhost: false,
     isLovable: false
   });
+
+  // Function to load projects based on the current mode
+  const loadProjects = async () => {
+    setIsLoading(true);
+    
+    try {
+      if (isNotionConfigured() && !notionApi.mockMode.isActive()) {
+        console.log('Loading real projects from Notion');
+        const notionProjects = await getProjectsFromNotion();
+        
+        if (notionProjects && notionProjects.projects && notionProjects.projects.length > 0) {
+          console.log(`Loaded ${notionProjects.projects.length} projects from Notion`);
+          setProjects(notionProjects.projects);
+        } else {
+          console.log('No projects found in Notion or error occurred, falling back to mock data');
+          setProjects(getAllProjects());
+        }
+      } else {
+        console.log('Using mock data - either Notion not configured or mock mode active');
+        setProjects(getAllProjects());
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      setProjects(getAllProjects());
+    }
+    
+    setIsLoading(false);
+  };
+
+  // Force reset function
+  const handleForceReset = () => {
+    console.log('Performing force reset of mock mode');
+    notionApi.mockMode.forceReset();
+    toast.success('Mode réinitalisé', {
+      description: 'Rechargement des données réelles en cours...'
+    });
+    
+    // Re-check Notion configuration
+    const notionConfigured = isNotionConfigured();
+    setUsingNotion(notionConfigured);
+    
+    // Reload projects
+    setTimeout(loadProjects, 500);
+  };
 
   useEffect(() => {
     // Déterminer l'environnement
@@ -48,11 +93,8 @@ const Index = () => {
     // Afficher l'état du mode mock dans la console
     console.log(`🔍 Index - Mode mock: ${notionApi.mockMode.isActive() ? 'ACTIF' : 'INACTIF'}`);
 
-    // Charge les projets (simulé avec un délai pour l'UX)
-    setTimeout(() => {
-      setProjects(getAllProjects());
-      setIsLoading(false);
-    }, 500);
+    // Load projects
+    loadProjects();
   }, []);
 
   return (
@@ -74,11 +116,22 @@ const Index = () => {
                 {environment.type}
               </span>
               
-              {/* Indicateur de mode mock */}
+              {/* Indicateur de mode mock avec bouton de réinitialisation */}
               {notionApi.mockMode.isActive() && (
-                <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-800">
-                  Mode démo actif
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                    Mode démo actif
+                  </span>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-6 text-xs px-2 text-amber-700 border-amber-300 hover:bg-amber-50"
+                    onClick={handleForceReset}
+                  >
+                    <RefreshCw size={12} className="mr-1" />
+                    Réinitialiser
+                  </Button>
+                </div>
               )}
               
               <TooltipProvider>
@@ -101,7 +154,10 @@ const Index = () => {
           
           <div className="flex items-center gap-3 mt-4 md:mt-0">
             {/* Bouton de test Notion */}
-            <NotionTestButton />
+            <NotionTestButton onSuccess={() => {
+              // After successful test, try to reload projects
+              loadProjects();
+            }} />
             
             <NotionProxyConfigGuide />
             
@@ -172,6 +228,8 @@ const Index = () => {
         onClose={() => setConfigOpen(false)}
         onSuccess={() => {
           setUsingNotion(true);
+          // After successful configuration, reload projects
+          loadProjects();
         }}
       />
     </div>

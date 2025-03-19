@@ -86,5 +86,26 @@ export const mockMode = {
         mockMode.deactivate();
       }
     }
+  },
+
+  /**
+   * Forcefully reset the mock mode and all related state
+   * This is a more aggressive reset that will clear all mock-related storage
+   */
+  forceReset: (): void => {
+    console.log('🧹 FORCE RESETTING all mock mode state');
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+    localStorage.removeItem('notion_last_error');
+    localStorage.removeItem('notion_proxy_last_error');
+    localStorage.removeItem('notion_proxy_status');
+    
+    // Also clean other caches that might be preventing real data from loading
+    localStorage.removeItem('projects_cache');
+    localStorage.removeItem('audit_cache');
+    
+    toast.success('Mode réel forcé', {
+      description: 'Tous les caches ont été réinitialisés. L\'application utilisera les données réelles.',
+      duration: 3000,
+    });
   }
 };

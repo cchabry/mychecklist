@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CheckSquare, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckSquare, AlertCircle, RefreshCw } from 'lucide-react';
 import { isNotionConfigured, createProjectInNotion } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -20,6 +20,19 @@ const NewProject = () => {
   const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
   const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
   const [hasChecklistDb, setHasChecklistDb] = useState(!!localStorage.getItem('notion_checklists_database_id'));
+
+  // Force reset function
+  const handleForceReset = () => {
+    console.log('Performing force reset of mock mode from NewProject');
+    notionApi.mockMode.forceReset();
+    toast.success('Mode réinitalisé', {
+      description: 'L\'application est prête à utiliser les données réelles.'
+    });
+    
+    // Update state
+    setIsMockMode(false);
+    setUsingNotion(isNotionConfigured());
+  };
   
   // Vérifier l'état de l'intégration Notion au chargement et à l'intervalle
   useEffect(() => {
@@ -73,6 +86,12 @@ const NewProject = () => {
     setIsSubmitting(true);
     
     try {
+      // Attempt to force deactivate mock mode if needed
+      if (notionApi.mockMode.isActive() && isNotionConfigured()) {
+        console.log('🚨 Mock mode is active but Notion is configured - attempting to deactivate');
+        notionApi.mockMode.deactivate();
+      }
+      
       // Double vérification du mode mock juste avant création
       const isMockModeActive = notionApi.mockMode.isActive();
       console.log(`📊 Mode mock au moment de créer un projet: ${isMockModeActive ? 'ACTIF' : 'INACTIF'}`);
@@ -178,16 +197,26 @@ const NewProject = () => {
                     <strong>Mode démonstration actif</strong>
                     <p className="text-xs mt-0.5">
                       Les projets créés ne seront pas sauvegardés dans Notion.
-                      <Button 
-                        variant="link" 
-                        className="text-xs p-0 h-auto underline text-amber-700 pl-1"
-                        onClick={() => {
-                          notionApi.mockMode.deactivate();
-                          setIsMockMode(false);
-                        }}
-                      >
-                        Désactiver
-                      </Button>
+                      <div className="flex mt-1 space-x-2">
+                        <Button 
+                          variant="outline" 
+                          className="text-xs py-0 h-6 px-2 border-amber-300 text-amber-700"
+                          onClick={handleForceReset}
+                        >
+                          <RefreshCw size={12} className="mr-1" />
+                          Réinitialiser
+                        </Button>
+                        <Button 
+                          variant="link" 
+                          className="text-xs p-0 h-auto underline text-amber-700"
+                          onClick={() => {
+                            notionApi.mockMode.deactivate();
+                            setIsMockMode(false);
+                          }}
+                        >
+                          Désactiver
+                        </Button>
+                      </div>
                     </p>
                   </div>
                 </div>
