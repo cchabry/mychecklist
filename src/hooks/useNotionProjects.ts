@@ -32,10 +32,11 @@ export function useNotionProjects() {
             throw new Error('Configuration Notion manquante');
           }
           
-          const response = await notionApi.databases.query({
-            database_id: databaseId,
-            sorts: [{ property: 'name', direction: 'ascending' }]
-          }, apiKey);
+          const response = await notionApi.databases.query(
+            databaseId,
+            { sorts: [{ property: 'name', direction: 'ascending' }] },
+            apiKey  // We were missing this third argument
+          );
           
           // Transformer les données Notion en projets
           const notionProjects = response.results.map((page: any): Project => {
