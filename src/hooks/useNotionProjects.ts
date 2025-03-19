@@ -33,6 +33,15 @@ export function useNotionProjects() {
             throw new Error('Configuration Notion manquante');
           }
           
+          // Vérifier avant tout si l'utilisateur est authentifié
+          try {
+            const userResponse = await notionApi.users.me(apiKey);
+            console.log('✅ Utilisateur authentifié:', userResponse.name || userResponse.id);
+          } catch (authError) {
+            console.error('❌ Erreur d\'authentification:', authError);
+            throw new Error('Erreur d\'authentification avec l\'API Notion. Vérifiez votre clé API.');
+          }
+          
           // Test d'autorisation préalable pour un meilleur diagnostic
           try {
             const dbInfo = await notionApi.databases.retrieve(databaseId, apiKey);
@@ -41,9 +50,12 @@ export function useNotionProjects() {
             console.error('❌ Erreur d\'accès à la base de données:', dbError);
             if (dbError.message?.includes('403')) {
               throw new Error('Votre intégration Notion n\'a pas accès à cette ressource. Vérifiez que l\'intégration est bien partagée avec votre base de données.');
+            } else {
+              throw dbError; // Propager l'erreur pour un meilleur diagnostic
             }
           }
           
+          // Exécuter la requête pour récupérer les projets
           const response = await notionApi.databases.query(
             databaseId,
             { sorts: [{ property: 'name', direction: 'ascending' }] },
@@ -83,10 +95,27 @@ export function useNotionProjects() {
         console.error('❌ Erreur lors de la récupération des projets:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
         
-        // Afficher un toast pour l'erreur d'autorisation
-        if (err.message?.includes('accès') || err.message?.includes('403')) {
+        // Afficher un toast pour l'erreur
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        
+        if (errorMessage.includes('accès') || errorMessage.includes('403')) {
           toast.error("Erreur d'autorisation Notion", {
             description: "Votre intégration n'a pas accès à la base de données. Vérifiez les permissions dans Notion.",
+            duration: 6000
+          });
+        } else if (errorMessage.includes('authentification') || errorMessage.includes('401')) {
+          toast.error("Erreur d'authentification Notion", {
+            description: "Vérifiez votre clé d'API Notion dans les paramètres.",
+            duration: 6000
+          });
+        } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('network')) {
+          toast.error("Erreur de connexion", {
+            description: "Impossible de se connecter à l'API Notion. Vérifiez votre connexion internet.",
+            duration: 6000
+          });
+        } else {
+          toast.error("Erreur avec Notion", {
+            description: errorMessage.substring(0, 100),
             duration: 6000
           });
         }
