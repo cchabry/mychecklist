@@ -1,5 +1,5 @@
 
-import { PUBLIC_CORS_PROXIES, STORAGE_KEYS } from './config';
+import { STORAGE_KEYS, PUBLIC_CORS_PROXIES } from './config';
 
 /**
  * Service de gestion des proxies CORS pour l'API Notion
