@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { NotionCreatePageTest, NotionDiagnosticTool } from '@/components/notion';
+import { NotionDiagnosticTool } from '@/components/notion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotionConfig } from '@/components/notion';
 import { Button } from '@/components/ui/button';
-import { Settings, Database, AlertTriangle, FileSearch } from 'lucide-react';
+import { Settings, Database, AlertTriangle } from 'lucide-react';
 import { mockMode } from '@/lib/notionProxy/mockMode';
 import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
 
@@ -20,7 +20,7 @@ const HomePage = () => {
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-tmw-darkgray">Diagnostics Notion</h1>
         <p className="text-muted-foreground mt-2">
-          Outils pour tester et diagnostiquer l'intégration avec Notion
+          Vérifiez et configurez votre intégration avec Notion
         </p>
         
         {isMockMode && (
@@ -55,44 +55,11 @@ const HomePage = () => {
         onClose={() => setConfigOpen(false)} 
       />
       
-      <Tabs defaultValue="tests" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full max-w-md mb-6">
-          <TabsTrigger value="tests">Tests rapides</TabsTrigger>
+      <Tabs defaultValue="structure" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
           <TabsTrigger value="structure">Structure BDD</TabsTrigger>
-          <TabsTrigger value="diagnostic">Diagnostic complet</TabsTrigger>
+          <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="tests" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <NotionCreatePageTest />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Réinitialiser le mode</CardTitle>
-                <CardDescription>
-                  Réinitialiser complètement le mode d'intégration Notion
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Réinitialise complètement la configuration du mode (mock ou réel) et force
-                  le mode réel si Notion est configuré.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full gap-2" 
-                  onClick={() => {
-                    mockMode.forceReset();
-                    window.location.reload();
-                  }}
-                >
-                  <Database size={16} />
-                  Forcer le mode réel
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
         
         <TabsContent value="structure">
           <div className="space-y-6">
@@ -109,7 +76,7 @@ const HomePage = () => {
                 <div className="space-y-4 text-sm">
                   <div>
                     <h3 className="font-medium mb-2 flex items-center gap-1.5">
-                      <FileSearch size={16} className="text-blue-500" />
+                      <Database size={16} className="text-blue-500" />
                       Propriétés requises
                     </h3>
                     <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
