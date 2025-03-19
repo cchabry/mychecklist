@@ -2,30 +2,38 @@ import { getNotionClient, testNotionConnection } from './notionClient';
 import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
 import { notionApi } from '../notionProxy';
+import { toast } from 'sonner';
 
 export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
   const dbId = localStorage.getItem('notion_database_id');
   console.info('Fetching projects from Notion, database ID:', dbId);
   
+  // Vérifier en priorité si on est en mode mock
+  if (notionApi.mockMode.isActive()) {
+    console.info('Using mock project data (mode mock active)');
+    return { projects: MOCK_PROJECTS };
+  }
+  
   try {
-    // Vérifier si on est en mode mock
-    if (notionApi.mockMode.isActive()) {
-      console.info('Using mock project data (mode mock active)');
-      return { projects: MOCK_PROJECTS };
-    }
-    
     const { client, dbId } = getNotionClient();
     
     if (!client || !dbId) {
       console.error('Notion client or database ID is missing');
       notionApi.mockMode.activate();
+      toast.info('Mode démonstration activé', { 
+        description: 'Configuration Notion incomplète. L\'application utilise des données fictives.'
+      });
       return { projects: MOCK_PROJECTS };
     }
     
     // Récupérer la clé API
     const apiKey = localStorage.getItem('notion_api_key');
     if (!apiKey) {
-      throw new Error('API key is missing');
+      notionApi.mockMode.activate();
+      toast.info('Mode démonstration activé', { 
+        description: 'Clé API Notion manquante. L\'application utilise des données fictives.'
+      });
+      return { projects: MOCK_PROJECTS };
     }
     
     // Vérifier la connexion à l'API Notion
@@ -35,12 +43,17 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
       console.log('Notion connection verified via proxy');
     } catch (connError) {
       console.error('Failed to connect to Notion API:', connError);
-      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401') || connError.message?.includes('403')) {
-        notionApi.mockMode.activate();
-        console.info('Switching to mock data due to connection error');
-        return { projects: MOCK_PROJECTS };
-      }
-      throw connError;
+      
+      // Activer le mode mock pour toute erreur de connexion
+      notionApi.mockMode.activate();
+      
+      // Afficher un toast informatif
+      toast.info('Mode démonstration activé', {
+        description: 'Problème de connexion à Notion. L\'application utilise des données fictives.'
+      });
+      
+      console.info('Switching to mock data due to connection error');
+      return { projects: MOCK_PROJECTS };
     }
     
     // Utiliser notre proxy pour interroger la base de données
@@ -56,9 +69,6 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
     // Mapper les résultats en projets
     const projects: ProjectData[] = response.results.map((page: any) => {
       const properties = page.properties;
-      
-      // Log des propriétés pour le débogage
-      console.log('Propriétés du projet:', JSON.stringify(properties, null, 2));
       
       return {
         id: page.id,
@@ -77,7 +87,7 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
                   properties.progress?.number || 0,
         itemsCount: properties.ItemsCount?.number || 
                     properties.itemsCount?.number ||
-                    properties.Nombre?.number || 15  // Ajouté "Nombre" comme fallback
+                    properties.Nombre?.number || 15
       };
     });
     
@@ -91,15 +101,16 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
   } catch (error) {
     console.error('Erreur lors de la récupération des projets depuis Notion:', error);
     
-    // Si le mode mock est activé ou si c'est une erreur de type 'Failed to fetch', utiliser les données de test
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('403') || error.message?.includes('401')) {
-      console.info('Switching to mock data due to API error');
-      notionApi.mockMode.activate();
-      return { projects: MOCK_PROJECTS };
-    }
+    // Activer le mode mock pour toute erreur
+    notionApi.mockMode.activate();
     
-    // Propager l'erreur pour d'autres types d'erreurs
-    throw error;
+    // Afficher un toast informatif
+    toast.info('Mode démonstration activé', {
+      description: 'Erreur lors de la récupération des projets. L\'application utilise des données fictives.'
+    });
+    
+    console.info('Switching to mock data due to API error');
+    return { projects: MOCK_PROJECTS };
   }
 };
 
@@ -187,7 +198,7 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
                 properties.progress?.number || 0,
       itemsCount: properties.ItemsCount?.number || 
                   properties.itemsCount?.number ||
-                  properties.Nombre?.number || 15  // Ajouté "Nombre" comme fallback
+                  properties.Nombre?.number || 15
     };
     
     return project;

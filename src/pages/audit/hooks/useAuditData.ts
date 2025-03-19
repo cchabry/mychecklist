@@ -23,20 +23,24 @@ export const useAuditData = (projectId: string | undefined) => {
   const { isSaving, saveAudit } = useAuditSave(usingNotion);
   const { hasChecklistDb } = useChecklistDatabase();
   
-  // Si nous avons une erreur Notion et que nous ne sommes pas en mode mock, activer le mode mock
+  // Si nous avons une erreur Notion, activer automatiquement le mode mock
   useEffect(() => {
-    if (notionError && !notionApi.mockMode.isActive()) {
+    if (notionError) {
       console.log("Activating mock mode due to Notion error in useAuditData");
-      notionApi.mockMode.activate();
-      toast.info('Mode démonstration activé automatiquement', { 
-        description: 'En raison d\'un problème de connexion à Notion, l\'application utilise des données fictives'
-      });
       
-      // Force reload project with mock data
+      // Activer le mode mock s'il n'est pas déjà actif
+      if (!notionApi.mockMode.isActive()) {
+        notionApi.mockMode.activate();
+        toast.info('Mode démonstration activé automatiquement', { 
+          description: 'En raison d\'un problème de connexion à Notion, l\'application utilise des données fictives'
+        });
+      }
+      
+      // Force reload project with mock data after a short delay
       setTimeout(() => {
         console.log("Reloading project with mock data after Notion error");
         loadProject();
-      }, 300);
+      }, 500);
     }
   }, [notionError, loadProject]);
   
@@ -47,6 +51,9 @@ export const useAuditData = (projectId: string | undefined) => {
       loadProject();
     } else {
       console.error("No projectId provided to useAuditData");
+      toast.error("Erreur", {
+        description: "Identifiant de projet manquant"
+      });
     }
   }, [projectId, loadProject]);
   
@@ -55,17 +62,37 @@ export const useAuditData = (projectId: string | undefined) => {
     console.log("handleSaveAudit called for project:", projectId);
     if (!audit) {
       console.error("Cannot save audit: No audit data available");
+      toast.error("Erreur de sauvegarde", {
+        description: "Aucune donnée d'audit disponible"
+      });
       return;
     }
     
-    await saveAudit(audit);
+    try {
+      await saveAudit(audit);
+      toast.success("Audit sauvegardé avec succès");
+    } catch (error) {
+      console.error("Error saving audit:", error);
+      toast.error("Erreur de sauvegarde", {
+        description: error.message || "Une erreur est survenue lors de la sauvegarde"
+      });
+      
+      // Activer le mode mock en cas d'erreur de sauvegarde
+      if (!notionApi.mockMode.isActive()) {
+        notionApi.mockMode.activate();
+        toast.info('Mode démonstration activé automatiquement', { 
+          description: 'Suite à une erreur de sauvegarde, l\'application utilise des données fictives'
+        });
+      }
+    }
   };
   
   console.log("useAuditData returning state:", { 
     hasProject: !!project, 
     hasAudit: !!audit, 
     loading, 
-    hasError: !!notionError
+    hasError: !!notionError,
+    mockModeActive: notionApi.mockMode.isActive()
   });
   
   return {
@@ -77,6 +104,7 @@ export const useAuditData = (projectId: string | undefined) => {
     isSaving,
     setAudit,
     loadProject,
-    handleSaveAudit
+    handleSaveAudit,
+    mockModeActive: notionApi.mockMode.isActive()
   };
 };

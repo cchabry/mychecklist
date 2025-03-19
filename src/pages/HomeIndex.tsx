@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -30,12 +31,36 @@ const IndexPage = () => {
       setError(null);
       
       try {
+        // Forcer une petite pause pour assurer que les messages de toast
+        // antérieurs aient le temps d'être affichés
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         const { projects } = await getProjectsFromNotion();
         setProjects(projects);
+        setError(null);
       } catch (err) {
         console.error('Error loading projects:', err);
         setError('Erreur lors du chargement des projets');
-        toast.error('Erreur lors du chargement des projets');
+        
+        // Activer le mode mock en cas d'erreur non gérée
+        if (!notionApi.mockMode.isActive()) {
+          notionApi.mockMode.activate();
+          toast.info('Mode démonstration activé automatiquement', { 
+            description: 'Suite à une erreur, l\'application utilise des données fictives'
+          });
+          
+          // Recharger les données en mode mock après un court délai
+          setTimeout(async () => {
+            try {
+              const { projects } = await getProjectsFromNotion();
+              setProjects(projects);
+            } catch (mockError) {
+              console.error('Failed to load mock projects:', mockError);
+            } finally {
+              setIsLoading(false);
+            }
+          }, 500);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -77,28 +102,34 @@ const IndexPage = () => {
           </div>
         </div>
         
-        {notionConfigured && mockModeActive && (
+        {mockModeActive && (
           <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
-            <h2 className="text-sm font-medium text-amber-800">Mode démonstration actif</h2>
+            <h2 className="text-sm font-medium text-amber-800 flex items-center gap-2">
+              <TestTube size={16} className="text-amber-600" />
+              Mode démonstration actif
+            </h2>
             <p className="text-xs text-amber-700 mt-1">
-              L'application utilise des données fictives. Votre configuration Notion est présente 
-              mais le mode démonstration est activé.
+              L'application utilise des données fictives. {notionConfigured ? 
+              'Votre configuration Notion est présente mais le mode démonstration est activé.' : 
+              'Aucune configuration Notion n\'a été trouvée.'}
             </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
-              onClick={() => {
-                notionApi.mockMode.deactivate();
-                window.location.reload();
-              }}
-            >
-              Désactiver le mode démonstration
-            </Button>
+            {notionConfigured && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
+                onClick={() => {
+                  notionApi.mockMode.deactivate();
+                  window.location.reload();
+                }}
+              >
+                Désactiver le mode démonstration
+              </Button>
+            )}
           </div>
         )}
         
-        {error && (
+        {error && !mockModeActive && (
           <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
             <h2 className="text-sm font-medium text-red-800">Erreur de chargement</h2>
             <p className="text-xs text-red-700 mt-1">
@@ -148,7 +179,7 @@ const IndexPage = () => {
           )}
         </div>
         
-        {!isLoading && projects.length === 0 && !error && (
+        {!isLoading && projects.length === 0 && !error && !mockModeActive && (
           <div className="mt-6 flex justify-center">
             <NotionGuide onConnectClick={handleNotionConfigOpen} />
           </div>
