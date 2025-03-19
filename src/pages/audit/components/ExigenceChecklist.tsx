@@ -260,21 +260,21 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="gap-1 text-red-700 border-red-200 hover:bg-red-50"
-                      onClick={() => applyStatusToAll(ComplianceStatus.NonCompliant)}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      <span>Tous non conformes</span>
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
                       className="gap-1 text-amber-700 border-amber-200 hover:bg-amber-50"
                       onClick={() => applyStatusToAll(ComplianceStatus.PartiallyCompliant)}
                     >
                       <AlertTriangle className="h-4 w-4" />
                       <span>Tous partiellement conformes</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1 text-red-700 border-red-200 hover:bg-red-50"
+                      onClick={() => applyStatusToAll(ComplianceStatus.NonCompliant)}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span>Tous non conformes</span>
                     </Button>
                     
                     <Button 
@@ -336,22 +336,22 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                                 </div>
                                 
                                 <div className="flex items-center space-x-2">
-                                  <RadioGroupItem id={`non_compliant-${page.id}`} value={ComplianceStatus.NonCompliant} />
-                                  <Label 
-                                    htmlFor={`non_compliant-${page.id}`}
-                                    className="text-sm text-red-700 cursor-pointer"
-                                  >
-                                    Non conforme
-                                  </Label>
-                                </div>
-                                
-                                <div className="flex items-center space-x-2">
                                   <RadioGroupItem id={`partially_compliant-${page.id}`} value={ComplianceStatus.PartiallyCompliant} />
                                   <Label 
                                     htmlFor={`partially_compliant-${page.id}`}
                                     className="text-sm text-amber-700 cursor-pointer"
                                   >
                                     Partiellement
+                                  </Label>
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem id={`non_compliant-${page.id}`} value={ComplianceStatus.NonCompliant} />
+                                  <Label 
+                                    htmlFor={`non_compliant-${page.id}`}
+                                    className="text-sm text-red-700 cursor-pointer"
+                                  >
+                                    Non conforme
                                   </Label>
                                 </div>
                                 
