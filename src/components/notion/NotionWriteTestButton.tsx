@@ -11,6 +11,16 @@ interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
 }
 
+// Define the type for the Notion page creation data
+interface NotionCreateData {
+  parent: { database_id: string };
+  properties: {
+    Name: { title: { text: { content: string } }[] };
+    Status: { select: { name: string } };
+    [key: string]: any; // Allow for additional dynamic properties
+  };
+}
+
 const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess }) => {
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -48,7 +58,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       console.log(`📝 Utilisation de la base de données: "${dbId}"`);
       
       // Préparation des données pour la création de page
-      const createData = {
+      const createData: NotionCreateData = {
         parent: { database_id: dbId },
         properties: {
           Name: {
@@ -60,7 +70,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         }
       };
       
-      // Ajouter la propriété URL si elle existe dans le schéma
+      // Ajouter la propriété URL si elle existe dans le schéma, en utilisant notre type avec index signature
       try {
         createData.properties.URL = {
           url: "https://test.example.com"
