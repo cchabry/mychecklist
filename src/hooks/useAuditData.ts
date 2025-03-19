@@ -9,6 +9,8 @@ import { getProjectById as getNotionProject, getAuditForProject, saveAuditToNoti
 import { notionApi } from '@/lib/notionProxy';
 
 export const useAuditData = (projectId: string | undefined) => {
+  console.log("useAuditData initializing with projectId:", projectId);
+  
   const navigate = useNavigate();
   const { status, config, usingNotion } = useNotion();
   
@@ -20,7 +22,10 @@ export const useAuditData = (projectId: string | undefined) => {
   
   // Load project data
   const loadProject = useCallback(async () => {
+    console.log("loadProject called with projectId:", projectId);
+    
     if (!projectId) {
+      console.error("No projectId provided to useAuditData");
       toast.error('Projet non trouvé');
       navigate('/');
       return;
@@ -72,17 +77,20 @@ export const useAuditData = (projectId: string | undefined) => {
         
         if (projectData) {
           setProject(projectData);
+          console.log("Mock project data loaded:", projectData.name);
           
           // Load mock audit with a slight delay for UX
           setTimeout(() => {
             const mockAudit = projectData.progress === 0 
               ? createNewAudit(projectId) 
               : createMockAudit(projectId);
+            console.log("Setting mock audit data with items:", mockAudit.items.length);
             setAudit(mockAudit);
             setLoading(false);
           }, 800);
           return; // Exit early as we're handling loading state in setTimeout
         } else {
+          console.error("Project not found in mock data:", projectId);
           toast.error('Projet non trouvé');
           navigate('/');
           return;
@@ -91,6 +99,7 @@ export const useAuditData = (projectId: string | undefined) => {
       
       // Successfully loaded from Notion
       setProject(projectData);
+      console.log("Notion project data loaded:", projectData.name);
       
       // If no audit loaded from Notion, use mock audit
       if (!auditData) {
@@ -98,12 +107,14 @@ export const useAuditData = (projectId: string | undefined) => {
           const mockAudit = projectData.progress === 0 
             ? createNewAudit(projectId) 
             : createMockAudit(projectId);
+          console.log("Setting mock audit data with items:", mockAudit.items.length);
           setAudit(mockAudit);
           setLoading(false);
         }, 400);
         return; // Exit early as we're handling loading state in setTimeout
       }
       
+      console.log("Setting Notion audit data with items:", auditData.items.length);
       setAudit(auditData);
       setLoading(false);
       
@@ -117,12 +128,15 @@ export const useAuditData = (projectId: string | undefined) => {
       try {
         const mockProjectData = getProjectById(projectId);
         if (mockProjectData) {
+          console.log("Fallback to mock project data:", mockProjectData.name);
           setProject(mockProjectData);
           const mockAudit = mockProjectData.progress === 0 
             ? createNewAudit(projectId) 
             : createMockAudit(projectId);
+          console.log("Setting fallback mock audit with items:", mockAudit.items.length);
           setAudit(mockAudit);
         } else {
+          console.error("Project not found in mock data during fallback");
           navigate('/');
         }
       } catch (fallbackError) {
@@ -136,9 +150,13 @@ export const useAuditData = (projectId: string | undefined) => {
   
   // Save audit
   const handleSaveAudit = async () => {
-    if (!audit) return;
+    if (!audit) {
+      console.error("Cannot save audit: audit data is null");
+      return;
+    }
     
     setIsSaving(true);
+    console.log("Saving audit with", audit.items.length, "items");
     
     try {
       let success = false;
@@ -154,11 +172,13 @@ export const useAuditData = (projectId: string | undefined) => {
           // Save to Notion
           try {
             success = await saveAuditToNotion(audit);
+            console.log("Audit saved to Notion:", success);
           } catch (error) {
             // Handle CORS "Failed to fetch" error
             if (error.message?.includes('Failed to fetch')) {
               // Activate mock mode
               notionApi.mockMode.activate();
+              console.log("Activating mock mode due to fetch error");
               
               toast.warning('Mode démonstration activé', {
                 description: 'Sauvegarde en mode local uniquement car l\'API Notion n\'est pas accessible directement',
@@ -173,6 +193,7 @@ export const useAuditData = (projectId: string | undefined) => {
         }
       } else {
         // Local save simulation
+        console.log("Simulating audit save (mock mode or not using Notion)");
         success = true;
       }
       
@@ -193,6 +214,7 @@ export const useAuditData = (projectId: string | undefined) => {
   
   // Load project data on mount
   useEffect(() => {
+    console.log("useEffect in useAuditData triggered, calling loadProject");
     loadProject();
   }, [loadProject]);
   
