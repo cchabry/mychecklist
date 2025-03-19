@@ -4,17 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowRight, CheckCircle2, XCircle, AlertTriangle, Loader2, Database, RefreshCw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, XCircle, AlertTriangle, Loader2, Database, RefreshCw, Save } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 interface NotionDiagnosticToolProps {
-  onConfigClick?: () => void; // New prop for configuration button
+  onConfigClick?: () => void; // Prop for configuration button
 }
 
 const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigClick }) => {
   const [isRunning, setIsRunning] = useState(false);
+  const [persistCreatedPage, setPersistCreatedPage] = useState(false);
+  const [createdPageInfo, setCreatedPageInfo] = useState<{id: string; title: string} | null>(null);
   const [results, setResults] = useState<{
     configTests: TestResult[];
     connectivityTests: TestResult[];
@@ -36,6 +38,7 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
   
   const runDiagnostics = async () => {
     setIsRunning(true);
+    setCreatedPageInfo(null);
     
     // Réinitialiser les résultats
     setResults({
@@ -68,6 +71,7 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
     if (wasMockMode) {
       console.log('💡 Désactivation temporaire du mode mock pour les diagnostics');
       localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+      notionApi.mockMode.forceReset();
     }
     
     // 1. Tests de configuration
@@ -222,34 +226,58 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
         try {
           // Tenter de créer une page test
           const timestamp = new Date().toISOString();
-          const testTitle = `Test d'écriture ${timestamp}`;
+          const testTitle = `Test diagnostique ${timestamp}`;
           
           const createData = {
             parent: { database_id: projectsDbId },
             properties: {
               Name: {
                 title: [{ text: { content: testTitle } }]
+              },
+              Status: { 
+                select: { name: "Test" } 
+              },
+              Description: { 
+                rich_text: [{ text: { content: "Test de création via l'outil diagnostique" } }] 
+              },
+              URL: { 
+                url: "https://tests.example.com/diagnostic" 
               }
             }
           };
           
+          console.log('📝 Test d\'écriture avec données:', JSON.stringify(createData, null, 2));
+          
           const createdPage = await notionApi.pages.create(createData, apiKey);
           
           if (createdPage && createdPage.id) {
+            let successMessage = `Test d'écriture réussi: Page créée avec ID ${createdPage.id.substring(0, 8)}...`;
+            
+            // Si on ne veut pas persister, archiver la page
+            if (!persistCreatedPage) {
+              try {
+                await notionApi.pages.update(createdPage.id, {
+                  archived: true
+                }, apiKey);
+                successMessage += " (page archivée)";
+              } catch (archiveError) {
+                console.warn('Impossible d\'archiver la page de test:', archiveError);
+                successMessage += " (impossible d'archiver la page)";
+              }
+            } else {
+              // Garder l'information de la page créée
+              setCreatedPageInfo({
+                id: createdPage.id,
+                title: testTitle
+              });
+              successMessage += " (page conservée dans la base de données)";
+            }
+            
             permissionResults[1] = { 
               ...results.permissionTests[1], 
               status: 'success',
-              details: `Test d'écriture réussi: Page créée avec ID ${createdPage.id.substring(0, 8)}...`
+              details: successMessage
             };
-            
-            // Tenter d'archiver la page de test pour nettoyer
-            try {
-              await notionApi.pages.update(createdPage.id, {
-                archived: true
-              }, apiKey);
-            } catch (archiveError) {
-              console.warn('Impossible d\'archiver la page de test:', archiveError);
-            }
           } else {
             permissionResults[1] = { 
               ...results.permissionTests[1], 
@@ -477,6 +505,16 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
               Actualiser
             </Button>
             
+            <Button
+              variant="outline"
+              size="sm"
+              className={`gap-2 ${persistCreatedPage ? 'bg-green-50 text-green-700 border-green-200' : ''}`}
+              onClick={() => setPersistCreatedPage(!persistCreatedPage)}
+            >
+              <Save className="h-4 w-4" />
+              {persistCreatedPage ? 'Conserver les tests' : 'Archiver les tests'}
+            </Button>
+            
             {onConfigClick && (
               <Button
                 variant="outline"
@@ -504,6 +542,17 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
             <div className="flex items-center gap-1">
               <XCircle className="h-4 w-4 text-red-500" />
               <span>{summary.error} échecs</span>
+            </div>
+          </div>
+        )}
+        
+        {createdPageInfo && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
+            <div className="font-medium text-green-800 mb-1">Page de test créée et conservée</div>
+            <div className="text-green-700">
+              <p>Titre: {createdPageInfo.title}</p>
+              <p>ID: {createdPageInfo.id}</p>
+              <p className="text-xs mt-1">La page a été conservée dans votre base de données pour vérification</p>
             </div>
           </div>
         )}
