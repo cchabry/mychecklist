@@ -94,18 +94,36 @@ export const mockMode = {
    */
   forceReset: (): void => {
     console.log('🧹 FORCE RESETTING all mock mode state');
+    
+    // Clear all mock mode and Notion status flags
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     localStorage.removeItem('notion_last_error');
     localStorage.removeItem('notion_proxy_last_error');
     localStorage.removeItem('notion_proxy_status');
     
-    // Also clean other caches that might be preventing real data from loading
+    // Clear all caches that might be preventing real data from loading
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
+    localStorage.removeItem('notion_temp_data');
+    
+    // Remove any other cached data
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('cache') || key.includes('temp') || key.includes('notion_data_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Refresh Notion connection status
+    localStorage.setItem('notion_connection_refreshed', Date.now().toString());
     
     toast.success('Mode réel forcé', {
       description: 'Tous les caches ont été réinitialisés. L\'application utilisera les données réelles.',
       duration: 3000,
     });
+    
+    // Rafraîchir la page après un court délai pour s'assurer que tous les composants se mettent à jour
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   }
 };

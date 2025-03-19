@@ -1,239 +1,128 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Database, Plus, Info, RefreshCw } from 'lucide-react';
-import Header from '@/components/Header';
-import { Button } from '@/components/ui/button';
-import ProjectCard from '@/components/ProjectCard';
-import { getAllProjects } from '@/lib/mockData';
-import { isNotionConfigured, getProjectsFromNotion } from '@/lib/notion';
-import { NotionConfig, NotionProxyConfigGuide } from '@/components/notion';
-import NotionTestButton from '@/components/notion/NotionTestButton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
+import { Plus, Settings, RotateCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ProjectCard } from '@/components/ProjectCard';
+import { NotionConfigModal } from '@/components/notion';
+import { getProjectsFromNotion } from '@/lib/notion';
+import { notionApi } from '@/lib/notionProxy';
 
-const Index = () => {
+const ProjectPage = () => {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [usingNotion, setUsingNotion] = useState(false);
-  const [environment, setEnvironment] = useState({
-    type: 'Unknown',
-    host: window.location.hostname,
-    isVercel: false,
-    isLocalhost: false,
-    isLovable: false
-  });
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Function to load projects based on the current mode
-  const loadProjects = async () => {
+  const handleRefresh = () => {
+    // Rafraîchir la liste des projets
+    setProjects([]);
     setIsLoading(true);
-    
-    try {
-      if (isNotionConfigured() && !notionApi.mockMode.isActive()) {
-        console.log('Loading real projects from Notion');
-        const notionProjects = await getProjectsFromNotion();
-        
-        if (notionProjects && notionProjects.projects && notionProjects.projects.length > 0) {
-          console.log(`Loaded ${notionProjects.projects.length} projects from Notion`);
-          setProjects(notionProjects.projects);
-        } else {
-          console.log('No projects found in Notion or error occurred, falling back to mock data');
-          setProjects(getAllProjects());
-        }
-      } else {
-        console.log('Using mock data - either Notion not configured or mock mode active');
-        setProjects(getAllProjects());
-      }
-    } catch (error) {
-      console.error('Error loading projects:', error);
-      setProjects(getAllProjects());
-    }
-    
-    setIsLoading(false);
+    loadProjects();
   };
 
-  // Force reset function
   const handleForceReset = () => {
-    console.log('Performing force reset of mock mode');
+    // Réinitialiser complètement l'état et le mode mock
     notionApi.mockMode.forceReset();
-    toast.success('Mode réinitalisé', {
-      description: 'Rechargement des données réelles en cours...'
-    });
-    
-    // Re-check Notion configuration
-    const notionConfigured = isNotionConfigured();
-    setUsingNotion(notionConfigured);
-    
-    // Reload projects
-    setTimeout(loadProjects, 500);
+    // Le rechargement de la page est fait dans la fonction forceReset
   };
 
   useEffect(() => {
-    // Déterminer l'environnement
-    const hostname = window.location.hostname;
-    const isVercel = hostname.includes('vercel.app');
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const isLovable = hostname.includes('lovable');
-    
-    setEnvironment({
-      type: isVercel ? 'Vercel' : isLovable ? 'Lovable Preview' : isLocalhost ? 'Développement local' : 'Autre',
-      host: hostname,
-      isVercel,
-      isLocalhost,
-      isLovable
-    });
-
-    // Vérifie si Notion est configuré
-    const notionConfigured = isNotionConfigured();
-    setUsingNotion(notionConfigured);
-
-    // Afficher l'état du mode mock dans la console
-    console.log(`🔍 Index - Mode mock: ${notionApi.mockMode.isActive() ? 'ACTIF' : 'INACTIF'}`);
-
-    // Load projects
     loadProjects();
   }, []);
 
+  const loadProjects = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getProjectsFromNotion();
+      setProjects(data.projects);
+    } catch (error) {
+      console.error("Erreur lors du chargement des projets:", error);
+      toast.error("Erreur de chargement des projets", {
+        description: "Impossible de charger les projets depuis Notion."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
+
+  const handleNotionSuccess = () => {
+    toast.success("Configuration Notion enregistrée", {
+      description: "L'application est maintenant connectée à votre base de données Notion."
+    });
+    loadProjects();
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h1>
-            <p className="text-gray-600">Gérez vos audits d'accessibilité et suivez votre progression</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                environment.isVercel ? 'bg-blue-100 text-blue-800' : 
-                environment.isLovable ? 'bg-purple-100 text-purple-800' : 
-                environment.isLocalhost ? 'bg-green-100 text-green-800' : 
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {environment.type}
-              </span>
-              
-              {/* Indicateur de mode mock avec bouton de réinitialisation */}
-              {notionApi.mockMode.isActive() && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-800">
-                    Mode démo actif
-                  </span>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-6 text-xs px-2 text-amber-700 border-amber-300 hover:bg-amber-50"
-                    onClick={handleForceReset}
-                  >
-                    <RefreshCw size={12} className="mr-1" />
-                    Réinitialiser
-                  </Button>
-                </div>
-              )}
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info size={16} className="ml-2 text-gray-400 hover:text-gray-600 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Hôte: {environment.host}</p>
-                    <p>Version: {import.meta.env.MODE}</p>
-                    <p>Date de construction: {new Date().toLocaleDateString()}</p>
-                    <p>Mode mock: {notionApi.mockMode.isActive() ? 'Actif' : 'Inactif'}</p>
-                    <p>Notion configuré: {usingNotion ? 'Oui' : 'Non'}</p>
-                    <p>Checklists DB: {localStorage.getItem('notion_checklists_database_id') ? 'Configurée' : 'Non configurée'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
+    <div className="container py-12">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-tmw-darkgray">
+          Mes projets
+        </h1>
+
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleRefresh}
+          >
+            <RotateCw size={16} />
+            Actualiser
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setIsOpen(true)}
+          >
+            <Settings size={16} />
+            Configuration
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2 text-red-500"
+            onClick={handleForceReset}
+            title="Forcer l'état réel et réinitialiser tous les caches"
+          >
+            <RefreshCw size={16} />
+            Réinitialiser
+          </Button>
           
-          <div className="flex items-center gap-3 mt-4 md:mt-0">
-            {/* Bouton de test Notion */}
-            <NotionTestButton onSuccess={() => {
-              // After successful test, try to reload projects
-              loadProjects();
-            }} />
-            
-            <NotionProxyConfigGuide />
-            
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
-              onClick={() => setConfigOpen(true)}
-            >
-              <Database size={16} />
-              {usingNotion ? 'Reconfigurer Notion' : 'Connecter à Notion'}
+          <Link to="/new-project">
+            <Button className="gap-2 bg-tmw-teal hover:bg-tmw-teal/90">
+              <Plus size={16} />
+              Nouveau projet
             </Button>
-            
-            <Button asChild className="bg-tmw-teal hover:bg-tmw-teal/90">
-              <Link to="/new-project" className="flex items-center gap-2">
-                <Plus size={16} />
-                Nouveau projet
-              </Link>
-            </Button>
-          </div>
+          </Link>
         </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="w-10 h-10 border-4 border-t-tmw-teal border-tmw-teal/30 rounded-full animate-spin"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ProjectCard project={project} />
-              </motion.div>
-            ))}
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.3 }}
-            >
-              <Link 
-                to="/new-project"
-                className="flex flex-col items-center justify-center h-full min-h-[200px] p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-tmw-teal hover:bg-tmw-teal/5 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-tmw-teal/10 flex items-center justify-center mb-4">
-                  <Plus size={24} className="text-tmw-teal" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Nouveau projet</h3>
-                <p className="text-sm text-gray-500 text-center">Commencez un nouvel audit d'accessibilité</p>
-                <Button 
-                  variant="link" 
-                  className="mt-4 text-tmw-teal flex items-center gap-1"
-                >
-                  Créer un projet
-                  <ArrowRight size={16} />
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
-        )}
-      </main>
-      
-      <NotionConfig
-        isOpen={configOpen}
-        onClose={() => setConfigOpen(false)}
-        onSuccess={() => {
-          setUsingNotion(true);
-          // After successful configuration, reload projects
-          loadProjects();
-        }}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-t-transparent border-tmw-teal rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
+      )}
+
+      <NotionConfigModal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        onSuccess={handleNotionSuccess}
       />
     </div>
   );
 };
 
-export default Index;
+export default ProjectPage;

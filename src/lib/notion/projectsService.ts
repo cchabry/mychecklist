@@ -57,16 +57,27 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
     const projects: ProjectData[] = response.results.map((page: any) => {
       const properties = page.properties;
       
+      // Log des propriétés pour le débogage
+      console.log('Propriétés du projet:', JSON.stringify(properties, null, 2));
+      
       return {
         id: page.id,
-        name: properties.Name?.title?.[0]?.plain_text || 'Sans titre',
-        url: properties.URL?.url || '#',
-        description: properties.Description?.rich_text?.[0]?.plain_text || '',
-        status: properties.Status?.select?.name || 'Non démarré',
+        name: properties.Name?.title?.[0]?.plain_text || 
+              properties.name?.title?.[0]?.plain_text || 'Sans titre',
+        url: properties.URL?.url || 
+             properties.url?.url || 
+             properties.Url?.url || '#',
+        description: properties.Description?.rich_text?.[0]?.plain_text || 
+                     properties.description?.rich_text?.[0]?.plain_text || '',
+        status: properties.Status?.select?.name || 
+                properties.status?.select?.name || 'Non démarré',
         createdAt: page.created_time,
         updatedAt: page.last_edited_time,
-        progress: properties.Progress?.number || 0,
-        itemsCount: 15 // Default number of checklist items
+        progress: properties.Progress?.number || 
+                  properties.progress?.number || 0,
+        itemsCount: properties.ItemsCount?.number || 
+                    properties.itemsCount?.number ||
+                    properties.Nombre?.number || 15  // Ajouté "Nombre" comme fallback
       };
     });
     
@@ -133,18 +144,29 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
       throw new Error('Invalid response from Notion API');
     }
     
+    // Log des données pour le débogage
+    console.log('Données du projet depuis Notion:', JSON.stringify(response, null, 2));
+    
     // Convertir la page Notion en projet
     const properties = response.properties;
     const project: ProjectData = {
       id: response.id,
-      name: properties.Name?.title?.[0]?.plain_text || 'Sans titre',
-      url: properties.URL?.url || '#',
-      description: properties.Description?.rich_text?.[0]?.plain_text || '',
-      status: properties.Status?.select?.name || 'Non démarré',
+      name: properties.Name?.title?.[0]?.plain_text || 
+            properties.name?.title?.[0]?.plain_text || 'Sans titre',
+      url: properties.URL?.url || 
+           properties.url?.url || 
+           properties.Url?.url || '#',
+      description: properties.Description?.rich_text?.[0]?.plain_text || 
+                   properties.description?.rich_text?.[0]?.plain_text || '',
+      status: properties.Status?.select?.name || 
+              properties.status?.select?.name || 'Non démarré',
       createdAt: response.created_time,
       updatedAt: response.last_edited_time,
-      progress: properties.Progress?.number || 0,
-      itemsCount: 15 // Default number of checklist items
+      progress: properties.Progress?.number || 
+                properties.progress?.number || 0,
+      itemsCount: properties.ItemsCount?.number || 
+                  properties.itemsCount?.number ||
+                  properties.Nombre?.number || 15  // Ajouté "Nombre" comme fallback
     };
     
     return project;
@@ -229,38 +251,37 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       throw connError;
     }
     
-    // Préparer les propriétés pour la création
-    const properties = {
-      Name: {
-        title: [
-          {
-            text: {
-              content: name
-            }
-          }
-        ]
-      },
-      URL: {
-        url: url
-      },
-      Description: {
-        rich_text: [
-          {
-            text: {
-              content: 'Projet créé via l\'application'
-            }
-          }
-        ]
-      },
-      Status: {
-        select: {
-          name: 'Non démarré'
-        }
-      },
-      Progress: {
-        number: 0
-      }
+    // Adapter les noms des propriétés à ceux utilisés dans votre base Notion
+    // Utiliser les noms de propriétés avec la première lettre en minuscule et en majuscule
+    const properties: any = {};
+    
+    // Name/name - obligatoire
+    properties.Name = {
+      title: [{ text: { content: name } }]
     };
+    
+    // URL/url - obligatoire
+    properties.url = {
+      url: url
+    };
+    
+    // Description/description - optionnel
+    properties.Description = {
+      rich_text: [{ text: { content: 'Projet créé via l\'application' } }]
+    };
+    
+    // Status/status - optionnel
+    properties.Status = {
+      select: { name: 'Non démarré' }
+    };
+    
+    // Progress/progress - optionnel
+    properties.progress = {
+      number: 0
+    };
+    
+    // Log des propriétés préparées
+    console.log('Préparation des propriétés pour création:', JSON.stringify(properties, null, 2));
     
     // Créer la page dans Notion via le proxy
     console.log('Creating project in Notion database:', dbId);
@@ -274,6 +295,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     }
     
     console.log('Project created successfully in Notion:', response.id);
+    console.log('Réponse complète:', JSON.stringify(response, null, 2));
     
     // Convertir la réponse en projet
     const newProject: ProjectData = {
@@ -291,6 +313,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     return newProject;
   } catch (error) {
     console.error('Erreur lors de la création du projet dans Notion:', error);
+    console.error('Détails de l\'erreur:', error.message);
     
     // Activer le mode mock en cas d'échec et retourner un projet fictif
     if (error.message?.includes('Failed to fetch')) {

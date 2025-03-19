@@ -13,6 +13,7 @@ import AuditProgress from './components/AuditProgress';
 import AuditChecklist from './components/AuditChecklist';
 import NotionConnectButton from './components/NotionConnectButton';
 import { NotionErrorDetails } from '@/components/notion';
+import { notionApi } from '@/lib/notionProxy';
 
 export const AuditContainer = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -51,6 +52,15 @@ export const AuditContainer = () => {
   useEffect(() => {
     if (projectId) {
       console.log("Notion config changed, reloading project data");
+      console.log("Current mock mode status:", notionApi.mockMode.isActive() ? "ACTIVE" : "INACTIVE");
+      console.log("Using Notion:", usingNotion);
+      
+      // Force un désactivation du mode mock si Notion est configuré
+      if (usingNotion && notionApi.mockMode.isActive()) {
+        console.log("Force deactivating mock mode before loading project");
+        notionApi.mockMode.deactivate();
+      }
+      
       loadProject();
     }
   }, [usingNotion, projectId]);
@@ -59,6 +69,12 @@ export const AuditContainer = () => {
   const handleUpdateAudit = (updatedAudit) => {
     console.log("Updating audit state");
     setAudit(updatedAudit);
+  };
+  
+  // Force reset de tous les caches
+  const handleForceReset = () => {
+    console.log("Force resetting all caches from AuditContainer");
+    notionApi.mockMode.forceReset();
   };
   
   return (
@@ -82,6 +98,17 @@ export const AuditContainer = () => {
               />
               
               <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2 text-red-500"
+                  onClick={handleForceReset}
+                  title="Forcer l'état réel et réinitialiser tous les caches"
+                >
+                  <RefreshCw size={16} />
+                  Réinitialiser
+                </Button>
+                
                 <NotionConnectButton 
                   usingNotion={usingNotion} 
                   onClick={handleConnectNotionClick}
@@ -89,6 +116,19 @@ export const AuditContainer = () => {
                 />
               </div>
             </div>
+            
+            {/* Indicateur de mode mock */}
+            {notionApi.mockMode.isActive() && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={16} />
+                  <span className="font-medium">Mode démonstration actif</span>
+                </div>
+                <p className="mt-1 text-xs">
+                  Les données affichées sont fictives. Pour utiliser les données réelles, cliquez sur "Réinitialiser".
+                </p>
+              </div>
+            )}
             
             <AuditProgress audit={audit} />
           </div>
@@ -109,3 +149,7 @@ export const AuditContainer = () => {
     </AuditLayout>
   );
 };
+
+// N'oubliez pas d'importer les composants requis
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
