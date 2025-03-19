@@ -1,6 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useNotionIntegration, useAuditData } from './hooks';
+import { useNotion } from '@/contexts/NotionContext';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { notionApi } from '@/lib/notionProxy';
+
 import { 
   AuditChecklist, 
   AuditHeader, 
@@ -11,22 +16,43 @@ import {
   NotionConnectButton 
 } from './components';
 import { NotionErrorDetails } from '@/components/notion';
-
-import { notionApi } from '@/lib/notionProxy';
+import { useAuditData } from '@/hooks/useAuditData';
 
 export const AuditContainer = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { status, config, usingNotion, testConnection } = useNotion();
   
-  const { 
-    usingNotion, 
-    notionConfigOpen, 
-    notionErrorDetails,
-    handleConnectNotionClick, 
-    handleNotionConfigSuccess, 
-    handleNotionConfigClose,
-    hideNotionError
-  } = useNotionIntegration();
+  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
+  const [notionErrorDetails, setNotionErrorDetails] = useState({
+    show: false,
+    error: '',
+    context: ''
+  });
+  
+  const handleConnectNotionClick = () => {
+    setNotionConfigOpen(true);
+  };
+  
+  const handleNotionConfigSuccess = () => {
+    setNotionConfigOpen(false);
+    testConnection();
+    
+    // Force a reload of the project data
+    loadProject();
+  };
+  
+  const handleNotionConfigClose = () => {
+    setNotionConfigOpen(false);
+  };
+  
+  const hideNotionError = () => {
+    setNotionErrorDetails({
+      show: false,
+      error: '',
+      context: ''
+    });
+  };
   
   const { 
     project, 
@@ -37,7 +63,7 @@ export const AuditContainer = () => {
     setAudit, 
     handleSaveAudit,
     loadProject 
-  } = useAuditData(projectId, usingNotion);
+  } = useAuditData(projectId);
   
   useEffect(() => {
     if (notionError) {
@@ -61,7 +87,7 @@ export const AuditContainer = () => {
       
       loadProject();
     }
-  }, [usingNotion, projectId]);
+  }, [usingNotion, projectId, loadProject]);
   
   const handleUpdateAudit = (updatedAudit) => {
     console.log("Updating audit state");
@@ -148,6 +174,3 @@ export const AuditContainer = () => {
     </AuditLayout>
   );
 };
-
-import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
