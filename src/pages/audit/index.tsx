@@ -5,7 +5,7 @@ import { AuditContainer } from './AuditContainer';
 import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
-import { isOAuthToken, isIntegrationKey } from '@/lib/notionProxy/config';
+import { isOAuthToken, isIntegrationKey, STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 const AuditPage = () => {
   const [notionReady, setNotionReady] = useState<boolean>(false);
@@ -22,7 +22,7 @@ const AuditPage = () => {
         
         // Forcer un état "propre" pour cette session
         localStorage.removeItem('notion_last_error');
-        localStorage.removeItem(notionApi.mockMode.STORAGE_KEYS.MOCK_MODE);
+        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
       }
       
       // Vérifier si le mode mock est actif
