@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
-import { resetProxyCache, verifyProxyDeployment } from '@/lib/notionProxy/config';
+import { resetProxyCache, verifyProxyDeployment, STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 export const useNotionIntegration = () => {
   const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
@@ -16,6 +17,15 @@ export const useNotionIntegration = () => {
   // Vérifier le mode mock et le proxy au démarrage
   useEffect(() => {
     const checkNotionSetup = async () => {
+      // Vérifie si le forçage du mode réel a été demandé
+      const forceReal = localStorage.getItem('notion_force_real') === 'true';
+      if (forceReal) {
+        console.log('🔄 useNotionIntegration: Mode réel forcé - Désactivation du mode mock');
+        localStorage.removeItem('notion_force_real');
+        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+        notionApi.mockMode.deactivate();
+      }
+      
       // Si Notion est configuré, vérifier l'état du proxy
       if (usingNotion) {
         try {
@@ -44,7 +54,7 @@ export const useNotionIntegration = () => {
             }
           } else {
             // Le proxy fonctionne, désactiver le mode mock s'il est actif
-            if (notionApi.mockMode.isActive()) {
+            if (notionApi.mockMode.isActive() && !forceReal) {
               console.log('Proxy opérationnel, désactivation du mode mock');
               notionApi.mockMode.deactivate();
               toast.success('Connexion Notion rétablie', {
@@ -58,10 +68,18 @@ export const useNotionIntegration = () => {
           console.error('Erreur lors de la vérification du proxy:', error);
           
           // En cas d'erreur, activer le mode mock pour sécuriser l'expérience
-          if (!notionApi.mockMode.isActive()) {
+          if (!notionApi.mockMode.isActive() && !forceReal) {
             notionApi.mockMode.activate();
             toast.warning('Mode démonstration activé suite à une erreur', {
               description: 'Erreur de communication avec le proxy Notion. Données simulées activées.',
+              action: {
+                label: 'Forcer mode réel',
+                onClick: () => {
+                  localStorage.setItem('notion_force_real', 'true');
+                  notionApi.mockMode.forceReset();
+                  window.location.reload();
+                }
+              }
             });
           }
         }
@@ -74,17 +92,35 @@ export const useNotionIntegration = () => {
   const handleConnectNotionClick = () => {
     // Réinitialiser le cache du proxy avant d'ouvrir la configuration
     resetProxyCache();
+    
+    // Forcer le mode réel pour la configuration
+    if (notionApi.mockMode.isActive()) {
+      console.log('🔄 Désactivation du mode mock pour la configuration Notion');
+      localStorage.setItem('notion_force_real', 'true');
+      notionApi.mockMode.deactivate();
+    }
+    
     setNotionConfigOpen(true);
   };
   
   const handleNotionConfigSuccess = () => {
     setUsingNotion(true);
     
+    // Forcer le mode réel après une configuration réussie
+    localStorage.setItem('notion_force_real', 'true');
+    
     // Si le mode mock est actif, afficher un message explicatif
     if (notionApi.mockMode.isActive()) {
       toast.info('Notion configuré avec succès', {
         description: 'Les requêtes Notion passeront par un proxy pour contourner les limitations CORS.',
         duration: 5000,
+        action: {
+          label: 'Forcer mode réel',
+          onClick: () => {
+            notionApi.mockMode.forceReset();
+            window.location.reload();
+          }
+        }
       });
     }
   };
@@ -116,6 +152,14 @@ export const useNotionIntegration = () => {
       const apiKey = localStorage.getItem('notion_api_key');
       if (!apiKey) return false;
       
+      // Forcer le mode réel pour la vérification
+      const wasInMockMode = notionApi.mockMode.isActive();
+      if (wasInMockMode) {
+        console.log('🔄 Désactivation temporaire du mode mock pour la vérification');
+        localStorage.setItem('notion_force_real', 'true');
+        notionApi.mockMode.deactivate();
+      }
+      
       // Vérifier d'abord le déploiement du proxy
       const proxyIsWorking = await verifyProxyDeployment(false);
       
@@ -127,13 +171,23 @@ export const useNotionIntegration = () => {
           'Le fichier api/notion-proxy.ts n\'est pas correctement déployé ou configuré sur Vercel'
         );
         
-        // Activer le mode mock pour sécuriser l'expérience
-        notionApi.mockMode.activate();
-        
-        toast.warning('Mode démonstration activé', {
-          description: 'Le proxy Notion n\'est pas accessible. L\'application utilise des données simulées.',
-          duration: 6000,
-        });
+        // Activer le mode mock pour sécuriser l'expérience mais uniquement si on n'a pas forcé le mode réel
+        if (!localStorage.getItem('notion_force_real')) {
+          notionApi.mockMode.activate();
+          
+          toast.warning('Mode démonstration activé', {
+            description: 'Le proxy Notion n\'est pas accessible. L\'application utilise des données simulées.',
+            duration: 6000,
+            action: {
+              label: 'Forcer mode réel',
+              onClick: () => {
+                localStorage.setItem('notion_force_real', 'true');
+                notionApi.mockMode.forceReset();
+                window.location.reload();
+              }
+            }
+          });
+        }
         
         return true; // Permettre l'utilisation en mode mock
       }
@@ -159,19 +213,35 @@ export const useNotionIntegration = () => {
           // Erreur d'authentification - problème de clé API
           toast.error('Clé API Notion invalide', {
             description: 'Vérifiez votre clé d\'intégration dans les paramètres Notion.',
+            action: {
+              label: 'Configurer',
+              onClick: () => {
+                document.getElementById('notion-connect-button')?.click();
+              }
+            }
           });
           return false;
         } else {
-          // Autre erreur d'API - activer le mode mock
+          // Autre erreur d'API - activer le mode mock uniquement si on n'a pas forcé le mode réel
           showNotionError(
             'Erreur d\'accès à l\'API Notion',
             `Détail: ${apiError.message || 'Erreur inconnue'}`
           );
           
-          notionApi.mockMode.activate();
-          toast.warning('Mode démonstration activé suite à une erreur', {
-            description: 'L\'application utilisera des données de test pendant la résolution du problème.',
-          });
+          if (!localStorage.getItem('notion_force_real')) {
+            notionApi.mockMode.activate();
+            toast.warning('Mode démonstration activé suite à une erreur', {
+              description: 'L\'application utilisera des données de test pendant la résolution du problème.',
+              action: {
+                label: 'Forcer mode réel',
+                onClick: () => {
+                  localStorage.setItem('notion_force_real', 'true');
+                  notionApi.mockMode.forceReset();
+                  window.location.reload();
+                }
+              }
+            });
+          }
           
           return true; // Permettre l'utilisation en mode mock
         }
@@ -186,18 +256,36 @@ export const useNotionIntegration = () => {
           'Si les données réelles ne s\'affichent pas, le proxy Vercel n\'est pas encore configuré correctement.'
         );
         
-        // Activer le mode mock et expliquer la situation
-        notionApi.mockMode.activate();
-        
-        toast.warning('Mode démonstration activé temporairement', {
-          description: 'L\'application utilisera des données de test pendant la configuration du proxy.',
-          duration: 6000,
-        });
+        // Activer le mode mock et expliquer la situation, mais uniquement si on n'a pas forcé le mode réel
+        if (!localStorage.getItem('notion_force_real')) {
+          notionApi.mockMode.activate();
+          
+          toast.warning('Mode démonstration activé temporairement', {
+            description: 'L\'application utilisera des données de test pendant la configuration du proxy.',
+            duration: 6000,
+            action: {
+              label: 'Forcer mode réel',
+              onClick: () => {
+                localStorage.setItem('notion_force_real', 'true');
+                notionApi.mockMode.forceReset();
+                window.location.reload();
+              }
+            }
+          });
+        }
         
         return true; // Permettre l'utilisation en mode mock
       } else {
         toast.error('Erreur d\'accès à Notion', {
           description: 'Impossible de vérifier la connexion à Notion. Vérifiez votre configuration.',
+          action: {
+            label: 'Forcer mode réel',
+            onClick: () => {
+              localStorage.setItem('notion_force_real', 'true');
+              notionApi.mockMode.forceReset();
+              window.location.reload();
+            }
+          }
         });
         return false;
       }

@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { XCircle, AlertTriangle, Info, ExternalLink, Database } from 'lucide-react';
+import { XCircle, AlertTriangle, Info, ExternalLink, Database, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import NotionSolutionsSection from './NotionSolutionsSection';
 import { notionApi } from '@/lib/notionProxy';
+import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 import { toast } from 'sonner';
 
 interface NotionErrorDetailsProps {
@@ -21,6 +22,11 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
   const handleForceRealMode = () => {
     // Forcer le mode réel de façon plus agressive
     console.log('🔄 Forçage COMPLET du mode réel et suppression des caches');
+    
+    // Nettoyage approfondi du localStorage pour Notion
+    localStorage.removeItem('notion_last_error');
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+    localStorage.setItem('notion_force_real', 'true');
     
     // Force real mode et nettoie tous les caches
     notionApi.mockMode.forceReset();
