@@ -8,6 +8,7 @@ import DiagnosticsPage from './pages/Diagnostics';
 import SamplePagesPage from './pages/SamplePages';
 
 const App: React.FC = () => {
+  console.log("App component rendering...");
   return (
     <NotionProvider>
       <Toaster />

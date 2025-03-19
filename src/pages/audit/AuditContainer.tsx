@@ -19,9 +19,13 @@ import { NotionErrorDetails } from '@/components/notion';
 import { useAuditData } from '@/hooks/useAuditData';
 
 export const AuditContainer = () => {
+  console.log("AuditContainer rendering...");
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { status, config, usingNotion, testConnection } = useNotion();
+  
+  // Débogage important - assurons-nous que le projectId est bien là
+  console.log("Project ID dans AuditContainer:", projectId);
   
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   const [notionErrorDetails, setNotionErrorDetails] = useState({
@@ -54,6 +58,7 @@ export const AuditContainer = () => {
     });
   };
   
+  // Utilisation explicite du hook avec le projectId actuel
   const { 
     project, 
     audit, 
@@ -102,6 +107,8 @@ export const AuditContainer = () => {
       loadProject();
     }, 600);
   };
+  
+  console.log("AuditContainer state:", { loading, hasProject: !!project, hasAudit: !!audit });
   
   return (
     <AuditLayout
