@@ -43,6 +43,9 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
     }
   }, []);
   
+  // Déterminer si les tests de connexion peuvent être affichés
+  const canShowTests = (initialApiKey && initialProjectsDbId) || (apiKey && projectsDbId);
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -135,8 +138,8 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         </div>
       </div>
       
-      {/* Section de test de connexion */}
-      {(apiKey && projectsDbId) && (
+      {/* Section de test de connexion - Affichée si les valeurs initiales ou saisies sont présentes */}
+      {canShowTests && (
         <div className="flex flex-col gap-2 pt-2">
           <p className="text-xs font-medium text-gray-500">Tests de connexion :</p>
           <div className="flex gap-2">
