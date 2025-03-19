@@ -5,7 +5,6 @@ import { Audit, AuditItem } from '@/lib/types';
 import CategoryTabs from './CategoryTabs';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 import ExigenceChecklist from './ExigenceChecklist';
-import { Collapsible } from '@/components/ui/collapsible';
 
 interface AuditChecklistProps {
   audit: Audit;
@@ -77,11 +76,11 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   const exigences = {
     // Map item ID to importance
     itemImportance: {
-      'item1': 'Majeur',
-      'item2': 'Important',
-      'item3': 'Moyen',
-      'item4': 'Mineur',
-      'item5': 'N/A'
+      'item-1': 'Majeur',
+      'item-2': 'Important',
+      'item-3': 'Moyen',
+      'item-4': 'Mineur',
+      'item-5': 'N/A'
     }
   };
   

@@ -36,15 +36,15 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   onItemChange 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [notes, setNotes] = useState(item.notes || '');
-  const [status, setStatus] = useState<ComplianceStatus>(item.status || 'not_checked');
+  const [notes, setNotes] = useState(item.comment || '');
+  const [status, setStatus] = useState<ComplianceStatus>(item.status || ComplianceStatus.NotEvaluated);
   
   const handleStatusChange = (newStatus: ComplianceStatus) => {
     setStatus(newStatus);
     onItemChange({
       ...item,
       status: newStatus,
-      notes: notes
+      comment: notes
     });
   };
   
@@ -52,20 +52,20 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     setNotes(e.target.value);
     onItemChange({
       ...item,
-      notes: e.target.value
+      comment: e.target.value
     });
   };
   
   // Fonction pour obtenir l'icône correspondant au statut
   const getStatusIcon = () => {
     switch (status) {
-      case 'compliant':
+      case ComplianceStatus.Compliant:
         return <CheckSquare className="text-green-500" />;
-      case 'not_compliant':
+      case ComplianceStatus.NonCompliant:
         return <XCircle className="text-red-500" />;
-      case 'partially_compliant':
+      case ComplianceStatus.PartiallyCompliant:
         return <AlertTriangle className="text-amber-500" />;
-      case 'not_applicable':
+      case ComplianceStatus.NotEvaluated:
         return <Circle className="text-gray-400" />;
       default:
         return <Square className="text-gray-500" />;
@@ -119,19 +119,8 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-700 mb-2 leading-relaxed">
-                    {item.details?.description || "Description non disponible"}
+                    {item.details || "Description non disponible"}
                   </p>
-                  
-                  {item.details?.examples && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm font-medium text-gray-700 mb-1">Exemples:</p>
-                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                        {item.details.examples.map((example, index) => (
-                          <li key={index}>{example}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
                 
                 <div>
@@ -142,7 +131,7 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                     className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-4"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem id={`compliant-${item.id}`} value="compliant" />
+                      <RadioGroupItem id={`compliant-${item.id}`} value={ComplianceStatus.Compliant} />
                       <Label 
                         htmlFor={`compliant-${item.id}`}
                         className="text-sm text-green-700 cursor-pointer"
@@ -152,9 +141,9 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem id={`not_compliant-${item.id}`} value="not_compliant" />
+                      <RadioGroupItem id={`non_compliant-${item.id}`} value={ComplianceStatus.NonCompliant} />
                       <Label 
-                        htmlFor={`not_compliant-${item.id}`}
+                        htmlFor={`non_compliant-${item.id}`}
                         className="text-sm text-red-700 cursor-pointer"
                       >
                         Non conforme
@@ -162,7 +151,7 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem id={`partially_compliant-${item.id}`} value="partially_compliant" />
+                      <RadioGroupItem id={`partially_compliant-${item.id}`} value={ComplianceStatus.PartiallyCompliant} />
                       <Label 
                         htmlFor={`partially_compliant-${item.id}`}
                         className="text-sm text-amber-700 cursor-pointer"
@@ -172,9 +161,9 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem id={`not_applicable-${item.id}`} value="not_applicable" />
+                      <RadioGroupItem id={`not_evaluated-${item.id}`} value={ComplianceStatus.NotEvaluated} />
                       <Label 
-                        htmlFor={`not_applicable-${item.id}`}
+                        htmlFor={`not_evaluated-${item.id}`}
                         className="text-sm text-gray-700 cursor-pointer"
                       >
                         Non applicable
