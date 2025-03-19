@@ -10,4 +10,4 @@ export { default as NotionAlternativesSection } from './NotionAlternativesSectio
 export { default as NotionProxyConfigSection } from './NotionProxyConfigSection';
 export { default as NotionProxyConfigGuide } from './NotionProxyConfigGuide';
 export { default as NotionDeploymentChecker } from './NotionDeploymentChecker';
-export { default as NotionDiagnosticTool } from './diagnostic/NotionDiagnosticTool';
+export { NotionDiagnosticTool } from './diagnostic';
