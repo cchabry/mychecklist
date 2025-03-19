@@ -27,6 +27,14 @@ interface AuditContainerProps {
 export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onError }) => {
   console.log("AuditContainer rendering with projectId:", projectId);
   
+  // Force le mode démo
+  React.useEffect(() => {
+    if (!notionApi.mockMode.isActive()) {
+      console.log("Activation du mode démo pour le prototype");
+      notionApi.mockMode.activate();
+    }
+  }, []);
+  
   const navigate = useNavigate();
   const { status, config, usingNotion, testConnection } = useNotion();
   
@@ -39,17 +47,6 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     error: '',
     context: ''
   });
-  
-  // Force mock mode activation if we have Notion errors
-  useEffect(() => {
-    if (status.error && !notionApi.mockMode.isActive()) {
-      console.log("⚠️ Activating mock mode due to Notion errors:", status.error);
-      notionApi.mockMode.activate();
-      toast.info('Mode démonstration activé', {
-        description: 'En raison d\'un problème de connexion à Notion, des données fictives sont utilisées'
-      });
-    }
-  }, [status.error]);
   
   const handleConnectNotionClick = () => {
     setNotionConfigOpen(true);
@@ -99,21 +96,10 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   
   useEffect(() => {
     if (projectId) {
-      console.log("Notion config changed, reloading project data");
-      console.log("Current mock mode status:", notionApi.mockMode.isActive() ? "ACTIVE" : "INACTIVE");
-      console.log("Using Notion:", usingNotion);
-      
-      if (usingNotion && notionApi.mockMode.isActive()) {
-        console.log("Force deactivating mock mode before loading project");
-        notionApi.mockMode.deactivate();
-        
-        localStorage.removeItem('audit_cache');
-        localStorage.removeItem('projects_cache');
-      }
-      
+      console.log("Loading project data");
       loadProject();
     }
-  }, [usingNotion, projectId, loadProject]);
+  }, [projectId, loadProject]);
   
   const handleUpdateAudit = (updatedAudit) => {
     console.log("Updating audit state");
@@ -122,7 +108,10 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
-    notionApi.mockMode.forceReset();
+    // Pour le prototype, on reste en mode démo
+    localStorage.removeItem('projects_cache');
+    localStorage.removeItem('audit_cache');
+    
     toast.info("Réinitialisation effectuée", {
       description: "Les données vont être rechargées"
     });
@@ -174,7 +163,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
                   size="sm" 
                   className="gap-2 text-red-500"
                   onClick={handleForceReset}
-                  title="Forcer l'état réel et réinitialiser tous les caches"
+                  title="Réinitialiser les données du prototype"
                 >
                   <RefreshCw size={16} />
                   Réinitialiser
@@ -188,17 +177,15 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
               </div>
             </div>
             
-            {notionApi.mockMode.isActive() && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={16} />
-                  <span className="font-medium">Mode démonstration actif</span>
-                </div>
-                <p className="mt-1 text-xs">
-                  Les données affichées sont fictives. Pour utiliser les données réelles, cliquez sur "Réinitialiser".
-                </p>
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} />
+                <span className="font-medium">Mode prototype actif</span>
               </div>
-            )}
+              <p className="mt-1 text-xs">
+                Les données affichées sont fictives et uniquement destinées à la démonstration du prototype.
+              </p>
+            </div>
             
             <AuditProgress audit={audit} />
           </div>
@@ -219,4 +206,3 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     </AuditLayout>
   );
 };
-

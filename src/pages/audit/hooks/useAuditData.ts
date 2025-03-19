@@ -11,10 +11,18 @@ import { useAuditError, AuditError } from './useAuditError';
 
 /**
  * Hook principal pour gérer les données d'audit
- * Utilise des hooks spécialisés pour améliorer la séparation des responsabilités
+ * Version prototype - utilise toujours des données mockées
  */
 export const useAuditData = (projectId: string | undefined) => {
   console.log("useAuditData called with projectId:", projectId);
+  
+  // Force le mode démo pour le prototype
+  useEffect(() => {
+    if (!notionApi.mockMode.isActive()) {
+      console.log("Activation du mode démo pour le prototype");
+      notionApi.mockMode.activate();
+    }
+  }, []);
   
   // Accéder au contexte Notion pour savoir si on utilise Notion
   const { usingNotion } = useNotion();
@@ -23,8 +31,8 @@ export const useAuditData = (projectId: string | undefined) => {
   const { handleError, error: auditError } = useAuditError();
   
   // Utiliser des hooks spécialisés
-  const { project, audit, loading, notionError, setAudit, loadProject } = useAuditProject(projectId, usingNotion);
-  const { isSaving, saveAudit } = useAuditSave(usingNotion);
+  const { project, audit, loading, notionError, setAudit, loadProject } = useAuditProject(projectId, false); // Force usingNotion à false
+  const { isSaving, saveAudit } = useAuditSave(false); // Force usingNotion à false
   const { hasChecklistDb } = useChecklistDatabase();
   
   // Si nous avons une erreur Notion, l'envoyer au gestionnaire d'erreurs
@@ -56,7 +64,7 @@ export const useAuditData = (projectId: string | undefined) => {
       console.error("No projectId provided to useAuditData");
       handleError({
         message: "Identifiant de projet manquant",
-        isCritical: true
+        isCritical: false // Changed to false to avoid redirection in prototype mode
       });
     }
   }, [projectId, loadProject, handleError]);
