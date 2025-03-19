@@ -16,9 +16,12 @@ const HomePage: React.FC = () => {
   const { openConfig, closeConfig, status, showConfig } = useNotion();
   
   // Vérifier si l'erreur est liée à un problème d'autorisation
-  const isAuthError = error?.message?.includes('autorisation') || 
-                     error?.message?.includes('accès') ||
-                     error?.message?.includes('403');
+  const isAuthError = error?.message?.includes('authentification') || 
+                     error?.message?.includes('401');
+  
+  const isPermissionError = error?.message?.includes('accès') || 
+                          error?.message?.includes('permission') ||
+                          error?.message?.includes('403');
   
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-tmw-teal/5">
@@ -72,7 +75,7 @@ const HomePage: React.FC = () => {
           </div>
         )}
         
-        {isAuthError && (
+        {isPermissionError && (
           <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
             <h2 className="text-sm font-medium text-red-800 flex items-center gap-1.5">
               <ShieldAlert size={16} className="text-red-500" />
@@ -100,6 +103,39 @@ const HomePage: React.FC = () => {
                 variant="outline" 
                 size="sm" 
                 className="border-red-300 bg-red-100 hover:bg-red-200 text-red-800"
+                onClick={() => {
+                  window.open('https://www.notion.so/my-integrations', '_blank');
+                }}
+              >
+                <ExternalLink size={14} className="mr-1" />
+                Mes intégrations Notion
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {isAuthError && (
+          <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mb-4">
+            <h2 className="text-sm font-medium text-orange-800 flex items-center gap-1.5">
+              <ShieldAlert size={16} className="text-orange-500" />
+              Problème d'authentification Notion
+            </h2>
+            <p className="text-xs text-orange-700 mt-1">
+              Votre clé d'API Notion semble invalide ou a expiré. Essayez de la réinitialiser:
+            </p>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-orange-300 bg-orange-100 hover:bg-orange-200 text-orange-800"
+                onClick={openConfig}
+              >
+                Configurer ma clé API
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-orange-300 bg-orange-100 hover:bg-orange-200 text-orange-800"
                 onClick={() => {
                   window.open('https://www.notion.so/my-integrations', '_blank');
                 }}

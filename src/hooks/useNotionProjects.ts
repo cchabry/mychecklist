@@ -33,63 +33,58 @@ export function useNotionProjects() {
             throw new Error('Configuration Notion manquante');
           }
           
-          // Vérifier avant tout si l'utilisateur est authentifié
+          // Utiliser directement la requête pour récupérer les projets sans tests préalables
+          // qui pourraient introduire des erreurs ou des incohérences
           try {
-            const userResponse = await notionApi.users.me(apiKey);
-            console.log('✅ Utilisateur authentifié:', userResponse.name || userResponse.id);
-          } catch (authError) {
-            console.error('❌ Erreur d\'authentification:', authError);
-            throw new Error('Erreur d\'authentification avec l\'API Notion. Vérifiez votre clé API.');
-          }
-          
-          // Test d'autorisation préalable pour un meilleur diagnostic
-          try {
-            const dbInfo = await notionApi.databases.retrieve(databaseId, apiKey);
-            console.log('✅ Base de données accessible:', dbInfo.title?.[0]?.plain_text || databaseId);
-          } catch (dbError) {
-            console.error('❌ Erreur d\'accès à la base de données:', dbError);
-            if (dbError.message?.includes('403')) {
-              throw new Error('Votre intégration Notion n\'a pas accès à cette ressource. Vérifiez que l\'intégration est bien partagée avec votre base de données.');
+            console.log('Requête directe pour récupérer les projets avec la clé API et la base de données');
+            const response = await notionApi.databases.query(
+              databaseId,
+              { sorts: [{ property: 'name', direction: 'ascending' }] },
+              apiKey
+            );
+            
+            // Transformer les données Notion en projets
+            const notionProjects = response.results.map((page: any): Project => {
+              const propertyMap = page.properties || {};
+              
+              // Extraction des propriétés avec gestion des valeurs manquantes
+              const nameProperty = propertyMap.name || propertyMap.Name || propertyMap.titre || propertyMap.Titre || {};
+              const urlProperty = propertyMap.url || propertyMap.URL || propertyMap.site || propertyMap.Site || {};
+              const progressProperty = propertyMap.progress || propertyMap.Progress || propertyMap.avancement || propertyMap.Avancement || {};
+              const itemsCountProperty = propertyMap.itemsCount || propertyMap['Items Count'] || {};
+              
+              const name = nameProperty.title?.[0]?.plain_text || 'Sans titre';
+              const url = urlProperty.url || 'https://example.com';
+              const progress = progressProperty.number || 0;
+              const itemsCount = itemsCountProperty.number || 0;
+              
+              return {
+                id: page.id,
+                name,
+                url,
+                progress,
+                itemsCount,
+                createdAt: page.created_time,
+                updatedAt: page.last_edited_time
+              };
+            });
+            
+            console.log('✅ Projets récupérés depuis Notion:', notionProjects);
+            setProjects(notionProjects);
+          } catch (queryError) {
+            console.error('❌ Erreur lors de la requête de projets:', queryError);
+            
+            // Identifier le type d'erreur pour un meilleur diagnostic
+            const errorMessage = queryError instanceof Error ? queryError.message : String(queryError);
+            
+            if (errorMessage.includes('403')) {
+              throw new Error('Votre intégration Notion n\'a pas accès à cette base de données. Vérifiez les permissions dans Notion.');
+            } else if (errorMessage.includes('401')) {
+              throw new Error('Erreur d\'authentification avec l\'API Notion. Vérifiez votre clé API.');
             } else {
-              throw dbError; // Propager l'erreur pour un meilleur diagnostic
+              throw queryError; // Propager l'erreur pour un meilleur diagnostic
             }
           }
-          
-          // Exécuter la requête pour récupérer les projets
-          const response = await notionApi.databases.query(
-            databaseId,
-            { sorts: [{ property: 'name', direction: 'ascending' }] },
-            apiKey
-          );
-          
-          // Transformer les données Notion en projets
-          const notionProjects = response.results.map((page: any): Project => {
-            const propertyMap = page.properties || {};
-            
-            // Extraction des propriétés avec gestion des valeurs manquantes
-            const nameProperty = propertyMap.name || propertyMap.Name || propertyMap.titre || propertyMap.Titre || {};
-            const urlProperty = propertyMap.url || propertyMap.URL || propertyMap.site || propertyMap.Site || {};
-            const progressProperty = propertyMap.progress || propertyMap.Progress || propertyMap.avancement || propertyMap.Avancement || {};
-            const itemsCountProperty = propertyMap.itemsCount || propertyMap['Items Count'] || {};
-            
-            const name = nameProperty.title?.[0]?.plain_text || 'Sans titre';
-            const url = urlProperty.url || 'https://example.com';
-            const progress = progressProperty.number || 0;
-            const itemsCount = itemsCountProperty.number || 0;
-            
-            return {
-              id: page.id,
-              name,
-              url,
-              progress,
-              itemsCount,
-              createdAt: page.created_time,
-              updatedAt: page.last_edited_time
-            };
-          });
-          
-          console.log('✅ Projets récupérés depuis Notion:', notionProjects);
-          setProjects(notionProjects);
         }
       } catch (err) {
         console.error('❌ Erreur lors de la récupération des projets:', err);
