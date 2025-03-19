@@ -7,13 +7,13 @@ import { Link } from 'react-router-dom';
 import ProjectCard from '@/components/ProjectCard';
 import Header from '@/components/Header';
 import { Separator } from '@/components/ui/separator';
-import { mockProjects } from '@/lib/mockData';
+import { MOCK_PROJECTS } from '@/lib/mockData';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import NotionDiagnosticTool from '@/components/notion/NotionDiagnosticTool';
 
 const IndexPage = () => {
-  const [projects, setProjects] = useState(mockProjects);
+  const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [currentTab, setCurrentTab] = useState('projects');
   
   // Vérifier si Notion est configuré

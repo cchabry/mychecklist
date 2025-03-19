@@ -283,7 +283,7 @@ const NotionDiagnosticTool = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Clé API</span>
-                      <Badge variant={results.configuration.apiKeyPresent ? "success" : "destructive"}>
+                      <Badge variant={results.configuration.apiKeyPresent ? "default" : "destructive"}>
                         {results.configuration.apiKeyPresent ? "Présente" : "Manquante"}
                       </Badge>
                     </div>
@@ -297,21 +297,21 @@ const NotionDiagnosticTool = () => {
                     
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Base de données projets</span>
-                      <Badge variant={results.configuration.dbIdPresent ? "success" : "destructive"}>
+                      <Badge variant={results.configuration.dbIdPresent ? "default" : "destructive"}>
                         {results.configuration.dbIdPresent ? "Configurée" : "Non configurée"}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Base de données checklists</span>
-                      <Badge variant={results.configuration.checklistsDbIdPresent ? "success" : "warning"}>
+                      <Badge variant={results.configuration.checklistsDbIdPresent ? "default" : "secondary"}>
                         {results.configuration.checklistsDbIdPresent ? "Configurée" : "Optionnelle"}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Mode démonstration</span>
-                      <Badge variant={!results.configuration.mockMode ? "success" : "warning"}>
+                      <Badge variant={!results.configuration.mockMode ? "default" : "secondary"}>
                         {!results.configuration.mockMode ? "Désactivé" : "Activé"}
                       </Badge>
                     </div>
@@ -328,14 +328,14 @@ const NotionDiagnosticTool = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Proxy</span>
-                      <Badge variant={results.connectivity.proxyWorking ? "success" : "destructive"}>
+                      <Badge variant={results.connectivity.proxyWorking ? "default" : "destructive"}>
                         {results.connectivity.proxyWorking ? "Fonctionnel" : "Problème"}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">API Notion accessible</span>
-                      <Badge variant={results.connectivity.notionAPIReachable ? "success" : "destructive"}>
+                      <Badge variant={results.connectivity.notionAPIReachable ? "default" : "destructive"}>
                         {results.connectivity.notionAPIReachable ? "Oui" : "Non"}
                       </Badge>
                     </div>
@@ -352,21 +352,21 @@ const NotionDiagnosticTool = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Lecture</span>
-                      <Badge variant={results.permissions.canRead ? "success" : "destructive"}>
+                      <Badge variant={results.permissions.canRead ? "default" : "destructive"}>
                         {results.permissions.canRead ? "Autorisée" : "Refusée"}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Écriture</span>
-                      <Badge variant={results.permissions.canWrite ? "success" : "destructive"}>
+                      <Badge variant={results.permissions.canWrite ? "default" : "destructive"}>
                         {results.permissions.canWrite ? "Autorisée" : "Refusée"}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                       <span className="text-xs">Accès BDD projets</span>
-                      <Badge variant={results.permissions.projectsDatabaseAccessible ? "success" : "destructive"}>
+                      <Badge variant={results.permissions.projectsDatabaseAccessible ? "default" : "destructive"}>
                         {results.permissions.projectsDatabaseAccessible ? "OK" : "Refusé"}
                       </Badge>
                     </div>
@@ -374,7 +374,7 @@ const NotionDiagnosticTool = () => {
                     {results.configuration.checklistsDbIdPresent && (
                       <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
                         <span className="text-xs">Accès BDD checklists</span>
-                        <Badge variant={results.permissions.checklistsDatabaseAccessible ? "success" : "destructive"}>
+                        <Badge variant={results.permissions.checklistsDatabaseAccessible ? "default" : "destructive"}>
                           {results.permissions.checklistsDatabaseAccessible ? "OK" : "Refusé"}
                         </Badge>
                       </div>
