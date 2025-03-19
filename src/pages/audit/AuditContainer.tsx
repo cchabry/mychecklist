@@ -34,6 +34,7 @@ export const AuditContainer = () => {
     audit, 
     loading, 
     notionError,
+    hasChecklistDb,
     setAudit, 
     handleSaveAudit,
     loadProject 
