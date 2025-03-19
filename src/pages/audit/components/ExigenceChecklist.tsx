@@ -188,7 +188,7 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     return pageResults.find(r => r.pageId === pageId)?.comment || '';
   };
   
-  // Exemple de données sur les exigences spécifiques au projet (à remplacer par des données réelles)
+  // Récupérer les données sur les exigences spécifiques au projet
   const projectRequirement = item.projectRequirement || "Cette exigence est importante pour le projet car elle impacte directement l'expérience utilisateur.";
   const projectComment = item.projectComment || "Des tests spécifiques doivent être réalisés sur les pages principales pour assurer la conformité à cette exigence.";
   
@@ -226,36 +226,23 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
           <CollapsibleContent>
             <CardContent className="pt-4">
               <div className="space-y-4">
-                {/* Exigences spécifiques au projet - Maintenant toujours visible et mise en avant */}
+                {/* Description de l'item */}
+                <div>
+                  <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+                    {item.details || "Description non disponible"}
+                  </p>
+                </div>
+                
+                {/* Exigences spécifiques au projet - Toujours visible et pas dans un accordéon */}
                 <div className="p-4 border border-blue-200 rounded-md bg-blue-50">
-                  <h3 className="font-medium text-blue-900 mb-2">Exigences spécifiques au projet</h3>
-                  
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-blue-900">Niveau d'importance:</h4>
-                      <select 
-                        className="text-sm border border-blue-200 rounded p-1 bg-white"
-                        value={importance}
-                        onChange={(e) => onItemChange({...item, importance: e.target.value})}
-                      >
-                        <option value={ImportanceLevel.NA}>{ImportanceLevel.NA}</option>
-                        <option value={ImportanceLevel.Mineur}>{ImportanceLevel.Mineur}</option>
-                        <option value={ImportanceLevel.Moyen}>{ImportanceLevel.Moyen}</option>
-                        <option value={ImportanceLevel.Important}>{ImportanceLevel.Important}</option>
-                        <option value={ImportanceLevel.Majeur}>{ImportanceLevel.Majeur}</option>
-                      </select>
-                    </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-blue-900">Exigences spécifiques au projet</h3>
+                    <Badge className={`text-xs ${getImportanceBadgeColor()}`}>
+                      Importance: {importance}
+                    </Badge>
                   </div>
                   
-                  <div className="mb-3">
-                    <h4 className="text-sm font-medium text-blue-900 mb-1">Description de l'exigence:</h4>
-                    <Textarea
-                      placeholder="Décrivez l'exigence spécifique pour ce projet..."
-                      className="text-sm bg-white border-blue-200"
-                      value={projectRequirement}
-                      onChange={(e) => onItemChange({...item, projectRequirement: e.target.value})}
-                    />
-                  </div>
+                  <p className="text-sm text-blue-800 mb-3">{projectRequirement}</p>
                   
                   <div>
                     <h4 className="text-sm font-medium text-blue-900 mb-1">Commentaire:</h4>
@@ -266,12 +253,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                       onChange={(e) => onItemChange({...item, projectComment: e.target.value})}
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-700 mb-2 leading-relaxed">
-                    {item.details || "Description non disponible"}
-                  </p>
                 </div>
                 
                 <div className="mb-4">
