@@ -1,11 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { notionApi } from '@/lib/notionProxy';
-import { AlertCircle, Share2 } from 'lucide-react';
+import { AlertCircle, Share2, Save } from 'lucide-react';
 import NotionTestButton from './NotionTestButton';
 import NotionWriteTestButton from './NotionWriteTestButton';
+import { Checkbox } from '@/components/ui/checkbox';
+import { getNotionConfig } from '@/lib/notion';
 
 interface NotionConfigFormProps {
   onSubmit: (apiKey: string, projectsDbId: string, checklistsDbId: string) => void;
@@ -26,6 +28,20 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   const [projectsDbId, setProjectsDbId] = useState(initialProjectsDbId);
   const [checklistsDbId, setChecklistsDbId] = useState(initialChecklistsDbId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  
+  // Charger la date de dernière sauvegarde au chargement
+  useEffect(() => {
+    const { lastConfigDate } = getNotionConfig();
+    if (lastConfigDate) {
+      try {
+        const date = new Date(lastConfigDate);
+        setLastSaved(date.toLocaleString());
+      } catch (e) {
+        console.error('Erreur de format de date:', e);
+      }
+    }
+  }, []);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +64,13 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+      {lastSaved && (
+        <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded border border-gray-100 flex items-center gap-2">
+          <Save size={14} />
+          <span>Dernière configuration sauvegardée: {lastSaved}</span>
+        </div>
+      )}
+      
       <div className="space-y-2">
         <label htmlFor="apiKey" className="text-sm font-medium">
           Clé d'API Notion

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { configureNotion, extractNotionDatabaseId } from '@/lib/notion';
@@ -22,7 +21,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
   const [initialProjectsDbId, setInitialProjectsDbId] = useState<string>('');
   const [initialChecklistsDbId, setInitialChecklistsDbId] = useState<string>('');
   
-  // Charger les valeurs initiales depuis localStorage à chaque ouverture
   useEffect(() => {
     if (isOpen) {
       const savedApiKey = localStorage.getItem('notion_api_key') || '';
@@ -33,14 +31,12 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       setInitialProjectsDbId(savedProjectsDbId);
       setInitialChecklistsDbId(savedChecklistsDbId);
       
-      // Log pour debug
       console.log('📝 Modal Notion ouverte, chargement des valeurs:', {
         apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
         projectsDbId: savedProjectsDbId || 'vide',
         checklistsDbId: savedChecklistsDbId || 'vide'
       });
 
-      // Réinitialiser les erreurs à chaque ouverture
       setError('');
       setErrorContext('');
     }
@@ -50,27 +46,23 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     setError('');
     setErrorContext('');
     
-    // Vérifier que la clé est bien fournie et dans le bon format
     if (!apiKey) {
       setError('La clé API est requise');
       return;
     }
     
-    // Accepter à la fois les tokens OAuth (ntn_) et les clés d'intégration (secret_)
     if (!isOAuthToken(apiKey) && !isIntegrationKey(apiKey)) {
       setError('Format de clé API invalide');
       setErrorContext('La clé doit commencer par "secret_" (intégration) ou "ntn_" (OAuth)');
       return;
     }
     
-    // Nettoyer l'ID de la base de données des projets
     const cleanProjectsDbId = extractNotionDatabaseId(projectsDbId);
     if (!cleanProjectsDbId) {
       setError('ID de base de données Projets invalide');
       return;
     }
     
-    // Nettoyer l'ID de la base de données des checklists (optionnel pour le moment)
     const cleanChecklistsDbId = checklistsDbId ? extractNotionDatabaseId(checklistsDbId) : '';
     
     console.log('🧹 Using database IDs:', {
@@ -78,46 +70,31 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       checklists: cleanChecklistsDbId || '(non fourni)'
     });
     
-    // Sauvegarder les valeurs dans localStorage immédiatement
-    localStorage.setItem('notion_api_key', apiKey);
-    localStorage.setItem('notion_database_id', cleanProjectsDbId);
-    
-    // Sauvegarder l'ID de la base de données des checklists s'il est fourni
-    if (cleanChecklistsDbId) {
-      localStorage.setItem('notion_checklists_database_id', cleanChecklistsDbId);
-    }
-    
-    console.log('💾 Valeurs sauvegardées dans localStorage:', {
+    console.log('💾 Valeurs préparées pour la sauvegarde:', {
       apiKey: `${apiKey.substring(0, 8)}...`,
       projectsDbId: cleanProjectsDbId,
       checklistsDbId: cleanChecklistsDbId || '(non fourni)',
       tokenType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
     });
     
-    // Commencer par désactiver le mode mock s'il était activé
     if (notionApi.mockMode.isActive()) {
       console.log('🔄 Désactivation du mode mock avant test de connexion');
       notionApi.mockMode.deactivate();
     }
     
-    // Tester la connexion à l'API Notion via notre proxy
     try {
       console.log('🔄 Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
       
-      // Configurer Notion pour définir les valeurs
       configureNotion(apiKey, cleanProjectsDbId, cleanChecklistsDbId);
       
-      // Tester la connexion via le proxy
       const user = await notionApi.users.me(apiKey);
       console.log('✅ Notion API connection successful via proxy, user:', user.name);
       
-      // Tester l'accès à la base de données des projets
       try {
         console.log('🔄 Testing projects database access for ID:', cleanProjectsDbId);
         const dbResponse = await notionApi.databases.retrieve(cleanProjectsDbId, apiKey);
         console.log('✅ Projects database access successful via proxy:', dbResponse.title?.[0]?.plain_text || cleanProjectsDbId);
         
-        // Tester l'accès à la base de données des checklists si elle est fournie
         if (cleanChecklistsDbId) {
           try {
             console.log('🔄 Testing checklists database access for ID:', cleanChecklistsDbId);
@@ -133,7 +110,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
       } catch (dbError) {
         console.error('❌ Projects database access failed:', dbError);
         
-        // Différencier les erreurs d'autorisation des erreurs d'ID invalide
         if (dbError.message?.includes('404') || dbError.message?.includes('not_found')) {
           setError('Base de données des projets introuvable: ' + (dbError.message || 'Vérifiez l\'ID'));
           setErrorContext('L\'ID de base de données fourni n\'existe pas ou n\'est pas accessible');
@@ -144,7 +120,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
         throw dbError;
       }
       
-      // Si tous les tests réussissent
       toast.success('Configuration Notion réussie', {
         description: 'L\'intégration avec Notion est maintenant active'
       });
@@ -154,26 +129,20 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     } catch (connectionError) {
       console.error('❌ Connection test failed:', connectionError);
       
-      // Traitement spécifique pour les erreurs d'authentification
       if (connectionError.message?.includes('401') || connectionError.message?.includes('authentication')) {
         setError('Erreur d\'authentification: Clé API invalide');
         setErrorContext('Vérifiez que vous utilisez une clé d\'intégration valide et que votre intégration est correctement configurée');
-      }
-      // Traitement spécifique pour "Failed to fetch"
-      else if (connectionError.message?.includes('Failed to fetch')) {
+      } else if (connectionError.message?.includes('Failed to fetch')) {
         setError('Échec de la connexion à Notion: ' + connectionError.message);
         setErrorContext('Problème de connexion au proxy - Vérifiez que le proxy Vercel est correctement déployé');
         
-        // Activer le mode mock
         notionApi.mockMode.activate();
         toast.warning('Mode démonstration activé', {
           description: 'Impossible de se connecter à l\'API Notion. L\'application utilisera des données de test.'
         });
         
-        // Considérer comme un succès (avec mock data)
         if (onSuccess) onSuccess();
         
-        // Montrer la popup de détails d'erreur
         setShowErrorDetails(true);
       } else {
         setError('Échec de la connexion à Notion: ' + (connectionError.message || 'Vérifiez votre clé API'));
@@ -193,7 +162,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
             </DialogDescription>
           </DialogHeader>
           
-          {/* Afficher si le mode mock est actif */}
           {notionApi.mockMode.isActive() && (
             <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mb-4">
               <p className="text-sm text-amber-700 font-medium">

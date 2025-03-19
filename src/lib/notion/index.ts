@@ -8,11 +8,21 @@ import { ProjectData } from './types';
 
 // Configuration et initialisation
 export function configureNotion(apiKey: string, databaseId: string, checklistsDbId?: string) {
-  localStorage.setItem('notion_api_key', apiKey);
-  localStorage.setItem('notion_database_id', databaseId);
-  
-  if (checklistsDbId) {
-    localStorage.setItem('notion_checklists_database_id', checklistsDbId);
+  // Stocker les valeurs dans localStorage avec une persistance permanente
+  try {
+    localStorage.setItem('notion_api_key', apiKey);
+    localStorage.setItem('notion_database_id', databaseId);
+    
+    if (checklistsDbId) {
+      localStorage.setItem('notion_checklists_database_id', checklistsDbId);
+    }
+    
+    // Stocker également la date de dernière configuration pour référence
+    localStorage.setItem('notion_last_config_date', new Date().toISOString());
+    
+    console.log('✅ Configuration Notion sauvegardée de façon permanente');
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde de la configuration Notion:', error);
   }
   
   return {
@@ -60,6 +70,16 @@ export function extractNotionDatabaseId(url: string): string {
   
   // Si on ne peut pas extraire l'ID, retourner l'entrée telle quelle
   return url;
+}
+
+// Nouvelle fonction pour récupérer les informations de configuration Notion
+export function getNotionConfig() {
+  return {
+    apiKey: localStorage.getItem('notion_api_key') || '',
+    databaseId: localStorage.getItem('notion_database_id') || '',
+    checklistsDbId: localStorage.getItem('notion_checklists_database_id') || '',
+    lastConfigDate: localStorage.getItem('notion_last_config_date') || null
+  };
 }
 
 export {
