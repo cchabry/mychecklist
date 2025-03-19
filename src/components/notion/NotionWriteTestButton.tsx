@@ -70,7 +70,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         }
       };
       
-      // Ajouter la propriété URL si elle existe dans le schéma, en utilisant notre type avec index signature
+      // Ajouter la propriété URL si elle existe dans le schéma
       try {
         createData.properties.URL = {
           url: "https://test.example.com"
@@ -133,7 +133,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         errorDescription = 'Vérifiez votre clé API. Elle peut être invalide ou expirée.';
       } else if (error.message?.includes('403')) {
         errorMessage = 'Accès refusé';
-        errorDescription = 'Vérifiez que votre intégration Notion a les permissions d\'écriture et a été correctement partagée avec votre base de données.';
+        errorDescription = 'Vérifiez que votre intégration Notion a les permissions d\'écriture et a été correctement connectée à votre base de données dans le menu "..." > "Connexions".';
       } else if (error.message?.includes('404')) {
         errorMessage = 'Base de données introuvable';
         errorDescription = 'Vérifiez l\'ID de base de données et assurez-vous qu\'elle existe toujours.';

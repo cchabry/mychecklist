@@ -74,7 +74,8 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
                 <ul className="mt-1 text-xs list-disc list-inside space-y-1">
                   <li>Vérifiez que votre intégration a accès à la base de données</li>
                   <li>Assurez-vous que les permissions d'<strong>écriture</strong> sont activées</li>
-                  <li>Dans Notion, cliquez sur <strong>Partager</strong> dans votre base de données et ajoutez votre intégration</li>
+                  <li>Dans Notion, ouvrez votre base de données, cliquez sur les <strong>trois points (...)</strong> en haut à droite</li>
+                  <li>Sélectionnez <strong>Connexions</strong> et ajoutez votre intégration</li>
                 </ul>
               </div>
             )}
