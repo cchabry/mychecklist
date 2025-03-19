@@ -9,3 +9,6 @@ export { default as NotionSolutionsSection } from './NotionSolutionsSection';
 export { default as NotionAlternativesSection } from './NotionAlternativesSection';
 export { default as NotionErrorActions } from './NotionErrorActions';
 export { default as NotionProxyConfigGuide } from './NotionProxyConfigGuide';
+export { default as NotionWriteTestButton } from './NotionWriteTestButton';
+export { default as NotionCreatePageTest } from './NotionCreatePageTest';
+export { default as NotionDiagnosticTool } from './NotionDiagnosticTool';

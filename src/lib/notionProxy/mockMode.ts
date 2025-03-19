@@ -79,6 +79,11 @@ export const mockMode = {
       temporarilyForcedReal = true;
       mockModeActive = false;
       console.log('Mode réel temporairement forcé');
+      // Forcer également dans localStorage pour être sûr
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('notion_mock_mode', 'false');
+        localStorage.setItem('notion_force_real', 'true');
+      }
     }
   },
   
@@ -88,7 +93,17 @@ export const mockMode = {
       mockModeActive = true;
       temporarilyForcedReal = false;
       console.log('Mode mock restauré après forçage temporaire');
+      // Restaurer également dans localStorage
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('notion_mock_mode', 'true');
+        localStorage.removeItem('notion_force_real');
+      }
     }
+  },
+  
+  // Vérifie si le mode réel est temporairement forcé
+  isTemporarilyForcedReal: () => {
+    return temporarilyForcedReal;
   },
   
   // Réinitialisation forcée (complète)
@@ -97,6 +112,8 @@ export const mockMode = {
     temporarilyForcedReal = false;
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('notion_mock_mode');
+      localStorage.removeItem('notion_force_real');
+      localStorage.setItem('notion_mock_mode_reset_at', Date.now().toString());
     }
     console.log('Mode mock réinitialisé de force');
   }

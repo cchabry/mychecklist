@@ -25,14 +25,31 @@ export const create = async (data: any, token: string) => {
     return Promise.reject(new Error('Token Notion manquant'));
   }
   
-  // Vérifier l'état du mode mock
+  // Vérifier l'état du mode mock de façon plus approfondie
+  const forceRealMode = localStorage.getItem('notion_force_real') === 'true';
   const isMockMode = mockMode.isActive();
-  console.log(`⚠️ État du mode mock lors de la création: ${isMockMode ? 'ACTIF' : 'INACTIF'}`);
+  console.log(`⚠️ État du mode mock lors de la création:`, {
+    'mockMode.isActive()': isMockMode,
+    'forceRealMode': forceRealMode,
+    'localStorage.notion_mock_mode': localStorage.getItem('notion_mock_mode'),
+    'localStorage.notion_force_real': localStorage.getItem('notion_force_real'),
+    'temporarilyForcedReal': mockMode.isTemporarilyForcedReal ? mockMode.isTemporarilyForcedReal() : 'non disponible'
+  });
   
   // Désactiver le mode mock pendant la création
-  if (isMockMode) {
-    mockMode.temporarilyForceReal();
+  if (isMockMode || forceRealMode) {
     console.log('✅ Mode réel temporairement forcé pour la création du projet');
+    // Désactiver de façon plus agressive
+    localStorage.removeItem('notion_mock_mode');
+    localStorage.setItem('notion_force_real', 'true');
+    mockMode.temporarilyForceReal();
+  }
+  
+  // Vérifier à nouveau si le mode est bien désactivé
+  if (mockMode.isActive()) {
+    console.warn('⚠️ ALERTE: Mode mock toujours actif malgré la tentative de désactivation!');
+  } else {
+    console.log('✅ Confirmation: Mode réel activé pour la création.');
   }
   
   // Format du token : vérifier et ajouter "Bearer " si nécessaire
@@ -220,6 +237,13 @@ export const update = async (pageId: string, properties: any, token: string) => 
   
   console.log(`Mise à jour de la page ${pageId}:`, JSON.stringify(properties, null, 2));
   
+  // Désactiver temporairement le mode mock pour cette opération
+  const isMockMode = mockMode.isActive();
+  if (isMockMode) {
+    console.log('✅ Mode réel temporairement forcé pour la mise à jour de page');
+    mockMode.temporarilyForceReal();
+  }
+  
   try {
     const response = await notionApiRequest(
       `/pages/${pageId}`, 
@@ -241,5 +265,10 @@ export const update = async (pageId: string, properties: any, token: string) => 
   } catch (error) {
     console.error(`Erreur lors de la mise à jour de la page ${pageId}:`, error);
     throw error;
+  } finally {
+    // Restaurer le mode mock si nécessaire
+    if (isMockMode) {
+      mockMode.restoreAfterForceReal();
+    }
   }
 };
