@@ -40,7 +40,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
     setIsRunning(true);
     setCreatedPageInfo(null);
     
-    // Réinitialiser les résultats
     setResults({
       configTests: [
         { name: 'Clé API', description: 'Vérifie si une clé API est configurée', status: 'pending' },
@@ -61,12 +60,10 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
       ]
     });
     
-    // Obtenir tous les paramètres nécessaires
     const apiKey = localStorage.getItem('notion_api_key');
     const projectsDbId = localStorage.getItem('notion_database_id');
     const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
     
-    // Désactiver temporairement le mode mock si actif
     const wasMockMode = notionApi.mockMode.isActive();
     if (wasMockMode) {
       console.log('💡 Désactivation temporaire du mode mock pour les diagnostics');
@@ -74,9 +71,7 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
       notionApi.mockMode.forceReset();
     }
     
-    // 1. Tests de configuration
     try {
-      // Test 1.1: Clé API
       const configResults = [...results.configTests];
       
       if (apiKey) {
@@ -93,7 +88,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
         };
       }
       
-      // Test 1.2: Base de données projets
       if (projectsDbId) {
         configResults[1] = { 
           ...results.configTests[1], 
@@ -108,7 +102,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
         };
       }
       
-      // Test 1.3: Base de données checklists
       if (checklistsDbId) {
         configResults[2] = { 
           ...results.configTests[2], 
@@ -128,14 +121,11 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
       console.error('Erreur lors des tests de configuration:', error);
     }
     
-    // 2. Tests de connectivité
     if (apiKey) {
       try {
-        // Test 2.1: Proxy API
         const connectivityResults = [...results.connectivityTests];
         
         try {
-          // Essayer de faire une requête simple
           const response = await fetch('/api/ping');
           
           if (response.ok) {
@@ -159,9 +149,7 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
           };
         }
         
-        // Test 2.2: Authentification Notion
         try {
-          // Tenter d'obtenir les informations utilisateur
           const user = await notionApi.users.me(apiKey);
           
           if (user && user.id) {
@@ -191,14 +179,11 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
       }
     }
     
-    // 3. Tests de permissions
     if (apiKey && projectsDbId) {
       try {
         const permissionResults = [...results.permissionTests];
         
-        // Test 3.1: Lecture des projets
         try {
-          // Tenter de récupérer les détails de la base de données
           const dbInfo = await notionApi.databases.retrieve(projectsDbId, apiKey);
           
           if (dbInfo && dbInfo.id) {
@@ -222,9 +207,7 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
           };
         }
         
-        // Test 3.2: Écriture dans les projets
         try {
-          // Tenter de créer une page test
           const timestamp = new Date().toISOString();
           const testTitle = `Test diagnostique ${timestamp}`;
           
@@ -253,7 +236,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
           if (createdPage && createdPage.id) {
             let successMessage = `Test d'écriture réussi: Page créée avec ID ${createdPage.id.substring(0, 8)}...`;
             
-            // Si on ne veut pas persister, archiver la page
             if (!persistCreatedPage) {
               try {
                 await notionApi.pages.update(createdPage.id, {
@@ -265,7 +247,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
                 successMessage += " (impossible d'archiver la page)";
               }
             } else {
-              // Garder l'information de la page créée
               setCreatedPageInfo({
                 id: createdPage.id,
                 title: testTitle
@@ -299,18 +280,14 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
       }
     }
     
-    // 4. Tests de structure
     if (apiKey && projectsDbId) {
       try {
         const structureResults = [...results.structureTests];
         
-        // Test 4.1: Structure de la base de données de projets
         try {
-          // Vérifier si la base de données a les propriétés requises
           const dbInfo = await notionApi.databases.retrieve(projectsDbId, apiKey);
           
           if (dbInfo && dbInfo.properties) {
-            // Vérifier si les propriétés nécessaires sont présentes
             const requiredProps = ['Name', 'id', 'url', 'progress', 'itemsCount'];
             const missingProps = requiredProps.filter(prop => 
               !Object.keys(dbInfo.properties).some(key => 
@@ -346,14 +323,11 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
           };
         }
         
-        // Test 4.2: Structure de la base de données de checklists (si configurée)
         if (checklistsDbId) {
           try {
-            // Vérifier si la base de données a les propriétés requises
             const checklistDbInfo = await notionApi.databases.retrieve(checklistsDbId, apiKey);
             
             if (checklistDbInfo && checklistDbInfo.properties) {
-              // Vérifier si les propriétés nécessaires sont présentes
               const requiredProps = ['ID', 'Consigne', 'Catégorie'];
               const missingProps = requiredProps.filter(prop => 
                 !Object.keys(checklistDbInfo.properties).some(key => 
@@ -402,7 +376,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
       }
     }
     
-    // Restaurer le mode mock si nécessaire
     if (wasMockMode) {
       console.log('💡 Restauration du mode mock après les diagnostics');
       notionApi.mockMode.activate();
@@ -410,13 +383,11 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
     
     setIsRunning(false);
     
-    // Notification de fin des tests
     toast.success('Diagnostics terminés', {
       description: 'Tous les tests ont été exécutés'
     });
   };
   
-  // Exécuter les diagnostics au chargement initial
   useEffect(() => {
     runDiagnostics();
   }, []);
@@ -471,7 +442,6 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
     );
   };
   
-  // Calculer un résumé des résultats
   const summary = {
     success: Object.values(results).flatMap(group => group).filter(r => r.status === 'success').length,
     warning: Object.values(results).flatMap(group => group).filter(r => r.status === 'warning').length,
@@ -572,5 +542,80 @@ const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ onConfigCli
               <Loader2 className="h-8 w-8 animate-spin text-tmw-teal" />
               <p className="mt-4 text-sm text-muted-foreground">Exécution des tests diagnostiques...</p>
             </div>
-          ) :
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Configuration</h3>
+                <div className="space-y-1 pl-1">
+                  {results.configTests.map((test, index) => (
+                    <React.Fragment key={`config-${index}`}>
+                      {renderTestResult(test)}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Connectivité</h3>
+                <div className="space-y-1 pl-1">
+                  {results.connectivityTests.map((test, index) => (
+                    <React.Fragment key={`connectivity-${index}`}>
+                      {renderTestResult(test)}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Permissions</h3>
+                <div className="space-y-1 pl-1">
+                  {results.permissionTests.map((test, index) => (
+                    <React.Fragment key={`permission-${index}`}>
+                      {renderTestResult(test)}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Structure</h3>
+                <div className="space-y-1 pl-1">
+                  {results.structureTests.map((test, index) => (
+                    <React.Fragment key={`structure-${index}`}>
+                      {renderTestResult(test)}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+        
+        <CardFooter className="pt-6 pb-4 flex justify-between">
+          <div className="text-xs text-muted-foreground">
+            {isRunning ? 'Diagnostics en cours...' : 'Dernière exécution: ' + new Date().toLocaleTimeString()}
+          </div>
+          
+          {onConfigClick && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onConfigClick}
+              className="text-xs"
+            >
+              Modifier la configuration
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
 
+export default NotionDiagnosticTool;
