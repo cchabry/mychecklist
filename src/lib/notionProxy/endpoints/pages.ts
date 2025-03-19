@@ -61,52 +61,138 @@ export const create = async (data: any, token: string) => {
     }
   }
   
-  // Nettoyer et standardiser les propriétés pour éviter les erreurs d'API
-  if (data && data.properties) {
-    // S'assurer que les propriétés standard avec noms capitalisés sont présentes
-    if (!data.properties.Name && data.properties.name) {
-      data.properties.Name = { ...data.properties.name };
-      delete data.properties.name; // Supprimer la version non capitalisée
-    }
-    
-    if (!data.properties.URL && data.properties.url) {
-      data.properties.URL = { ...data.properties.url };
-      delete data.properties.url; // Supprimer la version non capitalisée
-    }
-    
-    // S'assurer que les propriétés de titre sont correctement formatées
-    if (data.properties.Name && data.properties.Name.title) {
-      if (Array.isArray(data.properties.Name.title)) {
-        data.properties.Name.title = data.properties.Name.title.map((item: any) => {
-          if (typeof item === 'string') {
-            return { text: { content: item } };
-          }
-          if (typeof item.text === 'string') {
-            return { text: { content: item.text } };
-          }
-          return item;
-        });
-      } else if (typeof data.properties.Name.title === 'string') {
-        // Convertir une chaîne simple en format attendu par l'API
-        data.properties.Name.title = [{ text: { content: data.properties.Name.title } }];
+  // NOUVEAU: Vérifier d'abord la structure de la base de données pour adapter le format des données
+  try {
+    // Si nous avons un parent database_id, vérifions sa structure avant création
+    if (data?.parent?.database_id) {
+      console.log('🔍 Vérification de la structure de la base de données avant création...');
+      
+      try {
+        const dbDetails = await notionApiRequest(
+          `/databases/${data.parent.database_id}`, 
+          'GET', 
+          undefined, 
+          formattedToken
+        );
+        
+        // Si on obtient la structure, mettons à jour nos propriétés pour qu'elles correspondent
+        if (dbDetails && dbDetails.properties) {
+          console.log('✅ Structure de la base de données récupérée:', 
+            Object.keys(dbDetails.properties).map(key => `${key} (${dbDetails.properties[key].type})`)
+          );
+          
+          // Créons un nouvel objet properties adapté à la base
+          const adaptedProperties: Record<string, any> = {};
+          
+          // Parcourir les propriétés de la base de données et adapter nos données
+          Object.entries(dbDetails.properties).forEach(([propName, propDetails]) => {
+            const propType = (propDetails as any).type;
+            
+            // Gérer la propriété de titre spéciale (normalement Name)
+            if (propType === 'title') {
+              console.log(`🔄 Adaptation de la propriété titre "${propName}" (${propType})`);
+              
+              // Si nous avons déjà une propriété Name, l'utiliser
+              if (data.properties.Name && data.properties.Name.title) {
+                adaptedProperties[propName] = {
+                  title: data.properties.Name.title
+                };
+              } 
+              // Sinon essayer "name", "Titre", "titre", etc.
+              else if (data.properties.name && data.properties.name.title) {
+                adaptedProperties[propName] = {
+                  title: data.properties.name.title
+                };
+              }
+              // Si aucune ne correspond, créer une valeur par défaut
+              else {
+                adaptedProperties[propName] = {
+                  title: [{ text: { content: "Nouveau projet" } }]
+                };
+              }
+            }
+            // Gérer les propriétés select (comme Status)
+            else if (propType === 'select') {
+              console.log(`🔄 Adaptation de la propriété select "${propName}" (${propType})`);
+              
+              // Si la propriété s'appelle Status, Statut ou status, essayer de l'adapter
+              const isStatusField = propName.toLowerCase() === 'status' || 
+                                   propName.toLowerCase() === 'statut';
+              
+              if (isStatusField) {
+                // Vérifier si nous avons des options valides pour ce select
+                if ((propDetails as any).select?.options?.length > 0) {
+                  // Utiliser la première option disponible comme valeur par défaut
+                  const defaultOption = (propDetails as any).select.options[0].name;
+                  adaptedProperties[propName] = {
+                    select: { name: defaultOption }
+                  };
+                  console.log(`✅ Utilisation de la valeur par défaut "${defaultOption}" pour ${propName}`);
+                } else {
+                  console.log(`⚠️ Aucune option trouvée pour le select ${propName}, champ ignoré`);
+                }
+              }
+            }
+            // Gérer les propriétés rich_text (comme Description)
+            else if (propType === 'rich_text') {
+              console.log(`🔄 Adaptation de la propriété rich_text "${propName}" (${propType})`);
+              
+              if (propName.toLowerCase().includes('description')) {
+                adaptedProperties[propName] = {
+                  rich_text: [{ text: { content: "Description du projet" } }]
+                };
+              }
+            }
+            // Gérer les propriétés URL
+            else if (propType === 'url') {
+              console.log(`🔄 Adaptation de la propriété url "${propName}" (${propType})`);
+              
+              adaptedProperties[propName] = {
+                url: "https://example.com"
+              };
+            }
+            // Gérer les propriétés number (comme progress)
+            else if (propType === 'number') {
+              if (propName.toLowerCase().includes('progress')) {
+                adaptedProperties[propName] = {
+                  number: 0
+                };
+              }
+            }
+            // Gérer les propriétés date
+            else if (propType === 'date') {
+              adaptedProperties[propName] = {
+                date: { start: new Date().toISOString() }
+              };
+            }
+            // Ignorer les autres types de propriétés pour la création
+          });
+          
+          console.log('📝 Propriétés adaptées à la structure de la base:', JSON.stringify(adaptedProperties, null, 2));
+          
+          // Remplacer les propriétés d'origine par celles adaptées
+          data.properties = adaptedProperties;
+        }
+      } catch (dbError) {
+        console.error('❌ Erreur lors de la vérification de la structure de la base:', dbError);
+        // On continue quand même, car l'erreur pourrait venir d'autre chose
+        // mais on ajoute un log plus détaillé pour aider au debug
+        if (dbError.message?.includes('400')) {
+          console.error('❌ Erreur 400 - Mauvaise requête. Vérifiez l\'ID de la base de données.');
+        } else if (dbError.message?.includes('404')) {
+          console.error('❌ Erreur 404 - Base de données introuvable. Vérifiez l\'ID et les permissions.');
+        } else if (dbError.message?.includes('403')) {
+          console.error('❌ Erreur 403 - Accès refusé. Votre intégration n\'a pas accès à cette base de données.');
+        }
       }
     }
-    
-    // Nettoyer les propriétés en double qui pourraient causer des problèmes
-    // Conserver uniquement les propriétés utilisées dans la base de données
-    const cleanedProperties: Record<string, any> = {};
-    Object.entries(data.properties).forEach(([key, value]) => {
-      // Ne pas dépasser 100 propriétés (limite de l'API Notion)
-      if (Object.keys(cleanedProperties).length < 90) {
-        cleanedProperties[key] = value;
-      }
-    });
-    
-    data.properties = cleanedProperties;
+  } catch (structureError) {
+    console.error('❌ Erreur lors de l\'adaptation des données à la structure:', structureError);
+    // On continue avec les données d'origine
   }
   
-  // Log des données nettoyées
-  console.log('📝 Données nettoyées pour création de page:', JSON.stringify(data, null, 2));
+  // Log des données nettoyées et adaptées à la base
+  console.log('📝 Données finales pour création de page:', JSON.stringify(data, null, 2));
   
   // Effacer le cache avant création
   localStorage.removeItem('projects_cache');
@@ -177,7 +263,17 @@ export const create = async (data: any, token: string) => {
       } else if (errorMessage.includes('400')) {
         errorMessage = 'Format de données invalide pour Notion.';
         toast.error('Erreur de format', {
-          description: 'Le format des données envoyées n\'est pas accepté par Notion. Vérifiez les propriétés requises de votre base de données.'
+          description: 'Le format des données envoyées n\'est pas accepté par Notion. Vérifiez les propriétés requises de votre base de données.',
+          action: {
+            label: 'Vérifier structure',
+            onClick: () => {
+              // Sauvegarder l'erreur dans localStorage pour pouvoir l'analyser
+              localStorage.setItem('notion_last_error', JSON.stringify(error.message || 'Erreur 400'));
+              toast.info('Conseil', {
+                description: 'Vérifiez que votre base Notion contient les propriétés correctes et que leurs types correspondent.'
+              });
+            }
+          }
         });
       } else if (errorMessage.includes('404')) {
         errorMessage = 'Base de données Notion introuvable.';

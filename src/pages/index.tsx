@@ -5,8 +5,9 @@ import { NotionCreatePageTest, NotionDiagnosticTool } from '@/components/notion'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotionConfig } from '@/components/notion';
 import { Button } from '@/components/ui/button';
-import { Settings, Database, AlertTriangle } from 'lucide-react';
+import { Settings, Database, AlertTriangle, FileSearch } from 'lucide-react';
 import { mockMode } from '@/lib/notionProxy/mockMode';
+import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
 
 const HomePage = () => {
   const [configOpen, setConfigOpen] = React.useState(false);
@@ -55,8 +56,9 @@ const HomePage = () => {
       />
       
       <Tabs defaultValue="tests" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-md mb-6">
           <TabsTrigger value="tests">Tests rapides</TabsTrigger>
+          <TabsTrigger value="structure">Structure BDD</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic complet</TabsTrigger>
         </TabsList>
         
@@ -87,6 +89,48 @@ const HomePage = () => {
                   <Database size={16} />
                   Forcer le mode réel
                 </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="structure">
+          <div className="space-y-6">
+            <NotionDatabaseStructureCheck />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Analyse de structure</CardTitle>
+                <CardDescription>
+                  Comment interpréter les résultats de l'analyse
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <h3 className="font-medium mb-2 flex items-center gap-1.5">
+                      <FileSearch size={16} className="text-blue-500" />
+                      Propriétés requises
+                    </h3>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Au moins une propriété de type <strong>title</strong> (généralement nommée "Name" ou "Titre")</li>
+                      <li>Pour utiliser le statut, une propriété <strong>select</strong> nommée "Status" ou "Statut"</li>
+                      <li>Pour la description, une propriété <strong>rich_text</strong> nommée "Description"</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Conseils d'utilisation</h3>
+                    <p className="text-muted-foreground mb-2">
+                      Si vous rencontrez des erreurs 400 lors de la création, vérifiez:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Que le nom exact de vos propriétés correspond à ce que l'application attend</li>
+                      <li>Que le type de chaque propriété est correct (title, select, rich_text, etc.)</li>
+                      <li>Que les propriétés select ont des options définies</li>
+                    </ul>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -120,6 +120,47 @@ const AuditPage = () => {
                 description: `L'intégration avec Notion est maintenant active (${tokenType})`,
               });
             }
+            
+            // Vérifier la structure de la base de données et afficher des informations utiles
+            try {
+              const dbId = localStorage.getItem('notion_database_id');
+              if (dbId) {
+                const dbDetails = await notionApi.databases.retrieve(dbId, cleanKey);
+                if (dbDetails && dbDetails.properties) {
+                  console.log('📊 Structure de la base de données récupérée:', Object.keys(dbDetails.properties));
+                  
+                  // Vérifier si certaines propriétés existent et afficher des conseils pour l'utilisateur
+                  const hasName = Object.keys(dbDetails.properties).some(key => 
+                    key === 'Name' || key === 'name' || key === 'Nom' || key === 'nom'
+                  );
+                  
+                  const hasStatus = Object.keys(dbDetails.properties).some(key => 
+                    key === 'Status' || key === 'status' || key === 'Statut' || key === 'statut'
+                  );
+                  
+                  if (!hasName) {
+                    console.warn('⚠️ Attention: Aucune propriété "Name" détectée dans la base de données');
+                    toast.warning('Structure de base de données', {
+                      description: 'Aucune propriété "Name" ou équivalente détectée. Les créations peuvent échouer.',
+                    });
+                  }
+                  
+                  if (!hasStatus) {
+                    console.warn('⚠️ Attention: Aucune propriété "Status" détectée dans la base de données');
+                    // Nous n'affichons pas de toast car Status est secondaire
+                  }
+                  
+                  // Afficher la liste exacte des propriétés pour aider au debug
+                  console.log('📋 Liste exacte des propriétés disponibles:', 
+                    Object.entries(dbDetails.properties).map(([key, prop]) => 
+                      `${key} (${(prop as any).type})`
+                    )
+                  );
+                }
+              }
+            } catch (dbError) {
+              console.warn('⚠️ Impossible de vérifier la structure de la base de données:', dbError);
+            }
           } catch (testError) {
             console.error('❌ Test de connexion Notion échoué:', testError);
             
