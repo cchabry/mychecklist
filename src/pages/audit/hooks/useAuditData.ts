@@ -7,7 +7,7 @@ import { useChecklistDatabase } from './useChecklistDatabase';
 import { useNotion } from '@/contexts/NotionContext';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
-import { useAuditError } from './useAuditError';
+import { useAuditError, AuditError } from './useAuditError';
 
 /**
  * Hook principal pour gérer les données d'audit
@@ -31,7 +31,13 @@ export const useAuditData = (projectId: string | undefined) => {
   useEffect(() => {
     if (notionError) {
       console.log("Handling Notion error in useAuditData:", notionError);
-      handleError(notionError, "Chargement des données d'audit");
+      // Convert the Notion error object to a format handleError can accept
+      const auditError: AuditError = {
+        message: notionError.error,
+        details: notionError.context,
+        source: "Chargement des données d'audit"
+      };
+      handleError(auditError);
       
       // Force reload project with mock data after a short delay
       setTimeout(() => {
