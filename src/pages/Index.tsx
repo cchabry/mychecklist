@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Plus, Settings, RotateCw } from 'lucide-react';
+import { Plus, Settings, RotateCw, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ProjectCard } from '@/components/ProjectCard';
-import { NotionConfigModal } from '@/components/notion';
+import ProjectCard from '@/components/ProjectCard';
+import { NotionConfig } from '@/components/notion';
 import { getProjectsFromNotion } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -14,16 +14,13 @@ const ProjectPage = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleRefresh = () => {
-    // Rafraîchir la liste des projets
     setProjects([]);
     setIsLoading(true);
     loadProjects();
   };
 
   const handleForceReset = () => {
-    // Réinitialiser complètement l'état et le mode mock
     notionApi.mockMode.forceReset();
-    // Le rechargement de la page est fait dans la fonction forceReset
   };
 
   useEffect(() => {
@@ -116,7 +113,7 @@ const ProjectPage = () => {
         </div>
       )}
 
-      <NotionConfigModal
+      <NotionConfig
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onSuccess={handleNotionSuccess}
