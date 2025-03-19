@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   CheckSquare, 
@@ -194,32 +195,32 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     <Card className="shadow-sm border border-gray-100">
       <CardHeader className="pb-2">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-2">
-              <div className="mt-1">{getStatusIcon(item.status)}</div>
-              <div>
-                <CardTitle className="text-base text-gray-900">{item.title}</CardTitle>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">
-                    {item.category}
-                  </Badge>
-                  <Badge variant="outline" className={`text-xs ${getImportanceBadgeColor()}`}>
-                    {importance}
-                  </Badge>
-                  {item.requirementLevel && (
-                    <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800">
-                      {item.requirementLevel}
+          <CollapsibleTrigger asChild>
+            <div className="flex items-start justify-between cursor-pointer">
+              <div className="flex items-start gap-2">
+                <div className="mt-1">{getStatusIcon(item.status)}</div>
+                <div>
+                  <CardTitle className="text-base text-gray-900">{item.title}</CardTitle>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <Badge variant="secondary" className="text-xs">
+                      {item.category}
                     </Badge>
-                  )}
+                    <Badge variant="outline" className={`text-xs ${getImportanceBadgeColor()}`}>
+                      {importance}
+                    </Badge>
+                    {item.requirementLevel && (
+                      <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800">
+                        {item.requirementLevel}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <CollapsibleTrigger asChild>
-              <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <div className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />
-              </button>
-            </CollapsibleTrigger>
-          </div>
+              </div>
+            </div>
+          </CollapsibleTrigger>
           
           <CollapsibleContent>
             <CardContent className="pt-4">
