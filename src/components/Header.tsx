@@ -15,11 +15,11 @@ const Header: React.FC = () => {
           className="flex items-center space-x-2 transition-opacity duration-300 hover:opacity-80"
         >
           <img 
-            src="lovable-uploads/34e56f4c-c4dc-4d50-b4f8-6a3781d5afbd.png" 
+            src="/logo.png" 
             alt="myChecklist Logo" 
             className="h-8 w-auto" 
           />
-          <span className="text-lg font-medium text-tmw-darkgray sr-only">myChecklist</span>
+          <span className="text-lg font-medium text-tmw-darkgray">myChecklist</span>
         </Link>
         
         <div className="flex items-center space-x-4">
