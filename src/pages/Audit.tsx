@@ -1,6 +1,6 @@
 
 import React, { Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Navigate } from 'react-router-dom';
 import { AuditContainer } from './audit/AuditContainer';
 
 // Wrapper avec un fallback loading state
@@ -10,9 +10,7 @@ const Audit = () => {
   if (!projectId) {
     console.error("Aucun projectId fourni à Audit");
     return (
-      <div className="text-center p-8">
-        Erreur: Identifiant de projet manquant
-      </div>
+      <Navigate to="/" replace />
     );
   }
   

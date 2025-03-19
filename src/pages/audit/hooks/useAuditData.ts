@@ -1,10 +1,12 @@
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Audit } from '@/lib/types';
 import { useAuditProject } from './useAuditProject';
 import { useAuditSave } from './useAuditSave';
 import { useChecklistDatabase } from './useChecklistDatabase';
 import { useNotion } from '@/contexts/NotionContext';
+import { notionApi } from '@/lib/notionProxy';
+import { toast } from 'sonner';
 
 /**
  * Hook principal pour gérer les données d'audit
@@ -20,6 +22,17 @@ export const useAuditData = (projectId: string | undefined) => {
   const { project, audit, loading, notionError, setAudit, loadProject } = useAuditProject(projectId, usingNotion);
   const { isSaving, saveAudit } = useAuditSave(usingNotion);
   const { hasChecklistDb } = useChecklistDatabase();
+  
+  // Si nous avons une erreur Notion et que nous ne sommes pas en mode mock, activer le mode mock
+  useEffect(() => {
+    if (notionError && !notionApi.mockMode.isActive()) {
+      console.log("Activating mock mode due to Notion error in useAuditData");
+      notionApi.mockMode.activate();
+      toast.info('Mode démonstration activé automatiquement', { 
+        description: 'En raison d\'un problème de connexion à Notion, l\'application utilise des données fictives'
+      });
+    }
+  }, [notionError]);
   
   // Charger les données du projet au montage du composant
   useEffect(() => {

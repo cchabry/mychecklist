@@ -38,6 +38,14 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => 
     context: ''
   });
   
+  // Force mock mode activation if we have Notion errors
+  useEffect(() => {
+    if (status.error && !notionApi.mockMode.isActive()) {
+      console.log("⚠️ Activating mock mode due to Notion errors:", status.error);
+      notionApi.mockMode.activate();
+    }
+  }, [status.error]);
+  
   const handleConnectNotionClick = () => {
     setNotionConfigOpen(true);
   };
@@ -111,6 +119,20 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => 
       loadProject();
     }, 600);
   };
+  
+  // Si le projectId est manquant, afficher un message d'erreur
+  if (!projectId) {
+    console.error("No projectId provided to AuditContainer");
+    return (
+      <div className="flex min-h-screen items-center justify-center p-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Erreur: ID de projet manquant</h2>
+          <p className="text-gray-600 mb-4">Impossible d'afficher cet audit sans identifiant de projet.</p>
+          <Button onClick={() => navigate('/')}>Retourner à l'accueil</Button>
+        </div>
+      </div>
+    );
+  }
   
   console.log("AuditContainer state:", { loading, hasProject: !!project, hasAudit: !!audit });
   
