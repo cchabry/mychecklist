@@ -16,7 +16,8 @@ import {
   NotionConnectButton 
 } from './components';
 import { NotionErrorDetails } from '@/components/notion';
-import { useAuditData } from '../audit/hooks/useAuditData';
+import { useAuditData } from './hooks/useAuditData';
+import { toast } from 'sonner';
 
 interface AuditContainerProps {
   projectId: string;
@@ -43,6 +44,9 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => 
     if (status.error && !notionApi.mockMode.isActive()) {
       console.log("⚠️ Activating mock mode due to Notion errors:", status.error);
       notionApi.mockMode.activate();
+      toast.info('Mode démonstration activé', {
+        description: 'En raison d\'un problème de connexion à Notion, des données fictives sont utilisées'
+      });
     }
   }, [status.error]);
   
@@ -114,6 +118,9 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => 
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
     notionApi.mockMode.forceReset();
+    toast.info("Réinitialisation effectuée", {
+      description: "Les données vont être rechargées"
+    });
     
     setTimeout(() => {
       loadProject();

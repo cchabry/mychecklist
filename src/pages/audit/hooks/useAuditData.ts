@@ -31,8 +31,14 @@ export const useAuditData = (projectId: string | undefined) => {
       toast.info('Mode démonstration activé automatiquement', { 
         description: 'En raison d\'un problème de connexion à Notion, l\'application utilise des données fictives'
       });
+      
+      // Force reload project with mock data
+      setTimeout(() => {
+        console.log("Reloading project with mock data after Notion error");
+        loadProject();
+      }, 300);
     }
-  }, [notionError]);
+  }, [notionError, loadProject]);
   
   // Charger les données du projet au montage du composant
   useEffect(() => {

@@ -21,6 +21,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
    * Charge les données du projet et de son audit, avec fallback sur les données de démo
    */
   const loadProject = async () => {
+    console.log("Starting loadProject() with projectId:", projectId);
     setLoading(true);
     setNotionError(null);
     
@@ -106,12 +107,16 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
                 toast.error('Erreur d\'accès à Notion', {
                   description: 'Impossible de charger les données depuis Notion. Vérifiez votre connexion.',
                 });
+                
+                // Activer le mode mock
+                notionApi.mockMode.activate();
               }
             }
           }
         } catch (notionError) {
           console.error('Erreur Notion:', notionError);
           // Continue with mock data on Notion error
+          notionApi.mockMode.activate();
         }
       }
       
@@ -132,6 +137,14 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
             setLoading(false);
           }, 800);
           return; // Exit early as we're handling loading state in setTimeout
+        } else {
+          console.error("Le projet avec l'ID", projectId, "n'a pas été trouvé dans les données mock");
+          toast.error("Projet non trouvé", {
+            description: "Le projet demandé n'existe pas"
+          });
+          setLoading(false);
+          navigate('/');
+          return;
         }
       } else {
         // Successfully loaded from Notion
@@ -165,19 +178,24 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       // Fallback to mock data
       try {
         const mockProjectData = getProjectById(projectId);
-        setProject(mockProjectData);
-        
         if (mockProjectData) {
+          setProject(mockProjectData);
+          
           const mockAudit = mockProjectData.progress === 0 
             ? createNewAudit(projectId) 
             : createMockAudit(projectId);
           setAudit(mockAudit);
+        } else {
+          console.error("Le projet avec l'ID", projectId, "n'a pas été trouvé dans les données mock");
+          // Rediriger vers la page d'accueil après un court délai
+          setTimeout(() => navigate('/'), 1000);
         }
       } catch (fallbackError) {
         console.error('Fallback error:', fallbackError);
+      } finally {
+        // Assurer que le chargement se termine toujours
+        setLoading(false);
       }
-      
-      setLoading(false);
     }
   };
   

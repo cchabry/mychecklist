@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { AuditContainer } from './audit/AuditContainer';
 import { toast } from 'sonner';
@@ -21,7 +21,16 @@ const AuditPage = () => {
   }
   
   console.log("Rendu de AuditPage avec projectId:", projectId);
-  return <AuditContainer projectId={projectId} />;
+  
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-t-transparent border-tmw-teal rounded-full animate-spin"></div>
+      </div>
+    }>
+      <AuditContainer projectId={projectId} />
+    </Suspense>
+  );
 };
 
 export default AuditPage;
