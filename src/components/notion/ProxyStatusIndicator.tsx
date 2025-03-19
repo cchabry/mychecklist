@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wifi, Server, AlertTriangle } from 'lucide-react';
+import { Wifi, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { corsProxyService } from '@/lib/notionProxy/corsProxyService';
-import { toast } from 'sonner';
 
 /**
  * Composant léger pour afficher le statut du proxy

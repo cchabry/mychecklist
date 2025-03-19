@@ -44,6 +44,7 @@ export const corsProxyService = {
   
   /**
    * Recherche un proxy CORS fonctionnel
+   * @param apiKey Clé API Notion optionnelle pour le test
    */
   findWorkingProxy: async (apiKey?: string): Promise<string | null> => {
     // Récupérer la clé API pour le test si disponible
@@ -78,6 +79,7 @@ export const corsProxyService = {
   
   /**
    * Vérifie si le proxy serverless est opérationnel
+   * @param apiKey Clé API Notion optionnelle pour le test
    */
   testServerlessProxy: async (apiKey?: string): Promise<boolean> => {
     try {
