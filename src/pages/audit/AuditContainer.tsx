@@ -16,7 +16,7 @@ import {
   NotionConnectButton 
 } from './components';
 import { NotionErrorDetails } from '@/components/notion';
-import { useAuditData } from '@/hooks/useAuditData';
+import { useAuditData } from '../audit/hooks/useAuditData';
 
 interface AuditContainerProps {
   projectId: string;

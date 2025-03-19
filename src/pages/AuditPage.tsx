@@ -8,7 +8,7 @@ const AuditPage = () => {
   
   if (!projectId) {
     console.error("Aucun projectId fourni à AuditPage");
-    return <div>Erreur: Identifiant de projet manquant</div>;
+    return <div className="text-center p-8">Erreur: Identifiant de projet manquant</div>;
   }
   
   console.log("Rendu de AuditPage avec projectId:", projectId);
