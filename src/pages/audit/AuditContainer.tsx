@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useNotion } from '@/contexts/NotionContext';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
@@ -18,9 +18,13 @@ import {
 import { NotionErrorDetails } from '@/components/notion';
 import { useAuditData } from '@/hooks/useAuditData';
 
-export const AuditContainer = () => {
-  console.log("AuditContainer rendering...");
-  const { projectId } = useParams<{ projectId: string }>();
+interface AuditContainerProps {
+  projectId: string;
+}
+
+export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => {
+  console.log("AuditContainer rendering with projectId:", projectId);
+  
   const navigate = useNavigate();
   const { status, config, usingNotion, testConnection } = useNotion();
   
@@ -58,7 +62,7 @@ export const AuditContainer = () => {
     });
   };
   
-  // Utilisation explicite du hook avec le projectId actuel
+  // Utilisation explicite du hook avec le projectId explicitement fourni
   const { 
     project, 
     audit, 

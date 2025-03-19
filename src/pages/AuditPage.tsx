@@ -12,7 +12,7 @@ const AuditPage = () => {
   }
   
   console.log("Rendu de AuditPage avec projectId:", projectId);
-  return <AuditContainer />;
+  return <AuditContainer projectId={projectId} />;
 };
 
 export default AuditPage;

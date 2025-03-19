@@ -22,14 +22,14 @@ export const useAuditData = (projectId: string | undefined) => {
   
   // Load project data
   const loadProject = useCallback(async () => {
-    console.log("loadProject called with projectId:", projectId);
-    
     if (!projectId) {
       console.error("No projectId provided to useAuditData");
       toast.error('Projet non trouvé');
       navigate('/');
       return;
     }
+    
+    console.log("loadProject called with projectId:", projectId);
     
     setLoading(true);
     setNotionError(null);
@@ -214,9 +214,20 @@ export const useAuditData = (projectId: string | undefined) => {
   
   // Load project data on mount
   useEffect(() => {
-    console.log("useEffect in useAuditData triggered, calling loadProject");
-    loadProject();
-  }, [loadProject]);
+    console.log("useEffect in useAuditData triggered, calling loadProject with projectId:", projectId);
+    if (projectId) {
+      loadProject();
+    } else {
+      console.error("No projectId in useEffect of useAuditData");
+    }
+  }, [loadProject, projectId]);
+  
+  console.log("useAuditData returning state:", { 
+    hasProject: !!project, 
+    hasAudit: !!audit, 
+    loading, 
+    hasError: !!notionError
+  });
   
   return {
     project,
