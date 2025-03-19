@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RotateCw, Check, XCircle } from 'lucide-react';
+import { RotateCw, Check, XCircle, AlertTriangle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { isNotionConfigured } from '@/lib/notion';
 import { toast } from 'sonner';
+import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
@@ -26,8 +27,10 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
     setTestStatus('idle');
     
     try {
-      // Forcer le mode réel pour ce test
-      notionApi.mockMode.temporarilyForceReal();
+      // Forcer le mode réel pour ce test et désactiver complètement le mode mock
+      localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+      localStorage.removeItem('notion_last_error');
+      notionApi.mockMode.forceReset();
       console.log('🔄 Test d\'écriture: Mode réel forcé temporairement');
       
       const apiKey = localStorage.getItem('notion_api_key');
@@ -42,6 +45,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       const testTitle = `Test d'écriture ${timestamp}`;
       
       console.log(`📝 Tentative d'écriture dans Notion: "${testTitle}"`);
+      console.log(`📝 Utilisation de la base de données: "${dbId}"`);
       
       // Préparation des données pour la création de page
       const createData = {
@@ -52,14 +56,23 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
           },
           Status: {
             select: { name: "Test" }
-          },
-          URL: {
-            url: "https://test.example.com"
           }
         }
       };
       
+      // Ajouter la propriété URL si elle existe dans le schéma
+      try {
+        createData.properties.URL = {
+          url: "https://test.example.com"
+        };
+      } catch (e) {
+        // Ignorer si la propriété URL n'est pas supportée
+        console.log('ℹ️ La propriété URL n\'est peut-être pas supportée par cette base de données');
+      }
+      
       // Tentative de création via le proxy
+      console.log('📡 Envoi de la requête de création avec les données:', JSON.stringify(createData, null, 2));
+      
       const response = await notionApi.pages.create(createData, apiKey);
       
       if (response && response.id) {
@@ -103,23 +116,33 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       
       // Afficher un message d'erreur détaillé
       let errorMessage = 'Échec du test d\'écriture';
+      let errorDescription = '';
       
       if (error.message?.includes('401')) {
-        errorMessage = 'Authentification échouée. Vérifiez votre clé API.';
+        errorMessage = 'Authentification échouée';
+        errorDescription = 'Vérifiez votre clé API. Elle peut être invalide ou expirée.';
       } else if (error.message?.includes('403')) {
-        errorMessage = 'Accès refusé. Vérifiez les permissions de votre intégration Notion.';
+        errorMessage = 'Accès refusé';
+        errorDescription = 'Vérifiez que votre intégration Notion a les permissions d\'écriture et a été correctement partagée avec votre base de données.';
       } else if (error.message?.includes('404')) {
-        errorMessage = 'Base de données introuvable. Vérifiez l\'ID de base de données.';
-      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
-        errorMessage = 'Problème de réseau. CORS ou connexion internet.';
+        errorMessage = 'Base de données introuvable';
+        errorDescription = 'Vérifiez l\'ID de base de données et assurez-vous qu\'elle existe toujours.';
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('network') || error.message?.includes('CORS')) {
+        errorMessage = 'Problème de réseau';
+        errorDescription = 'Erreur CORS ou connexion internet. Le proxy ne fonctionne peut-être pas correctement.';
+      } else {
+        errorDescription = error.message || 'Erreur inconnue lors du test d\'écriture.';
       }
       
-      toast.error('Échec du test d\'écriture', {
-        description: errorMessage,
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000,
         action: {
           label: 'Réinitialiser',
           onClick: () => {
             notionApi.mockMode.forceReset();
+            localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+            localStorage.removeItem('notion_last_error');
             setTimeout(() => window.location.reload(), 500);
           }
         }
@@ -150,7 +173,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       ) : testStatus === 'error' ? (
         <XCircle size={16} />
       ) : (
-        <RotateCw size={16} />
+        <AlertTriangle size={16} />
       )}
       Test d'écriture
     </Button>

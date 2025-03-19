@@ -19,6 +19,7 @@ interface NotionErrorDetailsProps {
 const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose, error, context }) => {
   const isJsonParseError = error?.includes('JSON.parse');
   const isCorsError = error?.includes('CORS') || error?.includes('network');
+  const isPermissionError = error?.includes('403') || error?.includes('permission');
   
   const handleForceRealMode = () => {
     // Forcer le mode réel de façon plus agressive
@@ -63,6 +64,18 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
               <div className="mt-2 text-gray-600 flex items-start gap-2">
                 <Info size={14} className="flex-shrink-0 mt-0.5" /> 
                 <span>{context}</span>
+              </div>
+            )}
+            
+            {isPermissionError && (
+              <div className="mt-4 bg-red-50 p-3 rounded border border-red-200 text-red-700 text-sm">
+                <p className="font-medium">Problème de permissions Notion détecté</p>
+                <p className="mt-1 text-xs">Pour résoudre ce problème :</p>
+                <ul className="mt-1 text-xs list-disc list-inside space-y-1">
+                  <li>Vérifiez que votre intégration a accès à la base de données</li>
+                  <li>Assurez-vous que les permissions d'<strong>écriture</strong> sont activées</li>
+                  <li>Dans Notion, cliquez sur <strong>Partager</strong> dans votre base de données et ajoutez votre intégration</li>
+                </ul>
               </div>
             )}
             

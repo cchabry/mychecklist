@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { notionApi } from '@/lib/notionProxy';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Share2 } from 'lucide-react';
 import NotionTestButton from './NotionTestButton';
 import NotionWriteTestButton from './NotionWriteTestButton';
 
@@ -97,9 +97,18 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         </p>
       </div>
       
-      <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
-        <AlertCircle size={14} />
-        <span>Les deux bases de données doivent être partagées avec votre intégration Notion</span>
+      <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-3 rounded-md">
+        <Share2 size={18} className="flex-shrink-0 mt-0.5 text-amber-500" />
+        <div>
+          <p className="font-semibold">Important : Partagez vos bases de données</p>
+          <p className="mt-1">Les deux bases de données doivent être partagées avec votre intégration Notion :</p>
+          <ol className="list-decimal list-inside mt-1 space-y-1">
+            <li>Dans Notion, ouvrez votre base de données</li>
+            <li>Cliquez sur <strong>Partager</strong> en haut à droite</li>
+            <li>Sélectionnez votre intégration dans le menu</li>
+            <li>Vérifiez que <strong>Can edit content</strong> est activé</li>
+          </ol>
+        </div>
       </div>
       
       {/* Section de test de connexion */}

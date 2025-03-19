@@ -37,6 +37,10 @@ const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
             la résolution du problème.
           </li>
         )}
+        <li className="text-red-600">
+          • <strong>IMPORTANT</strong>: Assurez-vous que votre intégration Notion a bien été <strong>partagée</strong> avec 
+          votre base de données et possède les <strong>permissions d'écriture</strong>.
+        </li>
       </ul>
     </div>
   );
