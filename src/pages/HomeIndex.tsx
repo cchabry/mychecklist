@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Database, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Database, AlertTriangle, ShieldAlert, ExternalLink } from 'lucide-react';
 import Header from '@/components/Header';
 import ProjectsList from '@/components/ProjectsList';
 import { useNotionProjects } from '@/hooks/useNotionProjects';
@@ -13,6 +14,11 @@ import { notionApi } from '@/lib/notionProxy';
 const HomePage: React.FC = () => {
   const { projects, isLoading, error } = useNotionProjects();
   const { openConfig, closeConfig, status, showConfig } = useNotion();
+  
+  // Vérifier si l'erreur est liée à un problème d'autorisation
+  const isAuthError = error?.message?.includes('autorisation') || 
+                     error?.message?.includes('accès') ||
+                     error?.message?.includes('403');
   
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-tmw-teal/5">
@@ -63,6 +69,45 @@ const HomePage: React.FC = () => {
             >
               Désactiver le mode démonstration
             </Button>
+          </div>
+        )}
+        
+        {isAuthError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <h2 className="text-sm font-medium text-red-800 flex items-center gap-1.5">
+              <ShieldAlert size={16} className="text-red-500" />
+              Problème d'accès à votre base de données Notion
+            </h2>
+            <p className="text-xs text-red-700 mt-1">
+              Votre intégration n'a pas accès à la base de données configurée. Pour résoudre ce problème :
+            </p>
+            <ol className="text-xs text-red-700 mt-2 list-decimal list-inside space-y-1">
+              <li>Ouvrez votre base de données dans Notion</li>
+              <li>Cliquez sur les trois points (...) en haut à droite</li>
+              <li>Sélectionnez <strong>Connexions</strong></li>
+              <li>Ajoutez votre intégration à la liste des connexions</li>
+            </ol>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-red-300 bg-red-100 hover:bg-red-200 text-red-800"
+                onClick={openConfig}
+              >
+                Vérifier la configuration
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-red-300 bg-red-100 hover:bg-red-200 text-red-800"
+                onClick={() => {
+                  window.open('https://www.notion.so/my-integrations', '_blank');
+                }}
+              >
+                <ExternalLink size={14} className="mr-1" />
+                Mes intégrations Notion
+              </Button>
+            </div>
           </div>
         )}
         

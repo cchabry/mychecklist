@@ -5,6 +5,7 @@ import { ProjectData } from '@/lib/notion/types';
 import { Project } from '@/lib/types';
 import { useNotion } from '@/contexts/NotionContext';
 import { MOCK_PROJECTS } from '@/lib/mockData';
+import { toast } from 'sonner';
 
 export function useNotionProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -32,10 +33,21 @@ export function useNotionProjects() {
             throw new Error('Configuration Notion manquante');
           }
           
+          // Test d'autorisation préalable pour un meilleur diagnostic
+          try {
+            const dbInfo = await notionApi.databases.retrieve(databaseId, apiKey);
+            console.log('✅ Base de données accessible:', dbInfo.title?.[0]?.plain_text || databaseId);
+          } catch (dbError) {
+            console.error('❌ Erreur d\'accès à la base de données:', dbError);
+            if (dbError.message?.includes('403')) {
+              throw new Error('Votre intégration Notion n\'a pas accès à cette ressource. Vérifiez que l\'intégration est bien partagée avec votre base de données.');
+            }
+          }
+          
           const response = await notionApi.databases.query(
             databaseId,
             { sorts: [{ property: 'name', direction: 'ascending' }] },
-            apiKey  // We were missing this third argument
+            apiKey
           );
           
           // Transformer les données Notion en projets
@@ -71,8 +83,25 @@ export function useNotionProjects() {
         console.error('❌ Erreur lors de la récupération des projets:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
         
+        // Afficher un toast pour l'erreur d'autorisation
+        if (err.message?.includes('accès') || err.message?.includes('403')) {
+          toast.error("Erreur d'autorisation Notion", {
+            description: "Votre intégration n'a pas accès à la base de données. Vérifiez les permissions dans Notion.",
+            duration: 6000
+          });
+        }
+        
         // En cas d'erreur, utiliser les données de test
         setProjects(MOCK_PROJECTS);
+        
+        // Activer automatiquement le mode mock pour améliorer l'expérience utilisateur
+        if (!status.isMockMode) {
+          notionApi.mockMode.activate();
+          toast.info('Mode démonstration activé', {
+            description: 'Les données de test sont affichées en attendant la résolution du problème.',
+            duration: 5000
+          });
+        }
       } finally {
         setIsLoading(false);
       }
