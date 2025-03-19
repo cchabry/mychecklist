@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCw, Check, XCircle, AlertTriangle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
-import { isNotionConfigured } from '@/lib/notion';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 
@@ -29,6 +28,13 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
     // Toujours vérifier d'abord les valeurs dans localStorage
     const apiKey = localStorage.getItem('notion_api_key');
     const dbId = localStorage.getItem('notion_database_id');
+    
+    console.log('🔍 Démarrage du test d\'écriture avec:', {
+      'API Key présente': !!apiKey,
+      'Database ID présent': !!dbId,
+      'API Key (début)': apiKey ? apiKey.substring(0, 8) + '...' : 'non définie',
+      'Database ID': dbId || 'non défini'
+    });
     
     if (!apiKey || !dbId) {
       toast.error('Configuration Notion requise', {
@@ -68,11 +74,32 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         }
       };
       
-      // Ajouter la propriété URL si elle existe dans le schéma
+      console.log('📋 Structure de données pour la création:', JSON.stringify(createData, null, 2));
+      
+      // Ajouter d'autres propriétés courantes au cas où elles sont requises
       try {
+        // Tenter d'ajouter une propriété URL (optionnelle)
         createData.properties.URL = {
           url: "https://test.example.com"
         };
+        
+        // Tenter d'ajouter d'autres propriétés courantes
+        try {
+          createData.properties.Description = {
+            rich_text: [{ text: { content: "Description de test automatique" } }]
+          };
+        } catch (e) {
+          console.log('ℹ️ La propriété Description n\'est peut-être pas supportée');
+        }
+        
+        try {
+          createData.properties.Tags = {
+            multi_select: [{ name: "Test" }]
+          };
+        } catch (e) {
+          console.log('ℹ️ La propriété Tags n\'est peut-être pas supportée');
+        }
+        
       } catch (e) {
         // Ignorer si la propriété URL n'est pas supportée
         console.log('ℹ️ La propriété URL n\'est peut-être pas supportée par cette base de données');
@@ -80,6 +107,44 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       
       // Tentative de création via le proxy
       console.log('📡 Envoi de la requête de création avec les données:', JSON.stringify(createData, null, 2));
+      
+      // Tester la structure des propriétés de la base de données
+      try {
+        console.log('🔍 Vérification de la structure de la base de données avant création...');
+        const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
+        console.log('✅ Structure de la base de données récupérée:', JSON.stringify(dbDetails.properties, null, 2));
+        
+        // Analyser les propriétés requises de la base de données
+        const requiredProps = Object.entries(dbDetails.properties)
+          .filter(([_, prop]: [string, any]) => prop.type === 'title' || (prop.type === 'rich_text' && prop.rich_text?.is_required))
+          .map(([name, _]: [string, any]) => name);
+          
+        console.log('⚠️ Propriétés potentiellement requises dans la base:', requiredProps);
+        
+        // Assurer que toutes les propriétés requises sont présentes
+        if (requiredProps.length > 0) {
+          for (const propName of requiredProps) {
+            if (!createData.properties[propName]) {
+              if (propName === 'Name' || propName === 'Nom' || propName === 'Title' || propName === 'Titre') {
+                // Déjà défini comme Name, mais peut-être que la base utilise un nom différent
+                createData.properties[propName] = createData.properties.Name;
+                console.log(`🔄 Ajout de la propriété requise "${propName}" (copie de Name)`);
+              } else {
+                // Ajouter une valeur par défaut pour cette propriété requise
+                createData.properties[propName] = {
+                  rich_text: [{ text: { content: "Valeur de test requise" } }]
+                };
+                console.log(`🔄 Ajout de valeur par défaut pour la propriété requise "${propName}"`);
+              }
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error('❌ Erreur lors de la vérification de la structure de la base:', dbError);
+        // Continuer quand même, car l'erreur pourrait venir d'autre chose
+      }
+      
+      console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
       
       const response = await notionApi.pages.create(createData, apiKey);
       
@@ -120,6 +185,13 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       }
     } catch (error) {
       console.error('❌ Test d\'écriture Notion échoué:', error);
+      console.error('❌ Message d\'erreur complet:', error.message);
+      
+      // Détails supplémentaires sur l'erreur
+      if (error.response) {
+        console.error('❌ Données de réponse:', JSON.stringify(error.response, null, 2));
+      }
+      
       setTestStatus('error');
       
       // Afficher un message d'erreur détaillé et plus explicite
@@ -138,6 +210,14 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('network') || error.message?.includes('CORS')) {
         errorMessage = 'Problème de réseau';
         errorDescription = 'Erreur CORS ou connexion internet. Le proxy ne fonctionne peut-être pas correctement. Vérifiez que le proxy est correctement déployé.';
+      } else if (error.message?.includes('required') || error.message?.includes('validation_error')) {
+        errorMessage = 'Erreur de validation';
+        errorDescription = 'Structure de données incorrecte. Certains champs requis peuvent manquer ou être mal formatés.';
+        
+        // Ajouter des détails sur l'erreur
+        if (error.message) {
+          errorDescription += '\nDétails: ' + error.message;
+        }
       } else {
         errorDescription = error.message || 'Erreur inconnue lors du test d\'écriture.';
       }
