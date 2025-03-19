@@ -11,14 +11,31 @@ import { MOCK_PROJECTS } from '@/lib/mockData';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import NotionDiagnosticTool from '@/components/notion/NotionDiagnosticTool';
+import NotionGuide from '@/components/NotionGuide';
+import { NotionConfig } from '@/components/notion';
 
 const IndexPage = () => {
   const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [currentTab, setCurrentTab] = useState('projects');
+  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   
   // Vérifier si Notion est configuré
   const notionConfigured = isNotionConfigured();
   const mockModeActive = notionApi.mockMode.isActive();
+  
+  const handleNotionConfigOpen = () => {
+    setNotionConfigOpen(true);
+  };
+  
+  const handleNotionConfigClose = () => {
+    setNotionConfigOpen(false);
+    window.location.reload(); // Reload to reflect new configuration
+  };
+  
+  const handleNotionConfigSuccess = () => {
+    // Reload to reflect new configuration
+    window.location.reload();
+  };
   
   return (
     <div className="mx-auto max-w-screen-xl">
@@ -30,7 +47,15 @@ const IndexPage = () => {
             <h1 className="text-2xl md:text-3xl font-bold mb-2">Tableau de bord</h1>
             <p className="text-gray-500">Gérez vos audits et projets</p>
           </div>
-          <div className="flex gap-2 mt-4 md:mt-0">
+          <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
+              onClick={handleNotionConfigOpen}
+            >
+              <Database size={18} />
+              {notionConfigured ? 'Reconfigurer Notion' : 'Configurer Notion'}
+            </Button>
             <Link to="/new-project">
               <Button className="flex items-center gap-2">
                 <PlusCircle size={18} />
@@ -73,13 +98,23 @@ const IndexPage = () => {
                 <ProjectCard key={project.id} project={project} />
               ))}
             </div>
+            
+            <div className="mt-6 flex justify-center">
+              <NotionGuide onConnectClick={handleNotionConfigOpen} />
+            </div>
           </TabsContent>
           
           <TabsContent value="diagnostic" className="pt-4">
-            <NotionDiagnosticTool />
+            <NotionDiagnosticTool onConfigClick={handleNotionConfigOpen} />
           </TabsContent>
         </Tabs>
       </main>
+      
+      <NotionConfig
+        isOpen={notionConfigOpen}
+        onClose={handleNotionConfigClose}
+        onSuccess={handleNotionConfigSuccess}
+      />
     </div>
   );
 };
