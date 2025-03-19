@@ -8,6 +8,13 @@ import { toast } from 'sonner';
  */
 export const mockMode = {
   isActive: (): boolean => {
+    // Vérifier si une création réelle est forcée
+    const forceReal = localStorage.getItem('notion_force_real') === 'true';
+    if (forceReal) {
+      console.log('🔍 Mode réel forcé temporairement');
+      return false;
+    }
+    
     const isMockMode = localStorage.getItem(STORAGE_KEYS.MOCK_MODE) === 'true';
     console.log(`🔍 Mock mode check: ${isMockMode ? 'ACTIVE' : 'INACTIVE'}`);
     return isMockMode;
@@ -16,12 +23,20 @@ export const mockMode = {
   activate: (): void => {
     console.log('🔶 ACTIVATING MOCK MODE - Will use demo data instead of real Notion API');
     localStorage.setItem(STORAGE_KEYS.MOCK_MODE, 'true');
+    
+    // S'assurer que le mode réel forcé est désactivé
+    localStorage.removeItem('notion_force_real');
+    
     // Ne pas afficher de toast ici pour éviter les doublons - laissons ce soin aux composants
   },
   
   deactivate: (): void => {
     console.log('🟢 DEACTIVATING MOCK MODE - Will use real Notion API');
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+    
+    // S'assurer que le mode réel forcé est désactivé
+    localStorage.removeItem('notion_force_real');
+    
     // Ne pas afficher de toast ici pour éviter les doublons - laissons ce soin aux composants
   },
   
@@ -35,6 +50,8 @@ export const mockMode = {
       // Effacer tous les caches sur le toggle
       localStorage.removeItem('projects_cache');
       localStorage.removeItem('audit_cache');
+      localStorage.removeItem('notion_last_error');
+      localStorage.removeItem('notion_force_real');
       
       return false;
     } else {
@@ -53,10 +70,12 @@ export const mockMode = {
     console.log('🧹 Resetting mock mode state and errors');
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     localStorage.removeItem('notion_last_error');
+    localStorage.removeItem('notion_force_real');
     
     // Effacer aussi les caches
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
+    localStorage.removeItem('cache_invalidated_at');
   },
   
   /**
@@ -99,6 +118,24 @@ export const mockMode = {
     // Effacer les caches quelle que soit la modification
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
+    localStorage.removeItem('cache_invalidated_at');
+  },
+
+  /**
+   * Temporarily force real mode for operations like creating a project
+   * This will be reset after page reload or by calling reset()
+   */
+  temporarilyForceReal: (): void => {
+    console.log('🟢 Temporarily forcing REAL mode for Notion operations');
+    localStorage.setItem('notion_force_real', 'true');
+    
+    // Also make sure mock mode is not active
+    if (mockMode.isActive()) {
+      mockMode.deactivate();
+    }
+    
+    // Clear any previous errors
+    localStorage.removeItem('notion_last_error');
   },
 
   /**
@@ -113,6 +150,8 @@ export const mockMode = {
     localStorage.removeItem('notion_last_error');
     localStorage.removeItem('notion_proxy_last_error');
     localStorage.removeItem('notion_proxy_status');
+    localStorage.removeItem('notion_force_real');
+    localStorage.removeItem('cache_invalidated_at');
     
     // Clear all caches that might be preventing real data from loading
     localStorage.removeItem('projects_cache');

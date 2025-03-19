@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { XCircle, AlertTriangle, Info, ExternalLink } from 'lucide-react';
+import { XCircle, AlertTriangle, Info, ExternalLink, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import NotionSolutionsSection from './NotionSolutionsSection';
+import { notionApi } from '@/lib/notionProxy';
 
 interface NotionErrorDetailsProps {
   isOpen: boolean;
@@ -15,6 +16,17 @@ interface NotionErrorDetailsProps {
 const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose, error, context }) => {
   const isJsonParseError = error?.includes('JSON.parse');
   const isCorsError = error?.includes('CORS') || error?.includes('network');
+  
+  const handleForceRealMode = () => {
+    // Force real mode and clear caches
+    notionApi.mockMode.temporarilyForceReal();
+    
+    // Close the dialog
+    onClose();
+    
+    // Reload the page to apply changes
+    window.location.reload();
+  };
   
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -46,8 +58,8 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="sm:justify-between">
-          <div>
+        <AlertDialogFooter className="sm:justify-between flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               size="sm" 
               variant="outline"
@@ -58,6 +70,16 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
             >
               <ExternalLink size={12} />
               Signaler un bug
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleForceRealMode}
+              className="gap-1 text-xs"
+            >
+              <Database size={12} />
+              Forcer mode réel
             </Button>
           </div>
           <AlertDialogAction>Fermer</AlertDialogAction>

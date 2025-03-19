@@ -14,6 +14,13 @@ const AuditPage = () => {
 
   useEffect(() => {
     const checkNotionConfig = async () => {
+      // Vérifier si on a forcé le mode réel pour une opération
+      const forceReal = localStorage.getItem('notion_force_real') === 'true';
+      if (forceReal) {
+        console.log('📢 AuditPage: Mode réel forcé temporairement - nettoyage après usage');
+        localStorage.removeItem('notion_force_real');
+      }
+      
       // Vérifier si le mode mock est actif
       const isMockActive = notionApi.mockMode.isActive();
       console.log(`📢 AuditPage: Mode mock ${isMockActive ? 'ACTIF' : 'INACTIF'} au démarrage`);
