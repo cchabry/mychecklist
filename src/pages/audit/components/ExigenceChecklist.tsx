@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   CheckSquare, 
@@ -190,7 +189,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   
   // Récupérer les données sur les exigences spécifiques au projet
   const projectRequirement = item.projectRequirement || "Cette exigence est importante pour le projet car elle impacte directement l'expérience utilisateur.";
-  const projectComment = item.projectComment || "Des tests spécifiques doivent être réalisés sur les pages principales pour assurer la conformité à cette exigence.";
   
   return (
     <Card className="shadow-sm border border-gray-100">
@@ -243,16 +241,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                   </div>
                   
                   <p className="text-sm text-blue-800 mb-3">{projectRequirement}</p>
-                  
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900 mb-1">Commentaire:</h4>
-                    <Textarea
-                      placeholder="Ajoutez un commentaire sur cette exigence pour ce projet..."
-                      className="text-sm bg-white border-blue-200"
-                      value={projectComment}
-                      onChange={(e) => onItemChange({...item, projectComment: e.target.value})}
-                    />
-                  </div>
                 </div>
                 
                 <div className="mb-4">
