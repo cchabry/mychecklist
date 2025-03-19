@@ -1,40 +1,30 @@
-import React from 'react';
+
+import React, { ReactNode } from 'react';
 import Header from '@/components/Header';
-import { NotionConfig } from '@/components/notion';
 
 interface AuditLayoutProps {
-  children: React.ReactNode;
-  notionConfigOpen: boolean;
-  onNotionConfigClose: () => void;
-  onNotionConfigSuccess: () => void;
+  children: ReactNode;
+  notionConfigOpen?: boolean;
+  onNotionConfigClose?: () => void;
+  onNotionConfigSuccess?: () => void;
 }
 
-const AuditLayout: React.FC<AuditLayoutProps> = ({
-  children,
-  notionConfigOpen,
-  onNotionConfigClose,
-  onNotionConfigSuccess
+const AuditLayout: React.FC<AuditLayoutProps> = ({ 
+  children, 
 }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-tmw-teal/5">
+    <div className="flex flex-col min-h-screen">
       <Header />
       
-      <main className="flex-1 container px-4 py-8 mx-auto">
+      <main className="flex-1 container max-w-screen-xl mx-auto p-4 md:p-6">
         {children}
       </main>
       
-      <footer className="py-6 border-t border-tmw-teal/10 bg-background">
-        <div className="container px-4 mx-auto text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} myChecklist - Audits Qualité Web
-          <div className="mt-2 text-xs text-muted-foreground/70">by ThinkMyWeb</div>
+      <footer className="bg-gray-50 border-t py-4">
+        <div className="container max-w-screen-xl mx-auto px-4 text-center text-sm text-gray-500">
+          Prototype de démonstration - Les données sont fictives
         </div>
       </footer>
-      
-      <NotionConfig 
-        isOpen={notionConfigOpen} 
-        onClose={onNotionConfigClose}
-        onSuccess={onNotionConfigSuccess}
-      />
     </div>
   );
 };

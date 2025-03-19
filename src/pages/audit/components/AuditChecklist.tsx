@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Audit, AuditItem, ComplianceStatus } from '@/lib/types';
-import { useAuditChecklist } from '../hooks';
+import { Audit, AuditItem } from '@/lib/types';
 import CategoryTabs from './CategoryTabs';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 import ExigenceChecklist from './ExigenceChecklist';
+import { Collapsible } from '@/components/ui/collapsible';
 
 interface AuditChecklistProps {
   audit: Audit;
@@ -15,33 +14,67 @@ interface AuditChecklistProps {
 
 const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit }) => {
   // Ensure all items have details before rendering
-  if (audit && audit.items && audit.items.some(item => !item.details)) {
-    const enrichedAudit = {
+  const [checklistReady, setChecklistReady] = useState(false);
+  
+  // Process audit data on mount
+  React.useEffect(() => {
+    if (audit && audit.items) {
+      const enrichedAudit = {
+        ...audit,
+        items: enrichItemsWithDetails(audit.items)
+      };
+      onUpdateAudit(enrichedAudit);
+      setChecklistReady(true);
+    }
+  }, [audit, onUpdateAudit]);
+  
+  // State for tracking the selected category
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  
+  // Function to handle item changes
+  const handleItemChange = (updatedItem: AuditItem) => {
+    if (!audit || !audit.items) return;
+    
+    const updatedItems = audit.items.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    
+    const updatedAudit = {
       ...audit,
-      items: enrichItemsWithDetails(audit.items)
+      items: updatedItems
     };
-    onUpdateAudit(enrichedAudit);
-    return null; // Return null to avoid rendering with incomplete data
+    
+    onUpdateAudit(updatedAudit);
+  };
+  
+  // Function to filter items based on selected category
+  const getFilteredItems = () => {
+    if (!audit || !audit.items) return [];
+    
+    if (selectedCategory === 'all') {
+      return audit.items;
+    }
+    
+    return audit.items.filter(item => item.category === selectedCategory);
+  };
+  
+  if (!checklistReady) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
   
-  const {
-    selectedCategory,
-    setSelectedCategory,
-    handleItemChange,
-    getFilteredItems
-  } = useAuditChecklist(audit, onUpdateAudit);
-  
-  const filteredItems = getFilteredItems();
-  
   // Mock data for sample pages
-  const [samplePages] = useState([
+  const samplePages = [
     { id: '1', url: 'https://example.com/accueil', title: 'Page d\'accueil' },
     { id: '2', url: 'https://example.com/contact', title: 'Contact' },
     { id: '3', url: 'https://example.com/produits', title: 'Liste des produits' }
-  ]);
+  ];
   
   // Exigences mock data
-  const [exigences] = useState({
+  const exigences = {
     // Map item ID to importance
     itemImportance: {
       'item1': 'Majeur',
@@ -50,12 +83,14 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
       'item4': 'Mineur',
       'item5': 'N/A'
     }
-  });
+  };
   
   // Function to get item importance level
   const getItemImportance = (itemId: string) => {
     return exigences.itemImportance[itemId] || 'Non défini';
   };
+  
+  const filteredItems = getFilteredItems();
   
   return (
     <div className="bg-white/80 backdrop-blur-md rounded-lg border border-tmw-blue/10 shadow-lg p-6">

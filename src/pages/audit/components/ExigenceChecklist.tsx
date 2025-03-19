@@ -1,248 +1,230 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, AlertTriangle, X, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { 
-  Card, 
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle, 
-  Button,
-  Badge,
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-  Textarea,
-  RadioGroup,
-  RadioGroupItem,
-  Label
-} from '@/components/ui/';
+  CheckSquare, 
+  Circle, 
+  Square, 
+  AlertTriangle,
+  ChevronDown,
+  XCircle
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { AuditItem, ComplianceStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SamplePage {
   id: string;
   url: string;
   title: string;
-  description?: string;
 }
 
 interface ExigenceChecklistProps {
   item: AuditItem;
   samplePages: SamplePage[];
   importance: string;
-  onItemChange: (itemId: string, status: ComplianceStatus, comment?: string) => void;
+  onItemChange: (item: AuditItem) => void;
 }
 
 const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({ 
   item, 
-  samplePages,
-  importance,
+  samplePages, 
+  importance, 
   onItemChange 
 }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const [pageResults, setPageResults] = useState<Record<string, { 
-    status: ComplianceStatus,
-    comment: string
-  }>>({});
+  const [isOpen, setIsOpen] = useState(false);
+  const [notes, setNotes] = useState(item.notes || '');
+  const [status, setStatus] = useState<ComplianceStatus>(item.status || 'not_checked');
   
-  // Obtenir le badge de statut et sa couleur
-  const getStatusBadge = (status: ComplianceStatus) => {
-    switch (status) {
-      case ComplianceStatus.Compliant:
-        return { label: 'Conforme', color: 'bg-green-100 text-green-800 hover:bg-green-200' };
-      case ComplianceStatus.PartiallyCompliant:
-        return { label: 'Partiellement conforme', color: 'bg-amber-100 text-amber-800 hover:bg-amber-200' };
-      case ComplianceStatus.NonCompliant:
-        return { label: 'Non conforme', color: 'bg-red-100 text-red-800 hover:bg-red-200' };
-      default:
-        return { label: 'Non évalué', color: 'bg-gray-100 text-gray-800 hover:bg-gray-200' };
-    }
-  };
-  
-  // Obtenez le badge d'importance et sa couleur
-  const getImportanceBadge = (importance: string) => {
-    switch (importance.toLowerCase()) {
-      case 'majeur':
-        return { color: 'bg-purple-100 text-purple-800' };
-      case 'important':
-        return { color: 'bg-indigo-100 text-indigo-800' };
-      case 'moyen':
-        return { color: 'bg-blue-100 text-blue-800' };
-      case 'mineur':
-        return { color: 'bg-teal-100 text-teal-800' };
-      case 'n/a':
-        return { color: 'bg-gray-100 text-gray-800' };
-      default:
-        return { color: 'bg-gray-100 text-gray-800' };
-    }
-  };
-  
-  const handlePageStatusChange = (pageId: string, status: ComplianceStatus) => {
-    setPageResults(prev => ({
-      ...prev,
-      [pageId]: {
-        status,
-        comment: prev[pageId]?.comment || ''
-      }
-    }));
-  };
-  
-  const handlePageCommentChange = (pageId: string, comment: string) => {
-    setPageResults(prev => ({
-      ...prev,
-      [pageId]: {
-        status: prev[pageId]?.status || ComplianceStatus.NotEvaluated,
-        comment
-      }
-    }));
-  };
-  
-  // Appliquer le même statut à toutes les pages
-  const applyToAllPages = (status: ComplianceStatus) => {
-    const newResults = { ...pageResults };
-    
-    samplePages.forEach(page => {
-      newResults[page.id] = {
-        status,
-        comment: pageResults[page.id]?.comment || ''
-      };
+  const handleStatusChange = (newStatus: ComplianceStatus) => {
+    setStatus(newStatus);
+    onItemChange({
+      ...item,
+      status: newStatus,
+      notes: notes
     });
-    
-    setPageResults(newResults);
   };
   
-  // Calculer le statut global de l'item
-  const calculateOverallStatus = () => {
-    const statuses = Object.values(pageResults).map(r => r.status);
-    
-    if (statuses.length === 0) return ComplianceStatus.NotEvaluated;
-    
-    if (statuses.every(s => s === ComplianceStatus.Compliant)) {
-      return ComplianceStatus.Compliant;
-    }
-    
-    if (statuses.every(s => s === ComplianceStatus.NonCompliant)) {
-      return ComplianceStatus.NonCompliant;
-    }
-    
-    return ComplianceStatus.PartiallyCompliant;
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNotes(e.target.value);
+    onItemChange({
+      ...item,
+      notes: e.target.value
+    });
   };
   
-  const statusBadge = getStatusBadge(item.status);
-  const importanceBadge = getImportanceBadge(importance);
+  // Fonction pour obtenir l'icône correspondant au statut
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'compliant':
+        return <CheckSquare className="text-green-500" />;
+      case 'not_compliant':
+        return <XCircle className="text-red-500" />;
+      case 'partially_compliant':
+        return <AlertTriangle className="text-amber-500" />;
+      case 'not_applicable':
+        return <Circle className="text-gray-400" />;
+      default:
+        return <Square className="text-gray-500" />;
+    }
+  };
+  
+  // Fonction pour obtenir la couleur du badge d'importance
+  const getImportanceBadgeColor = () => {
+    switch (importance) {
+      case 'Majeur':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      case 'Important':
+        return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
+      case 'Moyen':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'Mineur':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
   
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Badge className={importanceBadge.color}>
-                {importance}
-              </Badge>
-              <Badge className={statusBadge.color}>
-                {statusBadge.label}
-              </Badge>
+    <Card className="shadow-sm border border-gray-100">
+      <CardHeader className="pb-2">
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-2">
+              <div className="mt-1">{getStatusIcon()}</div>
+              <div>
+                <CardTitle className="text-base text-gray-900">{item.title}</CardTitle>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {item.category}
+                  </Badge>
+                  <Badge variant="outline" className={`text-xs ${getImportanceBadgeColor()}`}>
+                    {importance}
+                  </Badge>
+                </div>
+              </div>
             </div>
-            <CardTitle>{item.title}</CardTitle>
-            <CardDescription className="mt-1">{item.description}</CardDescription>
+            <CollapsibleTrigger asChild>
+              <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />
+              </button>
+            </CollapsibleTrigger>
           </div>
           
-          <CollapsibleTrigger asChild onClick={() => setIsOpen(!isOpen)}>
-            <Button variant="ghost" size="icon">
-              {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-      </CardHeader>
-      
-      <Collapsible open={isOpen}>
-        <CollapsibleContent>
-          <CardContent>
-            <div className="flex items-center gap-3 mb-4">
-              <p className="text-sm text-muted-foreground flex-grow">Appliquer à toutes les pages:</p>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="gap-1 bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-                onClick={() => applyToAllPages(ComplianceStatus.Compliant)}
-              >
-                <Check size={14} />
-                Conforme
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="gap-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
-                onClick={() => applyToAllPages(ComplianceStatus.PartiallyCompliant)}
-              >
-                <AlertTriangle size={14} />
-                Partiellement
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="gap-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
-                onClick={() => applyToAllPages(ComplianceStatus.NonCompliant)}
-              >
-                <X size={14} />
-                Non Conforme
-              </Button>
-            </div>
-            
-            <div className="space-y-4 mt-4">
-              {samplePages.map(page => (
-                <div key={page.id} className="border rounded-lg p-3">
-                  <h3 className="font-medium mb-2">{page.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{page.url}</p>
+          <CollapsibleContent>
+            <CardContent className="pt-4">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-700 mb-2 leading-relaxed">
+                    {item.details?.description || "Description non disponible"}
+                  </p>
                   
+                  {item.details?.examples && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                      <p className="text-sm font-medium text-gray-700 mb-1">Exemples:</p>
+                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        {item.details.examples.map((example, index) => (
+                          <li key={index}>{example}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Statut:</h4>
                   <RadioGroup 
-                    className="flex items-center gap-4 mb-3"
-                    value={pageResults[page.id]?.status || ComplianceStatus.NotEvaluated}
-                    onValueChange={(value) => handlePageStatusChange(page.id, value as ComplianceStatus)}
+                    value={status} 
+                    onValueChange={(value) => handleStatusChange(value as ComplianceStatus)}
+                    className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-4"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={ComplianceStatus.Compliant} id={`compliant-${page.id}`} />
-                      <Label htmlFor={`compliant-${page.id}`} className="text-green-700 font-medium">Conforme</Label>
+                      <RadioGroupItem id={`compliant-${item.id}`} value="compliant" />
+                      <Label 
+                        htmlFor={`compliant-${item.id}`}
+                        className="text-sm text-green-700 cursor-pointer"
+                      >
+                        Conforme
+                      </Label>
                     </div>
+                    
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={ComplianceStatus.PartiallyCompliant} id={`partial-${page.id}`} />
-                      <Label htmlFor={`partial-${page.id}`} className="text-amber-700 font-medium">Partiellement</Label>
+                      <RadioGroupItem id={`not_compliant-${item.id}`} value="not_compliant" />
+                      <Label 
+                        htmlFor={`not_compliant-${item.id}`}
+                        className="text-sm text-red-700 cursor-pointer"
+                      >
+                        Non conforme
+                      </Label>
                     </div>
+                    
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={ComplianceStatus.NonCompliant} id={`non-compliant-${page.id}`} />
-                      <Label htmlFor={`non-compliant-${page.id}`} className="text-red-700 font-medium">Non conforme</Label>
+                      <RadioGroupItem id={`partially_compliant-${item.id}`} value="partially_compliant" />
+                      <Label 
+                        htmlFor={`partially_compliant-${item.id}`}
+                        className="text-sm text-amber-700 cursor-pointer"
+                      >
+                        Partiellement conforme
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem id={`not_applicable-${item.id}`} value="not_applicable" />
+                      <Label 
+                        htmlFor={`not_applicable-${item.id}`}
+                        className="text-sm text-gray-700 cursor-pointer"
+                      >
+                        Non applicable
+                      </Label>
                     </div>
                   </RadioGroup>
-                  
-                  <Textarea 
-                    placeholder="Commentaires sur cette page..."
-                    className="text-sm"
-                    value={pageResults[page.id]?.comment || ''}
-                    onChange={(e) => handlePageCommentChange(page.id, e.target.value)}
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-medium">Notes:</h4>
+                    <span className="text-xs text-gray-500">
+                      {notes.length}/255
+                    </span>
+                  </div>
+                  <Textarea
+                    placeholder="Ajouter des observations ou des explications..."
+                    className="resize-none"
+                    value={notes}
+                    onChange={handleNotesChange}
+                    maxLength={255}
                   />
                 </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 flex justify-end">
-              <Button 
-                onClick={() => onItemChange(
-                  item.id, 
-                  calculateOverallStatus(), 
-                  Object.values(pageResults).map(r => r.comment).filter(Boolean).join(' | ')
-                )}
-                className="gap-2"
-              >
-                <Zap size={14} />
-                Mettre à jour le statut global
-              </Button>
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Pages à tester:</h4>
+                  <div className="space-y-2">
+                    {samplePages.map(page => (
+                      <div 
+                        key={page.id}
+                        className="p-2 bg-gray-50 rounded-md text-sm flex justify-between items-center"
+                      >
+                        <span className="font-medium">{page.title}</span>
+                        <a 
+                          href={page.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-xs"
+                        >
+                          Ouvrir
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </CardHeader>
     </Card>
   );
 };

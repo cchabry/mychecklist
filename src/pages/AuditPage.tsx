@@ -1,65 +1,121 @@
 
-import React, { Suspense, useEffect } from 'react';
-import { useParams, Navigate, useNavigate } from 'react-router-dom';
-import { AuditContainer } from './audit/AuditContainer';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import AuditLoader from './audit/components/AuditLoader';
-import { notionApi } from '@/lib/notionProxy';
+import { Button } from '@/components/ui/button';
+import { 
+  AuditChecklist, 
+  AuditHeader, 
+  AuditLayout, 
+  AuditProgress
+} from './audit/components';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { createMockAudit } from '@/lib/mockData';
+import { Audit, Project } from '@/lib/types';
+
+// Données statiques de démonstration pour le prototype
+const MOCK_PROJECT: Project = {
+  id: 'project-1',
+  name: 'Site Web Démo',
+  url: 'https://example.com',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  progress: 0.35,
+  itemsCount: 15
+};
+
+const MOCK_AUDIT = createMockAudit('project-1');
 
 const AuditPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
+  const [loading, setLoading] = React.useState(true);
+  const [project] = React.useState<Project>(MOCK_PROJECT);
+  const [audit, setAudit] = React.useState<Audit>(MOCK_AUDIT);
   
-  // Force le mode démo au chargement initial de la page uniquement
-  useEffect(() => {
-    console.log("Initialisation du mode démo pour le prototype");
-    if (!notionApi.mockMode.isActive()) {
-      notionApi.mockMode.activate();
-      console.log("Mode démo activé pour le prototype");
-    }
-  }, []); // Dépendance vide pour n'exécuter qu'une seule fois
-  
-  // Si projectId est manquant, rediriger vers la page d'accueil avec un message d'erreur
-  if (!projectId) {
-    console.error("Aucun projectId fourni à AuditPage");
+  // Afficher les données mockées après un court délai pour simuler le chargement
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 800); // Délai intentionnel pour montrer l'écran de chargement
     
-    // Afficher un toast d'erreur
-    toast.error("Erreur", {
-      description: "Identifiant de projet manquant"
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handler de sauvegarde simulée
+  const handleSaveAudit = () => {
+    toast.success("Audit sauvegardé", {
+      description: "Les données ont été sauvegardées localement pour la démonstration"
     });
-    
-    // Rediriger vers la page d'accueil
-    return <Navigate to="/" replace />;
-  }
-  
-  // Définir un gestionnaire d'erreurs global pour AuditContainer
-  const handleAuditError = (error) => {
-    console.error("Erreur dans AuditContainer:", error);
-    
-    // En mode prototype, on ne veut pas rediriger vers l'accueil
-    // mais plutôt afficher un message et continuer avec les données mock
-    toast.error("Erreur lors du chargement de l'audit", {
-      description: typeof error === 'string' ? error : error.message || "Une erreur est survenue"
-    });
-    
-    // Activer le mode mock en cas d'erreur (si ce n'est pas déjà fait)
-    if (!notionApi.mockMode.isActive()) {
-      notionApi.mockMode.activate();
-      toast.info('Mode démonstration activé automatiquement', { 
-        description: 'L\'application utilise des données fictives pour le prototype'
-      });
-    }
   };
   
-  console.log("Rendu de AuditPage avec projectId:", projectId);
+  // Handler pour mise à jour de l'audit
+  const handleUpdateAudit = (updatedAudit: Audit) => {
+    setAudit(updatedAudit);
+  };
+  
+  // Handler pour réinitialiser les données de démo
+  const handleForceReset = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setAudit(createMockAudit('project-1'));
+      setLoading(false);
+      toast.info("Données réinitialisées", {
+        description: "Les données de démonstration ont été rechargées"
+      });
+    }, 500);
+  };
+  
+  // Si aucun projectId n'est fourni, on utilise le projet de démo par défaut
+  const displayProjectId = projectId || 'project-1';
+  
+  if (loading) {
+    return <AuditLoader />;
+  }
   
   return (
-    <Suspense fallback={<AuditLoader />}>
-      <AuditContainer 
-        projectId={projectId} 
-        onError={handleAuditError}
+    <AuditLayout>
+      <div className="mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+          <AuditHeader 
+            project={project} 
+            onSave={handleSaveAudit} 
+            onBack={() => window.location.href = '/'} 
+          />
+          
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-2 text-red-500"
+              onClick={handleForceReset}
+              title="Réinitialiser les données du prototype"
+            >
+              <RefreshCw size={16} />
+              Réinitialiser
+            </Button>
+          </div>
+        </div>
+        
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} />
+            <span className="font-medium">Mode prototype actif</span>
+          </div>
+          <p className="mt-1 text-xs">
+            Les données affichées sont fictives et uniquement destinées à la démonstration du prototype.
+            Identifiant du projet : {displayProjectId}
+          </p>
+        </div>
+        
+        <AuditProgress audit={audit} />
+      </div>
+      
+      <AuditChecklist 
+        audit={audit} 
+        onUpdateAudit={handleUpdateAudit}
       />
-    </Suspense>
+    </AuditLayout>
   );
 };
 
