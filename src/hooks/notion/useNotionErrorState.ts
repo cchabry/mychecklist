@@ -1,32 +1,26 @@
 
 import { useState, useEffect } from 'react';
+import { useNotionError } from './useNotionError';
 import { NotionErrorDetails, getStoredNotionError } from '@/lib/notionProxy/errorHandling';
 
 /**
- * Hook spécialisé pour gérer l'état des erreurs Notion
+ * Hook maintenu pour la compatibilité avec le code existant
+ * Utilise le nouveau useNotionError en interne
+ * @deprecated Utilisez useNotionError directement
  */
 export function useNotionErrorState() {
-  const [showErrorDetails, setShowErrorDetails] = useState(false);
-  const [notionErrorDetails, setNotionErrorDetails] = useState<NotionErrorDetails | null>(null);
-  
-  // Charger les erreurs stockées
-  useEffect(() => {
-    const storedError = getStoredNotionError();
-    if (storedError) {
-      setNotionErrorDetails(storedError);
-    }
-  }, []);
-  
-  // Masquer les détails d'erreur
-  const hideNotionError = () => {
-    setNotionErrorDetails(null);
-    setShowErrorDetails(false);
-  };
+  const {
+    errorDetails,
+    showErrorModal,
+    clearError,
+    openErrorModal,
+    closeErrorModal
+  } = useNotionError();
   
   return {
-    showErrorDetails,
-    notionErrorDetails,
-    setShowErrorDetails,
-    hideNotionError
+    notionErrorDetails: errorDetails,
+    showErrorDetails: showErrorModal,
+    setShowErrorDetails: (show: boolean) => show ? openErrorModal() : closeErrorModal(),
+    hideNotionError: clearError
   };
 }

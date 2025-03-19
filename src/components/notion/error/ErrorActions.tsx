@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ExternalLink, Database } from 'lucide-react';
+import { ExternalLink, Database, RefreshCw, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialogAction } from '@/components/ui/alert-dialog';
 import { notionApi } from '@/lib/notionProxy';
@@ -37,18 +37,31 @@ const ErrorActions: React.FC<ErrorActionsProps> = ({ onClose }) => {
     setTimeout(() => window.location.reload(), 500);
   };
   
+  const handleReportIssue = () => {
+    // Préparer les données de diagnostic
+    const diagnosticData = {
+      version: "1.0.0",
+      browser: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+      notionStatus: notionApi.mockMode.isActive() ? "Mode Mock" : "Mode Réel",
+      error: localStorage.getItem('notion_last_error') || "Aucune erreur enregistrée"
+    };
+    
+    // Ouvrir le formulaire de rapport de bug avec les données
+    const encodedData = encodeURIComponent(JSON.stringify(diagnosticData));
+    window.open(`https://github.com/cedcoss-upasana/my-checklist/issues/new?body=${encodedData}`, '_blank');
+  };
+  
   return (
     <div className="sm:justify-between flex flex-col sm:flex-row gap-2">
       <div className="flex flex-wrap gap-2">
         <Button 
           size="sm" 
           variant="outline"
-          onClick={() => {
-            window.open('https://github.com/cedcoss-upasana/my-checklist/issues', '_blank');
-          }}
+          onClick={handleReportIssue}
           className="gap-1 text-xs"
         >
-          <ExternalLink size={12} />
+          <HelpCircle size={12} />
           Signaler un bug
         </Button>
         
@@ -60,6 +73,18 @@ const ErrorActions: React.FC<ErrorActionsProps> = ({ onClose }) => {
         >
           <Database size={12} />
           Forcer mode réel
+        </Button>
+        
+        <Button
+          size="sm"
+          variant="ghost"
+          className="gap-1 text-xs text-blue-600"
+          asChild
+        >
+          <a href="https://developers.notion.com/docs" target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={12} />
+            Documentation Notion
+          </a>
         </Button>
       </div>
       <AlertDialogAction>Fermer</AlertDialogAction>
