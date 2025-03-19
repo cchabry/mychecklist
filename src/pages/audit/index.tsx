@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AuditContainer } from './AuditContainer';
@@ -11,6 +10,16 @@ const AuditPage = () => {
   const [notionReady, setNotionReady] = useState<boolean>(false);
   const [checking, setChecking] = useState<boolean>(true);
   const { projectId } = useParams<{ projectId: string }>();
+
+  // Vérification si l'ID du projet est disponible
+  if (!projectId) {
+    console.error("Aucun projectId fourni à AuditPage (dans audit/index.tsx)");
+    return (
+      <div className="text-center p-8">
+        Erreur: Identifiant de projet manquant
+      </div>
+    );
+  }
 
   useEffect(() => {
     const checkNotionConfig = async () => {
@@ -231,7 +240,7 @@ const AuditPage = () => {
     );
   }
 
-  return <AuditContainer />;
+  return <AuditContainer projectId={projectId} />;
 };
 
 export default AuditPage;
