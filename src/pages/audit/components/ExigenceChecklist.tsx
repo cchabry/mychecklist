@@ -8,7 +8,9 @@ import {
   ChevronDown,
   XCircle,
   Copy,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  Info
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -40,6 +42,7 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   onItemChange 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showProjectRequirements, setShowProjectRequirements] = useState(false);
   
   // Initialize page results if not present
   const initialPageResults = item.pageResults || samplePages.map(page => ({
@@ -183,6 +186,10 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     return pageResults.find(r => r.pageId === pageId)?.comment || '';
   };
   
+  // Exemple de données sur les exigences spécifiques au projet (à remplacer par des données réelles)
+  const projectRequirement = item.projectRequirement || "Cette exigence est importante pour le projet car elle impacte directement l'expérience utilisateur.";
+  const projectComment = item.projectComment || "Des tests spécifiques doivent être réalisés sur les pages principales pour assurer la conformité à cette exigence.";
+  
   return (
     <Card className="shadow-sm border border-gray-100">
       <CardHeader className="pb-2">
@@ -199,6 +206,11 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                   <Badge variant="outline" className={`text-xs ${getImportanceBadgeColor()}`}>
                     {importance}
                   </Badge>
+                  {item.requirementLevel && (
+                    <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800">
+                      {item.requirementLevel}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -216,6 +228,37 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                   <p className="text-sm text-gray-700 mb-2 leading-relaxed">
                     {item.details || "Description non disponible"}
                   </p>
+                </div>
+                
+                {/* Exigences spécifiques au projet */}
+                <div className="mb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-between mb-2"
+                    onClick={() => setShowProjectRequirements(!showProjectRequirements)}
+                  >
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      <span>Exigences spécifiques au projet</span>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showProjectRequirements ? 'transform rotate-180' : ''}`} />
+                  </Button>
+                  
+                  {showProjectRequirements && (
+                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-md mb-4 animate-in fade-in duration-200">
+                      <div className="mb-2">
+                        <h5 className="text-sm font-medium text-blue-900 mb-1">Exigence pour ce projet:</h5>
+                        <p className="text-sm text-blue-800">{projectRequirement}</p>
+                      </div>
+                      {projectComment && (
+                        <div>
+                          <h5 className="text-sm font-medium text-blue-900 mb-1">Commentaire:</h5>
+                          <p className="text-sm text-blue-800">{projectComment}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mb-4">

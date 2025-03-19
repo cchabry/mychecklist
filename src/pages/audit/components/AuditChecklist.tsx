@@ -18,9 +18,16 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   // Process audit data on mount
   React.useEffect(() => {
     if (audit && audit.items) {
+      // Enrichir les items avec des détails et des exigences de projet
       const enrichedAudit = {
         ...audit,
-        items: enrichItemsWithDetails(audit.items)
+        items: enrichItemsWithDetails(audit.items).map(item => ({
+          ...item,
+          // Ajouter des données d'exigence de projet (à remplacer par des données réelles)
+          importance: item.importance || getDefaultImportance(item.id),
+          projectRequirement: item.projectRequirement || getDefaultProjectRequirement(item.id),
+          projectComment: item.projectComment || getDefaultProjectComment(item.id)
+        }))
       };
       onUpdateAudit(enrichedAudit);
       setChecklistReady(true);
@@ -56,6 +63,42 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
     
     return audit.items.filter(item => item.category === selectedCategory);
   };
+
+  // Fonctions pour générer des données de démo sur les exigences du projet
+  const getDefaultImportance = (itemId: string): string => {
+    // Exemple de logique pour attribuer une importance basée sur l'ID
+    const importances = ['Majeur', 'Important', 'Moyen', 'Mineur'];
+    const itemNumber = parseInt(itemId.split('-')[1] || '1');
+    return importances[itemNumber % importances.length] || 'Moyen';
+  };
+
+  const getDefaultProjectRequirement = (itemId: string): string => {
+    // Générer des exigences de projet de démonstration
+    const requirements = [
+      "Cette exigence est cruciale pour la conformité RGAA du projet.",
+      "L'implémentation de cette exigence est nécessaire pour respecter la charte graphique.",
+      "Cette exigence est requise par le cahier des charges du client.",
+      "Implémentation obligatoire selon les standards internes de qualité.",
+      "Exigence critique pour l'accessibilité du projet."
+    ];
+    
+    const itemNumber = parseInt(itemId.split('-')[1] || '1');
+    return requirements[itemNumber % requirements.length] || requirements[0];
+  };
+
+  const getDefaultProjectComment = (itemId: string): string => {
+    // Générer des commentaires de projet de démonstration
+    const comments = [
+      "Des tests spécifiques doivent être effectués sur toutes les pages principales.",
+      "Attention particulière à porter sur les formulaires et les zones interactives.",
+      "La conformité à cette exigence impacte directement le SEO du site.",
+      "Le client a spécifiquement demandé que cette exigence soit respectée.",
+      "Des dérogations peuvent être accordées pour certaines pages administratives."
+    ];
+    
+    const itemNumber = parseInt(itemId.split('-')[1] || '1');
+    return comments[itemNumber % comments.length] || comments[0];
+  };
   
   if (!checklistReady) {
     return (
@@ -71,23 +114,6 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
     { id: 'page-2', url: 'https://example.com/contact', title: 'Contact' },
     { id: 'page-3', url: 'https://example.com/produits', title: 'Liste des produits' }
   ];
-  
-  // Exigences mock data
-  const exigences = {
-    // Map item ID to importance
-    itemImportance: {
-      'item-1': 'Majeur',
-      'item-2': 'Important',
-      'item-3': 'Moyen',
-      'item-4': 'Mineur',
-      'item-5': 'N/A'
-    }
-  };
-  
-  // Function to get item importance level
-  const getItemImportance = (itemId: string) => {
-    return exigences.itemImportance[itemId] || 'Non défini';
-  };
   
   const filteredItems = getFilteredItems();
   
@@ -110,7 +136,7 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
                 key={item.id}
                 item={item}
                 samplePages={samplePages}
-                importance={getItemImportance(item.id)}
+                importance={item.importance || getDefaultImportance(item.id)}
                 onItemChange={handleItemChange}
               />
             ))}

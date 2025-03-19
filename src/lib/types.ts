@@ -46,6 +46,10 @@ export interface AuditItem extends ChecklistItem {
   status: ComplianceStatus; // Overall status
   comment?: string; // Overall comment
   pageResults?: PageResult[]; // Results for each sample page
+  // Propriétés spécifiques au projet
+  importance?: string; // Niveau d'importance pour ce projet (Majeur, Important, Moyen, Mineur)
+  projectRequirement?: string; // Exigence spécifique au projet
+  projectComment?: string; // Commentaire détaillé sur l'exigence pour ce projet
 }
 
 export interface Audit {
