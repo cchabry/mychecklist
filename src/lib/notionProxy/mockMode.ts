@@ -16,19 +16,13 @@ export const mockMode = {
   activate: (): void => {
     console.log('🔶 ACTIVATING MOCK MODE - Will use demo data instead of real Notion API');
     localStorage.setItem(STORAGE_KEYS.MOCK_MODE, 'true');
-    toast.warning('Mode démonstration activé', {
-      description: 'Les données fictives sont utilisées car l\'API Notion n\'est pas accessible.',
-      duration: 4000,
-    });
+    // Ne pas afficher de toast ici pour éviter les doublons - laissons ce soin aux composants
   },
   
   deactivate: (): void => {
     console.log('🟢 DEACTIVATING MOCK MODE - Will use real Notion API');
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-    toast.success('Mode réel activé', {
-      description: 'L\'application utilise maintenant les données réelles de Notion.',
-      duration: 3000,
-    });
+    // Ne pas afficher de toast ici pour éviter les doublons - laissons ce soin aux composants
   },
   
   toggle: (): boolean => {
@@ -37,9 +31,19 @@ export const mockMode = {
     
     if (currentState) {
       mockMode.deactivate();
+      
+      // Effacer tous les caches sur le toggle
+      localStorage.removeItem('projects_cache');
+      localStorage.removeItem('audit_cache');
+      
       return false;
     } else {
       mockMode.activate();
+      
+      // Effacer tous les caches sur le toggle
+      localStorage.removeItem('projects_cache');
+      localStorage.removeItem('audit_cache');
+      
       return true;
     }
   },
@@ -49,9 +53,10 @@ export const mockMode = {
     console.log('🧹 Resetting mock mode state and errors');
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     localStorage.removeItem('notion_last_error');
-    toast.info('État du proxy réinitialisé', {
-      description: 'Les paramètres de connexion à Notion ont été réinitialisés.',
-    });
+    
+    // Effacer aussi les caches
+    localStorage.removeItem('projects_cache');
+    localStorage.removeItem('audit_cache');
   },
   
   /**
@@ -64,7 +69,11 @@ export const mockMode = {
         description: 'L\'application utilise des données fictives.',
         action: {
           label: 'Désactiver',
-          onClick: () => mockMode.deactivate()
+          onClick: () => {
+            mockMode.deactivate();
+            // Recharger la page pour refléter le changement
+            setTimeout(() => window.location.reload(), 500);
+          }
         },
         duration: 5000,
       });
@@ -86,6 +95,10 @@ export const mockMode = {
         mockMode.deactivate();
       }
     }
+    
+    // Effacer les caches quelle que soit la modification
+    localStorage.removeItem('projects_cache');
+    localStorage.removeItem('audit_cache');
   },
 
   /**
@@ -118,12 +131,6 @@ export const mockMode = {
     
     toast.success('Mode réel forcé', {
       description: 'Tous les caches ont été réinitialisés. L\'application utilisera les données réelles.',
-      duration: 3000,
     });
-    
-    // Rafraîchir la page après un court délai pour s'assurer que tous les composants se mettent à jour
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   }
 };

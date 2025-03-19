@@ -1,4 +1,3 @@
-
 import { getNotionClient, testNotionConnection } from './notionClient';
 import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
@@ -210,6 +209,8 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
 // Créer un nouveau projet dans Notion
 export const createProjectInNotion = async (name: string, url: string): Promise<ProjectData | null> => {
   try {
+    console.log('✨ Début de création du projet:', name, url);
+    
     // Vérifier si on est en mode mock
     if (notionApi.mockMode.isActive()) {
       console.info('Creating mock project (mode mock active)');
@@ -235,7 +236,15 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
           const cache = JSON.parse(cachedProjects);
           cache.projects.unshift(newMockProject);
           localStorage.setItem('projects_cache', JSON.stringify(cache));
-        } catch (e) {}
+        } catch (e) {
+          console.error('Erreur lors de la mise à jour du cache:', e);
+        }
+      } else {
+        // Créer un nouveau cache si aucun n'existe
+        localStorage.setItem('projects_cache', JSON.stringify({
+          timestamp: Date.now(),
+          projects: [newMockProject, ...MOCK_PROJECTS]
+        }));
       }
       
       return newMockProject;
@@ -260,6 +269,9 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
         progress: 0,
         itemsCount: 15
       };
+      
+      // Ajouter aux projets mock pour cohérence
+      MOCK_PROJECTS.unshift(fallbackProject);
       
       return fallbackProject;
     }
@@ -305,41 +317,20 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     }
     
     // Adapter les noms des propriétés à ceux utilisés dans votre base Notion
-    // Utiliser les noms de propriétés avec la première lettre en minuscule et en majuscule
-    const properties: any = {};
-    
-    // Name/name - obligatoire
-    properties.Name = {
-      title: [{ text: { content: name } }]
-    };
-    
-    // URL/url - obligatoire
-    properties.URL = {
-      url: url
-    };
-    
-    // Description/description - optionnel
-    properties.Description = {
-      rich_text: [{ text: { content: 'Projet créé via l\'application' } }]
-    };
-    
-    // Status/status - optionnel
-    properties.Status = {
-      select: { name: 'Non démarré' }
-    };
-    
-    // Progress/progress - optionnel
-    properties.Progress = {
-      number: 0
-    };
-    
-    // ItemsCount/itemsCount - optionnel
-    properties.ItemsCount = {
-      number: 15
+    const properties: any = {
+      "Name": { title: [{ text: { content: name } }] },
+      "URL": { url: url },
+      "Description": { rich_text: [{ text: { content: 'Projet créé via l\'application' } }] },
+      "Status": { select: { name: 'Non démarré' } },
+      "Progress": { number: 0 },
+      "ItemsCount": { number: 15 }
     };
     
     // Log des propriétés préparées
     console.log('Préparation des propriétés pour création:', JSON.stringify(properties, null, 2));
+    
+    // Effacer le cache avant la création
+    localStorage.removeItem('projects_cache');
     
     // Créer la page dans Notion via le proxy
     console.log('Creating project in Notion database:', dbId);
@@ -353,7 +344,6 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     }
     
     console.log('Project created successfully in Notion:', response.id);
-    console.log('Réponse complète:', JSON.stringify(response, null, 2));
     
     // Convertir la réponse en projet
     const newProject: ProjectData = {
@@ -368,15 +358,10 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       itemsCount: 15
     };
     
-    // Mettre à jour le cache
-    const cachedProjects = localStorage.getItem('projects_cache');
-    if (cachedProjects) {
-      try {
-        const cache = JSON.parse(cachedProjects);
-        cache.projects.unshift(newProject);
-        localStorage.setItem('projects_cache', JSON.stringify(cache));
-      } catch (e) {}
-    }
+    // Forcer une actualisation des données
+    setTimeout(() => {
+      localStorage.removeItem('projects_cache');
+    }, 500);
     
     return newProject;
   } catch (error) {
@@ -406,6 +391,6 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       return newMockProject;
     }
     
-    return null;
+    throw error;
   }
 };
