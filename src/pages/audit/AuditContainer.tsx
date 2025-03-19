@@ -55,10 +55,14 @@ export const AuditContainer = () => {
       console.log("Current mock mode status:", notionApi.mockMode.isActive() ? "ACTIVE" : "INACTIVE");
       console.log("Using Notion:", usingNotion);
       
-      // Force un désactivation du mode mock si Notion est configuré
+      // Réinitialiser complètement l'état du mode mock si Notion est configuré
       if (usingNotion && notionApi.mockMode.isActive()) {
         console.log("Force deactivating mock mode before loading project");
         notionApi.mockMode.deactivate();
+        
+        // Forcer un rafraîchissement des données en vidant les caches
+        localStorage.removeItem('audit_cache');
+        localStorage.removeItem('projects_cache');
       }
       
       loadProject();
@@ -75,6 +79,11 @@ export const AuditContainer = () => {
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
     notionApi.mockMode.forceReset();
+    
+    // Recharger les données après réinitialisation
+    setTimeout(() => {
+      loadProject();
+    }, 600);
   };
   
   return (

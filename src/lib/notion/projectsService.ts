@@ -19,7 +19,8 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
     
     if (!client || !dbId) {
       console.error('Notion client or database ID is missing');
-      return { projects: [] };
+      notionApi.mockMode.activate();
+      return { projects: MOCK_PROJECTS };
     }
     
     // Récupérer la clé API
@@ -35,7 +36,7 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
       console.log('Notion connection verified via proxy');
     } catch (connError) {
       console.error('Failed to connect to Notion API:', connError);
-      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401')) {
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401') || connError.message?.includes('403')) {
         notionApi.mockMode.activate();
         console.info('Switching to mock data due to connection error');
         return { projects: MOCK_PROJECTS };
@@ -81,12 +82,18 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
       };
     });
     
+    // Sauvegarder les données en cache pour améliorer les performances
+    localStorage.setItem('projects_cache', JSON.stringify({ 
+      timestamp: Date.now(), 
+      projects 
+    }));
+    
     return { projects };
   } catch (error) {
     console.error('Erreur lors de la récupération des projets depuis Notion:', error);
     
     // Si le mode mock est activé ou si c'est une erreur de type 'Failed to fetch', utiliser les données de test
-    if (error.message?.includes('Failed to fetch')) {
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('403') || error.message?.includes('401')) {
       console.info('Switching to mock data due to API error');
       notionApi.mockMode.activate();
       return { projects: MOCK_PROJECTS };
@@ -100,6 +107,21 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
 // Récupérer un projet par son ID
 export const getProjectById = async (id: string): Promise<ProjectData | null> => {
   try {
+    // Essayer de charger depuis le cache d'abord
+    const cachedProjects = localStorage.getItem('projects_cache');
+    if (cachedProjects) {
+      try {
+        const { projects } = JSON.parse(cachedProjects);
+        const project = projects.find((p: ProjectData) => p.id === id);
+        if (project) {
+          console.log('Project found in cache:', project.name);
+          return project;
+        }
+      } catch (e) {
+        console.error('Error parsing cached projects:', e);
+      }
+    }
+    
     // Vérifier si on est en mode mock
     if (notionApi.mockMode.isActive()) {
       console.log('Getting mock project by ID (mode mock active):', id);
@@ -127,7 +149,7 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
       console.log('Notion connection verified before getting project');
     } catch (connError) {
       console.error('Connection test failed:', connError);
-      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401')) {
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401') || connError.message?.includes('403')) {
         notionApi.mockMode.activate();
         console.log('Switching to mock mode due to connection error');
         const mockProject = MOCK_PROJECTS.find(project => project.id === id);
@@ -174,7 +196,7 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
     console.error('Erreur lors de la récupération du projet depuis Notion:', error);
     
     // En cas d'erreur de connexion, utiliser les données de test
-    if (error.message?.includes('Failed to fetch')) {
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('403') || error.message?.includes('401')) {
       notionApi.mockMode.activate();
       console.log('Switching to mock mode due to fetch error');
       const mockProject = MOCK_PROJECTS.find(project => project.id === id);
@@ -203,6 +225,19 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
         itemsCount: 15
       };
       
+      // Ajouter le nouveau projet aux projets simulés pour une meilleure expérience
+      MOCK_PROJECTS.unshift(newMockProject);
+      
+      // Mettre à jour le cache
+      const cachedProjects = localStorage.getItem('projects_cache');
+      if (cachedProjects) {
+        try {
+          const cache = JSON.parse(cachedProjects);
+          cache.projects.unshift(newMockProject);
+          localStorage.setItem('projects_cache', JSON.stringify(cache));
+        } catch (e) {}
+      }
+      
       return newMockProject;
     }
     
@@ -211,7 +246,22 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     if (!client || !dbId) {
       console.error('Notion client or database ID is missing');
-      return null;
+      notionApi.mockMode.activate();
+      
+      // Créer un projet mock comme fallback
+      const fallbackProject: ProjectData = {
+        id: `project-${Date.now()}`,
+        name,
+        url,
+        description: 'Projet créé en mode démonstration (configuration Notion manquante)',
+        status: 'Non démarré',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        progress: 0,
+        itemsCount: 15
+      };
+      
+      return fallbackProject;
     }
     
     // Récupérer la clé API
@@ -230,7 +280,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       console.log('Database access verified:', dbId);
     } catch (connError) {
       console.error('Connection test failed:', connError);
-      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401')) {
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401') || connError.message?.includes('403')) {
         notionApi.mockMode.activate();
         console.log('Switching to mock mode due to connection error');
         
@@ -245,6 +295,9 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
           progress: 0,
           itemsCount: 15
         };
+        
+        // Ajouter aux projets mock pour cohérence
+        MOCK_PROJECTS.unshift(newMockProject);
         
         return newMockProject;
       }
@@ -261,7 +314,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     };
     
     // URL/url - obligatoire
-    properties.url = {
+    properties.URL = {
       url: url
     };
     
@@ -276,8 +329,13 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     };
     
     // Progress/progress - optionnel
-    properties.progress = {
+    properties.Progress = {
       number: 0
+    };
+    
+    // ItemsCount/itemsCount - optionnel
+    properties.ItemsCount = {
+      number: 15
     };
     
     // Log des propriétés préparées
@@ -310,13 +368,23 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       itemsCount: 15
     };
     
+    // Mettre à jour le cache
+    const cachedProjects = localStorage.getItem('projects_cache');
+    if (cachedProjects) {
+      try {
+        const cache = JSON.parse(cachedProjects);
+        cache.projects.unshift(newProject);
+        localStorage.setItem('projects_cache', JSON.stringify(cache));
+      } catch (e) {}
+    }
+    
     return newProject;
   } catch (error) {
     console.error('Erreur lors de la création du projet dans Notion:', error);
     console.error('Détails de l\'erreur:', error.message);
     
     // Activer le mode mock en cas d'échec et retourner un projet fictif
-    if (error.message?.includes('Failed to fetch')) {
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('403') || error.message?.includes('401')) {
       notionApi.mockMode.activate();
       console.log('Switching to mock mode due to fetch error');
       
@@ -331,6 +399,9 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
         progress: 0,
         itemsCount: 15
       };
+      
+      // Ajouter aux projets mock pour cohérence
+      MOCK_PROJECTS.unshift(newMockProject);
       
       return newMockProject;
     }

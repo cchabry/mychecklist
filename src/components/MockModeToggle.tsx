@@ -6,7 +6,11 @@ import { Cloud, Database } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 
-const MockModeToggle = () => {
+interface MockModeToggleProps {
+  onToggle?: (isMockMode: boolean) => void;
+}
+
+const MockModeToggle = ({ onToggle }: MockModeToggleProps = {}) => {
   const [isMockMode, setIsMockMode] = useState(false);
 
   useEffect(() => {
@@ -23,12 +27,30 @@ const MockModeToggle = () => {
       toast.info('Mode démonstration activé', {
         description: 'L\'application utilise maintenant des données fictives',
       });
+      
+      // Forcer l'effacement des caches lors du passage en mode mock
+      localStorage.removeItem('projects_cache');
+      localStorage.removeItem('audit_cache');
     } else {
       notionApi.mockMode.deactivate();
       toast.success('Mode réel activé', {
         description: 'L\'application utilise maintenant les données réelles de Notion',
       });
+      
+      // Forcer l'effacement des caches lors du passage en mode réel
+      localStorage.removeItem('projects_cache');
+      localStorage.removeItem('audit_cache');
     }
+    
+    // Déclencher le callback si fourni
+    if (onToggle) {
+      onToggle(checked);
+    }
+    
+    // Rafraîchir la page après un court délai
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   return (

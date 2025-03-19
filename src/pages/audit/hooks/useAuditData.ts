@@ -63,16 +63,27 @@ export const useAuditData = (projectId: string | undefined, usingNotion: boolean
                 // Si la base de données des checklists est configurée, essayer de charger l'audit
                 if (checklistsDbId) {
                   try {
+                    console.log('Tentative de chargement de l\'audit depuis Notion avec la base de checklists:', checklistsDbId);
                     auditData = await getAuditForProject(projectId);
                     console.log('Audit data from Notion:', auditData);
+                    
+                    // Vérifier si l'audit a des éléments
+                    if (!auditData || !auditData.items || auditData.items.length === 0) {
+                      console.log('Audit sans éléments, création d\'un nouveau audit');
+                      auditData = createNewAudit(projectId);
+                    }
                   } catch (checklistError) {
                     console.error('Erreur lors du chargement de l\'audit depuis Notion:', checklistError);
                     toast.error('Erreur de chargement des checklists', {
                       description: 'Impossible de charger les données d\'audit. Utilisation des données par défaut.'
                     });
+                    
+                    // Créer un nouvel audit en cas d'erreur
+                    auditData = createNewAudit(projectId);
                   }
                 } else {
                   console.log('Base de données des checklists non configurée, utilisation des données mock pour l\'audit');
+                  auditData = createNewAudit(projectId);
                 }
               }
             } catch (proxyError) {

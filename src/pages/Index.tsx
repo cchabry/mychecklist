@@ -18,11 +18,29 @@ const ProjectPage = () => {
   const handleRefresh = () => {
     setProjects([]);
     setIsLoading(true);
+    
+    // Forcer l'effacement du cache des projets
+    localStorage.removeItem('projects_cache');
+    
     loadProjects();
+    
+    toast.info("Actualisation en cours", {
+      description: "Chargement des données les plus récentes"
+    });
   };
 
   const handleForceReset = () => {
     notionApi.mockMode.forceReset();
+    
+    // Recharger après réinitialisation
+    setTimeout(() => {
+      handleRefresh();
+    }, 600);
+  };
+  
+  const handleMockToggle = (isMockMode: boolean) => {
+    // La fonction de rafraîchissement est déjà dans le component MockModeToggle
+    console.log(`Mode mock ${isMockMode ? 'activé' : 'désactivé'}`);
   };
 
   useEffect(() => {
@@ -63,7 +81,7 @@ const ProjectPage = () => {
         </h1>
 
         <div className="flex items-center gap-3">
-          <MockModeToggle />
+          <MockModeToggle onToggle={handleMockToggle} />
           
           <Button 
             variant="outline" 
@@ -105,6 +123,19 @@ const ProjectPage = () => {
         </div>
       </div>
 
+      {/* Indicateur de mode mock */}
+      {notionApi.mockMode.isActive() && (
+        <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} />
+            <span className="font-medium">Mode démonstration actif</span>
+          </div>
+          <p className="mt-1 text-xs">
+            Les données affichées sont fictives. Pour utiliser les données réelles de Notion, désactivez le mode démonstration.
+          </p>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-t-transparent border-tmw-teal rounded-full animate-spin"></div>
@@ -125,5 +156,8 @@ const ProjectPage = () => {
     </div>
   );
 };
+
+// N'oubliez pas d'importer AlertTriangle
+import { AlertTriangle } from 'lucide-react';
 
 export default ProjectPage;
