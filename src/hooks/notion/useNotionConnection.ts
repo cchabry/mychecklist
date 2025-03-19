@@ -2,16 +2,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { notionApi } from '@/lib/notionProxy';
 import { clearStoredNotionErrors } from '@/lib/notionProxy/errorHandling';
+import { toast } from 'sonner';
 
 export interface NotionConnectionStatus {
   isConnected: boolean;
   isLoading: boolean;
   error: string | null;
   isMockMode: boolean;
+  lastTestedAt?: number;
 }
 
 /**
  * Hook spécialisé pour gérer le statut de connexion à Notion
+ * Centralise toute la logique liée au test de connexion et au mode mock
  */
 export function useNotionConnection(apiKey: string, hasConfig: boolean) {
   const [status, setStatus] = useState<NotionConnectionStatus>({
@@ -23,9 +26,18 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
 
   /**
    * Teste la connexion à Notion
+   * @returns Promise<boolean> - true si connecté, false sinon
    */
   const testConnection = useCallback(async (): Promise<boolean> => {
-    if (!apiKey) return false;
+    if (!apiKey) {
+      setStatus(prev => ({ 
+        ...prev, 
+        isConnected: false, 
+        isLoading: false,
+        error: 'Clé API manquante'
+      }));
+      return false;
+    }
     
     setStatus(prev => ({ ...prev, isLoading: true, error: null }));
     
@@ -36,13 +48,14 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
           ...prev, 
           isConnected: false, 
           isLoading: false,
-          isMockMode: true
+          isMockMode: true,
+          lastTestedAt: Date.now()
         }));
         return false;
       }
       
       // Teste la connexion avec l'API Users
-      await notionApi.users.me(apiKey);
+      const user = await notionApi.users.me(apiKey);
       
       // Réinitialise les erreurs précédentes
       clearStoredNotionErrors();
@@ -52,7 +65,8 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
         isConnected: true, 
         isLoading: false, 
         error: null,
-        isMockMode: false
+        isMockMode: false,
+        lastTestedAt: Date.now()
       }));
       
       return true;
@@ -61,7 +75,8 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
         ...prev, 
         isConnected: false, 
         isLoading: false, 
-        error: error.message
+        error: error.message,
+        lastTestedAt: Date.now()
       }));
       
       return false;
@@ -77,6 +92,11 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
     
     // Effacer les erreurs stockées
     clearStoredNotionErrors();
+    
+    // Notification
+    toast.info('Réinitialisation du mode', {
+      description: 'Tentative de connexion en mode réel...'
+    });
     
     // Attendre un peu pour que les changements prennent effet
     setTimeout(() => {

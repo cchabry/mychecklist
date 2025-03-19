@@ -1,5 +1,6 @@
 
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
+import { useCallback } from 'react';
 
 export interface NotionConfig {
   apiKey: string;
@@ -10,24 +11,25 @@ export interface NotionConfig {
 
 /**
  * Hook spécialisé pour gérer le stockage et la récupération des données Notion dans localStorage
+ * Centralise toutes les opérations liées à la persistance de la configuration
  */
 export function useNotionStorage() {
   /**
    * Récupère la configuration stockée
    */
-  const getStoredConfig = (): NotionConfig => {
+  const getStoredConfig = useCallback((): NotionConfig => {
     return {
       apiKey: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
       databaseId: localStorage.getItem(STORAGE_KEYS.DATABASE_ID) || '',
-      checklistsDbId: localStorage.getItem('notion_checklists_database_id') || '',
-      lastConfigDate: localStorage.getItem('notion_last_config_date')
+      checklistsDbId: localStorage.getItem(STORAGE_KEYS.CHECKLISTS_DB_ID) || '',
+      lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_CONFIG_DATE)
     };
-  };
+  }, []);
 
   /**
    * Met à jour la configuration dans localStorage
    */
-  const updateStoredConfig = (config: Partial<NotionConfig>): void => {
+  const updateStoredConfig = useCallback((config: Partial<NotionConfig>): void => {
     const updatedConfig = {
       ...getStoredConfig(),
       ...config,
@@ -44,23 +46,43 @@ export function useNotionStorage() {
     }
     
     if (config.checklistsDbId !== undefined) {
-      localStorage.setItem('notion_checklists_database_id', config.checklistsDbId);
+      localStorage.setItem(STORAGE_KEYS.CHECKLISTS_DB_ID, config.checklistsDbId);
     }
     
-    localStorage.setItem('notion_last_config_date', new Date().toISOString());
-  };
+    localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
+  }, [getStoredConfig]);
 
   /**
-   * Vérifie si la configuration est présente
+   * Efface la configuration stockée
    */
-  const hasStoredConfig = (): boolean => {
+  const clearStoredConfig = useCallback((): void => {
+    localStorage.removeItem(STORAGE_KEYS.API_KEY);
+    localStorage.removeItem(STORAGE_KEYS.DATABASE_ID);
+    localStorage.removeItem(STORAGE_KEYS.CHECKLISTS_DB_ID);
+    localStorage.removeItem(STORAGE_KEYS.LAST_CONFIG_DATE);
+  }, []);
+
+  /**
+   * Vérifie si la configuration est présente et complète
+   */
+  const hasStoredConfig = useCallback((): boolean => {
     const config = getStoredConfig();
     return !!(config.apiKey && config.databaseId);
-  };
+  }, [getStoredConfig]);
+
+  /**
+   * Vérifie si la configuration des checklists est présente
+   */
+  const hasChecklistsConfig = useCallback((): boolean => {
+    const config = getStoredConfig();
+    return !!(config.checklistsDbId);
+  }, [getStoredConfig]);
 
   return {
     getStoredConfig,
     updateStoredConfig,
-    hasStoredConfig
+    clearStoredConfig,
+    hasStoredConfig,
+    hasChecklistsConfig
   };
 }

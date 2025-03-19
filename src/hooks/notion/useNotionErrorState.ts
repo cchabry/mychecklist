@@ -1,7 +1,5 @@
 
-import { useState, useEffect } from 'react';
 import { useNotionError } from './useNotionError';
-import { NotionErrorDetails, getStoredNotionError } from '@/lib/notionProxy/errorHandling';
 
 /**
  * Hook maintenu pour la compatibilité avec le code existant
