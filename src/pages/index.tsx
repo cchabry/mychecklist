@@ -6,12 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotionConfig } from '@/components/notion';
 import { Button } from '@/components/ui/button';
 import { Settings, Database, AlertTriangle } from 'lucide-react';
-import { mockMode } from '@/lib/notionProxy/mockMode';
 import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
 import { useNotion } from '@/contexts/NotionContext';
 
 const HomePage = () => {
-  const { handleConfigOpen, showConfig, handleConfigClose, isMockMode } = useNotion();
+  const { openConfig, closeConfig, status, showConfig } = useNotion();
   
   return (
     <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
@@ -21,7 +20,7 @@ const HomePage = () => {
           Vérifiez et configurez votre intégration avec Notion
         </p>
         
-        {isMockMode && (
+        {status.isMockMode && (
           <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start space-x-2">
             <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
@@ -39,7 +38,7 @@ const HomePage = () => {
         <Button 
           variant="outline" 
           className="gap-2" 
-          onClick={handleConfigOpen}
+          onClick={openConfig}
           id="notion-config-button"
         >
           <Settings size={16} />
@@ -50,7 +49,7 @@ const HomePage = () => {
       {/* Configuration Notion (modal) */}
       <NotionConfig 
         isOpen={showConfig} 
-        onClose={handleConfigClose} 
+        onClose={closeConfig} 
       />
       
       <Tabs defaultValue="structure" className="w-full">
@@ -102,7 +101,7 @@ const HomePage = () => {
         </TabsContent>
         
         <TabsContent value="diagnostic">
-          <NotionDiagnosticTool onConfigClick={handleConfigOpen} />
+          <NotionDiagnosticTool onConfigClick={openConfig} />
         </TabsContent>
       </Tabs>
     </div>
