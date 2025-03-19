@@ -29,6 +29,15 @@ export const create = async (data: any, token: string) => {
   mockMode.temporarilyForceReal();
   console.log('✅ Mode réel forcé pour la création du projet');
   
+  // Format du token : vérifier et ajouter "Bearer " si nécessaire
+  let formattedToken = token;
+  if (!token.startsWith('Bearer ')) {
+    if (token.startsWith('secret_') || token.startsWith('ntn_')) {
+      formattedToken = `Bearer ${token}`;
+      console.log('Token formaté avec préfixe Bearer pour API Notion');
+    }
+  }
+  
   // Nettoyer et standardiser les propriétés pour éviter les erreurs d'API
   if (data && data.properties) {
     // S'assurer que les propriétés standard avec noms capitalisés sont présentes
@@ -59,6 +68,18 @@ export const create = async (data: any, token: string) => {
         data.properties.Name.title = [{ text: { content: data.properties.Name.title } }];
       }
     }
+    
+    // Nettoyer les propriétés en double qui pourraient causer des problèmes
+    // Conserver uniquement les propriétés utilisées dans la base de données
+    const cleanedProperties: Record<string, any> = {};
+    Object.entries(data.properties).forEach(([key, value]) => {
+      // Ne pas dépasser 100 propriétés (limite de l'API Notion)
+      if (Object.keys(cleanedProperties).length < 90) {
+        cleanedProperties[key] = value;
+      }
+    });
+    
+    data.properties = cleanedProperties;
   }
   
   // Log des données nettoyées
@@ -70,8 +91,12 @@ export const create = async (data: any, token: string) => {
   
   // Appel de l'API Notion
   try {
-    console.log('📡 Envoi de la requête à l\'API Notion avec token:', token.substring(0, 8) + '...');
-    const response = await notionApiRequest('/pages', 'POST', data, token);
+    console.log('📡 Envoi de la requête à l\'API Notion avec token:', formattedToken.substring(0, 15) + '...');
+    console.log('📡 Endpoint: /pages');
+    console.log('📡 Méthode: POST');
+    console.log('📡 Données: ', JSON.stringify(data, null, 2));
+    
+    const response = await notionApiRequest('/pages', 'POST', data, formattedToken);
     console.log('✅ Réponse de création de page:', JSON.stringify(response, null, 2));
     
     // Si la création a réussi, nettoyer les caches

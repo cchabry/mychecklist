@@ -251,9 +251,10 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     }
     
     // Vérifier si Notion est configuré
-    const { client, dbId } = getNotionClient();
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
     
-    if (!client || !dbId) {
+    if (!apiKey || !dbId) {
       console.error('Notion client or database ID is missing');
       notionApi.mockMode.activate();
       
@@ -276,44 +277,33 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       return fallbackProject;
     }
     
-    // Récupérer la clé API
-    const apiKey = localStorage.getItem('notion_api_key');
-    if (!apiKey) {
-      throw new Error('API key is missing');
-    }
+    // Forcer la désactivation du mode mock
+    notionApi.mockMode.forceReset();
+    console.log('✅ Mode mock désactivé pour la création de projet');
     
     // Tester la connexion avant de créer
     try {
-      await notionApi.users.me(apiKey);
-      console.log('Notion connection verified before creating project');
+      const user = await notionApi.users.me(apiKey);
+      console.log('Notion connection verified before creating project:', user.name);
       
       // Tester l'accès à la base de données
-      await notionApi.databases.retrieve(dbId, apiKey);
-      console.log('Database access verified:', dbId);
+      const db = await notionApi.databases.retrieve(dbId, apiKey);
+      console.log('Database access verified:', db.title?.[0]?.plain_text || dbId);
+      
+      // Analyser la structure de la base de données pour mieux adapter nos propriétés
+      console.log('Analysing database structure:', Object.keys(db.properties).join(', '));
+      
+      // Vérifier si certaines propriétés sont requises dans la base
+      const requiredProps = Object.entries(db.properties)
+        .filter(([_, prop]: [string, any]) => 
+          prop.type === 'title' || 
+          (prop.type === 'rich_text' && prop.rich_text?.is_required))
+        .map(([name, _]: [string, any]) => name);
+      
+      console.log('Required properties in database:', requiredProps);
     } catch (connError) {
       console.error('Connection test failed:', connError);
-      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401') || connError.message?.includes('403')) {
-        notionApi.mockMode.activate();
-        console.log('Switching to mock mode due to connection error');
-        
-        const newMockProject: ProjectData = {
-          id: `project-${Date.now()}`,
-          name,
-          url,
-          description: 'Projet créé en mode démonstration (après échec de connexion)',
-          status: 'Non démarré',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 0,
-          itemsCount: 15
-        };
-        
-        // Ajouter aux projets mock pour cohérence
-        MOCK_PROJECTS.unshift(newMockProject);
-        
-        return newMockProject;
-      }
-      throw connError;
+      throw connError; // Propager l'erreur pour un meilleur diagnostic
     }
     
     // Adapter les noms des propriétés à ceux utilisés dans votre base Notion
@@ -326,24 +316,39 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       "ItemsCount": { number: 15 }
     };
     
+    // Ajouter des propriétés alternatives avec différentes casses
+    // Ces alternatives sont supprimées par le proxy si non nécessaires
+    properties.Nom = properties.Name;
+    properties.Titre = properties.Name;
+    properties.Url = properties.URL;
+    properties.url = properties.URL;
+    properties.Description = { rich_text: [{ text: { content: 'Projet créé via l\'application' } }] };
+    properties.description = properties.Description;
+    
     // Log des propriétés préparées
     console.log('Préparation des propriétés pour création:', JSON.stringify(properties, null, 2));
     
     // Effacer le cache avant la création
     localStorage.removeItem('projects_cache');
     
-    // Créer la page dans Notion via le proxy
-    console.log('Creating project in Notion database:', dbId);
-    const response = await notionApi.pages.create({
+    // Créer la page dans Notion via le proxy, avec plus de détails pour le débogage
+    console.log(`Creating project in Notion database: ${dbId} with API key: ${apiKey.substring(0, 8)}...`);
+    
+    const payload = {
       parent: { database_id: dbId },
       properties
-    }, apiKey);
+    };
+    
+    console.log('Payload for Notion creation:', JSON.stringify(payload, null, 2));
+    
+    const response = await notionApi.pages.create(payload, apiKey);
     
     if (!response || !response.id) {
-      throw new Error('Failed to create project in Notion');
+      throw new Error('Failed to create project in Notion: No ID returned');
     }
     
     console.log('Project created successfully in Notion:', response.id);
+    console.log('Full response:', JSON.stringify(response, null, 2));
     
     // Convertir la réponse en projet
     const newProject: ProjectData = {
@@ -368,27 +373,9 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     console.error('Erreur lors de la création du projet dans Notion:', error);
     console.error('Détails de l\'erreur:', error.message);
     
-    // Activer le mode mock en cas d'échec et retourner un projet fictif
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('403') || error.message?.includes('401')) {
-      notionApi.mockMode.activate();
-      console.log('Switching to mock mode due to fetch error');
-      
-      const newMockProject: ProjectData = {
-        id: `project-${Date.now()}`,
-        name,
-        url,
-        description: 'Projet créé en mode démonstration (après échec de connexion)',
-        status: 'Non démarré',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        progress: 0,
-        itemsCount: 15
-      };
-      
-      // Ajouter aux projets mock pour cohérence
-      MOCK_PROJECTS.unshift(newMockProject);
-      
-      return newMockProject;
+    // Capturer et afficher plus de détails sur l'erreur
+    if (error.response) {
+      console.error('Réponse d\'erreur:', JSON.stringify(error.response, null, 2));
     }
     
     throw error;

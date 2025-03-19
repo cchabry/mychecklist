@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -83,29 +82,33 @@ const NewProject = () => {
       return;
     }
     
+    // Validation de l'URL
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Forcer la désactivation du mode mock pour la création si Notion est configuré
+      // Forcer le mode réel au début de la création
       const notionConfigured = isNotionConfigured();
       
-      // IMPORTANT: Forcer le mode réel au tout début, plus agressivement
-      console.log('🚨 Forçage COMPLET du mode réel pour la création du projet');
+      console.log('🔄 État actuel:', {
+        'Notion configuré': notionConfigured,
+        'Mode mock actif': notionApi.mockMode.isActive(),
+        'API Key présente': !!localStorage.getItem('notion_api_key'),
+        'Database ID présent': !!localStorage.getItem('notion_database_id'),
+      });
+      
+      // IMPORTANT: Forcer le mode réel pour la création
+      console.log('🚨 Reset complet du mode mock pour la création du projet');
+      notionApi.mockMode.forceReset();
       
       // Vider les caches au préalable
       localStorage.removeItem('projects_cache');
       localStorage.removeItem('notion_last_error');
-      
-      // Forcer le mode réel et désactiver le mode mock
-      if (notionConfigured) {
-        notionApi.mockMode.temporarilyForceReal();
-        // Double vérification explicite
-        localStorage.removeItem('notion_mock_mode');
-        // Afficher explicitement à l'utilisateur
-        toast.success('Mode réel activé pour la création', {
-          description: 'Création en cours avec les données réelles...'
-        });
-      }
+      localStorage.removeItem('notion_mock_mode');
       
       // Double vérification du mode mock juste avant création
       const isMockModeActive = notionApi.mockMode.isActive();
@@ -113,16 +116,18 @@ const NewProject = () => {
       
       // Si Notion est configuré et qu'on n'est pas en mode mock, créer le projet dans Notion
       if (notionConfigured && !isMockModeActive) {
-        console.log('🔄 Création de projet dans Notion (mode RÉEL)', { name, url });
+        console.log('🔄 Création de projet dans Notion (mode RÉEL)', { name, url: formattedUrl });
+        
+        // Afficher toast de début de création
+        toast.info('Création du projet en cours...', {
+          description: 'Envoi des données à Notion...'
+        });
         
         // Essayer de créer le projet dans Notion
         try {
-          // Nettoyer le cache avant création
-          localStorage.removeItem('projects_cache');
-
           // Création du projet avec attente explicite
           console.log('⏳ Début de la création du projet dans Notion...');
-          const project = await createProjectInNotion(name, url);
+          const project = await createProjectInNotion(name, formattedUrl);
           console.log('✅ Réponse de Notion reçue:', project);
           
           if (project) {
