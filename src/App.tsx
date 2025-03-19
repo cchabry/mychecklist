@@ -5,6 +5,7 @@ import { HomePage, AuditPage, NewProjectPage, NotFoundPage } from './pages';
 import { NotionProvider } from './contexts/NotionContext';
 import { Toaster } from './components/ui/toaster';
 import DiagnosticsPage from './pages/Diagnostics';
+import SamplePagesPage from './pages/SamplePages';
 
 const App: React.FC = () => {
   return (
@@ -15,6 +16,7 @@ const App: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/audit/:projectId" element={<AuditPage />} />
           <Route path="/new-project" element={<NewProjectPage />} />
+          <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
           <Route path="/diagnostics" element={<DiagnosticsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

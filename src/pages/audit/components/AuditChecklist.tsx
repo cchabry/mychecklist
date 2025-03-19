@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Audit } from '@/lib/types';
+import { Audit, AuditItem, ComplianceStatus } from '@/lib/types';
 import { useAuditChecklist } from '../hooks';
 import CategoryTabs from './CategoryTabs';
-import ChecklistItemList from './ChecklistItemList';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
+import ExigenceChecklist from './ExigenceChecklist';
 
 interface AuditChecklistProps {
   audit: Audit;
@@ -33,6 +33,30 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   
   const filteredItems = getFilteredItems();
   
+  // Mock data for sample pages
+  const [samplePages] = useState([
+    { id: '1', url: 'https://example.com/accueil', title: 'Page d\'accueil' },
+    { id: '2', url: 'https://example.com/contact', title: 'Contact' },
+    { id: '3', url: 'https://example.com/produits', title: 'Liste des produits' }
+  ]);
+  
+  // Exigences mock data
+  const [exigences] = useState({
+    // Map item ID to importance
+    itemImportance: {
+      'item1': 'Majeur',
+      'item2': 'Important',
+      'item3': 'Moyen',
+      'item4': 'Mineur',
+      'item5': 'N/A'
+    }
+  });
+  
+  // Function to get item importance level
+  const getItemImportance = (itemId: string) => {
+    return exigences.itemImportance[itemId] || 'Non défini';
+  };
+  
   return (
     <div className="bg-white/80 backdrop-blur-md rounded-lg border border-tmw-blue/10 shadow-lg p-6">
       <Tabs defaultValue="all" onValueChange={setSelectedCategory}>
@@ -46,10 +70,17 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
         </div>
         
         <TabsContent value={selectedCategory} className="mt-0">
-          <ChecklistItemList 
-            items={filteredItems}
-            onItemChange={handleItemChange}
-          />
+          <div className="space-y-8">
+            {filteredItems.map((item) => (
+              <ExigenceChecklist 
+                key={item.id}
+                item={item}
+                samplePages={samplePages}
+                importance={getItemImportance(item.id)}
+                onItemChange={handleItemChange}
+              />
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
