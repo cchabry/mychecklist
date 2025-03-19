@@ -1,4 +1,5 @@
-import { ChecklistItem, Project, Audit, ComplianceStatus } from './types';
+
+import { ChecklistItem, Project, Audit, ComplianceStatus, ImportanceLevel } from './types';
 
 // Catégories d'audit
 export const CATEGORIES = [
@@ -267,11 +268,20 @@ export const createMockAudit = (projectId: string): Audit => {
     ComplianceStatus.NotEvaluated
   ];
   
+  const importanceLevels = [
+    ImportanceLevel.Majeur,
+    ImportanceLevel.Important,
+    ImportanceLevel.Moyen,
+    ImportanceLevel.Mineur,
+    ImportanceLevel.NA
+  ];
+  
   const auditItems = CHECKLIST_ITEMS.map(item => ({
     ...item,
     status: projectId === "project-3" 
       ? ComplianceStatus.NotEvaluated 
-      : statuses[Math.floor(Math.random() * 3)] // Exclude NotEvaluated for completed audits
+      : statuses[Math.floor(Math.random() * 3)], // Exclude NotEvaluated for completed audits
+    importance: importanceLevels[Math.floor(Math.random() * importanceLevels.length)]
   }));
 
   // Calculer le score (uniquement pour les projets avec des évaluations)
@@ -307,7 +317,8 @@ export const getProjectById = (id: string): Project | undefined => {
 export const createNewAudit = (projectId: string): Audit => {
   const auditItems = CHECKLIST_ITEMS.map(item => ({
     ...item,
-    status: ComplianceStatus.NotEvaluated
+    status: ComplianceStatus.NotEvaluated,
+    importance: ImportanceLevel.NA
   }));
 
   return {

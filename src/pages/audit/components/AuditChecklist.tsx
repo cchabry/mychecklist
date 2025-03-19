@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Audit, AuditItem, PageResult } from '@/lib/types';
+import { Audit, AuditItem, PageResult, ImportanceLevel } from '@/lib/types';
 import CategoryTabs from './CategoryTabs';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 import ExigenceChecklist from './ExigenceChecklist';
@@ -65,11 +65,17 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   };
 
   // Fonctions pour générer des données de démo sur les exigences du projet
-  const getDefaultImportance = (itemId: string): string => {
+  const getDefaultImportance = (itemId: string): ImportanceLevel => {
     // Exemple de logique pour attribuer une importance basée sur l'ID
-    const importances = ['Majeur', 'Important', 'Moyen', 'Mineur'];
+    const importances = [
+      ImportanceLevel.Majeur,
+      ImportanceLevel.Important,
+      ImportanceLevel.Moyen,
+      ImportanceLevel.Mineur,
+      ImportanceLevel.NA
+    ];
     const itemNumber = parseInt(itemId.split('-')[1] || '1');
-    return importances[itemNumber % importances.length] || 'Moyen';
+    return importances[itemNumber % importances.length] || ImportanceLevel.Moyen;
   };
 
   const getDefaultProjectRequirement = (itemId: string): string => {

@@ -18,9 +18,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AuditItem, ComplianceStatus, PageResult } from '@/lib/types';
+import { AuditItem, ComplianceStatus, ImportanceLevel, PageResult } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface SamplePage {
   id: string;
@@ -42,7 +43,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   onItemChange 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showProjectRequirements, setShowProjectRequirements] = useState(false);
   
   // Initialize page results if not present
   const initialPageResults = item.pageResults || samplePages.map(page => ({
@@ -163,14 +163,16 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   // Fonction pour obtenir la couleur du badge d'importance
   const getImportanceBadgeColor = () => {
     switch (importance) {
-      case 'Majeur':
+      case ImportanceLevel.Majeur:
         return 'bg-red-100 text-red-800 hover:bg-red-200';
-      case 'Important':
+      case ImportanceLevel.Important:
         return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
-      case 'Moyen':
+      case ImportanceLevel.Moyen:
         return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'Mineur':
+      case ImportanceLevel.Mineur:
         return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case ImportanceLevel.NA:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
@@ -224,41 +226,52 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
           <CollapsibleContent>
             <CardContent className="pt-4">
               <div className="space-y-4">
+                {/* Exigences spécifiques au projet - Maintenant toujours visible et mise en avant */}
+                <div className="p-4 border border-blue-200 rounded-md bg-blue-50">
+                  <h3 className="font-medium text-blue-900 mb-2">Exigences spécifiques au projet</h3>
+                  
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-blue-900">Niveau d'importance:</h4>
+                      <select 
+                        className="text-sm border border-blue-200 rounded p-1 bg-white"
+                        value={importance}
+                        onChange={(e) => onItemChange({...item, importance: e.target.value})}
+                      >
+                        <option value={ImportanceLevel.NA}>{ImportanceLevel.NA}</option>
+                        <option value={ImportanceLevel.Mineur}>{ImportanceLevel.Mineur}</option>
+                        <option value={ImportanceLevel.Moyen}>{ImportanceLevel.Moyen}</option>
+                        <option value={ImportanceLevel.Important}>{ImportanceLevel.Important}</option>
+                        <option value={ImportanceLevel.Majeur}>{ImportanceLevel.Majeur}</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-blue-900 mb-1">Description de l'exigence:</h4>
+                    <Textarea
+                      placeholder="Décrivez l'exigence spécifique pour ce projet..."
+                      className="text-sm bg-white border-blue-200"
+                      value={projectRequirement}
+                      onChange={(e) => onItemChange({...item, projectRequirement: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900 mb-1">Commentaire:</h4>
+                    <Textarea
+                      placeholder="Ajoutez un commentaire sur cette exigence pour ce projet..."
+                      className="text-sm bg-white border-blue-200"
+                      value={projectComment}
+                      onChange={(e) => onItemChange({...item, projectComment: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
                 <div>
                   <p className="text-sm text-gray-700 mb-2 leading-relaxed">
                     {item.details || "Description non disponible"}
                   </p>
-                </div>
-                
-                {/* Exigences spécifiques au projet */}
-                <div className="mb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-between mb-2"
-                    onClick={() => setShowProjectRequirements(!showProjectRequirements)}
-                  >
-                    <div className="flex items-center">
-                      <FileText className="h-4 w-4 mr-2" />
-                      <span>Exigences spécifiques au projet</span>
-                    </div>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${showProjectRequirements ? 'transform rotate-180' : ''}`} />
-                  </Button>
-                  
-                  {showProjectRequirements && (
-                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-md mb-4 animate-in fade-in duration-200">
-                      <div className="mb-2">
-                        <h5 className="text-sm font-medium text-blue-900 mb-1">Exigence pour ce projet:</h5>
-                        <p className="text-sm text-blue-800">{projectRequirement}</p>
-                      </div>
-                      {projectComment && (
-                        <div>
-                          <h5 className="text-sm font-medium text-blue-900 mb-1">Commentaire:</h5>
-                          <p className="text-sm text-blue-800">{projectComment}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
                 
                 <div className="mb-4">
@@ -306,110 +319,116 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Pages à tester:</h4>
-                  <div className="space-y-4">
-                    {samplePages.map(page => (
-                      <div 
-                        key={page.id}
-                        className="p-4 bg-gray-50 rounded-md"
-                      >
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{page.title}</span>
-                            <a 
-                              href={page.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline text-xs"
-                            >
-                              Ouvrir
-                            </a>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(getPageStatus(page.id))}
-                          </div>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <h5 className="text-sm font-medium mb-1">Statut:</h5>
-                          <RadioGroup 
-                            value={getPageStatus(page.id)} 
-                            onValueChange={(value) => handlePageStatusChange(page.id, value as ComplianceStatus)}
-                            className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-4"
+                <Accordion type="single" collapsible className="border rounded-md overflow-hidden">
+                  <AccordionItem value="pages" className="border-0">
+                    <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
+                      <span className="text-sm font-medium">Pages à tester</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
+                      <div className="space-y-4 p-4">
+                        {samplePages.map(page => (
+                          <div 
+                            key={page.id}
+                            className="p-4 bg-gray-50 rounded-md"
                           >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem id={`compliant-${page.id}`} value={ComplianceStatus.Compliant} />
-                              <Label 
-                                htmlFor={`compliant-${page.id}`}
-                                className="text-sm text-green-700 cursor-pointer"
-                              >
-                                Conforme
-                              </Label>
+                            <div className="flex justify-between items-center mb-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">{page.title}</span>
+                                <a 
+                                  href={page.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline text-xs"
+                                >
+                                  Ouvrir
+                                </a>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(getPageStatus(page.id))}
+                              </div>
                             </div>
                             
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem id={`non_compliant-${page.id}`} value={ComplianceStatus.NonCompliant} />
-                              <Label 
-                                htmlFor={`non_compliant-${page.id}`}
-                                className="text-sm text-red-700 cursor-pointer"
+                            <div className="mb-3">
+                              <h5 className="text-sm font-medium mb-1">Statut:</h5>
+                              <RadioGroup 
+                                value={getPageStatus(page.id)} 
+                                onValueChange={(value) => handlePageStatusChange(page.id, value as ComplianceStatus)}
+                                className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-4"
                               >
-                                Non conforme
-                              </Label>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem id={`compliant-${page.id}`} value={ComplianceStatus.Compliant} />
+                                  <Label 
+                                    htmlFor={`compliant-${page.id}`}
+                                    className="text-sm text-green-700 cursor-pointer"
+                                  >
+                                    Conforme
+                                  </Label>
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem id={`non_compliant-${page.id}`} value={ComplianceStatus.NonCompliant} />
+                                  <Label 
+                                    htmlFor={`non_compliant-${page.id}`}
+                                    className="text-sm text-red-700 cursor-pointer"
+                                  >
+                                    Non conforme
+                                  </Label>
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem id={`partially_compliant-${page.id}`} value={ComplianceStatus.PartiallyCompliant} />
+                                  <Label 
+                                    htmlFor={`partially_compliant-${page.id}`}
+                                    className="text-sm text-amber-700 cursor-pointer"
+                                  >
+                                    Partiellement
+                                  </Label>
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem id={`not_evaluated-${page.id}`} value={ComplianceStatus.NotEvaluated} />
+                                  <Label 
+                                    htmlFor={`not_evaluated-${page.id}`}
+                                    className="text-sm text-gray-700 cursor-pointer"
+                                  >
+                                    Non applicable
+                                  </Label>
+                                </div>
+                              </RadioGroup>
                             </div>
                             
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem id={`partially_compliant-${page.id}`} value={ComplianceStatus.PartiallyCompliant} />
-                              <Label 
-                                htmlFor={`partially_compliant-${page.id}`}
-                                className="text-sm text-amber-700 cursor-pointer"
-                              >
-                                Partiellement
-                              </Label>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem id={`not_evaluated-${page.id}`} value={ComplianceStatus.NotEvaluated} />
-                              <Label 
-                                htmlFor={`not_evaluated-${page.id}`}
-                                className="text-sm text-gray-700 cursor-pointer"
-                              >
-                                Non applicable
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                        
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <h5 className="text-sm font-medium">Notes:</h5>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                title="Appliquer ces notes à toutes les pages"
-                                onClick={() => applyCommentToAll(page.id)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                              <span className="text-xs text-gray-500">
-                                {getPageComment(page.id).length}/255
-                              </span>
+                            <div>
+                              <div className="flex justify-between items-center mb-1">
+                                <h5 className="text-sm font-medium">Notes:</h5>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    title="Appliquer ces notes à toutes les pages"
+                                    onClick={() => applyCommentToAll(page.id)}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <span className="text-xs text-gray-500">
+                                    {getPageComment(page.id).length}/255
+                                  </span>
+                                </div>
+                              </div>
+                              <Textarea
+                                placeholder="Ajouter des observations ou des explications..."
+                                className="resize-none text-sm"
+                                value={getPageComment(page.id)}
+                                onChange={(e) => handlePageCommentChange(page.id, e.target.value)}
+                                maxLength={255}
+                              />
                             </div>
                           </div>
-                          <Textarea
-                            placeholder="Ajouter des observations ou des explications..."
-                            className="resize-none text-sm"
-                            value={getPageComment(page.id)}
-                            onChange={(e) => handlePageCommentChange(page.id, e.target.value)}
-                            maxLength={255}
-                          />
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             </CardContent>
           </CollapsibleContent>

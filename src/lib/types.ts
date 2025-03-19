@@ -36,6 +36,14 @@ export enum ComplianceStatus {
   NotEvaluated = "not-evaluated"
 }
 
+export enum ImportanceLevel {
+  NA = "N/A",
+  Mineur = "Mineur",
+  Moyen = "Moyen",
+  Important = "Important",
+  Majeur = "Majeur"
+}
+
 export interface PageResult {
   pageId: string;
   status: ComplianceStatus;
@@ -47,7 +55,7 @@ export interface AuditItem extends ChecklistItem {
   comment?: string; // Overall comment
   pageResults?: PageResult[]; // Results for each sample page
   // Propriétés spécifiques au projet
-  importance?: string; // Niveau d'importance pour ce projet (Majeur, Important, Moyen, Mineur)
+  importance?: ImportanceLevel | string; // Niveau d'importance pour ce projet
   projectRequirement?: string; // Exigence spécifique au projet
   projectComment?: string; // Commentaire détaillé sur l'exigence pour ce projet
 }

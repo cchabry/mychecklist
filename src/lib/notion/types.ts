@@ -1,10 +1,10 @@
 
 // Importing shared types from the main types file
 import type { Audit, AuditItem, Project } from '../types';
-import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
+import { ComplianceStatus, COMPLIANCE_VALUES, ImportanceLevel } from '../types';
 
 // Re-export types that are used in the Notion services
-export type { ComplianceStatus, Audit, AuditItem, Project };
+export type { ComplianceStatus, ImportanceLevel, Audit, AuditItem, Project };
 
 // Re-export values
 export { COMPLIANCE_VALUES };
