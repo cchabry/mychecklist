@@ -1,7 +1,8 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useNotionConfig, NotionConfig, NotionConnectionStatus } from '@/hooks/useNotionConfig';
-import { NotionErrorDetails, getStoredNotionError } from '@/lib/notionProxy/errorHandling';
+import { useNotionErrorState } from '@/hooks/notion/useNotionErrorState';
+import { NotionErrorDetails } from '@/lib/notionProxy/errorHandling';
 
 interface NotionContextValue {
   // Config et état de connexion
@@ -29,26 +30,11 @@ interface NotionContextValue {
 const NotionContext = createContext<NotionContextValue | null>(null);
 
 export const NotionProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-  // Utiliser notre hook centralisé
+  // Utiliser notre hook centralisé pour la configuration
   const notionConfig = useNotionConfig();
   
-  // État UI supplémentaire
-  const [showErrorDetails, setShowErrorDetails] = useState(false);
-  const [notionErrorDetails, setNotionErrorDetails] = useState<NotionErrorDetails | null>(null);
-  
-  // Charger les erreurs stockées
-  useEffect(() => {
-    const storedError = getStoredNotionError();
-    if (storedError) {
-      setNotionErrorDetails(storedError);
-    }
-  }, [notionConfig.status.error]);
-  
-  // Masquer les détails d'erreur
-  const hideNotionError = () => {
-    setNotionErrorDetails(null);
-    setShowErrorDetails(false);
-  };
+  // Utiliser notre hook spécialisé pour la gestion des erreurs
+  const errorState = useNotionErrorState();
   
   // Valeur du contexte
   const value: NotionContextValue = {
@@ -58,8 +44,8 @@ export const NotionProvider: React.FC<{children: ReactNode}> = ({ children }) =>
     
     // États UI
     showConfig: notionConfig.showConfig,
-    showErrorDetails,
-    notionErrorDetails,
+    showErrorDetails: errorState.showErrorDetails,
+    notionErrorDetails: errorState.notionErrorDetails,
     
     // Valeurs calculées
     usingNotion: notionConfig.usingNotion,
@@ -70,8 +56,8 @@ export const NotionProvider: React.FC<{children: ReactNode}> = ({ children }) =>
     resetAndTest: notionConfig.resetAndTest,
     openConfig: notionConfig.openConfig,
     closeConfig: notionConfig.closeConfig,
-    setShowErrorDetails,
-    hideNotionError
+    setShowErrorDetails: errorState.setShowErrorDetails,
+    hideNotionError: errorState.hideNotionError
   };
   
   return (
