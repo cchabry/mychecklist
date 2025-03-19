@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { useNotionProjects } from '@/hooks/useNotionProjects';
 import { useNotion } from '@/contexts/NotionContext';
 import NotionGuide from '@/components/NotionGuide';
 import { NotionConfig } from '@/components/notion';
+import { notionApi } from '@/lib/notionProxy';
 
 const HomePage: React.FC = () => {
   const { projects, isLoading, error } = useNotionProjects();
@@ -57,7 +57,7 @@ const HomePage: React.FC = () => {
               size="sm" 
               className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
               onClick={() => {
-                status.mockMode.deactivate();
+                notionApi.mockMode.deactivate();
                 window.location.reload();
               }}
             >
