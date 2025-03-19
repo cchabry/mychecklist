@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -69,23 +68,6 @@ const IndexPage = () => {
             <p className="text-gray-500">Gérez vos audits et projets</p>
           </div>
           <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
-              onClick={handleNotionConfigOpen}
-            >
-              <Database size={18} />
-              {notionConfigured ? 'Reconfigurer Notion' : 'Configurer Notion'}
-            </Button>
-            <Link to="/diagnostics">
-              <Button
-                variant="outline" 
-                className="flex items-center gap-2"
-              >
-                <TestTube size={18} />
-                Diagnostics Notion
-              </Button>
-            </Link>
             <Link to="/new-project">
               <Button className="flex items-center gap-2">
                 <PlusCircle size={18} />
@@ -146,17 +128,14 @@ const IndexPage = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {isLoading ? (
-            // Show loading skeletons
             Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="h-56 bg-gray-100 rounded-xl animate-pulse"></div>
             ))
           ) : projects.length > 0 ? (
-            // Show projects
             projects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))
           ) : (
-            // Show empty state
             <div className="col-span-full text-center py-10">
               <p className="text-muted-foreground mb-4">Aucun projet trouvé</p>
               <Link to="/new-project">
