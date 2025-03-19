@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   CheckSquare, 
@@ -46,7 +45,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [globalComment, setGlobalComment] = useState(item.comment || '');
   
-  // Initialize page results if not present
   const initialPageResults = item.pageResults || samplePages.map(page => ({
     pageId: page.id,
     status: item.status || ComplianceStatus.NotEvaluated,
@@ -55,7 +53,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
 
   const [pageResults, setPageResults] = useState<PageResult[]>(initialPageResults);
 
-  // Calculate overall status from page results
   const calculateOverallStatus = (results: PageResult[]): ComplianceStatus => {
     if (results.length === 0) return ComplianceStatus.NotEvaluated;
     
@@ -72,7 +69,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     }
   };
   
-  // Update page result and recalculate overall status
   const handlePageStatusChange = (pageId: string, status: ComplianceStatus) => {
     const updatedResults = pageResults.map(result => 
       result.pageId === pageId ? { ...result, status } : result
@@ -89,7 +85,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     onItemChange(updatedItem);
   };
   
-  // Update page comment
   const handlePageCommentChange = (pageId: string, comment: string) => {
     const updatedResults = pageResults.map(result => 
       result.pageId === pageId ? { ...result, comment } : result
@@ -104,7 +99,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     });
   };
   
-  // Apply status to all pages
   const applyStatusToAll = (status: ComplianceStatus) => {
     const updatedResults = pageResults.map(result => ({
       ...result,
@@ -124,7 +118,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     });
   };
   
-  // Apply comment to all pages
   const applyCommentToAll = (sourcePageId: string) => {
     const sourceComment = pageResults.find(r => r.pageId === sourcePageId)?.comment || '';
     
@@ -146,7 +139,25 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     });
   };
 
-  // Handle global comment change
+  const applyGlobalCommentToAll = () => {
+    const updatedResults = pageResults.map(result => ({
+      ...result,
+      comment: globalComment
+    }));
+    
+    setPageResults(updatedResults);
+    
+    onItemChange({
+      ...item,
+      pageResults: updatedResults,
+      status: calculateOverallStatus(updatedResults)
+    });
+    
+    toast.success("Commentaire global appliqué à toutes les pages", {
+      description: "Le même commentaire a été appliqué à toutes les pages d'échantillon"
+    });
+  };
+
   const handleGlobalCommentChange = (comment: string) => {
     setGlobalComment(comment);
     
@@ -156,7 +167,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     });
   };
   
-  // Fonction pour obtenir l'icône correspondant au statut
   const getStatusIcon = (status: ComplianceStatus) => {
     switch (status) {
       case ComplianceStatus.Compliant:
@@ -172,7 +182,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     }
   };
   
-  // Fonction pour obtenir la couleur du badge d'importance
   const getImportanceBadgeColor = () => {
     switch (importance) {
       case ImportanceLevel.Majeur:
@@ -190,19 +199,16 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     }
   };
   
-  // Get status for a specific page
   const getPageStatus = (pageId: string): ComplianceStatus => {
     return pageResults.find(r => r.pageId === pageId)?.status || ComplianceStatus.NotEvaluated;
   };
   
-  // Get comment for a specific page
   const getPageComment = (pageId: string): string => {
     return pageResults.find(r => r.pageId === pageId)?.comment || '';
   };
   
-  // Récupérer les données sur les exigences spécifiques au projet
   const projectRequirement = item.projectRequirement || "Cette exigence est importante pour le projet car elle impacte directement l'expérience utilisateur.";
-  
+
   return (
     <Card className="shadow-sm border border-gray-100">
       <CardHeader className="pb-2">
@@ -237,14 +243,12 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
           <CollapsibleContent>
             <CardContent className="pt-4">
               <div className="space-y-4">
-                {/* Description de l'item */}
                 <div>
                   <p className="text-sm text-gray-700 mb-3 leading-relaxed">
                     {item.details || "Description non disponible"}
                   </p>
                 </div>
                 
-                {/* Exigences spécifiques au projet - Toujours visible et pas dans un accordéon */}
                 <div className="p-4 border border-blue-200 rounded-md bg-blue-50">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-medium text-blue-900">Exigences spécifiques au projet</h3>
@@ -254,23 +258,6 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                   </div>
                   
                   <p className="text-sm text-blue-800 mb-3">{projectRequirement}</p>
-                </div>
-                
-                {/* Champ de commentaire global */}
-                <div className="p-4 border border-gray-200 rounded-md bg-gray-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900">Commentaire global</h3>
-                    <span className="text-xs text-gray-500">
-                      {globalComment.length}/255
-                    </span>
-                  </div>
-                  <Textarea
-                    placeholder="Ajouter un commentaire global concernant cette exigence..."
-                    className="resize-none text-sm"
-                    value={globalComment}
-                    onChange={(e) => handleGlobalCommentChange(e.target.value)}
-                    maxLength={255}
-                  />
                 </div>
                 
                 <div className="mb-4">
@@ -316,6 +303,33 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                       <span>Tous non applicables</span>
                     </Button>
                   </div>
+                </div>
+                
+                <div className="p-4 border border-gray-200 rounded-md bg-gray-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-gray-900">Commentaire global</h3>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                        onClick={applyGlobalCommentToAll}
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span>Appliquer à toutes les pages</span>
+                      </Button>
+                      <span className="text-xs text-gray-500">
+                        {globalComment.length}/255
+                      </span>
+                    </div>
+                  </div>
+                  <Textarea
+                    placeholder="Ajouter un commentaire global concernant cette exigence..."
+                    className="resize-none text-sm"
+                    value={globalComment}
+                    onChange={(e) => handleGlobalCommentChange(e.target.value)}
+                    maxLength={255}
+                  />
                 </div>
                 
                 <Accordion type="single" collapsible className="border rounded-md overflow-hidden">
