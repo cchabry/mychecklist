@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Audit, AuditItem } from '@/lib/types';
+import { Audit, AuditItem, PageResult } from '@/lib/types';
 import CategoryTabs from './CategoryTabs';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 import ExigenceChecklist from './ExigenceChecklist';
@@ -67,9 +67,9 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   
   // Mock data for sample pages
   const samplePages = [
-    { id: '1', url: 'https://example.com/accueil', title: 'Page d\'accueil' },
-    { id: '2', url: 'https://example.com/contact', title: 'Contact' },
-    { id: '3', url: 'https://example.com/produits', title: 'Liste des produits' }
+    { id: 'page-1', url: 'https://example.com/accueil', title: 'Page d\'accueil' },
+    { id: 'page-2', url: 'https://example.com/contact', title: 'Contact' },
+    { id: 'page-3', url: 'https://example.com/produits', title: 'Liste des produits' }
   ];
   
   // Exigences mock data

@@ -36,9 +36,16 @@ export enum ComplianceStatus {
   NotEvaluated = "not-evaluated"
 }
 
-export interface AuditItem extends ChecklistItem {
+export interface PageResult {
+  pageId: string;
   status: ComplianceStatus;
   comment?: string;
+}
+
+export interface AuditItem extends ChecklistItem {
+  status: ComplianceStatus; // Overall status
+  comment?: string; // Overall comment
+  pageResults?: PageResult[]; // Results for each sample page
 }
 
 export interface Audit {
