@@ -15,7 +15,7 @@ const Header: React.FC = () => {
           className="flex items-center space-x-2 transition-opacity duration-300 hover:opacity-80"
         >
           <img 
-            src="/logo.png" 
+            src="/lovable-uploads/466bc6e6-4040-4ea7-a953-45cf731a6d91.png" 
             alt="myChecklist Logo" 
             className="h-8 w-auto" 
           />
