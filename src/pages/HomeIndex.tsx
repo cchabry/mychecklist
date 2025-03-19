@@ -1,33 +1,44 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Database, AlertTriangle, ShieldAlert, ExternalLink } from 'lucide-react';
+import { PlusCircle, Settings, Database } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import ProjectCard from '@/components/ProjectCard';
 import Header from '@/components/Header';
-import ProjectsList from '@/components/ProjectsList';
-import { useNotionProjects } from '@/hooks/useNotionProjects';
-import { useNotion } from '@/contexts/NotionContext';
+import { Separator } from '@/components/ui/separator';
+import { MOCK_PROJECTS } from '@/lib/mockData';
+import { isNotionConfigured } from '@/lib/notion';
+import { notionApi } from '@/lib/notionProxy';
+import { NotionDiagnosticTool } from '@/components/notion';
 import NotionGuide from '@/components/NotionGuide';
 import { NotionConfig } from '@/components/notion';
-import { notionApi } from '@/lib/notionProxy';
 
-const HomePage: React.FC = () => {
-  const { projects, isLoading, error } = useNotionProjects();
-  const { openConfig, closeConfig, status, showConfig } = useNotion();
+const IndexPage = () => {
+  const [projects, setProjects] = useState(MOCK_PROJECTS);
+  const [currentTab, setCurrentTab] = useState('projects');
+  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   
-  // Vérifier si l'erreur est liée à un problème d'autorisation
-  const isAuthError = error?.message?.includes('authentification') || 
-                     error?.message?.includes('401');
+  const notionConfigured = isNotionConfigured();
+  const mockModeActive = notionApi.mockMode.isActive();
   
-  const isPermissionError = error?.message?.includes('accès') || 
-                          error?.message?.includes('permission') ||
-                          error?.message?.includes('403');
+  const handleNotionConfigOpen = () => {
+    setNotionConfigOpen(true);
+  };
+  
+  const handleNotionConfigClose = () => {
+    setNotionConfigOpen(false);
+    window.location.reload();
+  };
+  
+  const handleNotionConfigSuccess = () => {
+    window.location.reload();
+  };
   
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-tmw-teal/5">
+    <div className="mx-auto max-w-screen-xl">
       <Header />
       
-      <main className="container px-4 py-6 md:py-10 flex-1">
+      <main className="container px-4 py-6 md:py-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">Tableau de bord</h1>
@@ -37,10 +48,10 @@ const HomePage: React.FC = () => {
             <Button
               variant="outline"
               className="flex items-center gap-2 text-tmw-teal border-tmw-teal/20 hover:bg-tmw-teal/5"
-              onClick={openConfig}
+              onClick={handleNotionConfigOpen}
             >
               <Database size={18} />
-              Configurer Notion
+              {notionConfigured ? 'Reconfigurer Notion' : 'Configurer Notion'}
             </Button>
             <Link to="/new-project">
               <Button className="flex items-center gap-2">
@@ -51,124 +62,58 @@ const HomePage: React.FC = () => {
           </div>
         </div>
         
-        {status.isMockMode && (
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
-            <h2 className="text-sm font-medium text-amber-800 flex items-center gap-1.5">
-              <AlertTriangle size={16} className="text-amber-500" />
-              Mode démonstration actif
-            </h2>
-            <p className="text-xs text-amber-700 mt-1">
-              L'application utilise des données fictives. Votre configuration Notion est présente 
-              mais le mode démonstration est activé.
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
-              onClick={() => {
-                notionApi.mockMode.deactivate();
-                window.location.reload();
-              }}
-            >
-              Désactiver le mode démonstration
-            </Button>
-          </div>
-        )}
-        
-        {isPermissionError && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-            <h2 className="text-sm font-medium text-red-800 flex items-center gap-1.5">
-              <ShieldAlert size={16} className="text-red-500" />
-              Problème d'accès à votre base de données Notion
-            </h2>
-            <p className="text-xs text-red-700 mt-1">
-              Votre intégration n'a pas accès à la base de données configurée. Pour résoudre ce problème :
-            </p>
-            <ol className="text-xs text-red-700 mt-2 list-decimal list-inside space-y-1">
-              <li>Ouvrez votre base de données dans Notion</li>
-              <li>Cliquez sur les trois points (...) en haut à droite</li>
-              <li>Sélectionnez <strong>Connexions</strong></li>
-              <li>Ajoutez votre intégration à la liste des connexions</li>
-            </ol>
-            <div className="flex gap-2 mt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-red-300 bg-red-100 hover:bg-red-200 text-red-800"
-                onClick={openConfig}
-              >
-                Vérifier la configuration
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-red-300 bg-red-100 hover:bg-red-200 text-red-800"
-                onClick={() => {
-                  window.open('https://www.notion.so/my-integrations', '_blank');
-                }}
-              >
-                <ExternalLink size={14} className="mr-1" />
-                Mes intégrations Notion
-              </Button>
+        <Tabs defaultValue="projects" className="w-full" value={currentTab} onValueChange={setCurrentTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="projects">Projets</TabsTrigger>
+            <TabsTrigger value="diagnostic">Diagnostics</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="projects" className="pt-4">
+            {notionConfigured && mockModeActive && (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
+                <h2 className="text-sm font-medium text-amber-800">Mode démonstration actif</h2>
+                <p className="text-xs text-amber-700 mt-1">
+                  L'application utilise des données fictives. Votre configuration Notion est présente 
+                  mais le mode démonstration est activé.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
+                  onClick={() => {
+                    notionApi.mockMode.deactivate();
+                    window.location.reload();
+                  }}
+                >
+                  Désactiver le mode démonstration
+                </Button>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
             </div>
-          </div>
-        )}
-        
-        {isAuthError && (
-          <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mb-4">
-            <h2 className="text-sm font-medium text-orange-800 flex items-center gap-1.5">
-              <ShieldAlert size={16} className="text-orange-500" />
-              Problème d'authentification Notion
-            </h2>
-            <p className="text-xs text-orange-700 mt-1">
-              Votre clé d'API Notion semble invalide ou a expiré. Essayez de la réinitialiser:
-            </p>
-            <div className="flex gap-2 mt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-orange-300 bg-orange-100 hover:bg-orange-200 text-orange-800"
-                onClick={openConfig}
-              >
-                Configurer ma clé API
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-orange-300 bg-orange-100 hover:bg-orange-200 text-orange-800"
-                onClick={() => {
-                  window.open('https://www.notion.so/my-integrations', '_blank');
-                }}
-              >
-                <ExternalLink size={14} className="mr-1" />
-                Mes intégrations Notion
-              </Button>
+            
+            <div className="mt-6 flex justify-center">
+              <NotionGuide onConnectClick={handleNotionConfigOpen} />
             </div>
-          </div>
-        )}
-        
-        <ProjectsList projects={projects} isLoading={isLoading} error={error} />
-        
-        {!isLoading && !error && projects.length === 0 && (
-          <div className="mt-6 flex justify-center">
-            <NotionGuide onConnectClick={openConfig} />
-          </div>
-        )}
+          </TabsContent>
+          
+          <TabsContent value="diagnostic" className="pt-4">
+            <NotionDiagnosticTool onConfigClick={handleNotionConfigOpen} />
+          </TabsContent>
+        </Tabs>
       </main>
       
-      <footer className="py-6 border-t border-tmw-teal/10 bg-background">
-        <div className="container px-4 mx-auto text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} myChecklist - Audits Qualité Web
-          <div className="mt-2 text-xs text-muted-foreground/70">by ThinkMyWeb</div>
-        </div>
-      </footer>
-      
       <NotionConfig
-        isOpen={showConfig}
-        onClose={closeConfig}
+        isOpen={notionConfigOpen}
+        onClose={handleNotionConfigClose}
+        onSuccess={handleNotionConfigSuccess}
       />
     </div>
   );
 };
 
-export default HomePage;
+export default IndexPage;

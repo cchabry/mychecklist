@@ -11,4 +11,3 @@ export { default as NotionProxyConfigSection } from './NotionProxyConfigSection'
 export { default as NotionProxyConfigGuide } from './NotionProxyConfigGuide';
 export { default as NotionDeploymentChecker } from './NotionDeploymentChecker';
 export { NotionDiagnosticTool } from './diagnostic';
-export { default as ProxyStatusIndicator } from './ProxyStatusIndicator';
