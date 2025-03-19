@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { useNotionApi } from './useNotionApi';
+import { useNotionRequest } from './useNotionRequest';
 import { useNotion } from '@/contexts/NotionContext';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -24,7 +24,7 @@ export type DatabaseStructureCheck = {
 };
 
 export function useNotionDatabaseStructure() {
-  const { executeRequest } = useNotionApi();
+  const { executeRequest } = useNotionRequest();
   const { config } = useNotion();
   const [structureChecks, setStructureChecks] = useState<Record<string, DatabaseStructureCheck>>({});
   
@@ -52,6 +52,7 @@ export function useNotionDatabaseStructure() {
     
     const result = await executeRequest(
       async () => {
+        // Récupérer les informations de la base de données
         const dbInfo = await notionApi.databases.retrieve(databaseId, config.apiKey);
         
         // Mapper les propriétés requises avec celles trouvées
@@ -70,10 +71,12 @@ export function useNotionDatabaseStructure() {
           };
         });
         
+        // Vérifier si toutes les propriétés requises sont présentes et valides
         const hasAllRequired = propertiesCheck
           .filter(prop => prop.required)
           .every(prop => prop.found && prop.valid);
         
+        // Vérifier si toutes les propriétés trouvées sont valides
         const isValid = propertiesCheck
           .filter(prop => prop.found)
           .every(prop => prop.valid);

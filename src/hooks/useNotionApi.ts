@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { useNotion } from '@/contexts/NotionContext';
+import { handleNotionError } from '@/lib/notionProxy/errorHandling';
 
-// Hook pour simplifier les appels à l'API Notion
+// Hook simplifié pour les appels à l'API Notion
 export function useNotionApi<T = any>() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { checkNotionConfig } = useNotion();
+  const { testConnection } = useNotion();
 
   // Fonction pour effectuer une requête à l'API Notion
   const executeRequest = async <R = T>(
@@ -41,18 +42,15 @@ export function useNotionApi<T = any>() {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
       
-      if (errorMessage) {
-        toast.error(errorMessage, {
-          description: error.message
-        });
-      }
+      // Utiliser notre service de gestion d'erreurs
+      handleNotionError(error, errorMessage);
       
       if (onError) {
         onError(error);
       }
       
       // Mettre à jour le statut de connexion Notion après une erreur
-      checkNotionConfig();
+      testConnection();
       
       return null;
     } finally {
