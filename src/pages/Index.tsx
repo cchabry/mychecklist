@@ -6,6 +6,7 @@ import { Plus, Settings, RotateCw, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProjectCard from '@/components/ProjectCard';
 import { NotionConfig } from '@/components/notion';
+import MockModeToggle from '@/components/MockModeToggle';
 import { getProjectsFromNotion } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -62,6 +63,8 @@ const ProjectPage = () => {
         </h1>
 
         <div className="flex items-center gap-3">
+          <MockModeToggle />
+          
           <Button 
             variant="outline" 
             size="sm" 
