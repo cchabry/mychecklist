@@ -1,120 +1,93 @@
 
-// Contrôle du mode mock pour les tests
-let mockModeActive = false;
-let temporarilyForcedReal = false;
+import { STORAGE_KEYS } from './config';
 
+/**
+ * Gestion du mode mock pour les requêtes Notion.
+ * Le mode mock permet de simuler des réponses de l'API Notion pour le développement et les démonstrations.
+ */
 export const mockMode = {
-  // Vérifie si le mode mock est actif
-  isActive: () => {
-    // Vérifier d'abord dans localStorage
-    if (typeof localStorage !== 'undefined') {
-      const storedMode = localStorage.getItem('notion_mock_mode');
-      if (storedMode === 'true') {
-        mockModeActive = true;
-      } else if (storedMode === 'false') {
-        mockModeActive = false;
+  /**
+   * Vérifie si le mode mock est actif
+   */
+  isActive: (): boolean => {
+    // Vérifier les paramètres d'URL en premier
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('mock')) {
+      const mockParam = urlParams.get('mock');
+      const shouldActivate = mockParam === 'true' || mockParam === '1';
+      
+      // Si explicitement demandé dans l'URL, mettre à jour le localStorage
+      if (shouldActivate) {
+        localStorage.setItem(STORAGE_KEYS.MOCK_MODE, 'true');
+        return true;
+      } else if (mockParam === 'false' || mockParam === '0') {
+        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+        return false;
       }
     }
-    return mockModeActive;
-  },
-  
-  // Active le mode mock
-  activate: () => {
-    mockModeActive = true;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('notion_mock_mode', 'true');
+    
+    // Ensuite, vérifier si le mode force_real est actif
+    if (localStorage.getItem('notion_force_real') === 'true') {
+      return false;
     }
-    console.log('Mode mock activé');
+    
+    // Fallback sur le localStorage
+    return localStorage.getItem(STORAGE_KEYS.MOCK_MODE) === 'true';
   },
   
-  // Désactive le mode mock
-  deactivate: () => {
-    mockModeActive = false;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('notion_mock_mode', 'false');
-    }
-    console.log('Mode mock désactivé');
+  /**
+   * Active le mode mock
+   */
+  activate: (): void => {
+    localStorage.setItem(STORAGE_KEYS.MOCK_MODE, 'true');
   },
   
-  // Bascule entre mode mock et réel
-  toggle: () => {
-    mockModeActive = !mockModeActive;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('notion_mock_mode', mockModeActive.toString());
-    }
-    return mockModeActive;
+  /**
+   * Désactive le mode mock
+   */
+  deactivate: (): void => {
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
   },
   
-  // Réinitialise le mode mock (désactive)
-  reset: () => {
-    mockModeActive = false;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('notion_mock_mode', 'false');
-    }
-  },
-  
-  // Vérifie et notifie l'état du mode mock
-  checkAndNotify: () => {
-    const isActive = mockMode.isActive();
-    if (isActive) {
-      console.log('⚠️ Le mode mock est actuellement actif');
+  /**
+   * Bascule l'état du mode mock
+   */
+  toggle: (): boolean => {
+    const isCurrentlyActive = mockMode.isActive();
+    if (isCurrentlyActive) {
+      mockMode.deactivate();
     } else {
-      console.log('✅ Le mode réel est actif');
-    }
-    return isActive;
-  },
-  
-  // Définit le mode selon une condition
-  setBasedOnCondition: (condition: boolean) => {
-    if (condition) {
       mockMode.activate();
-    } else {
+    }
+    return !isCurrentlyActive;
+  },
+  
+  /**
+   * Force le mode réel en supprimant tous les drapeaux liés au mode mock
+   */
+  forceReset: (): void => {
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+    localStorage.setItem('notion_force_real', 'true');
+    // Nettoyer aussi les erreurs précédentes
+    localStorage.removeItem('notion_last_error');
+  },
+  
+  /**
+   * Force temporairement le mode réel pour une seule opération
+   */
+  temporarilyForceReal: (): (() => void) => {
+    const wasActive = mockMode.isActive();
+    if (wasActive) {
+      localStorage.setItem('temp_was_mock', 'true');
       mockMode.deactivate();
     }
-  },
-  
-  // Force temporairement le mode réel
-  temporarilyForceReal: () => {
-    if (mockModeActive) {
-      temporarilyForcedReal = true;
-      mockModeActive = false;
-      console.log('Mode réel temporairement forcé');
-      // Forcer également dans localStorage pour être sûr
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('notion_mock_mode', 'false');
-        localStorage.setItem('notion_force_real', 'true');
+    
+    // Retourner une fonction pour restaurer l'état précédent
+    return () => {
+      if (localStorage.getItem('temp_was_mock') === 'true') {
+        mockMode.activate();
+        localStorage.removeItem('temp_was_mock');
       }
-    }
-  },
-  
-  // Restaure après avoir forcé le mode réel
-  restoreAfterForceReal: () => {
-    if (temporarilyForcedReal) {
-      mockModeActive = true;
-      temporarilyForcedReal = false;
-      console.log('Mode mock restauré après forçage temporaire');
-      // Restaurer également dans localStorage
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('notion_mock_mode', 'true');
-        localStorage.removeItem('notion_force_real');
-      }
-    }
-  },
-  
-  // Vérifie si le mode réel est temporairement forcé
-  isTemporarilyForcedReal: () => {
-    return temporarilyForcedReal;
-  },
-  
-  // Réinitialisation forcée (complète)
-  forceReset: () => {
-    mockModeActive = false;
-    temporarilyForcedReal = false;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('notion_mock_mode');
-      localStorage.removeItem('notion_force_real');
-      localStorage.setItem('notion_mock_mode_reset_at', Date.now().toString());
-    }
-    console.log('Mode mock réinitialisé de force');
+    };
   }
 };

@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Settings, Database, AlertTriangle } from 'lucide-react';
 import { mockMode } from '@/lib/notionProxy/mockMode';
 import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
+import { useNotion } from '@/contexts/NotionContext';
 
 const HomePage = () => {
-  const [configOpen, setConfigOpen] = React.useState(false);
-  
-  // Vérifier l'état du mode mock
-  const isMockMode = mockMode.isActive();
+  const { handleConfigOpen, showConfig, handleConfigClose, isMockMode } = useNotion();
   
   return (
     <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
@@ -41,7 +39,7 @@ const HomePage = () => {
         <Button 
           variant="outline" 
           className="gap-2" 
-          onClick={() => setConfigOpen(true)}
+          onClick={handleConfigOpen}
           id="notion-config-button"
         >
           <Settings size={16} />
@@ -51,8 +49,8 @@ const HomePage = () => {
       
       {/* Configuration Notion (modal) */}
       <NotionConfig 
-        isOpen={configOpen} 
-        onClose={() => setConfigOpen(false)} 
+        isOpen={showConfig} 
+        onClose={handleConfigClose} 
       />
       
       <Tabs defaultValue="structure" className="w-full">
@@ -104,7 +102,7 @@ const HomePage = () => {
         </TabsContent>
         
         <TabsContent value="diagnostic">
-          <NotionDiagnosticTool onConfigClick={() => setConfigOpen(true)} />
+          <NotionDiagnosticTool onConfigClick={handleConfigOpen} />
         </TabsContent>
       </Tabs>
     </div>
