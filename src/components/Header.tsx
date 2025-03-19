@@ -8,7 +8,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   
   return (
-    <header className="w-full bg-white/80 backdrop-blur-lg border-b border-border sticky top-0 z-10 transition-all duration-300">
+    <header className="w-full bg-[#fcfcfc]/90 backdrop-blur-lg border-b border-border sticky top-0 z-10 transition-all duration-300">
       <div className="container flex items-center justify-between h-16 px-4 mx-auto">
         <Link 
           to="/" 
