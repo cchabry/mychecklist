@@ -7,6 +7,7 @@ import NotionSolutionsSection from './NotionSolutionsSection';
 import { notionApi } from '@/lib/notionProxy';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 import { toast } from 'sonner';
+import NotionWriteTestButton from './NotionWriteTestButton';
 
 interface NotionErrorDetailsProps {
   isOpen: boolean;
@@ -71,6 +72,24 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
                 showMockMode={true}
                 showApiKey={true}
               />
+            </div>
+            
+            {/* Section de diagnostic avec test d'écriture */}
+            <div className="mt-4 border-t pt-4 border-gray-200">
+              <h4 className="text-sm font-medium mb-2">Tests de diagnostic :</h4>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <NotionWriteTestButton onSuccess={() => {
+                    // Fermer le dialogue après un test réussi
+                    onClose();
+                    // Recharger la page
+                    setTimeout(() => window.location.reload(), 1000);
+                  }} />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Ce test tente d'écrire une donnée temporaire dans votre base de données pour vérifier les permissions.
+                </p>
+              </div>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

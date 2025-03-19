@@ -1,307 +1,149 @@
 
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
-import { resetProxyCache, verifyProxyDeployment, STORAGE_KEYS } from '@/lib/notionProxy/config';
+import { toast } from 'sonner';
+import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 export const useNotionIntegration = () => {
-  const [usingNotion, setUsingNotion] = useState(isNotionConfigured());
-  const [notionConfigOpen, setNotionConfigOpen] = useState(false);
-  const [notionErrorDetails, setNotionErrorDetails] = useState({ 
-    show: false, 
-    error: '', 
-    context: '' 
-  });
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showConfig, setShowConfig] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
   
-  // Vérifier le mode mock et le proxy au démarrage
-  useEffect(() => {
-    const checkNotionSetup = async () => {
-      // Vérifie si le forçage du mode réel a été demandé
-      const forceReal = localStorage.getItem('notion_force_real') === 'true';
-      if (forceReal) {
-        console.log('🔄 useNotionIntegration: Mode réel forcé - Désactivation du mode mock');
-        localStorage.removeItem('notion_force_real');
-        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-        notionApi.mockMode.deactivate();
-      }
+  // Fonction pour vérifier la configuration Notion
+  const checkNotionConfig = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    // Vérifier si Notion est configuré
+    const hasConfig = isNotionConfigured();
+    const isMockMode = notionApi.mockMode.isActive();
+    
+    if (!hasConfig) {
+      console.log('⚠️ Notion n\'est pas configuré');
+      setIsConnected(false);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Si on est en mode mock, on considère ça comme "non connecté"
+    if (isMockMode) {
+      console.log('📢 Mode mock actif - considéré comme non connecté');
+      setIsConnected(false);
+      setIsLoading(false);
       
-      // Si Notion est configuré, vérifier l'état du proxy
-      if (usingNotion) {
+      // Si une erreur existe dans le stockage, la récupérer
+      const lastError = localStorage.getItem('notion_last_error');
+      if (lastError) {
         try {
-          // Vérifier si le proxy est correctement déployé
-          const proxyIsWorking = await verifyProxyDeployment(false);
-          
-          if (!proxyIsWorking) {
-            console.warn('⚠️ Proxy Notion non opérationnel, activation du mode démo');
-            // Si le proxy n'est pas opérationnel, activer le mode mock
-            if (!notionApi.mockMode.isActive()) {
-              notionApi.mockMode.activate();
-              
-              // Afficher une notification explicative
-              toast.warning('Mode démonstration Notion activé', {
-                description: 'Le proxy Notion n\'est pas accessible. L\'application utilise des données simulées.',
-                duration: 6000,
-                action: {
-                  label: 'Détails',
-                  onClick: () => setNotionErrorDetails({
-                    show: true,
-                    error: 'Problème de connexion au proxy Notion',
-                    context: 'Le proxy n\'est pas correctement déployé ou configuré sur Vercel'
-                  })
-                }
-              });
-            }
-          } else {
-            // Le proxy fonctionne, désactiver le mode mock s'il est actif
-            if (notionApi.mockMode.isActive() && !forceReal) {
-              console.log('Proxy opérationnel, désactivation du mode mock');
-              notionApi.mockMode.deactivate();
-              toast.success('Connexion Notion rétablie', {
-                description: 'L\'application utilise maintenant des données réelles depuis Notion'
-              });
-            } else {
-              console.log('Proxy opérationnel, mode réel déjà actif');
-            }
-          }
-        } catch (error) {
-          console.error('Erreur lors de la vérification du proxy:', error);
-          
-          // En cas d'erreur, activer le mode mock pour sécuriser l'expérience
-          if (!notionApi.mockMode.isActive() && !forceReal) {
-            notionApi.mockMode.activate();
-            toast.warning('Mode démonstration activé suite à une erreur', {
-              description: 'Erreur de communication avec le proxy Notion. Données simulées activées.',
-              action: {
-                label: 'Forcer mode réel',
-                onClick: () => {
-                  localStorage.setItem('notion_force_real', 'true');
-                  notionApi.mockMode.forceReset();
-                  window.location.reload();
-                }
-              }
-            });
-          }
+          const errorData = JSON.parse(lastError);
+          setError(errorData.message || 'Erreur de connexion à Notion');
+        } catch (e) {
+          setError('Erreur de connexion à Notion');
         }
       }
-    };
-    
-    checkNotionSetup();
-  }, [usingNotion]);
-  
-  const handleConnectNotionClick = () => {
-    // Réinitialiser le cache du proxy avant d'ouvrir la configuration
-    resetProxyCache();
-    
-    // Forcer le mode réel pour la configuration
-    if (notionApi.mockMode.isActive()) {
-      console.log('🔄 Désactivation du mode mock pour la configuration Notion');
-      localStorage.setItem('notion_force_real', 'true');
-      notionApi.mockMode.deactivate();
+      return;
     }
-    
-    setNotionConfigOpen(true);
-  };
-  
-  const handleNotionConfigSuccess = () => {
-    setUsingNotion(true);
-    
-    // Forcer le mode réel après une configuration réussie
-    localStorage.setItem('notion_force_real', 'true');
-    
-    // Si le mode mock est actif, afficher un message explicatif
-    if (notionApi.mockMode.isActive()) {
-      toast.info('Notion configuré avec succès', {
-        description: 'Les requêtes Notion passeront par un proxy pour contourner les limitations CORS.',
-        duration: 5000,
-        action: {
-          label: 'Forcer mode réel',
-          onClick: () => {
-            notionApi.mockMode.forceReset();
-            window.location.reload();
-          }
-        }
-      });
-    }
-  };
-  
-  const handleNotionConfigClose = () => {
-    setNotionConfigOpen(false);
-  };
-  
-  const showNotionError = (error: string, context?: string) => {
-    setNotionErrorDetails({
-      show: true,
-      error,
-      context: context || ''
-    });
-  };
-  
-  const hideNotionError = () => {
-    setNotionErrorDetails({
-      show: false,
-      error: '',
-      context: ''
-    });
-  };
-  
-  const verifyNotionConnection = async (): Promise<boolean> => {
-    if (!usingNotion) return false;
     
     try {
+      // Tester la connexion si on n'est pas en mode mock
       const apiKey = localStorage.getItem('notion_api_key');
-      if (!apiKey) return false;
-      
-      // Forcer le mode réel pour la vérification
-      const wasInMockMode = notionApi.mockMode.isActive();
-      if (wasInMockMode) {
-        console.log('🔄 Désactivation temporaire du mode mock pour la vérification');
-        localStorage.setItem('notion_force_real', 'true');
-        notionApi.mockMode.deactivate();
-      }
-      
-      // Vérifier d'abord le déploiement du proxy
-      const proxyIsWorking = await verifyProxyDeployment(false);
-      
-      if (!proxyIsWorking) {
-        console.warn('⚠️ Proxy Notion non opérationnel lors de la vérification');
+      if (apiKey) {
+        console.log('🔑 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
         
-        showNotionError(
-          'Proxy Notion non opérationnel', 
-          'Le fichier api/notion-proxy.ts n\'est pas correctement déployé ou configuré sur Vercel'
-        );
-        
-        // Activer le mode mock pour sécuriser l'expérience mais uniquement si on n'a pas forcé le mode réel
-        if (!localStorage.getItem('notion_force_real')) {
-          notionApi.mockMode.activate();
-          
-          toast.warning('Mode démonstration activé', {
-            description: 'Le proxy Notion n\'est pas accessible. L\'application utilise des données simulées.',
-            duration: 6000,
-            action: {
-              label: 'Forcer mode réel',
-              onClick: () => {
-                localStorage.setItem('notion_force_real', 'true');
-                notionApi.mockMode.forceReset();
-                window.location.reload();
-              }
-            }
-          });
-        }
-        
-        return true; // Permettre l'utilisation en mode mock
-      }
-      
-      // Tester l'API Notion maintenant que le proxy est vérifié
-      try {
+        // Tenter une connexion à l'API Notion
         await notionApi.users.me(apiKey);
-        console.log('Connexion Notion vérifiée via proxy');
+        console.log('✅ Connexion Notion réussie!');
         
-        // Si on était en mode mock et que ça fonctionne maintenant, désactiver le mode mock
-        if (notionApi.mockMode.isActive()) {
-          notionApi.mockMode.deactivate();
-          toast.success('Connexion avec l\'API Notion établie', {
-            description: 'Le mode démonstration a été désactivé, vous utilisez maintenant des données réelles.',
-          });
-        }
+        // Si la connexion réussit, on nettoie les erreurs stockées
+        localStorage.removeItem('notion_last_error');
+        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
         
-        return true;
-      } catch (apiError) {
-        console.error('Échec de la connexion à l\'API Notion:', apiError);
-        
-        if (apiError.message?.includes('401')) {
-          // Erreur d'authentification - problème de clé API
-          toast.error('Clé API Notion invalide', {
-            description: 'Vérifiez votre clé d\'intégration dans les paramètres Notion.',
-            action: {
-              label: 'Configurer',
-              onClick: () => {
-                document.getElementById('notion-connect-button')?.click();
-              }
-            }
-          });
-          return false;
-        } else {
-          // Autre erreur d'API - activer le mode mock uniquement si on n'a pas forcé le mode réel
-          showNotionError(
-            'Erreur d\'accès à l\'API Notion',
-            `Détail: ${apiError.message || 'Erreur inconnue'}`
-          );
-          
-          if (!localStorage.getItem('notion_force_real')) {
-            notionApi.mockMode.activate();
-            toast.warning('Mode démonstration activé suite à une erreur', {
-              description: 'L\'application utilisera des données de test pendant la résolution du problème.',
-              action: {
-                label: 'Forcer mode réel',
-                onClick: () => {
-                  localStorage.setItem('notion_force_real', 'true');
-                  notionApi.mockMode.forceReset();
-                  window.location.reload();
-                }
-              }
-            });
-          }
-          
-          return true; // Permettre l'utilisation en mode mock
-        }
-      }
-    } catch (connectionError) {
-      console.error('Échec de la vérification de la connexion Notion:', connectionError);
-      
-      // Gérer l'erreur CORS "Failed to fetch"
-      if (connectionError.message?.includes('Failed to fetch')) {
-        showNotionError(
-          'Tentative de connexion via proxy en cours', 
-          'Si les données réelles ne s\'affichent pas, le proxy Vercel n\'est pas encore configuré correctement.'
-        );
-        
-        // Activer le mode mock et expliquer la situation, mais uniquement si on n'a pas forcé le mode réel
-        if (!localStorage.getItem('notion_force_real')) {
-          notionApi.mockMode.activate();
-          
-          toast.warning('Mode démonstration activé temporairement', {
-            description: 'L\'application utilisera des données de test pendant la configuration du proxy.',
-            duration: 6000,
-            action: {
-              label: 'Forcer mode réel',
-              onClick: () => {
-                localStorage.setItem('notion_force_real', 'true');
-                notionApi.mockMode.forceReset();
-                window.location.reload();
-              }
-            }
-          });
-        }
-        
-        return true; // Permettre l'utilisation en mode mock
+        setIsConnected(true);
+        setError(null);
       } else {
-        toast.error('Erreur d\'accès à Notion', {
-          description: 'Impossible de vérifier la connexion à Notion. Vérifiez votre configuration.',
-          action: {
-            label: 'Forcer mode réel',
-            onClick: () => {
-              localStorage.setItem('notion_force_real', 'true');
-              notionApi.mockMode.forceReset();
-              window.location.reload();
-            }
-          }
-        });
-        return false;
+        setIsConnected(false);
+        setError('Clé API manquante');
       }
+    } catch (testError) {
+      console.error('❌ Test de connexion Notion échoué:', testError);
+      
+      // Stocker l'erreur pour référence future
+      try {
+        localStorage.setItem('notion_last_error', JSON.stringify({
+          timestamp: Date.now(),
+          message: testError.message || 'Erreur de connexion à Notion'
+        }));
+      } catch (e) {
+        // Ignorer les erreurs de JSON.stringify
+      }
+      
+      setIsConnected(false);
+      setError(testError.message || 'Erreur de connexion à Notion');
+    } finally {
+      setIsLoading(false);
     }
+  };
+  
+  // Vérifier la configuration au chargement
+  useEffect(() => {
+    checkNotionConfig();
+  }, []);
+  
+  // Gérer l'ouverture de la configuration
+  const handleConfigOpen = () => {
+    setShowConfig(true);
+  };
+  
+  // Gérer la fermeture de la configuration
+  const handleConfigClose = () => {
+    setShowConfig(false);
+    // Revérifier après fermeture
+    checkNotionConfig();
+  };
+  
+  // Gérer l'ouverture des détails d'erreur
+  const handleShowErrorDetails = () => {
+    setShowErrorDetails(true);
+  };
+  
+  // Gérer la fermeture des détails d'erreur
+  const handleCloseErrorDetails = () => {
+    setShowErrorDetails(false);
+  };
+  
+  // Gérer la réinitialisation du mode mock et tester à nouveau
+  const handleResetAndTest = () => {
+    // Réinitialiser le mode mock
+    notionApi.mockMode.forceReset();
+    toast.success('Configuration réinitialisée', {
+      description: 'Tentative de connexion en mode réel...'
+    });
+    
+    // Effacer les erreurs stockées
+    localStorage.removeItem('notion_last_error');
+    
+    // Vérifier à nouveau la configuration après un court délai
+    setTimeout(() => {
+      checkNotionConfig();
+    }, 500);
   };
   
   return {
-    usingNotion,
-    notionConfigOpen,
-    notionErrorDetails,
-    setUsingNotion,
-    handleConnectNotionClick,
-    handleNotionConfigSuccess,
-    handleNotionConfigClose,
-    showNotionError,
-    hideNotionError,
-    verifyNotionConnection
+    isConnected,
+    isLoading,
+    showConfig,
+    error,
+    showErrorDetails,
+    setShowConfig,
+    setShowErrorDetails,
+    handleConfigOpen,
+    handleConfigClose,
+    handleShowErrorDetails,
+    handleCloseErrorDetails,
+    handleResetAndTest,
+    checkNotionConfig
   };
 };

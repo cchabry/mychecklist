@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { notionApi } from '@/lib/notionProxy';
 import { AlertCircle } from 'lucide-react';
+import NotionTestButton from './NotionTestButton';
+import NotionWriteTestButton from './NotionWriteTestButton';
 
 interface NotionConfigFormProps {
   onSubmit: (apiKey: string, projectsDbId: string, checklistsDbId: string) => void;
@@ -99,6 +101,23 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
         <AlertCircle size={14} />
         <span>Les deux bases de données doivent être partagées avec votre intégration Notion</span>
       </div>
+      
+      {/* Section de test de connexion */}
+      {(apiKey && projectsDbId) && (
+        <div className="flex flex-col gap-2 pt-2">
+          <p className="text-xs font-medium text-gray-500">Tests de connexion :</p>
+          <div className="flex gap-2">
+            <NotionTestButton onSuccess={() => {
+              // Rafraîchir la page après un test réussi
+              setTimeout(() => window.location.reload(), 1000);
+            }} />
+            <NotionWriteTestButton onSuccess={() => {
+              // Rafraîchir la page après un test réussi
+              setTimeout(() => window.location.reload(), 1000);
+            }} />
+          </div>
+        </div>
+      )}
       
       <div className="flex justify-between pt-4">
         <div className="flex gap-2">
