@@ -94,10 +94,10 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
   if (!apiKey || !dbId) return false;
   
   try {
-    // Update the audit page
+    // Update the audit page - Fixed to use the correct parameter order
     await notionApi.pages.update(
+      audit.id,
       {
-        page_id: audit.id,
         properties: {
           score: {
             number: audit.score
@@ -112,11 +112,11 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
       apiKey
     );
     
-    // Update individual items
+    // Update individual items - Fixed to use the correct parameter order
     for (const item of audit.items) {
       await notionApi.pages.update(
+        item.id,
         {
-          page_id: item.id,
           properties: {
             status: {
               select: {
