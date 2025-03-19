@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -42,8 +43,8 @@ const ProjectPage = () => {
     }
   };
 
-  const onOpenChange = (open: boolean) => {
-    setIsOpen(open);
+  const onClose = () => {
+    setIsOpen(false);
   };
 
   const handleNotionSuccess = () => {
@@ -115,7 +116,7 @@ const ProjectPage = () => {
 
       <NotionConfig
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onClose={onClose}
         onSuccess={handleNotionSuccess}
       />
     </div>
