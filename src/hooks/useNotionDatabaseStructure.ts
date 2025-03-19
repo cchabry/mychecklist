@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useNotionApi } from './useNotionApi';
 import { useNotion } from '@/contexts/NotionContext';
+import { notionApi } from '@/lib/notionProxy';
 
 export type PropertyCheck = {
   name: string;
@@ -55,7 +56,7 @@ export function useNotionDatabaseStructure() {
         
         // Mapper les propriétés requises avec celles trouvées
         const propertiesCheck = requiredProperties.map(required => {
-          const foundProperty = Object.entries(dbInfo.properties).find(
+          const foundProperty = Object.entries(dbInfo.properties || {}).find(
             ([key, prop]) => key.toLowerCase() === required.name.toLowerCase()
           );
           
@@ -64,8 +65,8 @@ export function useNotionDatabaseStructure() {
             type: required.type,
             required: required.required,
             found: !!foundProperty,
-            foundType: foundProperty ? foundProperty[1].type : undefined,
-            valid: foundProperty ? foundProperty[1].type === required.type : false
+            foundType: foundProperty ? (foundProperty[1] as any).type : undefined,
+            valid: foundProperty ? (foundProperty[1] as any).type === required.type : false
           };
         });
         

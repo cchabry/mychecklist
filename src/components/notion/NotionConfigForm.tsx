@@ -76,7 +76,8 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   };
   
   const resetMockMode = () => {
-    notionApi.mockMode.reset();
+    // Utiliser forceReset au lieu de reset
+    notionApi.mockMode.forceReset();
     // Réinitialiser les champs du formulaire après la réinitialisation du mode mock
     setApiKey('');
     setProjectsDbId('');

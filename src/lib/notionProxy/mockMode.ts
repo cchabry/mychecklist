@@ -73,6 +73,14 @@ export const mockMode = {
   },
   
   /**
+   * Réinitialise complètement la configuration du mode mock
+   */
+  reset: (): void => {
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+    localStorage.removeItem('notion_force_real');
+  },
+  
+  /**
    * Force temporairement le mode réel pour une seule opération
    */
   temporarilyForceReal: (): (() => void) => {
@@ -89,5 +97,22 @@ export const mockMode = {
         localStorage.removeItem('temp_was_mock');
       }
     };
+  },
+  
+  /**
+   * Vérifie si le mode réel est temporairement forcé
+   */
+  isTemporarilyForcedReal: (): boolean => {
+    return localStorage.getItem('temp_was_mock') === 'true';
+  },
+  
+  /**
+   * Restaure l'état précédent après avoir forcé temporairement le mode réel
+   */
+  restoreAfterForceReal: (): void => {
+    if (localStorage.getItem('temp_was_mock') === 'true') {
+      mockMode.activate();
+      localStorage.removeItem('temp_was_mock');
+    }
   }
 };
