@@ -12,6 +12,13 @@ export const useNotionIntegration = () => {
   const [error, setError] = useState<string | null>(null);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   
+  // État pour les détails d'erreur
+  const [notionErrorDetails, setNotionErrorDetails] = useState({
+    show: false,
+    error: '',
+    context: ''
+  });
+  
   // Fonction pour vérifier la configuration Notion
   const checkNotionConfig = async () => {
     setIsLoading(true);
@@ -131,6 +138,34 @@ export const useNotionIntegration = () => {
     }, 500);
   };
   
+  // Fonctions ajoutées pour la compatibilité avec AuditContainer
+  const handleConnectNotionClick = () => {
+    setShowConfig(true);
+  };
+  
+  const handleNotionConfigSuccess = () => {
+    checkNotionConfig();
+  };
+  
+  const handleNotionConfigClose = () => {
+    setShowConfig(false);
+    checkNotionConfig();
+  };
+  
+  const hideNotionError = () => {
+    setNotionErrorDetails({
+      show: false,
+      error: '',
+      context: ''
+    });
+  };
+  
+  // Calculer si on utilise Notion (configuré et connecté)
+  const usingNotion = isConnected && isNotionConfigured();
+  
+  // Renommage de showConfig pour la compatibilité
+  const notionConfigOpen = showConfig;
+  
   return {
     isConnected,
     isLoading,
@@ -144,6 +179,14 @@ export const useNotionIntegration = () => {
     handleShowErrorDetails,
     handleCloseErrorDetails,
     handleResetAndTest,
-    checkNotionConfig
+    checkNotionConfig,
+    // Propriétés et fonctions ajoutées pour la compatibilité avec AuditContainer
+    usingNotion,
+    notionConfigOpen,
+    notionErrorDetails,
+    handleConnectNotionClick,
+    handleNotionConfigSuccess,
+    handleNotionConfigClose,
+    hideNotionError
   };
 };
