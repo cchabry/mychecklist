@@ -1,18 +1,17 @@
-
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useNotionIntegration } from './hooks/useNotionIntegration';
-import { useAuditData } from './hooks/useAuditData';
-import { toast } from 'sonner';
-
-import AuditLayout from './components/AuditLayout';
-import AuditHeader from './components/AuditHeader';
-import AuditLoader from './components/AuditLoader';
-import AuditNotFound from './components/AuditNotFound';
-import AuditProgress from './components/AuditProgress';
-import AuditChecklist from './components/AuditChecklist';
-import NotionConnectButton from './components/NotionConnectButton';
+import { useNotionIntegration, useAuditData } from './hooks';
+import { 
+  AuditChecklist, 
+  AuditHeader, 
+  AuditLayout, 
+  AuditLoader, 
+  AuditNotFound, 
+  AuditProgress,
+  NotionConnectButton 
+} from './components';
 import { NotionErrorDetails } from '@/components/notion';
+
 import { notionApi } from '@/lib/notionProxy';
 
 export const AuditContainer = () => {
@@ -40,28 +39,22 @@ export const AuditContainer = () => {
     loadProject 
   } = useAuditData(projectId, usingNotion);
   
-  // Afficher l'erreur Notion si détectée lors du chargement des données
   useEffect(() => {
     if (notionError) {
       console.log("Showing Notion error from audit data:", notionError);
-      // Mettre à jour les détails d'erreur dans le state plutôt que d'appeler hideNotionError
-      // pour éviter l'erreur "Cannot update a component while rendering a different component"
     }
   }, [notionError]);
   
-  // Recharger les données quand la configuration Notion change
   useEffect(() => {
     if (projectId) {
       console.log("Notion config changed, reloading project data");
       console.log("Current mock mode status:", notionApi.mockMode.isActive() ? "ACTIVE" : "INACTIVE");
       console.log("Using Notion:", usingNotion);
       
-      // Réinitialiser complètement l'état du mode mock si Notion est configuré
       if (usingNotion && notionApi.mockMode.isActive()) {
         console.log("Force deactivating mock mode before loading project");
         notionApi.mockMode.deactivate();
         
-        // Forcer un rafraîchissement des données en vidant les caches
         localStorage.removeItem('audit_cache');
         localStorage.removeItem('projects_cache');
       }
@@ -70,18 +63,15 @@ export const AuditContainer = () => {
     }
   }, [usingNotion, projectId]);
   
-  // Handler pour mettre à jour l'audit
   const handleUpdateAudit = (updatedAudit) => {
     console.log("Updating audit state");
     setAudit(updatedAudit);
   };
   
-  // Force reset de tous les caches
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
     notionApi.mockMode.forceReset();
     
-    // Recharger les données après réinitialisation
     setTimeout(() => {
       loadProject();
     }, 600);
@@ -127,7 +117,6 @@ export const AuditContainer = () => {
               </div>
             </div>
             
-            {/* Indicateur de mode mock */}
             {notionApi.mockMode.isActive() && (
               <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
                 <div className="flex items-center gap-2">
@@ -160,6 +149,5 @@ export const AuditContainer = () => {
   );
 };
 
-// N'oubliez pas d'importer les composants requis
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertTriangle } from 'lucide-react';

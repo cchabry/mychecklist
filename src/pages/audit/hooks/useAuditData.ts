@@ -1,9 +1,9 @@
 
 import { useEffect } from 'react';
+import { Audit } from '@/lib/types';
 import { useAuditProject } from './useAuditProject';
 import { useAuditSave } from './useAuditSave';
 import { useChecklistDatabase } from './useChecklistDatabase';
-import { Audit } from '@/lib/types';
 
 /**
  * Hook principal pour gérer les données d'audit

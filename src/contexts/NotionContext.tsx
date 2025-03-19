@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useNotionConfig, NotionConfig, NotionConnectionStatus } from '@/hooks/useNotionConfig';
-import { useNotionErrorState } from '@/hooks/notion/useNotionErrorState';
+import { useNotionErrorState } from '@/hooks/notion';
 import { NotionErrorDetails } from '@/lib/notionProxy/errorHandling';
 
 interface NotionContextValue {

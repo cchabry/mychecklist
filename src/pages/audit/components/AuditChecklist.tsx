@@ -3,14 +3,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Audit } from '@/lib/types';
-import { useAuditChecklist } from '../hooks/useAuditChecklist';
+import { useAuditChecklist } from '../hooks';
 import CategoryTabs from './CategoryTabs';
 import ChecklistItemList from './ChecklistItemList';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 
 interface AuditChecklistProps {
   audit: Audit;
-  onUpdateAudit: (audit: Audit) => void; // Changed from onUpdateAudit to match container
+  onUpdateAudit: (audit: Audit) => void;
 }
 
 const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit }) => {
