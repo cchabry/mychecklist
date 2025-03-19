@@ -7,6 +7,7 @@ import { useChecklistDatabase } from './useChecklistDatabase';
 import { useNotion } from '@/contexts/NotionContext';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
+import { useAuditError } from './useAuditError';
 
 /**
  * Hook principal pour gérer les données d'audit
@@ -18,23 +19,19 @@ export const useAuditData = (projectId: string | undefined) => {
   // Accéder au contexte Notion pour savoir si on utilise Notion
   const { usingNotion } = useNotion();
   
+  // Utiliser le hook de gestion d'erreurs
+  const { handleError, error: auditError } = useAuditError();
+  
   // Utiliser des hooks spécialisés
   const { project, audit, loading, notionError, setAudit, loadProject } = useAuditProject(projectId, usingNotion);
   const { isSaving, saveAudit } = useAuditSave(usingNotion);
   const { hasChecklistDb } = useChecklistDatabase();
   
-  // Si nous avons une erreur Notion, activer automatiquement le mode mock
+  // Si nous avons une erreur Notion, l'envoyer au gestionnaire d'erreurs
   useEffect(() => {
     if (notionError) {
-      console.log("Activating mock mode due to Notion error in useAuditData");
-      
-      // Activer le mode mock s'il n'est pas déjà actif
-      if (!notionApi.mockMode.isActive()) {
-        notionApi.mockMode.activate();
-        toast.info('Mode démonstration activé automatiquement', { 
-          description: 'En raison d\'un problème de connexion à Notion, l\'application utilise des données fictives'
-        });
-      }
+      console.log("Handling Notion error in useAuditData:", notionError);
+      handleError(notionError, "Chargement des données d'audit");
       
       // Force reload project with mock data after a short delay
       setTimeout(() => {
@@ -42,7 +39,7 @@ export const useAuditData = (projectId: string | undefined) => {
         loadProject();
       }, 500);
     }
-  }, [notionError, loadProject]);
+  }, [notionError, loadProject, handleError]);
   
   // Charger les données du projet au montage du composant
   useEffect(() => {
@@ -51,19 +48,21 @@ export const useAuditData = (projectId: string | undefined) => {
       loadProject();
     } else {
       console.error("No projectId provided to useAuditData");
-      toast.error("Erreur", {
-        description: "Identifiant de projet manquant"
+      handleError({
+        message: "Identifiant de projet manquant",
+        isCritical: true
       });
     }
-  }, [projectId, loadProject]);
+  }, [projectId, loadProject, handleError]);
   
   // Handler pour la sauvegarde de l'audit
   const handleSaveAudit = async () => {
     console.log("handleSaveAudit called for project:", projectId);
     if (!audit) {
       console.error("Cannot save audit: No audit data available");
-      toast.error("Erreur de sauvegarde", {
-        description: "Aucune donnée d'audit disponible"
+      handleError({
+        message: "Erreur de sauvegarde",
+        details: "Aucune donnée d'audit disponible"
       });
       return;
     }
@@ -73,17 +72,7 @@ export const useAuditData = (projectId: string | undefined) => {
       toast.success("Audit sauvegardé avec succès");
     } catch (error) {
       console.error("Error saving audit:", error);
-      toast.error("Erreur de sauvegarde", {
-        description: error.message || "Une erreur est survenue lors de la sauvegarde"
-      });
-      
-      // Activer le mode mock en cas d'erreur de sauvegarde
-      if (!notionApi.mockMode.isActive()) {
-        notionApi.mockMode.activate();
-        toast.info('Mode démonstration activé automatiquement', { 
-          description: 'Suite à une erreur de sauvegarde, l\'application utilise des données fictives'
-        });
-      }
+      handleError(error, "Sauvegarde de l'audit");
     }
   };
   
@@ -91,7 +80,7 @@ export const useAuditData = (projectId: string | undefined) => {
     hasProject: !!project, 
     hasAudit: !!audit, 
     loading, 
-    hasError: !!notionError,
+    hasError: !!auditError,
     mockModeActive: notionApi.mockMode.isActive()
   });
   
@@ -99,7 +88,7 @@ export const useAuditData = (projectId: string | undefined) => {
     project,
     audit,
     loading,
-    notionError,
+    notionError: auditError || notionError,
     hasChecklistDb,
     isSaving,
     setAudit,

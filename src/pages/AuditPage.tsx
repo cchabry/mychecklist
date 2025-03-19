@@ -48,38 +48,48 @@ const AuditPage = () => {
   
   console.log("Rendu de AuditPage avec projectId:", projectId);
   
+  // Définir un gestionnaire d'erreurs global pour AuditContainer
+  const handleAuditError = (error) => {
+    console.error("Erreur dans AuditContainer:", error);
+    
+    if (typeof error === 'string') {
+      toast.error("Erreur lors du chargement de l'audit", {
+        description: error
+      });
+    } else {
+      toast.error("Erreur lors du chargement de l'audit", {
+        description: error.message || "Une erreur est survenue"
+      });
+      
+      // Si c'est une erreur critique, proposer de retourner à l'accueil
+      if (error.isCritical) {
+        toast.error("Erreur critique", {
+          description: "Impossible de charger l'audit",
+          action: {
+            label: "Retour à l'accueil",
+            onClick: () => navigate("/")
+          }
+        });
+      }
+      
+      // Activer le mode mock en cas d'erreur
+      if (!notionApi.mockMode.isActive()) {
+        notionApi.mockMode.activate();
+        toast.info('Mode démonstration activé automatiquement', { 
+          description: 'Suite à une erreur, l\'application utilise des données fictives'
+        });
+        
+        // Recharger la page après un court délai
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    }
+  };
+  
   return (
     <Suspense fallback={<AuditLoader />}>
       <AuditContainer 
         projectId={projectId} 
-        onError={(error) => {
-          console.error("Erreur dans AuditContainer:", error);
-          toast.error("Erreur lors du chargement de l'audit", {
-            description: error.message || "Une erreur est survenue"
-          });
-          
-          // Si c'est une erreur critique, proposer de retourner à l'accueil
-          if (error.isCritical) {
-            toast.error("Erreur critique", {
-              description: "Impossible de charger l'audit",
-              action: {
-                label: "Retour à l'accueil",
-                onClick: () => navigate("/")
-              }
-            });
-          }
-          
-          // Activer le mode mock en cas d'erreur
-          if (!notionApi.mockMode.isActive()) {
-            notionApi.mockMode.activate();
-            toast.info('Mode démonstration activé automatiquement', { 
-              description: 'Suite à une erreur, l\'application utilise des données fictives'
-            });
-            
-            // Recharger la page après un court délai
-            setTimeout(() => window.location.reload(), 1500);
-          }
-        }}
+        onError={handleAuditError}
       />
     </Suspense>
   );
