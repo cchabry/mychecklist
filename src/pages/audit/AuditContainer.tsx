@@ -21,9 +21,10 @@ import { toast } from 'sonner';
 
 interface AuditContainerProps {
   projectId: string;
+  onError?: (error: any) => void;
 }
 
-export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => {
+export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onError }) => {
   console.log("AuditContainer rendering with projectId:", projectId);
   
   const navigate = useNavigate();
@@ -89,8 +90,12 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => 
   useEffect(() => {
     if (notionError) {
       console.log("Showing Notion error from audit data:", notionError);
+      // Call the onError prop if provided
+      if (onError) {
+        onError(notionError);
+      }
     }
-  }, [notionError]);
+  }, [notionError, onError]);
   
   useEffect(() => {
     if (projectId) {
@@ -214,3 +219,4 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId }) => 
     </AuditLayout>
   );
 };
+
