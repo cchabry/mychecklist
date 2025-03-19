@@ -22,6 +22,7 @@ import { AuditItem, ComplianceStatus, ImportanceLevel, PageResult } from '@/lib/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Input } from '@/components/ui/input';
 
 interface SamplePage {
   id: string;
@@ -43,6 +44,7 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
   onItemChange 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [globalComment, setGlobalComment] = useState(item.comment || '');
   
   // Initialize page results if not present
   const initialPageResults = item.pageResults || samplePages.map(page => ({
@@ -141,6 +143,16 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     
     toast.success("Notes appliquées à toutes les pages", {
       description: "Les mêmes notes ont été appliquées à toutes les pages d'échantillon"
+    });
+  };
+
+  // Handle global comment change
+  const handleGlobalCommentChange = (comment: string) => {
+    setGlobalComment(comment);
+    
+    onItemChange({
+      ...item,
+      comment: comment
     });
   };
   
@@ -242,6 +254,23 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                   </div>
                   
                   <p className="text-sm text-blue-800 mb-3">{projectRequirement}</p>
+                </div>
+                
+                {/* Champ de commentaire global */}
+                <div className="p-4 border border-gray-200 rounded-md bg-gray-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-gray-900">Commentaire global</h3>
+                    <span className="text-xs text-gray-500">
+                      {globalComment.length}/255
+                    </span>
+                  </div>
+                  <Textarea
+                    placeholder="Ajouter un commentaire global concernant cette exigence..."
+                    className="resize-none text-sm"
+                    value={globalComment}
+                    onChange={(e) => handleGlobalCommentChange(e.target.value)}
+                    maxLength={255}
+                  />
                 </div>
                 
                 <div className="mb-4">
