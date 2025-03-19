@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { Audit } from '@/lib/types';
 import { useAuditProject } from './useAuditProject';
 import { useAuditSave } from './useAuditSave';
@@ -16,11 +16,15 @@ import { useAuditError, AuditError } from './useAuditError';
 export const useAuditData = (projectId: string | undefined) => {
   console.log("useAuditData called with projectId:", projectId);
   
-  // Force le mode démo pour le prototype
+  // Référence pour savoir si l'initialisation a déjà été faite
+  const initialized = useRef(false);
+  
+  // Force le mode démo pour le prototype, mais une seule fois
   useEffect(() => {
-    if (!notionApi.mockMode.isActive()) {
+    if (!initialized.current && !notionApi.mockMode.isActive()) {
       console.log("Activation du mode démo pour le prototype");
       notionApi.mockMode.activate();
+      initialized.current = true;
     }
   }, []);
   
@@ -46,21 +50,19 @@ export const useAuditData = (projectId: string | undefined) => {
         source: "Chargement des données d'audit"
       };
       handleError(auditError);
-      
-      // Force reload project with mock data after a short delay
-      setTimeout(() => {
-        console.log("Reloading project with mock data after Notion error");
-        loadProject();
-      }, 500);
     }
-  }, [notionError, loadProject, handleError]);
+  }, [notionError, handleError]);
   
-  // Charger les données du projet au montage du composant
+  // Référence pour suivre si le projet a été chargé
+  const projectLoaded = useRef(false);
+  
+  // Charger les données du projet au montage du composant, une seule fois
   useEffect(() => {
-    console.log("useAuditData effect - calling loadProject with projectId:", projectId);
-    if (projectId) {
+    if (projectId && !projectLoaded.current) {
+      console.log("useAuditData effect - calling loadProject with projectId:", projectId);
       loadProject();
-    } else {
+      projectLoaded.current = true;
+    } else if (!projectId) {
       console.error("No projectId provided to useAuditData");
       handleError({
         message: "Identifiant de projet manquant",

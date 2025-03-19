@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { AuditContainer } from './audit/AuditContainer';
 import { toast } from 'sonner';
@@ -10,13 +10,14 @@ const AuditPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   
-  // Force le mode démo au chargement de la page
-  React.useEffect(() => {
+  // Force le mode démo au chargement initial de la page uniquement
+  useEffect(() => {
+    console.log("Initialisation du mode démo pour le prototype");
     if (!notionApi.mockMode.isActive()) {
-      console.log("Activation du mode démo pour le prototype");
       notionApi.mockMode.activate();
+      console.log("Mode démo activé pour le prototype");
     }
-  }, []);
+  }, []); // Dépendance vide pour n'exécuter qu'une seule fois
   
   // Si projectId est manquant, rediriger vers la page d'accueil avec un message d'erreur
   if (!projectId) {

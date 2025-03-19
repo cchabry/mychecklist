@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getProjectById, createMockAudit, createNewAudit } from '@/lib/mockData';
@@ -17,19 +17,33 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
   const [loading, setLoading] = useState(true);
   const [notionError, setNotionError] = useState<{ error: string, context?: string } | null>(null);
   
-  // Force le mode démo pour le prototype
+  // Référence pour suivre si le mode démo a été activé
+  const mockModeActivated = useRef(false);
+  
+  // Force le mode démo pour le prototype, mais une seule fois
   useEffect(() => {
-    if (!notionApi.mockMode.isActive()) {
+    if (!mockModeActivated.current && !notionApi.mockMode.isActive()) {
       console.log("Activation du mode démo pour le prototype");
       notionApi.mockMode.activate();
+      mockModeActivated.current = true;
     }
   }, []);
+  
+  // Référence pour suivre si le projet est en cours de chargement
+  const isLoadingProject = useRef(false);
   
   /**
    * Charge les données du projet et de son audit depuis les données mockées
    */
   const loadProject = async () => {
+    // Éviter les chargements simultanés
+    if (isLoadingProject.current) {
+      console.log("Chargement de projet déjà en cours, ignoré");
+      return;
+    }
+    
     console.log("Starting loadProject() with projectId:", projectId);
+    isLoadingProject.current = true;
     setLoading(true);
     setNotionError(null);
     
@@ -37,6 +51,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       toast.error('Projet non trouvé');
       // Ne pas rediriger pour le prototype
       setLoading(false);
+      isLoadingProject.current = false;
       return;
     }
     
@@ -55,12 +70,10 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
             : createMockAudit(projectId);
           setAudit(mockAudit);
           setLoading(false);
+          isLoadingProject.current = false;
         }, 300); // Réduit le délai pour le prototype
       } else {
         console.error("Le projet avec l'ID", projectId, "n'a pas été trouvé dans les données mock");
-        toast.error("Projet non trouvé", {
-          description: "Le projet demandé n'existe pas dans les données mockées"
-        });
         
         // Pour le prototype, au lieu de rediriger, on crée un projet fictif
         const mockProject: Project = {
@@ -79,6 +92,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
           const mockAudit = createNewAudit(projectId);
           setAudit(mockAudit);
           setLoading(false);
+          isLoadingProject.current = false;
         }, 300);
       }
     } catch (error) {
@@ -104,6 +118,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
         const mockAudit = createNewAudit(mockProject.id);
         setAudit(mockAudit);
         setLoading(false);
+        isLoadingProject.current = false;
       }, 300);
     }
   };

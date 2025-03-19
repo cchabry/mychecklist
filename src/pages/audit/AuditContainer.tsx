@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotion } from '@/contexts/NotionContext';
 import { Button } from '@/components/ui/button';
@@ -27,11 +27,15 @@ interface AuditContainerProps {
 export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onError }) => {
   console.log("AuditContainer rendering with projectId:", projectId);
   
-  // Force le mode démo
-  React.useEffect(() => {
-    if (!notionApi.mockMode.isActive()) {
+  // Référence pour suivre si le mode démo a été activé
+  const mockModeActivated = useRef(false);
+  
+  // Force le mode démo, mais une seule fois
+  useEffect(() => {
+    if (!mockModeActivated.current && !notionApi.mockMode.isActive()) {
       console.log("Activation du mode démo pour le prototype");
       notionApi.mockMode.activate();
+      mockModeActivated.current = true;
     }
   }, []);
   
@@ -72,6 +76,9 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     });
   };
   
+  // Référence pour éviter de charger plusieurs fois
+  const dataInitialized = useRef(false);
+  
   // Utilisation explicite du hook avec le projectId explicitement fourni
   const { 
     project, 
@@ -94,10 +101,12 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     }
   }, [notionError, onError]);
   
+  // Ne charge le projet qu'une seule fois au montage
   useEffect(() => {
-    if (projectId) {
+    if (projectId && !dataInitialized.current) {
       console.log("Loading project data");
       loadProject();
+      dataInitialized.current = true;
     }
   }, [projectId, loadProject]);
   
@@ -115,6 +124,9 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     toast.info("Réinitialisation effectuée", {
       description: "Les données vont être rechargées"
     });
+    
+    // Réinitialiser le flag pour permettre de recharger
+    dataInitialized.current = false;
     
     setTimeout(() => {
       loadProject();
