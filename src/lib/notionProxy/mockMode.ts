@@ -127,15 +127,29 @@ export const mockMode = {
    */
   temporarilyForceReal: (): void => {
     console.log('🟢 Temporarily forcing REAL mode for Notion operations');
+    
+    // Store force real flag in localStorage
     localStorage.setItem('notion_force_real', 'true');
     
-    // Also make sure mock mode is not active
-    if (mockMode.isActive()) {
-      mockMode.deactivate();
-    }
+    // Explicitement désactiver le mode mock
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     
-    // Clear any previous errors
+    // Effacer toute erreur précédente
     localStorage.removeItem('notion_last_error');
+    localStorage.removeItem('notion_proxy_last_error');
+    
+    // Effacer les caches liés aux projets pour forcer un rechargement frais
+    localStorage.removeItem('projects_cache');
+    localStorage.removeItem('audit_cache');
+    
+    // Log plus explicite
+    console.log('Mode réel forcé temporairement - mode mock DÉSACTIVÉ');
+    
+    // Forcer un indicateur visuel pour l'utilisateur
+    toast.success('Mode réel activé', {
+      description: 'Les données réelles seront utilisées pour cette opération.',
+      duration: 3000,
+    });
   },
 
   /**

@@ -1,6 +1,7 @@
 
 import { notionApiRequest } from '../proxyFetch';
 import { toast } from 'sonner';
+import { mockMode } from '../mockMode';
 
 /**
  * Récupère une page par son ID
@@ -13,16 +14,20 @@ export const retrieve = async (pageId: string, token: string) => {
  * Crée une nouvelle page
  */
 export const create = async (data: any, token: string) => {
-  console.log('Création de page Notion via proxy:', JSON.stringify(data, null, 2));
+  console.log('🚀 Création de page Notion via proxy:', JSON.stringify(data, null, 2));
   
   // Vérifier si le token est présent
   if (!token) {
-    console.error('Erreur: Token manquant pour la création de page Notion');
+    console.error('❌ Erreur: Token manquant pour la création de page Notion');
     toast.error('Token Notion manquant', {
       description: 'Veuillez configurer correctement votre clé API Notion.'
     });
     return Promise.reject(new Error('Token Notion manquant'));
   }
+  
+  // Forcer le mode réel pendant la création
+  mockMode.temporarilyForceReal();
+  console.log('✅ Mode réel forcé pour la création du projet');
   
   // Nettoyer et standardiser les propriétés pour éviter les erreurs d'API
   if (data && data.properties) {
@@ -57,30 +62,28 @@ export const create = async (data: any, token: string) => {
   }
   
   // Log des données nettoyées
-  console.log('Données nettoyées pour création de page:', JSON.stringify(data, null, 2));
+  console.log('📝 Données nettoyées pour création de page:', JSON.stringify(data, null, 2));
+  
+  // Effacer le cache avant création
+  localStorage.removeItem('projects_cache');
+  console.log('🧹 Cache des projets effacé');
   
   // Appel de l'API Notion
   try {
-    // Désactiver le mode mock avant la création
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('notion_force_real', 'true');
-      localStorage.removeItem('notion_last_error');
-    }
-    
-    console.log('Envoi de la requête à l\'API Notion avec token:', token.substring(0, 8) + '...');
+    console.log('📡 Envoi de la requête à l\'API Notion avec token:', token.substring(0, 8) + '...');
     const response = await notionApiRequest('/pages', 'POST', data, token);
-    console.log('Réponse de création de page:', JSON.stringify(response, null, 2));
+    console.log('✅ Réponse de création de page:', JSON.stringify(response, null, 2));
     
     // Si la création a réussi, nettoyer les caches
     if (response && response.id) {
-      console.log('Création réussie! ID de la page:', response.id);
+      console.log('🎉 Création réussie! ID de la page:', response.id);
       
       // Effacer le cache des projets pour forcer un rechargement
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('projects_cache');
-        // Ajouter un délai de cache pour éviter de charger avant que Notion n'ait indexé
-        localStorage.setItem('cache_invalidated_at', Date.now().toString());
-      }
+      localStorage.removeItem('projects_cache');
+      localStorage.removeItem('cache_invalidated_at');
+      
+      // Ajouter un délai de cache pour éviter de charger avant que Notion n'ait indexé
+      localStorage.setItem('cache_invalidated_at', Date.now().toString());
       
       // Notification de succès
       toast.success('Projet créé avec succès', {
@@ -90,7 +93,7 @@ export const create = async (data: any, token: string) => {
     
     return response;
   } catch (error) {
-    console.error('Erreur lors de la création de page Notion:', error);
+    console.error('❌ Erreur lors de la création de page Notion:', error);
     
     // Afficher une notification d'erreur avec plus de détails
     let errorMessage = 'Une erreur est survenue lors de la création du projet.';

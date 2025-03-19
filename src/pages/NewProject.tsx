@@ -23,7 +23,7 @@ const NewProject = () => {
 
   // Force reset function
   const handleForceReset = () => {
-    console.log('Performing force reset of mock mode from NewProject');
+    console.log('🔄 Performing force reset of mock mode from NewProject');
     notionApi.mockMode.forceReset();
     toast.success('Mode réinitalisé', {
       description: 'L\'application est prête à utiliser les données réelles.'
@@ -88,12 +88,23 @@ const NewProject = () => {
     try {
       // Forcer la désactivation du mode mock pour la création si Notion est configuré
       const notionConfigured = isNotionConfigured();
-      let forcedRealMode = false;
-
-      if (notionApi.mockMode.isActive() && notionConfigured) {
-        console.log('🚨 Force désactivation du mode mock pour la création du projet');
-        notionApi.mockMode.deactivate();
-        forcedRealMode = true;
+      
+      // IMPORTANT: Forcer le mode réel au tout début, plus agressivement
+      console.log('🚨 Forçage COMPLET du mode réel pour la création du projet');
+      
+      // Vider les caches au préalable
+      localStorage.removeItem('projects_cache');
+      localStorage.removeItem('notion_last_error');
+      
+      // Forcer le mode réel et désactiver le mode mock
+      if (notionConfigured) {
+        notionApi.mockMode.temporarilyForceReal();
+        // Double vérification explicite
+        localStorage.removeItem('notion_mock_mode');
+        // Afficher explicitement à l'utilisateur
+        toast.success('Mode réel activé pour la création', {
+          description: 'Création en cours avec les données réelles...'
+        });
       }
       
       // Double vérification du mode mock juste avant création
@@ -109,7 +120,10 @@ const NewProject = () => {
           // Nettoyer le cache avant création
           localStorage.removeItem('projects_cache');
 
+          // Création du projet avec attente explicite
+          console.log('⏳ Début de la création du projet dans Notion...');
           const project = await createProjectInNotion(name, url);
+          console.log('✅ Réponse de Notion reçue:', project);
           
           if (project) {
             console.log('✅ Projet créé avec succès dans Notion:', project);
@@ -117,10 +131,13 @@ const NewProject = () => {
               description: "Le projet a été ajouté à votre base de données Notion",
             });
             
-            // Forcer un court délai avant la redirection pour laisser le temps à Notion de traiter
+            // Forcer un délai avant la redirection pour laisser le temps à Notion de traiter
+            console.log('⏳ Attente de 2 secondes avant redirection...');
             setTimeout(() => {
+              // Effacer le cache pour assurer un rechargement frais
+              localStorage.removeItem('projects_cache');
               navigate('/');
-            }, 1500);
+            }, 2000);
             return;
           } else {
             console.error('❌ Échec de création dans Notion (null)');
@@ -129,12 +146,6 @@ const NewProject = () => {
         } catch (notionError) {
           console.error('❌ Erreur lors de la création dans Notion:', notionError);
           
-          if (forcedRealMode) {
-            // Si on avait forcé le mode réel mais ça a échoué, on réactive le mode mock
-            console.log('🔄 Réactivation du mode mock après échec de création');
-            notionApi.mockMode.activate();
-          }
-          
           // Si erreur de type "Failed to fetch", activer le mode mock
           if (notionError.message?.includes('Failed to fetch') || 
               notionError.message?.includes('401') || 
@@ -142,16 +153,19 @@ const NewProject = () => {
             console.log('🚨 Erreur de connexion détectée, activation du mode mock');
             notionApi.mockMode.activate();
             
-            // Créer un projet fictif après l'erreur
-            console.log('🔄 Création de projet fictif après échec Notion');
-            toast.success("Projet créé en mode démonstration", {
-              description: "Le projet a été créé en mode démonstration suite à un problème de connexion à Notion.",
+            toast.error("Erreur de connexion à Notion", {
+              description: "Impossible de créer le projet dans Notion. Mode démonstration activé.",
+              action: {
+                label: 'Réessayer',
+                onClick: () => {
+                  notionApi.mockMode.forceReset();
+                  window.location.reload();
+                }
+              }
             });
-            
-            // Forcer un court délai avant la redirection
-            setTimeout(() => {
-              navigate('/');
-            }, 1000);
+
+            // Rediriger vers l'accueil après l'erreur
+            setTimeout(() => navigate('/'), 3000);
             return;
           } else {
             // Autre type d'erreur
@@ -174,7 +188,14 @@ const NewProject = () => {
     } catch (error) {
       console.error('❌ Erreur générale lors de la création du projet:', error);
       toast.error("Erreur de création", {
-        description: "Une erreur est survenue lors de la création du projet",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la création du projet",
+        action: {
+          label: 'Réessayer',
+          onClick: () => {
+            notionApi.mockMode.forceReset();
+            setIsSubmitting(false);
+          }
+        }
       });
     } finally {
       setIsSubmitting(false);

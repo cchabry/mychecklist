@@ -19,6 +19,10 @@ const AuditPage = () => {
       if (forceReal) {
         console.log('📢 AuditPage: Mode réel forcé temporairement - nettoyage après usage');
         localStorage.removeItem('notion_force_real');
+        
+        // Forcer un état "propre" pour cette session
+        localStorage.removeItem('notion_last_error');
+        localStorage.removeItem(notionApi.mockMode.STORAGE_KEYS.MOCK_MODE);
       }
       
       // Vérifier si le mode mock est actif
@@ -129,6 +133,13 @@ const AuditPage = () => {
             } else if (testError.message?.includes('Failed to fetch')) {
               toast.warning("Problème de connexion à l'API Notion", {
                 description: "Mode démonstration activé pour contourner les limitations CORS.",
+                action: {
+                  label: 'Forcer réel',
+                  onClick: () => {
+                    notionApi.mockMode.forceReset();
+                    window.location.reload();
+                  }
+                }
               });
             }
           }
@@ -145,6 +156,13 @@ const AuditPage = () => {
         toast.error("Problème de connexion à Notion", {
           description: "Mode démonstration activé. Vérifiez votre connexion internet.",
           duration: 5000,
+          action: {
+            label: 'Forcer réel',
+            onClick: () => {
+              notionApi.mockMode.forceReset();
+              window.location.reload();
+            }
+          }
         });
       } finally {
         setChecking(false);

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import NotionSolutionsSection from './NotionSolutionsSection';
 import { notionApi } from '@/lib/notionProxy';
+import { toast } from 'sonner';
 
 interface NotionErrorDetailsProps {
   isOpen: boolean;
@@ -18,14 +19,23 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
   const isCorsError = error?.includes('CORS') || error?.includes('network');
   
   const handleForceRealMode = () => {
-    // Force real mode and clear caches
-    notionApi.mockMode.temporarilyForceReal();
+    // Forcer le mode réel de façon plus agressive
+    console.log('🔄 Forçage COMPLET du mode réel et suppression des caches');
     
-    // Close the dialog
+    // Force real mode et nettoie tous les caches
+    notionApi.mockMode.forceReset();
+    
+    // Notification explicite
+    toast.success('Mode réel forcé', {
+      description: 'Toutes les données en cache ont été supprimées. L\'application utilisera les données réelles de Notion.',
+      duration: 5000,
+    });
+    
+    // Ferme le dialogue
     onClose();
     
-    // Reload the page to apply changes
-    window.location.reload();
+    // Recharge la page pour appliquer les changements
+    setTimeout(() => window.location.reload(), 500);
   };
   
   return (
@@ -76,7 +86,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
               size="sm"
               variant="secondary"
               onClick={handleForceRealMode}
-              className="gap-1 text-xs"
+              className="gap-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 border border-green-300"
             >
               <Database size={12} />
               Forcer mode réel
