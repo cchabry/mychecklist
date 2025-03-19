@@ -14,23 +14,18 @@ const AuditPage = () => {
 
   useEffect(() => {
     const checkNotionConfig = async () => {
-      // Vérifier si on a forcé le mode réel pour une opération
-      const forceReal = localStorage.getItem('notion_force_real') === 'true';
-      if (forceReal) {
-        console.log('📢 AuditPage: Mode réel forcé temporairement - nettoyage après usage');
-        localStorage.removeItem('notion_force_real');
-        
-        // Forcer un état "propre" pour cette session
-        localStorage.removeItem('notion_last_error');
-        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-      }
+      // Forcer la désactivation du mode mock pour tester la connexion réelle
+      localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
+      console.log('📢 AuditPage: Tentative de désactivation du mode mock pour tester la connexion réelle');
+      notionApi.mockMode.forceReset();
       
-      // Vérifier si le mode mock est actif
+      // Vérifier si le mode mock est actif après tentative de désactivation
       const isMockActive = notionApi.mockMode.isActive();
-      console.log(`📢 AuditPage: Mode mock ${isMockActive ? 'ACTIF' : 'INACTIF'} au démarrage`);
+      console.log(`📢 AuditPage: Mode mock ${isMockActive ? 'ACTIF' : 'INACTIF'} après tentative de désactivation`);
       
       // Vérifier si Notion est configuré
       const hasNotionConfig = isNotionConfigured();
+      console.log('📢 AuditPage: Notion est configuré:', hasNotionConfig);
       setNotionReady(hasNotionConfig);
       
       if (!hasNotionConfig) {
@@ -38,6 +33,12 @@ const AuditPage = () => {
         toast.warning("Notion n'est pas configuré", {
           description: "Certaines fonctionnalités peuvent ne pas fonctionner correctement.",
           duration: 5000,
+          action: {
+            label: 'Configurer',
+            onClick: () => {
+              document.getElementById('notion-config-button')?.click();
+            }
+          }
         });
         
         // S'assurer que le mode mock est activé puisque Notion n'est pas configuré
@@ -53,7 +54,16 @@ const AuditPage = () => {
       // Si configuré mais en mode mock, afficher un indicateur
       if (hasNotionConfig && isMockActive) {
         console.log('ℹ️ Notion est configuré mais le mode mock est actif');
-        notionApi.mockMode.checkAndNotify();
+        toast.warning('Mode démonstration actif', {
+          description: 'Cliquez sur le bouton pour tester la connexion réelle à Notion',
+          action: {
+            label: 'Tester',
+            onClick: () => {
+              notionApi.mockMode.forceReset();
+              window.location.reload();
+            }
+          }
+        });
         setChecking(false);
         return;
       }
@@ -74,18 +84,12 @@ const AuditPage = () => {
             toast.error('Format de clé API incorrect', {
               description: 'La clé doit commencer par "secret_" (intégration) ou "ntn_" (OAuth)',
               duration: 5000,
-            });
-            
-            // Demander à l'utilisateur s'il souhaite effacer cette clé incorrecte
-            toast.error('Clé API Notion incorrecte', {
-              description: 'La clé actuelle n\'est pas au bon format. Souhaitez-vous la reconfigurer?',
               action: {
                 label: 'Configurer',
                 onClick: () => {
-                  document.getElementById('notion-connect-button')?.click();
+                  document.getElementById('notion-config-button')?.click();
                 }
-              },
-              duration: 10000,
+              }
             });
             
             // Activer le mode mock pour éviter les erreurs
@@ -129,6 +133,12 @@ const AuditPage = () => {
             if (testError.message?.includes('401')) {
               toast.error("Erreur d'authentification Notion", {
                 description: "La clé d'API n'est pas valide. Mode démonstration activé.",
+                action: {
+                  label: 'Configurer',
+                  onClick: () => {
+                    document.getElementById('notion-config-button')?.click();
+                  }
+                }
               });
             } else if (testError.message?.includes('Failed to fetch')) {
               toast.warning("Problème de connexion à l'API Notion", {

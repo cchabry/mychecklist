@@ -25,9 +25,15 @@ export const create = async (data: any, token: string) => {
     return Promise.reject(new Error('Token Notion manquant'));
   }
   
-  // Forcer le mode réel pendant la création
-  mockMode.temporarilyForceReal();
-  console.log('✅ Mode réel forcé pour la création du projet');
+  // Vérifier l'état du mode mock
+  const isMockMode = mockMode.isActive();
+  console.log(`⚠️ État du mode mock lors de la création: ${isMockMode ? 'ACTIF' : 'INACTIF'}`);
+  
+  // Désactiver le mode mock pendant la création
+  if (isMockMode) {
+    mockMode.temporarilyForceReal();
+    console.log('✅ Mode réel temporairement forcé pour la création du projet');
+  }
   
   // Format du token : vérifier et ajouter "Bearer " si nécessaire
   let formattedToken = token;
@@ -120,27 +126,80 @@ export const create = async (data: any, token: string) => {
   } catch (error) {
     console.error('❌ Erreur lors de la création de page Notion:', error);
     
+    // Tentative de récupération plus détaillée des informations d'erreur
+    let errorDetails = '';
+    if (error.response) {
+      try {
+        errorDetails = JSON.stringify(error.response);
+      } catch (e) {
+        errorDetails = 'Impossible de sérialiser les détails de la réponse';
+      }
+    }
+    console.error('❌ Détails supplémentaires:', errorDetails);
+    
     // Afficher une notification d'erreur avec plus de détails
     let errorMessage = 'Une erreur est survenue lors de la création du projet.';
     if (error instanceof Error) {
       errorMessage = error.message;
       
+      // Analyse plus détaillée des erreurs courantes
       if (errorMessage.includes('401')) {
         errorMessage = 'Authentification Notion échouée. Vérifiez votre clé API.';
+        toast.error('Erreur d\'authentification', {
+          description: 'Votre clé API Notion semble invalide ou expirée. Veuillez la vérifier et la mettre à jour.',
+          action: {
+            label: 'Configurer',
+            onClick: () => {
+              const configButton = document.querySelector('[id="notion-config-button"]');
+              if (configButton) {
+                (configButton as HTMLButtonElement).click();
+              }
+            }
+          }
+        });
       } else if (errorMessage.includes('400')) {
         errorMessage = 'Format de données invalide pour Notion.';
+        toast.error('Erreur de format', {
+          description: 'Le format des données envoyées n\'est pas accepté par Notion. Vérifiez les propriétés requises de votre base de données.'
+        });
       } else if (errorMessage.includes('404')) {
         errorMessage = 'Base de données Notion introuvable.';
+        toast.error('Base introuvable', {
+          description: 'L\'ID de la base de données Notion est incorrect ou cette base n\'existe plus.',
+          action: {
+            label: 'Configurer',
+            onClick: () => {
+              const configButton = document.querySelector('[id="notion-config-button"]');
+              if (configButton) {
+                (configButton as HTMLButtonElement).click();
+              }
+            }
+          }
+        });
       } else if (errorMessage.includes('CORS') || errorMessage.includes('network')) {
         errorMessage = 'Problème de connexion au serveur Notion (CORS/réseau).';
+        toast.error('Erreur réseau', {
+          description: 'Impossible d\'accéder à l\'API Notion directement. Le proxy serverless sera utilisé.',
+        });
+      } else {
+        // Erreur générique avec plus de détails
+        toast.error('Échec de création du projet', {
+          description: `${errorMessage}. Vérifiez la console pour plus de détails.`
+        });
       }
     }
     
-    toast.error('Échec de création du projet', {
-      description: errorMessage
-    });
+    // Activer le mode mock en cas d'erreur persistante
+    mockMode.activate();
+    console.log('⚠️ Mode mock activé suite à une erreur');
     
     throw error;
+  } finally {
+    // Restaurer le mode mock si nécessaire
+    if (isMockMode) {
+      mockMode.restoreAfterForceReal();
+      console.log('⚠️ État du mode mock restauré à son état initial');
+    }
   }
 };
 

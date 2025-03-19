@@ -28,6 +28,13 @@ export const useNotionIntegration = () => {
     const hasConfig = isNotionConfigured();
     const isMockMode = notionApi.mockMode.isActive();
     
+    console.log('🔍 Vérification de la configuration Notion:', {
+      'Notion configuré': hasConfig,
+      'Mode mock actif': isMockMode,
+      'API Key': localStorage.getItem('notion_api_key') ? 'Définie' : 'Non définie',
+      'Database ID': localStorage.getItem('notion_database_id') ? 'Défini' : 'Non défini'
+    });
+    
     if (!hasConfig) {
       console.log('⚠️ Notion n\'est pas configuré');
       setIsConnected(false);
@@ -131,6 +138,7 @@ export const useNotionIntegration = () => {
     
     // Effacer les erreurs stockées
     localStorage.removeItem('notion_last_error');
+    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     
     // Vérifier à nouveau la configuration après un court délai
     setTimeout(() => {
