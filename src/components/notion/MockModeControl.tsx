@@ -72,9 +72,9 @@ const MockModeControl: React.FC = () => {
         <h3 className="font-medium flex items-center gap-2">
           Mode de fonctionnement: 
           {isMockMode ? (
-            <Badge variant="warning" className="bg-amber-500">DÉMONSTRATION</Badge>
+            <Badge variant="outline" className="bg-amber-500 text-white border-amber-600">DÉMONSTRATION</Badge>
           ) : (
-            <Badge variant="success" className="bg-green-600">RÉEL</Badge>
+            <Badge variant="outline" className="bg-green-600 text-white border-green-700">RÉEL</Badge>
           )}
         </h3>
       </div>
