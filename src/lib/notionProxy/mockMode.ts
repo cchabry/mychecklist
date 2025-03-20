@@ -1,5 +1,5 @@
-
 import { STORAGE_KEYS } from './config';
+import { mockNotionResponse } from './mockData';
 
 /**
  * Gestion du mode mock pour les requêtes Notion.
@@ -114,5 +114,16 @@ export const mockMode = {
       mockMode.activate();
       localStorage.removeItem('temp_was_mock');
     }
+  },
+  
+  /**
+   * Obtient la réponse simulée pour une requête à l'API Notion
+   * @param endpoint - Point de terminaison de l'API
+   * @param method - Méthode HTTP (GET, POST, etc.)
+   * @param body - Corps de la requête (optionnel)
+   * @returns Réponse simulée au format JSON
+   */
+  getMockResponse: (endpoint: string, method: string, body?: any): any => {
+    return mockNotionResponse(endpoint, method, body);
   }
 };
