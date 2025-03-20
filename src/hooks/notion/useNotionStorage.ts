@@ -5,7 +5,9 @@ import { useCallback } from 'react';
 export interface NotionConfig {
   apiKey: string;
   databaseId: string;
-  checklistsDbId: string;
+  requirementsDbId: string;
+  auditsDbId: string;
+  auditResultsDbId: string;
   lastConfigDate: string | null;
 }
 
@@ -21,7 +23,9 @@ export function useNotionStorage() {
     return {
       apiKey: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
       databaseId: localStorage.getItem(STORAGE_KEYS.DATABASE_ID) || '',
-      checklistsDbId: localStorage.getItem(STORAGE_KEYS.CHECKLISTS_DB_ID) || '',
+      requirementsDbId: localStorage.getItem('notion_requirements_database_id') || '',
+      auditsDbId: localStorage.getItem('notion_audits_database_id') || '',
+      auditResultsDbId: localStorage.getItem('notion_audit_results_database_id') || '',
       lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_CONFIG_DATE)
     };
   }, []);
@@ -45,8 +49,16 @@ export function useNotionStorage() {
       localStorage.setItem(STORAGE_KEYS.DATABASE_ID, config.databaseId);
     }
     
-    if (config.checklistsDbId !== undefined) {
-      localStorage.setItem(STORAGE_KEYS.CHECKLISTS_DB_ID, config.checklistsDbId);
+    if (config.requirementsDbId !== undefined) {
+      localStorage.setItem('notion_requirements_database_id', config.requirementsDbId);
+    }
+    
+    if (config.auditsDbId !== undefined) {
+      localStorage.setItem('notion_audits_database_id', config.auditsDbId);
+    }
+    
+    if (config.auditResultsDbId !== undefined) {
+      localStorage.setItem('notion_audit_results_database_id', config.auditResultsDbId);
     }
     
     localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
@@ -58,7 +70,9 @@ export function useNotionStorage() {
   const clearStoredConfig = useCallback((): void => {
     localStorage.removeItem(STORAGE_KEYS.API_KEY);
     localStorage.removeItem(STORAGE_KEYS.DATABASE_ID);
-    localStorage.removeItem(STORAGE_KEYS.CHECKLISTS_DB_ID);
+    localStorage.removeItem('notion_requirements_database_id');
+    localStorage.removeItem('notion_audits_database_id');
+    localStorage.removeItem('notion_audit_results_database_id');
     localStorage.removeItem(STORAGE_KEYS.LAST_CONFIG_DATE);
   }, []);
 
@@ -71,11 +85,11 @@ export function useNotionStorage() {
   }, [getStoredConfig]);
 
   /**
-   * Vérifie si la configuration des checklists est présente
+   * Vérifie si la configuration des bases de données avancées est présente
    */
-  const hasChecklistsConfig = useCallback((): boolean => {
+  const hasAdvancedConfig = useCallback((): boolean => {
     const config = getStoredConfig();
-    return !!(config.checklistsDbId);
+    return !!(config.requirementsDbId && config.auditsDbId && config.auditResultsDbId);
   }, [getStoredConfig]);
 
   return {
@@ -83,6 +97,6 @@ export function useNotionStorage() {
     updateStoredConfig,
     clearStoredConfig,
     hasStoredConfig,
-    hasChecklistsConfig
+    hasAdvancedConfig
   };
 }

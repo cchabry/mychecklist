@@ -5,7 +5,7 @@ import { notionApi } from '@/lib/notionProxy';
 import { useNotion } from '@/contexts/NotionContext';
 
 /**
- * Structure des propriétés standards pour les bases de données Notion
+ * Structure des propriétés pour les bases de données Notion
  */
 const DATABASE_STRUCTURES = {
   // Base de données des projets
@@ -33,16 +33,16 @@ const DATABASE_STRUCTURES = {
     }
   },
   
-  // Base de données des checklists
-  checklists: {
-    "Projet": {
-      "relation": {
-        "database_id": "", // À remplir dynamiquement
-        "single_property": {}
-      }
+  // Base de données des exigences
+  requirements: {
+    "ID": {
+      "rich_text": {}
     },
-    "Exigence": {
+    "Titre": {
       "title": {}
+    },
+    "Description": {
+      "rich_text": {}
     },
     "Catégorie": {
       "select": {
@@ -51,8 +51,78 @@ const DATABASE_STRUCTURES = {
           { "name": "Accessibilité", "color": "blue" },
           { "name": "SEO", "color": "orange" },
           { "name": "UX", "color": "purple" },
-          { "name": "Sécurité", "color": "red" }
+          { "name": "Sécurité", "color": "red" },
+          { "name": "Technique", "color": "gray" }
         ]
+      }
+    },
+    "Sous-catégorie": {
+      "select": {
+        "options": [
+          { "name": "Navigation", "color": "blue" },
+          { "name": "Formulaires", "color": "purple" },
+          { "name": "Images", "color": "orange" },
+          { "name": "Contenu", "color": "green" },
+          { "name": "Structure", "color": "yellow" }
+        ]
+      }
+    },
+    "Niveau d'importance": {
+      "select": {
+        "options": [
+          { "name": "Majeur", "color": "red" },
+          { "name": "Important", "color": "orange" },
+          { "name": "Moyen", "color": "yellow" },
+          { "name": "Mineur", "color": "green" },
+          { "name": "N/A", "color": "gray" }
+        ]
+      }
+    },
+    "Référence": {
+      "rich_text": {}
+    }
+  },
+  
+  // Base de données des audits
+  audits: {
+    "Projet": {
+      "relation": {
+        "database_id": "", // À remplir dynamiquement
+        "single_property": {}
+      }
+    },
+    "Nom": {
+      "title": {}
+    },
+    "Date": {
+      "date": {}
+    },
+    "Statut": {
+      "select": {
+        "options": [
+          { "name": "En cours", "color": "yellow" },
+          { "name": "Terminé", "color": "green" },
+          { "name": "Archivé", "color": "gray" }
+        ]
+      }
+    },
+    "Score": {
+      "number": {}
+    }
+  },
+  
+  // Base de données des résultats d'audit (items évalués)
+  auditResults: {
+    "Audit": {
+      "relation": {
+        "database_id": "", // À remplir dynamiquement avec l'ID de la BDD audits
+        "single_property": {}
+      }
+    },
+    "Exigence": {
+      "relation": {
+        "database_id": "", // À remplir dynamiquement avec l'ID de la BDD requirements
+        "single_property": {}
       }
     },
     "Statut": {
@@ -61,7 +131,8 @@ const DATABASE_STRUCTURES = {
           { "name": "Conforme", "color": "green" },
           { "name": "Partiellement conforme", "color": "yellow" },
           { "name": "Non conforme", "color": "red" },
-          { "name": "Non applicable", "color": "gray" }
+          { "name": "Non applicable", "color": "gray" },
+          { "name": "Non évalué", "color": "blue" }
         ]
       }
     },
@@ -73,6 +144,16 @@ const DATABASE_STRUCTURES = {
     },
     "Score": {
       "number": {}
+    },
+    "Priorité": {
+      "select": {
+        "options": [
+          { "name": "Critique", "color": "red" },
+          { "name": "Haute", "color": "orange" },
+          { "name": "Moyenne", "color": "yellow" },
+          { "name": "Basse", "color": "green" }
+        ]
+      }
     }
   }
 };
@@ -185,18 +266,42 @@ export const useNotionDatabaseCreator = () => {
       // Sauvegarder l'ID de la base de données des projets
       localStorage.setItem("notion_database_id", projectsDbId);
       
-      // 3. Créer la base de données des checklists avec la relation vers les projets
-      const checklistProperties = { ...DATABASE_STRUCTURES.checklists };
-      checklistProperties.Projet.relation.database_id = projectsDbId;
-      
-      const checklistsDbId = await createDatabase(
+      // 3. Créer la base de données des exigences
+      const requirementsDbId = await createDatabase(
         workspacePageId,
-        "Checklists myChecklist",
-        checklistProperties
+        "Exigences myChecklist",
+        DATABASE_STRUCTURES.requirements
       );
       
-      // Sauvegarder l'ID de la base de données des checklists
-      localStorage.setItem("notion_checklists_database_id", checklistsDbId);
+      // Sauvegarder l'ID de la base de données des exigences
+      localStorage.setItem("notion_requirements_database_id", requirementsDbId);
+      
+      // 4. Créer la base de données des audits
+      const auditProperties = { ...DATABASE_STRUCTURES.audits };
+      auditProperties.Projet.relation.database_id = projectsDbId;
+      
+      const auditsDbId = await createDatabase(
+        workspacePageId,
+        "Audits myChecklist",
+        auditProperties
+      );
+      
+      // Sauvegarder l'ID de la base de données des audits
+      localStorage.setItem("notion_audits_database_id", auditsDbId);
+      
+      // 5. Créer la base de données des résultats d'audit
+      const auditResultsProperties = { ...DATABASE_STRUCTURES.auditResults };
+      auditResultsProperties.Audit.relation.database_id = auditsDbId;
+      auditResultsProperties.Exigence.relation.database_id = requirementsDbId;
+      
+      const auditResultsDbId = await createDatabase(
+        workspacePageId,
+        "Résultats d'audit myChecklist",
+        auditResultsProperties
+      );
+      
+      // Sauvegarder l'ID de la base de données des résultats d'audit
+      localStorage.setItem("notion_audit_results_database_id", auditResultsDbId);
       
       setCreationStep("Configuration terminée !");
       toast.success("Bases de données Notion créées avec succès", {
@@ -205,7 +310,9 @@ export const useNotionDatabaseCreator = () => {
       
       return {
         projectsDbId,
-        checklistsDbId,
+        requirementsDbId,
+        auditsDbId,
+        auditResultsDbId,
         workspacePageId
       };
     } catch (error) {

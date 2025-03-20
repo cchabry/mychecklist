@@ -76,7 +76,9 @@ const NotionDatabaseCreator: React.FC<NotionDatabaseCreatorProps> = ({ onSuccess
           <p>Voici ce qui sera créé :</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Une base de données <strong>Projets</strong> pour stocker tous vos projets d'audit</li>
-            <li>Une base de données <strong>Checklists</strong> pour stocker les résultats d'audit</li>
+            <li>Une base de données <strong>Exigences</strong> pour stocker les critères d'évaluation</li>
+            <li>Une base de données <strong>Audits</strong> pour stocker les sessions d'audit</li>
+            <li>Une base de données <strong>Résultats d'audit</strong> pour stocker les évaluations individuelles</li>
           </ul>
           <p className="text-muted-foreground mt-2">
             Note : Cette opération nécessite un compte Notion avec les permissions d'écriture.
