@@ -1,7 +1,8 @@
+
 /**
  * Flag mockMode pour utiliser des données fictives au lieu de l'API Notion
  */
-let isActive = false;
+let _isMockActive = false;
 // Version du mock mode, à incrémenter lors des mises à jour majeures
 const version = "v2";
 
@@ -14,12 +15,16 @@ let simulatedDelay = 0;
 // Taux d'erreur simulé (0-100%)
 let errorRate = 0;
 
+// État de forçage temporaire
+let _isTemporarilyForcedReal = false;
+let _previousMockState = false;
+
 /**
  * Active le mode mock pour les tests et la démo
  */
 export const activate = () => {
   console.log("Mock mode activé (version " + version + ")");
-  isActive = true;
+  _isMockActive = true;
   return true;
 };
 
@@ -28,7 +33,7 @@ export const activate = () => {
  */
 export const deactivate = () => {
   console.log("Mock mode désactivé");
-  isActive = false;
+  _isMockActive = false;
   return false;
 };
 
@@ -36,16 +41,16 @@ export const deactivate = () => {
  * Bascule l'état du mode mock
  */
 export const toggle = () => {
-  isActive = !isActive;
-  console.log(`Mock mode ${isActive ? 'activé' : 'désactivé'} (version ${version})`);
-  return isActive;
+  _isMockActive = !_isMockActive;
+  console.log(`Mock mode ${_isMockActive ? 'activé' : 'désactivé'} (version ${version})`);
+  return _isMockActive;
 };
 
 /**
  * Vérifie si le mode mock est actif
  */
 export const isActive = () => {
-  return isActive;
+  return _isTemporarilyForcedReal ? false : _isMockActive;
 };
 
 /**
@@ -53,6 +58,50 @@ export const isActive = () => {
  */
 export const getVersion = () => {
   return version;
+};
+
+/**
+ * Force temporairement le mode réel, mais conserve l'état précédent
+ */
+export const temporarilyForceReal = () => {
+  if (_isTemporarilyForcedReal) return false;
+  
+  _previousMockState = _isMockActive;
+  _isTemporarilyForcedReal = true;
+  console.log("Mode réel temporairement forcé (état original préservé)");
+  return true;
+};
+
+/**
+ * Restaure l'état précédent après un forçage temporaire
+ */
+export const restoreAfterForceReal = () => {
+  if (!_isTemporarilyForcedReal) return false;
+  
+  _isTemporarilyForcedReal = false;
+  console.log(`État précédent restauré (mock mode: ${_previousMockState ? 'activé' : 'désactivé'})`);
+  return true;
+};
+
+/**
+ * Vérifie si le mode est temporairement forcé en réel
+ */
+export const isTemporarilyForcedReal = () => {
+  return _isTemporarilyForcedReal;
+};
+
+/**
+ * Force la réinitialisation complète du mode mock
+ */
+export const forceReset = () => {
+  _isMockActive = false;
+  _isTemporarilyForcedReal = false;
+  _previousMockState = false;
+  currentScenario = 'standard';
+  simulatedDelay = 0;
+  errorRate = 0;
+  console.log("Mode mock complètement réinitialisé");
+  return true;
 };
 
 /**
@@ -127,6 +176,7 @@ export const applySimulatedDelay = async () => {
   }
 };
 
+// Exporter toutes les fonctions dans un objet pour faciliter l'utilisation
 export const mockMode = {
   activate,
   deactivate,
@@ -140,5 +190,9 @@ export const mockMode = {
   setErrorRate,
   getErrorRate,
   shouldSimulateError,
-  applySimulatedDelay
+  applySimulatedDelay,
+  forceReset,
+  temporarilyForceReal,
+  restoreAfterForceReal,
+  isTemporarilyForcedReal
 };
