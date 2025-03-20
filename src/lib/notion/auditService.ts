@@ -83,6 +83,7 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
     return {
       id: getRichTextValue(properties.id) || page.id,
       projectId: projectId,
+      name: getRichTextValue(properties.name) || getRichTextValue(properties.Name) || `Audit - ${new Date().toLocaleDateString()}`,
       items: items,
       createdAt: page.created_time || new Date().toISOString(),
       updatedAt: page.last_edited_time || new Date().toISOString(),
