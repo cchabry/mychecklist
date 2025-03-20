@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Database, Key, Check, AlertTriangle } from 'lucide-react';
 import Header from '@/components/Header';
-import { NotionConfig } from '@/components/notion/NotionConfig';
+import NotionConfig from '@/components/notion/NotionConfig';
 import NotionDatabaseCreator from '@/components/notion/NotionDatabaseCreator';
 import NotionConnectionTests from '@/components/notion/form/NotionConnectionTests';
 import { isNotionConfigured, testNotionConnection } from '@/lib/notion';

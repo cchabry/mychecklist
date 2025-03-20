@@ -11,12 +11,12 @@ import {
   NotionSetup, 
   Diagnostics 
 } from '@/pages';
-import { AuditContainer } from '@/pages/audit';
-import { NotionContextProvider } from '@/contexts/NotionContext';
+import AuditContainer from '@/pages/audit/AuditContainer';
+import { NotionProvider } from '@/contexts/NotionContext';
 
 function App() {
   return (
-    <NotionContextProvider>
+    <NotionProvider>
       <div className="app">
         <Routes>
           <Route path="/" element={<HomePage />}>
@@ -31,7 +31,7 @@ function App() {
         </Routes>
         <Toaster />
       </div>
-    </NotionContextProvider>
+    </NotionProvider>
   );
 }
 

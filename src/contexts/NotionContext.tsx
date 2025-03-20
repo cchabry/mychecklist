@@ -31,6 +31,7 @@ interface NotionContextValue {
 
 const NotionContext = createContext<NotionContextValue | null>(null);
 
+// Rename this to NotionProvider instead of NotionContextProvider
 export const NotionProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   // Utiliser notre hook centralisé pour la configuration
   const notionConfig = useNotionConfig();

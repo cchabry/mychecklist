@@ -9,12 +9,16 @@ import NotionConfigForm from './NotionConfigForm';
 import { isOAuthToken, isIntegrationKey } from '@/lib/notionProxy/config';
 
 interface NotionConfigProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onSuccess?: () => void;
 }
 
-const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess }) => {
+const NotionConfig: React.FC<NotionConfigProps> = ({ 
+  isOpen = true, 
+  onClose = () => {}, 
+  onSuccess 
+}) => {
   const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [errorContext, setErrorContext] = useState<string>('');

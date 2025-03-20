@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
-import { useNotionConfig } from './useNotionConfig';
+import { useNotion } from '@/contexts/NotionContext';
 
 /**
  * Structure des propriétés standards pour les bases de données Notion
@@ -83,7 +83,7 @@ const DATABASE_STRUCTURES = {
 export const useNotionDatabaseCreator = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStep, setCreationStep] = useState("");
-  const { config } = useNotionConfig();
+  const { config } = useNotion();
   
   /**
    * Crée une base de données dans Notion
@@ -119,7 +119,7 @@ export const useNotionDatabaseCreator = () => {
 
     try {
       // Rechercher une page avec ce titre
-      const searchResult = await notionApi.search({
+      const searchResult = await notionApi.request('/search', 'POST', {
         query: title,
         filter: { property: "object", value: "page" }
       }, config.apiKey);
