@@ -1,38 +1,29 @@
 
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { Toaster } from '@/components/ui/sonner';
-import { 
-  HomePage, 
-  HomeIndex, 
-  NewProject, 
-  NotFound, 
-  SamplePages, 
-  Diagnostics 
-} from '@/pages';
-import NotionSetup from '@/pages/NotionSetup';
-import { AuditContainer } from '@/pages/audit/AuditContainer';
-import { NotionProvider } from '@/contexts/NotionContext';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HomePage, AuditPage, NewProjectPage, NotFoundPage } from './pages';
+import { NotionProvider } from './contexts/NotionContext';
+import { Toaster } from './components/ui/toaster';
+import DiagnosticsPage from './pages/Diagnostics';
+import SamplePagesPage from './pages/SamplePages';
 
-function App() {
+const App: React.FC = () => {
+  console.log("App component rendering...");
   return (
     <NotionProvider>
-      <div className="app">
+      <Toaster />
+      <Router>
         <Routes>
-          <Route path="/" element={<HomePage />}>
-            <Route index element={<HomeIndex />} />
-            <Route path="new" element={<NewProject />} />
-            <Route path="audit/:projectId" element={<AuditContainer />} />
-            <Route path="samples" element={<SamplePages />} />
-            <Route path="diagnostics" element={<Diagnostics />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-          <Route path="/notion-setup" element={<NotionSetup />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/audit/:projectId" element={<AuditPage />} />
+          <Route path="/new-project" element={<NewProjectPage />} />
+          <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
+          <Route path="/diagnostics" element={<DiagnosticsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
-        <Toaster />
-      </div>
+      </Router>
     </NotionProvider>
   );
-}
+};
 
 export default App;
