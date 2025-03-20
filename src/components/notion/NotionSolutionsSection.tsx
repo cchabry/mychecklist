@@ -1,73 +1,79 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Lightbulb, Workflow, Key } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, ExternalLink } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface NotionSolutionsSectionProps {
-  showCorsProxy?: boolean;
-  showMockMode?: boolean;
-  showApiKey?: boolean;
-}
+type NotionSolutionsSectionProps = {
+  errorCode?: string;
+};
 
-const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
-  showCorsProxy = true,
-  showMockMode = true,
-  showApiKey = true
-}) => {
+const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ errorCode }) => {
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
-        <Lightbulb size={14} className="text-amber-500" />
-        Solutions possibles
-      </h3>
-
-      <div className="grid grid-cols-1 gap-3">
-        {showCorsProxy && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardContent className="p-3">
-              <h4 className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1">
-                <Workflow size={12} className="text-amber-600" />
-                Utiliser le proxy CORS
-              </h4>
-              <p className="text-xs text-amber-700">
-                Vérifiez que le proxy CORS est correctement déployé et accessible.
-                Cette étape est nécessaire pour contourner les limitations CORS de l'API Notion.
-              </p>
-            </CardContent>
-          </Card>
+    <Card className="mt-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-medium">Solutions possibles</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {errorCode === '401' && (
+          <Alert variant="outline" className="border-amber-200 bg-amber-50/50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700 text-sm">
+              Erreur d'authentification. Vérifiez votre clé API Notion et assurez-vous qu'elle est valide.
+            </AlertDescription>
+          </Alert>
         )}
-
-        {showMockMode && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardContent className="p-3">
-              <h4 className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1">
-                <Workflow size={12} className="text-amber-600" />
-                Activer le mode démonstration
-              </h4>
-              <p className="text-xs text-amber-700">
-                Si vous ne pouvez pas vous connecter à Notion, vous pouvez activer
-                le mode démonstration pour tester l'application avec des données fictives.
-              </p>
-            </CardContent>
-          </Card>
+        
+        {errorCode === '403' && (
+          <Alert variant="outline" className="border-amber-200 bg-amber-50/50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700 text-sm">
+              Erreur de permission. Assurez-vous que votre intégration Notion a accès aux bases de données nécessaires.
+            </AlertDescription>
+          </Alert>
         )}
-
-        {showApiKey && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardContent className="p-3">
-              <h4 className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1">
-                <Key size={12} className="text-amber-600" />
-                Vérifier votre clé API
-              </h4>
-              <p className="text-xs text-amber-700">
-                Assurez-vous que votre clé API Notion est correcte et que votre intégration
-                a les permissions nécessaires sur les bases de données que vous essayez d'utiliser.
-              </p>
-            </CardContent>
-          </Card>
+        
+        {errorCode === '404' && (
+          <Alert variant="outline" className="border-amber-200 bg-amber-50/50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700 text-sm">
+              Base de données ou ressource non trouvée. Vérifiez l'ID de votre base de données Notion.
+            </AlertDescription>
+          </Alert>
         )}
-      </div>
-    </div>
+        
+        {(!errorCode || !['401', '403', '404'].includes(errorCode)) && (
+          <Alert variant="outline" className="border-amber-200 bg-amber-50/50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700 text-sm">
+              Vérifiez votre connexion internet et assurez-vous que le proxy CORS est correctement configuré.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="text-sm space-y-2">
+          <p className="font-medium">Actions recommandées :</p>
+          <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground">
+            <li>Vérifiez votre configuration Notion (clé API et ID de base de données)</li>
+            <li>Assurez-vous que le proxy CORS est correctement déployé</li>
+            <li>Vérifiez les autorisations de votre intégration Notion</li>
+            <li>Consultez les logs pour plus de détails sur l'erreur</li>
+          </ul>
+        </div>
+        
+        <div className="pt-2">
+          <a 
+            href="https://developers.notion.com/docs" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm flex items-center gap-1.5 text-blue-600 hover:text-blue-800"
+          >
+            <ExternalLink size={14} />
+            Documentation Notion API
+          </a>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

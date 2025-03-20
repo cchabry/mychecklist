@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -49,7 +50,7 @@ const NotionProxyConfigGuide: React.FC = () => {
           <Button 
             variant={platform === 'local' ? 'default' : 'outline'} 
             className="col-span-1"
-            onClick={()={() => setPlatform('local'))}
+            onClick={() => setPlatform('local')}
           >
             Local
           </Button>

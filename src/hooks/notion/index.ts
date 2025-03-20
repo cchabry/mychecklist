@@ -8,5 +8,5 @@ export { useNotionConfigUI } from './useNotionConfigUI';
 export { useNotionDiagnostic } from './useNotionDiagnostic';
 export { useNotionConnection } from './useNotionConnection';
 
-// Export le hook principal comme default
+// Export le hook principal comme default export unique
 export { useNotionAPI as default } from './useNotionAPI';
