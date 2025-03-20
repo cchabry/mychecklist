@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Play, FileText, ExternalLink, Pencil, Clock, CheckCircle } from 'lucide-react';
+import { Play, FileText, ExternalLink, Pencil, Clock, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Project, ActionStatus } from '@/lib/types';
@@ -97,10 +97,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                   <Link to={`/audit/plan/${project.id}/${audit.id}`}>
                     <FileText size={12} />
                     Plan d'action
-                    <span className="ml-1 text-red-500">{audit.actionsCount[ActionStatus.ToDo]}</span>
-                    <span className="mx-0.5 text-muted-foreground">/</span>
+                    <Circle size={12} className="ml-1 text-red-500" />
+                    <span className="text-red-500">{audit.actionsCount[ActionStatus.ToDo]}</span>
+                    <span className="mx-0.5 text-muted-foreground">|</span>
+                    <Clock size={12} className="text-blue-500" />
                     <span className="text-blue-500">{audit.actionsCount[ActionStatus.InProgress]}</span>
-                    <span className="mx-0.5 text-muted-foreground">/</span>
+                    <span className="mx-0.5 text-muted-foreground">|</span>
+                    <CheckCircle size={12} className="text-green-500" />
                     <span className="text-green-500">{audit.actionsCount[ActionStatus.Done]}</span>
                   </Link>
                 </Button>
