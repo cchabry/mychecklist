@@ -51,8 +51,10 @@ export function useNotionConfig() {
   // Propriété calculée - utilise réellement Notion (connecté et pas en mode mock)
   const usingNotion = connection.isConnected && !connection.isMockMode && storage.hasStoredConfig();
   
-  const resetAndTest = useCallback(() => {
+  // Modification: Assurer que resetAndTest retourne une Promise<void>
+  const resetAndTest = useCallback(async (): Promise<void> => {
     connection.resetConnection();
+    await connection.testConnection();
   }, [connection]);
   
   return {
