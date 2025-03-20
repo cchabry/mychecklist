@@ -85,14 +85,28 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             
             <div className="space-y-3">
               <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Progression</span>
-                  <span>{audit.progress}%</span>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs">Progression</span>
+                  <span className="text-xs">{audit.progress}%</span>
                 </div>
-                <Progress value={audit.progress} className="h-2" />
-                <p className="text-xs mt-1 text-muted-foreground">
-                  {Math.round(audit.progress * audit.itemsCount / 100)} / {audit.itemsCount} critères évalués
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Progress value={audit.progress} className="h-2" />
+                    <p className="text-xs mt-1 text-muted-foreground">
+                      {Math.round(audit.progress * audit.itemsCount / 100)} / {audit.itemsCount} critères évalués
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 bg-[#E87A69] text-white hover:bg-[#E87A69]/90 h-7"
+                    asChild
+                  >
+                    <Link to={`/audit/${project.id}/${audit.id}`}>
+                      <Play size={12} />
+                      {audit.progress > 0 ? 'Poursuivre' : 'Démarrer'}
+                    </Link>
+                  </Button>
+                </div>
               </div>
               
               <div className="flex justify-between items-center">
@@ -119,17 +133,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                     </Badge>
                   </div>
                 </div>
-                
-                <Button
-                  size="sm"
-                  className="gap-1.5 bg-[#E87A69] text-white hover:bg-[#E87A69]/90 h-7"
-                  asChild
-                >
-                  <Link to={`/audit/${project.id}/${audit.id}`}>
-                    <Play size={12} />
-                    {audit.progress > 0 ? 'Poursuivre' : 'Démarrer'}
-                  </Link>
-                </Button>
               </div>
             </div>
           </div>
