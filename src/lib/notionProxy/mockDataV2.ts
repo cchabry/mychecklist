@@ -1,203 +1,76 @@
-
 /**
- * Simule une réponse de l'API Notion (version v2)
- * Conforme au nouveau modèle de données selon le Brief v2
+ * Génère des réponses simulées pour l'API Notion conformes au Brief v2
+ * @param endpoint - Point de terminaison de l'API
+ * @param method - Méthode HTTP (GET, POST, etc.)
+ * @param body - Corps de la requête (optionnel)
+ * @returns Réponse simulée au format JSON
  */
-export const mockNotionResponseV2 = (endpoint: string, method: string, body: any) => {
-  console.log(`[MOCK V2] Appel API Notion: ${method} ${endpoint}`);
+export const mockNotionResponseV2 = (endpoint: string, method: string, body?: any): any => {
+  // Réutiliser la logique de base du mockData original pour le moment
+  // mais avec des données conformes au Brief v2
   
-  if (endpoint.startsWith('/users')) {
-    return mockNotionUsersV2(endpoint, method, body);
-  }
+  console.log(`📝 [MOCK V2] Requête simulée: ${method} ${endpoint}`);
   
-  if (endpoint.startsWith('/databases')) {
-    return mockNotionDatabasesV2(endpoint, method, body);
-  }
-  
-  if (endpoint.startsWith('/pages')) {
-    return mockNotionPagesV2(endpoint, method, body);
-  }
-  
-  console.warn(`[MOCK V2] Endpoint non géré: ${endpoint}`);
-  return {
-    object: 'error',
-    status: 400,
-    code: 'unsupported_endpoint',
-    message: `Mock V2 endpoint non géré: ${endpoint}`
-  };
-};
-
-/**
- * Simule les réponses pour l'API Users (version v2)
- */
-const mockNotionUsersV2 = (endpoint: string, method: string, body: any) => {
-  if (endpoint === '/users' && method === 'GET') {
-    console.log('[MOCK V2] Retourne une liste d\'utilisateurs mock');
+  // /v1/users/me
+  if (endpoint.includes('/users/me')) {
     return {
-      object: 'list',
-      results: [
-        {
-          object: 'user',
-          id: 'f7a74990-c99c-479a-a2df-f7a53949940b',
-          type: 'person',
-          name: 'Mock User V2',
-          avatar_url: null,
-          person: {
-            email: 'mock.user.v2@example.com'
-          }
-        }
-      ],
-      next_cursor: null,
-      has_more: false
-    };
-  }
-  
-  if (endpoint === '/users/me' && method === 'GET') {
-    console.log('[MOCK V2] Retourne l\'utilisateur courant (mock)');
-    return {
-      object: 'user',
-      id: 'f7a74990-c99c-479a-a2df-f7a53949940b',
-      type: 'person',
-      name: 'Mock User V2',
+      id: 'mock-user-v2',
+      name: 'Utilisateur Mock V2',
       avatar_url: null,
-      person: {
-        email: 'mock.user.v2@example.com'
-      }
+      type: 'person',
+      object: 'user'
     };
   }
   
-  console.warn(`[MOCK V2] Endpoint Users non géré: ${method} ${endpoint}`);
-  return {
-    object: 'error',
-    status: 400,
-    code: 'unsupported_endpoint',
-    message: `Mock V2 endpoint Users non géré: ${method} ${endpoint}`
-  };
-};
-
-/**
- * Simule les réponses pour l'API Databases (version v2)
- */
-const mockNotionDatabasesV2 = (endpoint: string, method: string, body: any) => {
-  if (endpoint.startsWith('/databases/') && method === 'GET') {
-    const databaseId = endpoint.split('/')[2];
-    console.log(`[MOCK V2] Retourne la database mock avec l'ID ${databaseId}`);
+  // /v1/databases/{database_id}
+  if (endpoint.match(/\/databases\/[^/]+$/)) {
     return {
-      object: 'database',
-      id: databaseId,
-      created_time: '2023-08-01T12:00:00.000Z',
-      last_edited_time: '2023-08-01T12:00:00.000Z',
-      title: [
-        {
-          type: 'text',
-          text: {
-            content: 'Mock Database V2',
-            link: null
-          },
-          annotations: {
-            bold: false,
-            italic: false,
-            strikethrough: false,
-            underline: false,
-            code: false,
-            color: 'default'
-          },
-          plain_text: 'Mock Database V2',
-          href: null
-        }
-      ],
+      id: endpoint.split('/').pop(),
+      title: [{ type: 'text', text: { content: 'Base de données Mock V2', link: null }, plain_text: 'Base de données Mock V2' }],
       properties: {
-        Name: {
-          id: 'title',
-          name: 'Name',
-          type: 'title',
-          title: {}
-        },
-        Status: {
-          id: 'status',
-          name: 'Status',
-          type: 'select',
-          select: {
-            options: [
-              { id: 'opt1', name: 'To Do', color: 'gray' },
-              { id: 'opt2', name: 'In Progress', color: 'blue' },
-              { id: 'opt3', name: 'Done', color: 'green' }
-            ]
-          }
-        },
-        Category: {
-          id: 'category',
-          name: 'Category',
-          type: 'select',
-          select: {
-            options: [
-              { id: 'cat1', name: 'UX/UI', color: 'purple' },
-              { id: 'cat2', name: 'SEO', color: 'orange' },
-              { id: 'cat3', name: 'Performance', color: 'red' }
-            ]
-          }
-        }
-      }
+        Name: { id: 'title', name: 'Name', type: 'title' },
+        Status: { id: 'status', name: 'Status', type: 'select' },
+        Description: { id: 'desc', name: 'Description', type: 'rich_text' },
+        URL: { id: 'url', name: 'URL', type: 'url' },
+        Progress: { id: 'prog', name: 'Progress', type: 'number' }
+      },
+      object: 'database'
     };
   }
   
-  if (endpoint.startsWith('/databases/') && endpoint.endsWith('/query') && method === 'POST') {
-    const databaseId = endpoint.split('/')[2];
-    console.log(`[MOCK V2] Retourne les résultats de la query pour la database ${databaseId}`);
+  // /v1/databases/{database_id}/query
+  if (endpoint.includes('/databases/') && endpoint.includes('/query')) {
     return {
-      object: 'list',
       results: [
         {
-          object: 'page',
-          id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-          created_time: '2023-08-01T12:00:00.000Z',
-          last_edited_time: '2023-08-01T12:00:00.000Z',
+          id: 'mock-project-1-v2',
           properties: {
             Name: {
               id: 'title',
-              name: 'Name',
               type: 'title',
-              title: [
-                {
-                  type: 'text',
-                  text: {
-                    content: 'Mock Project V2',
-                    link: null
-                  },
-                  annotations: {
-                    bold: false,
-                    italic: false,
-                    strikethrough: false,
-                    underline: false,
-                    code: false,
-                    color: 'default'
-                  },
-                  plain_text: 'Mock Project V2',
-                  href: null
-                }
-              ]
+              title: [{ text: { content: 'Projet Mock V2 #1', link: null }, plain_text: 'Projet Mock V2 #1' }]
             },
-            Status: {
-              id: 'status',
-              name: 'Status',
-              type: 'select',
-              select: {
-                id: 'opt2',
-                name: 'In Progress',
-                color: 'blue'
-              }
+            Status: { id: 'status', type: 'select', select: { name: 'En cours', color: 'blue' } },
+            Description: { id: 'desc', type: 'rich_text', rich_text: [{ text: { content: 'Description du projet mock v2 #1' }, plain_text: 'Description du projet mock v2 #1' }] },
+            URL: { id: 'url', type: 'url', url: 'https://exemple-v2.com/projet1' },
+            Progress: { id: 'prog', type: 'number', number: 50 }
+          },
+          url: 'https://notion.so/mock-project-1-v2'
+        },
+        {
+          id: 'mock-project-2-v2',
+          properties: {
+            Name: {
+              id: 'title',
+              type: 'title',
+              title: [{ text: { content: 'Projet Mock V2 #2', link: null }, plain_text: 'Projet Mock V2 #2' }]
             },
-            Category: {
-              id: 'category',
-              name: 'Category',
-              type: 'select',
-              select: {
-                id: 'cat1',
-                name: 'UX/UI',
-                color: 'purple'
-              }
-            }
-          }
+            Status: { id: 'status', type: 'select', select: { name: 'Terminé', color: 'green' } },
+            Description: { id: 'desc', type: 'rich_text', rich_text: [{ text: { content: 'Description du projet mock v2 #2' }, plain_text: 'Description du projet mock v2 #2' }] },
+            URL: { id: 'url', type: 'url', url: 'https://exemple-v2.com/projet2' },
+            Progress: { id: 'prog', type: 'number', number: 100 }
+          },
+          url: 'https://notion.so/mock-project-2-v2'
         }
       ],
       next_cursor: null,
@@ -205,96 +78,32 @@ const mockNotionDatabasesV2 = (endpoint: string, method: string, body: any) => {
     };
   }
   
-  console.warn(`[MOCK V2] Endpoint Databases non géré: ${method} ${endpoint}`);
+  // /v1/pages
+  if (endpoint === '/pages' && method === 'POST') {
+    // Créer une nouvelle page
+    const pageId = 'mock-page-' + Date.now();
+    return {
+      id: pageId,
+      object: 'page',
+      url: 'https://notion.so/' + pageId,
+      properties: body?.properties || {}
+    };
+  }
+  
+  // /v1/pages/{page_id}
+  if (endpoint.match(/\/pages\/[^/]+$/) && method === 'PATCH') {
+    // Mettre à jour une page
+    return {
+      id: endpoint.split('/').pop(),
+      object: 'page',
+      properties: body?.properties || {}
+    };
+  }
+  
+  // Default response
   return {
     object: 'error',
-    status: 400,
-    code: 'unsupported_endpoint',
-    message: `Mock V2 endpoint Databases non géré: ${method} ${endpoint}`
-  };
-};
-
-/**
- * Simule les réponses pour l'API Pages (version v2)
- */
-const mockNotionPagesV2 = (endpoint: string, method: string, body: any) => {
-  if (endpoint.startsWith('/pages/') && method === 'GET') {
-    const pageId = endpoint.split('/')[2];
-    console.log(`[MOCK V2] Retourne la page mock avec l'ID ${pageId}`);
-    return {
-      object: 'page',
-      id: pageId,
-      created_time: '2023-08-01T12:00:00.000Z',
-      last_edited_time: '2023-08-01T12:00:00.000Z',
-      properties: {
-        Name: {
-          id: 'title',
-          name: 'Name',
-          type: 'title',
-          title: [
-            {
-              type: 'text',
-              text: {
-                content: 'Mock Page V2',
-                link: null
-              },
-              annotations: {
-                bold: false,
-                italic: false,
-                strikethrough: false,
-                underline: false,
-                code: false,
-                color: 'default'
-              },
-              plain_text: 'Mock Page V2',
-              href: null
-            }
-          ]
-        },
-        Status: {
-          id: 'status',
-          name: 'Status',
-          type: 'select',
-          select: {
-            id: 'opt2',
-            name: 'In Progress',
-            color: 'blue'
-          }
-        }
-      }
-    };
-  }
-  
-  if (endpoint.startsWith('/pages') && method === 'POST') {
-    console.log(`[MOCK V2] Création d'une nouvelle page`);
-    return {
-      object: 'page',
-      id: 'new-page-' + Math.random().toString(36).substring(2, 10),
-      created_time: new Date().toISOString(),
-      last_edited_time: new Date().toISOString(),
-      properties: body.properties
-    };
-  }
-  
-  if (endpoint.startsWith('/pages/') && method === 'PATCH') {
-    const pageId = endpoint.split('/')[2];
-    console.log(`[MOCK V2] Mise à jour de la page mock avec l'ID ${pageId}`);
-    return {
-      object: 'page',
-      id: pageId,
-      created_time: '2023-08-01T12:00:00.000Z',
-      last_edited_time: new Date().toISOString(),
-      properties: {
-        ...body.properties
-      }
-    };
-  }
-  
-  console.warn(`[MOCK V2] Endpoint Pages non géré: ${method} ${endpoint}`);
-  return {
-    object: 'error',
-    status: 400,
-    code: 'unsupported_endpoint',
-    message: `Mock V2 endpoint Pages non géré: ${method} ${endpoint}`
+    status: 404,
+    message: `[MOCK V2] Endpoint non pris en charge: ${endpoint}`
   };
 };

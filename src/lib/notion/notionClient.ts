@@ -15,7 +15,7 @@ export const getNotionClient = () => {
   const originalMockState = notionApi.mockMode.isActive();
   if (originalMockState) {
     console.log('🚫 getNotionClient: Désactivation temporaire du mode mock pour les opérations Notion');
-    notionApi.mockMode.temporarilyForceReal();
+    notionApi.mockMode.forceReset();
   }
   
   return {
@@ -58,7 +58,7 @@ export const testNotionConnection = async () => {
     const wasInMockMode = notionApi.mockMode.isActive();
     if (wasInMockMode) {
       console.log('🚫 testNotionConnection: Désactivation temporaire du mode mock pour le test');
-      notionApi.mockMode.temporarilyForceReal();
+      notionApi.mockMode.forceReset();
     }
     
     const { client: apiKey, dbId, checklistsDbId } = getNotionClient();

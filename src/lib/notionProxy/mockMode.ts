@@ -70,6 +70,25 @@ export const mockMode = {
   },
   
   /**
+   * Méthode de compatibilité qui active le mode mock v2 par défaut
+   */
+  activate: (): void => {
+    mockMode.activateV2();
+  },
+  
+  /**
+   * Désactive temporairement le mode mock pour un test
+   */
+  temporarilyForceReal: (): void => {
+    const currentMode = localStorage.getItem(STORAGE_KEYS.MOCK_MODE);
+    if (currentMode) {
+      // Sauvegarder l'état actuel pour restauration ultérieure
+      localStorage.setItem('mock_mode_temp', currentMode);
+    }
+    mockMode.forceReset();
+  },
+  
+  /**
    * Désactive tous les modes mock
    */
   deactivate: (): void => {

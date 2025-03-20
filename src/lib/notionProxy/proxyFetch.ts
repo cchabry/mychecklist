@@ -17,9 +17,8 @@ export function createNotionError(message: string, status?: number): NotionError
 
 // Import required configuration
 import { NOTION, STORAGE_KEYS } from './config';
-import { mockMode } from './mockMode';
-import { mockModeV2 } from './mockModeV2';
-import { mockConfig } from './index';
+import { mockMode, MockVersion } from './mockMode';
+import { mockNotionResponseV2 } from './mockDataV2';
 
 /**
  * Fonction principale pour effectuer des requêtes vers l'API Notion
@@ -33,16 +32,10 @@ export const notionApiRequest = async (
 ): Promise<any> => {
   console.log(`📡 notionApiRequest: ${method} ${endpoint}`);
   
-  // Vérifier si on doit utiliser le mock mode v2
-  const useV2Mock = mockConfig.useV2 && !mockConfig.forceV1 && mockConfig.useV2();
-  
-  // Choisir le bon mode mock en fonction de la configuration
-  const activeMockMode = useV2Mock ? mockModeV2 : mockMode;
-  
   // Si nous sommes en mode mock, utiliser les données fictives
-  if (activeMockMode.isActive()) {
-    console.log(`🧪 Using ${useV2Mock ? 'v2' : 'v1'} mock data for ${endpoint}`);
-    return activeMockMode.getMockResponse(endpoint, method, body);
+  if (mockMode.isActive()) {
+    console.log(`🧪 Using ${mockMode.isV2Active() ? 'v2' : 'v1'} mock data for ${endpoint}`);
+    return mockMode.getMockResponse(endpoint, method, body);
   }
   
   try {
