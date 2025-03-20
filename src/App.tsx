@@ -11,7 +11,7 @@ import {
   NotionSetup, 
   Diagnostics 
 } from '@/pages';
-import AuditContainer from '@/pages/audit/AuditContainer';
+import { AuditContainer } from '@/pages/audit/AuditContainer';
 import { NotionProvider } from '@/contexts/NotionContext';
 
 function App() {

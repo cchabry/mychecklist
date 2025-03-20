@@ -20,7 +20,7 @@ import { useAuditData } from './hooks/useAuditData';
 import { toast } from 'sonner';
 
 interface AuditContainerProps {
-  projectId: string;
+  projectId?: string;
   onError?: (error: any) => void;
 }
 
