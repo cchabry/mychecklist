@@ -8,9 +8,9 @@ import {
   NewProject, 
   NotFound, 
   SamplePages, 
-  NotionSetup, 
   Diagnostics 
 } from '@/pages';
+import NotionSetup from '@/pages/NotionSetup';
 import { AuditContainer } from '@/pages/audit/AuditContainer';
 import { NotionProvider } from '@/contexts/NotionContext';
 
@@ -24,10 +24,10 @@ function App() {
             <Route path="new" element={<NewProject />} />
             <Route path="audit/:projectId" element={<AuditContainer />} />
             <Route path="samples" element={<SamplePages />} />
-            <Route path="notion-setup" element={<NotionSetup />} />
             <Route path="diagnostics" element={<Diagnostics />} />
             <Route path="*" element={<NotFound />} />
           </Route>
+          <Route path="/notion-setup" element={<NotionSetup />} />
         </Routes>
         <Toaster />
       </div>
