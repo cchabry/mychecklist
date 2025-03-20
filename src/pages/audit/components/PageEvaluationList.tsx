@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,11 +7,13 @@ import { AuditItem, ComplianceStatus, PageResult, SamplePage } from '@/lib/types
 import { Check, X, Minus, AlertTriangle, Globe, Upload } from 'lucide-react';
 import { getComplianceStatusColor } from '../utils/complianceUtils';
 import { toast } from 'sonner';
+
 interface PageEvaluationListProps {
   item: AuditItem;
   pages: SamplePage[];
   onUpdatePageResults: (pageResults: PageResult[]) => void;
 }
+
 const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
   item,
   pages,
@@ -22,18 +23,15 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
   const [bulkComment, setBulkComment] = useState('');
   const [showBulkAction, setShowBulkAction] = useState(false);
 
-  // Fonction pour trouver le résultat d'une page
   const findPageResult = (pageId: string): PageResult | undefined => {
     return item.pageResults?.find(result => result.pageId === pageId);
   };
 
-  // Mettre à jour le statut d'une page spécifique
   const updatePageStatus = (pageId: string, status: ComplianceStatus, comment: string = '') => {
     const currentResults = item.pageResults || [];
     const existingResultIndex = currentResults.findIndex(r => r.pageId === pageId);
     let newResults;
     if (existingResultIndex >= 0) {
-      // Mettre à jour un résultat existant
       newResults = [...currentResults];
       newResults[existingResultIndex] = {
         ...newResults[existingResultIndex],
@@ -41,7 +39,6 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
         comment: comment || newResults[existingResultIndex].comment
       };
     } else {
-      // Ajouter un nouveau résultat
       newResults = [...currentResults, {
         pageId,
         status,
@@ -51,7 +48,6 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
     onUpdatePageResults(newResults);
   };
 
-  // Appliquer le statut et le commentaire sélectionnés à toutes les pages
   const applyBulkAction = () => {
     if (!selectedStatus) {
       toast.error("Sélectionnez un statut à appliquer");
@@ -72,7 +68,6 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
     toast.success("Évaluation appliquée à toutes les pages");
   };
 
-  // Obtenir une couleur pour un statut
   const getStatusClasses = (status: ComplianceStatus | null, type: string = 'bg') => {
     if (!status) return '';
     if (type === 'bg') {
@@ -87,7 +82,6 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
     return '';
   };
 
-  // Obtenir l'icône pour un statut
   const StatusIcon = ({
     status
   }: {
@@ -106,6 +100,7 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
         return <AlertTriangle className="h-5 w-5 text-gray-400" />;
     }
   };
+
   return <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
@@ -168,10 +163,6 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                   
                   <div className="mt-4 space-x-2">
                     <Button size="sm" variant="outline" className="text-xs">
-                      <Globe size={14} className="mr-1" />
-                      Voir
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-xs">
                       <Upload size={14} className="mr-1" />
                       Joindre
                     </Button>
@@ -181,11 +172,6 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                 <div className="p-4 md:w-2/3">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium">Évaluation</h4>
-                    {pageResult && (
-                      <div className="flex items-center">
-                        <StatusIcon status={pageResult.status} />
-                      </div>
-                    )}
                   </div>
                   
                   <div className="grid grid-cols-3 gap-2 mb-3">
@@ -213,4 +199,5 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
       </div>
     </div>;
 };
+
 export default PageEvaluationList;
