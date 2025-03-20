@@ -21,13 +21,13 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />}>
             <Route index element={<HomeIndex />} />
+            <Route path="new" element={<NewProject />} />
+            <Route path="audit/:projectId" element={<AuditContainer />} />
+            <Route path="samples" element={<SamplePages />} />
+            <Route path="notion-setup" element={<NotionSetup />} />
+            <Route path="diagnostics" element={<Diagnostics />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
-          <Route path="/new" element={<NewProject />} />
-          <Route path="/audit/:projectId" element={<AuditContainer />} />
-          <Route path="/samples" element={<SamplePages />} />
-          <Route path="/notion-setup" element={<NotionSetup />} />
-          <Route path="/diagnostics" element={<Diagnostics />} />
-          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
       </div>

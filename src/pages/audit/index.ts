@@ -1,4 +1,3 @@
 
-import AuditPageComponent from './AuditPage';
+export { default } from './AuditPage';
 export { AuditContainer } from './AuditContainer';
-export default AuditPageComponent;
