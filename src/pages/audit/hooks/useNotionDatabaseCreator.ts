@@ -303,6 +303,9 @@ export const useNotionDatabaseCreator = () => {
       // Sauvegarder l'ID de la base de données des résultats d'audit
       localStorage.setItem("notion_audit_results_database_id", auditResultsDbId);
       
+      // 6. Pour la compatibilité, enregistrer également l'ID de la base des projets comme checklistsDbId
+      localStorage.setItem("notion_checklists_database_id", projectsDbId);
+      
       setCreationStep("Configuration terminée !");
       toast.success("Bases de données Notion créées avec succès", {
         description: "Les IDs ont été sauvegardés dans la configuration"

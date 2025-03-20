@@ -8,6 +8,7 @@ export interface NotionConfig {
   requirementsDbId: string;
   auditsDbId: string;
   auditResultsDbId: string;
+  checklistsDbId: string; // Added this property
   lastConfigDate: string | null;
 }
 
@@ -26,6 +27,7 @@ export function useNotionStorage() {
       requirementsDbId: localStorage.getItem('notion_requirements_database_id') || '',
       auditsDbId: localStorage.getItem('notion_audits_database_id') || '',
       auditResultsDbId: localStorage.getItem('notion_audit_results_database_id') || '',
+      checklistsDbId: localStorage.getItem('notion_checklists_database_id') || '',
       lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_CONFIG_DATE)
     };
   }, []);
@@ -61,6 +63,10 @@ export function useNotionStorage() {
       localStorage.setItem('notion_audit_results_database_id', config.auditResultsDbId);
     }
     
+    if (config.checklistsDbId !== undefined) {
+      localStorage.setItem('notion_checklists_database_id', config.checklistsDbId);
+    }
+    
     localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
   }, [getStoredConfig]);
 
@@ -73,6 +79,7 @@ export function useNotionStorage() {
     localStorage.removeItem('notion_requirements_database_id');
     localStorage.removeItem('notion_audits_database_id');
     localStorage.removeItem('notion_audit_results_database_id');
+    localStorage.removeItem('notion_checklists_database_id');
     localStorage.removeItem(STORAGE_KEYS.LAST_CONFIG_DATE);
   }, []);
 
@@ -92,11 +99,20 @@ export function useNotionStorage() {
     return !!(config.requirementsDbId && config.auditsDbId && config.auditResultsDbId);
   }, [getStoredConfig]);
 
+  /**
+   * Vérifie si la configuration de la base des checklists est présente
+   */
+  const hasChecklistsConfig = useCallback((): boolean => {
+    const config = getStoredConfig();
+    return !!config.checklistsDbId;
+  }, [getStoredConfig]);
+
   return {
     getStoredConfig,
     updateStoredConfig,
     clearStoredConfig,
     hasStoredConfig,
-    hasAdvancedConfig
+    hasAdvancedConfig,
+    hasChecklistsConfig
   };
 }
