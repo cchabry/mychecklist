@@ -18,8 +18,6 @@ const App: React.FC = () => {
           <Route path="/audit/:projectId" element={<AuditPage />} />
           <Route path="/new-project" element={<NewProjectPage />} />
           <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
-          <Route path="/project/:projectId/edit" element={<NewProjectPage />} />
-          <Route path="/project/:projectId/action-plan" element={<AuditPage />} />
           <Route path="/diagnostics" element={<DiagnosticsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
