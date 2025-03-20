@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from './config';
 /**
  * Gestion du mode mock pour les requêtes Notion.
  * Le mode mock permet de simuler des réponses de l'API Notion pour le développement et les démonstrations.
+ * Version Brief v2 avec plus de configurations et options de simulation
  */
 export const mockMode = {
   /**
@@ -80,6 +81,10 @@ export const mockMode = {
   reset: (): void => {
     localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
     localStorage.removeItem('notion_force_real');
+    localStorage.removeItem('notion_mock_scenario');
+    localStorage.removeItem('notion_mock_loading_delay');
+    localStorage.removeItem('notion_mock_loading_until');
+    localStorage.removeItem('notion_mock_error_rate');
   },
   
   /**
@@ -116,5 +121,80 @@ export const mockMode = {
       mockMode.activate();
       localStorage.removeItem('temp_was_mock');
     }
+  },
+  
+  /**
+   * NOUVELLES FONCTIONNALITÉS (BRIEF V2)
+   */
+  
+  /**
+   * Récupère le scénario actuel pour les tests
+   */
+  getScenario: (): string => {
+    return localStorage.getItem('notion_mock_scenario') || 'standard';
+  },
+  
+  /**
+   * Définit un scénario spécifique pour les tests
+   */
+  setScenario: (scenario: string): void => {
+    localStorage.setItem('notion_mock_scenario', scenario);
+  },
+  
+  /**
+   * Vérifie si un délai de chargement doit être simulé
+   */
+  shouldSimulateLoadingDelay: (): boolean => {
+    const shouldDelay = localStorage.getItem('notion_mock_loading_delay') === 'true';
+    if (!shouldDelay) return false;
+    
+    // Vérifier si le délai est toujours valide
+    const delayUntil = localStorage.getItem('notion_mock_loading_until');
+    if (delayUntil && parseInt(delayUntil) > Date.now()) {
+      return true;
+    }
+    
+    // Le délai a expiré, nettoyer
+    localStorage.removeItem('notion_mock_loading_delay');
+    localStorage.removeItem('notion_mock_loading_until');
+    return false;
+  },
+  
+  /**
+   * Simule un délai de chargement pour N secondes
+   */
+  simulateLoadingDelay: (seconds = 30): void => {
+    localStorage.setItem('notion_mock_loading_delay', 'true');
+    localStorage.setItem('notion_mock_loading_until', (Date.now() + (seconds * 1000)).toString());
+  },
+  
+  /**
+   * Configure un taux d'erreur pour simuler des échecs API
+   */
+  setErrorRate: (rate: number): void => {
+    if (rate < 0 || rate > 100) {
+      console.error('Le taux d\'erreur doit être entre 0 et 100');
+      return;
+    }
+    localStorage.setItem('notion_mock_error_rate', rate.toString());
+  },
+  
+  /**
+   * Récupère le taux d'erreur configuré
+   */
+  getErrorRate: (): number => {
+    const rate = localStorage.getItem('notion_mock_error_rate');
+    return rate ? parseInt(rate) : 0;
+  },
+  
+  /**
+   * Détermine si une erreur doit être simulée selon le taux configuré
+   */
+  shouldSimulateError: (): boolean => {
+    const errorRate = mockMode.getErrorRate();
+    if (errorRate <= 0) return false;
+    
+    // Générer un nombre aléatoire et comparer au taux d'erreur
+    return Math.random() * 100 < errorRate;
   }
 };
