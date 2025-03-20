@@ -1,10 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { notionApi } from '@/lib/notionProxy';
+import { notionApi, MockVersion } from '@/lib/notionProxy';
 
 export interface MockModeStatus {
-  isMockModeV1Active: boolean;
-  isMockModeV2Active: boolean;
+  isV1Active: boolean;
+  isV2Active: boolean;
   isRealMode: boolean;
 }
 
@@ -13,18 +13,18 @@ export interface MockModeStatus {
  */
 export function useMockModeSelector() {
   const [status, setStatus] = useState<MockModeStatus>({
-    isMockModeV1Active: notionApi.mockMode.isActive() && !notionApi.mockModeV2.isActive(),
-    isMockModeV2Active: notionApi.mockModeV2.isActive(),
-    isRealMode: !notionApi.mockMode.isActive() && !notionApi.mockModeV2.isActive()
+    isV1Active: notionApi.mockMode.isV1Active(),
+    isV2Active: notionApi.mockMode.isV2Active(),
+    isRealMode: !notionApi.mockMode.isActive()
   });
   
   // Mettre à jour le statut lorsque le mode mock change
   useEffect(() => {
     const checkMockMode = () => {
       setStatus({
-        isMockModeV1Active: notionApi.mockMode.isActive() && !notionApi.mockModeV2.isActive(),
-        isMockModeV2Active: notionApi.mockModeV2.isActive(),
-        isRealMode: !notionApi.mockMode.isActive() && !notionApi.mockModeV2.isActive()
+        isV1Active: notionApi.mockMode.isV1Active(),
+        isV2Active: notionApi.mockMode.isV2Active(),
+        isRealMode: !notionApi.mockMode.isActive()
       });
     };
     
@@ -37,20 +37,17 @@ export function useMockModeSelector() {
   
   // Activer le mode mock v1
   const activateMockModeV1 = () => {
-    notionApi.mockModeV2.deactivate();
-    notionApi.mockMode.activate();
+    notionApi.mockMode.activateV1();
   };
   
   // Activer le mode mock v2
   const activateMockModeV2 = () => {
-    notionApi.mockMode.deactivate();
-    notionApi.mockModeV2.activate();
+    notionApi.mockMode.activateV2();
   };
   
   // Activer le mode réel
   const activateRealMode = () => {
     notionApi.mockMode.deactivate();
-    notionApi.mockModeV2.deactivate();
   };
   
   return {
@@ -61,5 +58,4 @@ export function useMockModeSelector() {
   };
 }
 
-// Exporter le hook
 export default useMockModeSelector;

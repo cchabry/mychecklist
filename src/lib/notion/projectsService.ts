@@ -1,4 +1,4 @@
-import { getNotionClient, testNotionConnection } from './notionClient';
+import { getNotionClient } from './notionClient';
 import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
 import { notionApi } from '../notionProxy';
@@ -10,7 +10,8 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
   
   // Vérifier en priorité si on est en mode mock
   if (notionApi.mockMode.isActive()) {
-    console.info('Using mock project data (mode mock active)');
+    const version = notionApi.mockMode.isV2Active() ? 'v2' : 'v1';
+    console.info(`Using mock project data (${version} mode active)`);
     return { projects: MOCK_PROJECTS };
   }
   
@@ -134,7 +135,8 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
     
     // Vérifier si on est en mode mock
     if (notionApi.mockMode.isActive()) {
-      console.log('Getting mock project by ID (mode mock active):', id);
+      const version = notionApi.mockMode.isV2Active() ? 'v2' : 'v1';
+      console.log(`Getting mock project by ID (${version} mode active):`, id);
       const mockProject = MOCK_PROJECTS.find(project => project.id === id);
       return mockProject || null;
     }
@@ -224,12 +226,13 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     // Vérifier si on est en mode mock
     if (notionApi.mockMode.isActive()) {
-      console.info('Creating mock project (mode mock active)');
+      const version = notionApi.mockMode.isV2Active() ? 'v2' : 'v1';
+      console.info(`Creating mock project (${version} mode active)`);
       const newMockProject: ProjectData = {
         id: `project-${Date.now()}`,
         name,
         url,
-        description: 'Projet créé en mode démonstration',
+        description: `Projet créé en mode démonstration (${version})`,
         status: 'Non démarré',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

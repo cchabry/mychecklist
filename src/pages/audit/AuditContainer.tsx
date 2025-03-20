@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotion } from '@/contexts/NotionContext';
@@ -32,7 +33,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   useEffect(() => {
     if (!mockModeActivated.current && !notionApi.mockMode.isActive()) {
       console.log("Activation du mode démo pour le prototype");
-      notionApi.mockMode.activate();
+      notionApi.mockMode.activateV2(); // Activer V2 par défaut
       mockModeActivated.current = true;
     }
   }, []);

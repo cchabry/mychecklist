@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { notionApi } from '@/lib/notionProxy';
+import { notionApi, MockVersion } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { Info } from 'lucide-react';
 
@@ -9,25 +9,42 @@ import { Info } from 'lucide-react';
  * Composant permettant de basculer entre les différentes versions du mode mock
  */
 const MockModeSelector: React.FC = () => {
-  const [activeMode, setActiveMode] = React.useState(() => {
-    if (notionApi.mockModeV2.isActive()) return 'v2';
-    if (notionApi.mockMode.isActive()) return 'v1';
-    return 'real';
+  const [activeMode, setActiveMode] = useState(() => {
+    if (!notionApi.mockMode.isActive()) return 'real';
+    return notionApi.mockMode.isV2Active() ? 'v2' : 'v1';
   });
+
+  useEffect(() => {
+    // Mettre à jour le state quand le mode change
+    const checkMode = () => {
+      const version = notionApi.mockMode.getActiveVersion();
+      const newMode = version === MockVersion.DISABLED ? 'real' : 
+                      version === MockVersion.V2 ? 'v2' : 'v1';
+      
+      if (newMode !== activeMode) {
+        setActiveMode(newMode);
+      }
+    };
+    
+    // Vérifier immédiatement et à intervalles réguliers
+    checkMode();
+    const interval = setInterval(checkMode, 1000);
+    
+    return () => clearInterval(interval);
+  }, [activeMode]);
 
   const handleModeChange = (value: string) => {
     // Désactiver tous les modes mock d'abord
     notionApi.mockMode.deactivate();
-    notionApi.mockModeV2.deactivate();
     
     // Activer le mode sélectionné
     if (value === 'v1') {
-      notionApi.mockMode.activate();
+      notionApi.mockMode.activateV1();
       toast.info('Mode démo v1 activé', {
         description: 'Utilisation des données fictives (version originale)'
       });
     } else if (value === 'v2') {
-      notionApi.mockModeV2.activate();
+      notionApi.mockMode.activateV2();
       toast.info('Mode démo v2 activé', {
         description: 'Utilisation des données fictives (conforme au Brief v2)'
       });

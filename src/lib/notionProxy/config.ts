@@ -3,8 +3,7 @@
 // Storage keys for localStorage
 export const STORAGE_KEYS = {
   NOTION_API_KEY: 'notion_api_key',
-  MOCK_MODE: 'notion_mock_MODE',
-  MOCK_MODE_V2: 'notion_mock_mode_v2',
+  MOCK_MODE: 'notion_mock_mode',
   NOTION_ERROR: 'notion_last_error',
   PROJECTS_DB_ID: 'notion_database_id',
   CHECKLISTS_DB_ID: 'notion_checklists_database_id',
