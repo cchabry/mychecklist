@@ -19,10 +19,10 @@ export function useNotionStorage() {
    */
   const getStoredConfig = useCallback((): NotionConfig => {
     return {
-      apiKey: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
-      databaseId: localStorage.getItem(STORAGE_KEYS.DATABASE_ID) || '',
+      apiKey: localStorage.getItem(STORAGE_KEYS.NOTION_API_KEY) || '',
+      databaseId: localStorage.getItem(STORAGE_KEYS.PROJECTS_DB_ID) || '',
       checklistsDbId: localStorage.getItem(STORAGE_KEYS.CHECKLISTS_DB_ID) || '',
-      lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_CONFIG_DATE)
+      lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_SAVED_CONFIG)
     };
   }, []);
 
@@ -38,28 +38,28 @@ export function useNotionStorage() {
 
     // Mettre à jour localStorage
     if (config.apiKey !== undefined) {
-      localStorage.setItem(STORAGE_KEYS.API_KEY, config.apiKey);
+      localStorage.setItem(STORAGE_KEYS.NOTION_API_KEY, config.apiKey);
     }
     
     if (config.databaseId !== undefined) {
-      localStorage.setItem(STORAGE_KEYS.DATABASE_ID, config.databaseId);
+      localStorage.setItem(STORAGE_KEYS.PROJECTS_DB_ID, config.databaseId);
     }
     
     if (config.checklistsDbId !== undefined) {
       localStorage.setItem(STORAGE_KEYS.CHECKLISTS_DB_ID, config.checklistsDbId);
     }
     
-    localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
+    localStorage.setItem(STORAGE_KEYS.LAST_SAVED_CONFIG, new Date().toISOString());
   }, [getStoredConfig]);
 
   /**
    * Efface la configuration stockée
    */
   const clearStoredConfig = useCallback((): void => {
-    localStorage.removeItem(STORAGE_KEYS.API_KEY);
-    localStorage.removeItem(STORAGE_KEYS.DATABASE_ID);
+    localStorage.removeItem(STORAGE_KEYS.NOTION_API_KEY);
+    localStorage.removeItem(STORAGE_KEYS.PROJECTS_DB_ID);
     localStorage.removeItem(STORAGE_KEYS.CHECKLISTS_DB_ID);
-    localStorage.removeItem(STORAGE_KEYS.LAST_CONFIG_DATE);
+    localStorage.removeItem(STORAGE_KEYS.LAST_SAVED_CONFIG);
   }, []);
 
   /**

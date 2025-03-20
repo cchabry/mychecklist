@@ -1,3 +1,4 @@
+
 // Exporter les composants Notion
 export { default as NotionConfig } from './NotionConfig';
 export { default as NotionErrorDetails } from './NotionErrorDetails';
@@ -15,3 +16,6 @@ export { default as NotionErrorActions } from './NotionErrorActions';
 export { default as ProxyStatusIndicator } from './ProxyStatusIndicator';
 export { default as MockModeControl } from './MockModeControl';
 export { default as MockModeSelector } from './MockModeSelector';
+
+// Add the missing diagnostic tools
+export { NotionDiagnosticTool } from './diagnostic';
