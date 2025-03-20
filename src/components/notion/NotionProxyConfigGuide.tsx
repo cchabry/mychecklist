@@ -25,7 +25,7 @@ const NotionProxyConfigGuide: React.FC = () => {
         <CardTitle className="text-lg font-medium">Guide de déploiement du proxy CORS</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Alert variant="outline" className="border-amber-200 bg-amber-50/50">
+        <Alert className="border-amber-200 bg-amber-50/50">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-700 text-sm">
             Le proxy CORS est nécessaire pour contourner les limitations CORS de l'API Notion.

@@ -1,12 +1,16 @@
-
 // Configuration for the Notion API proxy
 
 // Storage keys for localStorage
 export const STORAGE_KEYS = {
   NOTION_API_KEY: 'notion_api_key',
-  MOCK_MODE: 'notion_mock_mode',
+  MOCK_MODE: 'notion_mock_MODE',
   MOCK_MODE_V2: 'notion_mock_mode_v2',
-  NOTION_ERROR: 'notion_last_error'
+  NOTION_ERROR: 'notion_last_error',
+  PROJECTS_DB_ID: 'notion_database_id',
+  CHECKLISTS_DB_ID: 'notion_checklists_database_id',
+  LAST_SAVED_CONFIG: 'notion_last_config_date',
+  SELECTED_PROXY: 'notion_selected_proxy',
+  LAST_ERROR: 'notion_last_error_details'
 };
 
 // Notion API configuration
@@ -15,6 +19,15 @@ export const NOTION = {
   API_BASE_URL: '/api/notion', // Endpoint relatif pour le proxy
   DIRECT_API_URL: 'https://api.notion.com/v1' // URL directe de l'API (inaccessible sans proxy à cause de CORS)
 };
+
+// List of public CORS proxies that can be used
+export const PUBLIC_CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://cors-anywhere.herokuapp.com/',
+  'https://api.allorigins.win/raw?url=',
+  'https://proxy.cors.sh/',
+  'https://cors-proxy.fringe.zone/'
+];
 
 /**
  * Vérifie si le proxy est correctement déployé et fonctionnel
