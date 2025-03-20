@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -180,7 +181,11 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                 <div className="p-4 md:w-2/3">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium">Évaluation</h4>
-                    {pageResult}
+                    {pageResult && (
+                      <div className="flex items-center">
+                        <StatusIcon status={pageResult.status} />
+                      </div>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-3 gap-2 mb-3">
