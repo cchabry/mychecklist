@@ -1,16 +1,30 @@
 
+// Service pour les endpoints "users" de l'API Notion
+import { STORAGE_KEYS } from '../config';
 import { notionApiRequest } from '../proxyFetch';
 
 /**
- * Récupère l'utilisateur actuel
+ * Récupère l'utilisateur courant (me)
  */
-export const me = async (token: string) => {
+export const getCurrentUser = async () => {
+  const token = localStorage.getItem(STORAGE_KEYS.NOTION_API_KEY);
+  
+  if (!token) {
+    throw new Error('Notion API key not found in localStorage');
+  }
+  
   return notionApiRequest('/users/me', 'GET', undefined, token);
 };
 
 /**
- * Récupère tous les utilisateurs
+ * Récupère la liste des utilisateurs
  */
-export const list = async (token: string) => {
+export const getUsers = async () => {
+  const token = localStorage.getItem(STORAGE_KEYS.NOTION_API_KEY);
+  
+  if (!token) {
+    throw new Error('Notion API key not found in localStorage');
+  }
+  
   return notionApiRequest('/users', 'GET', undefined, token);
 };

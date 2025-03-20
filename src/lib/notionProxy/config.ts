@@ -1,84 +1,73 @@
 
-/**
- * Configuration de l'intégration Notion
- */
+// Configuration pour l'API Notion et les services associés
+
+// Constantes pour l'API Notion
 export const NOTION = {
-  API_VERSION: '2022-06-28',
   API_BASE_URL: 'https://api.notion.com/v1',
+  API_VERSION: '2022-06-28'
 };
 
-/**
- * Clés de stockage local
- */
+// Clés pour le stockage local
 export const STORAGE_KEYS = {
   NOTION_API_KEY: 'notion_api_key',
   PROJECTS_DB_ID: 'notion_projects_db_id',
   CHECKLISTS_DB_ID: 'notion_checklists_db_id',
   MOCK_MODE: 'notion_mock_mode',
   MOCK_MODE_V2: 'notion_mock_mode_v2',
-  
-  // Autres clés spécifiques
   LAST_SAVED_CONFIG: 'notion_last_saved_config',
   LAST_ERROR: 'notion_last_error',
   
-  // Keys referenced in code but not defined previously
+  // Ajout des clés manquantes
   API_KEY: 'notion_api_key',
   DATABASE_ID: 'notion_database_id',
-  SELECTED_PROXY: 'notion_selected_proxy',
-  LAST_CONFIG_DATE: 'notion_last_config_date'
+  LAST_CONFIG_DATE: 'notion_last_config_date',
+  SELECTED_PROXY: 'notion_selected_proxy'
 };
 
-/**
- * Valeurs par défaut pour la configuration
- */
-export const DEFAULT_CONFIG = {
-  apiKey: '',
-  projectsDbId: '',
-  checklistsDbId: ''
-};
-
-/**
- * Liste des proxies CORS publics disponibles
- */
+// Liste des proxies CORS publics disponibles
 export const PUBLIC_CORS_PROXIES = [
-  'https://corsproxy.io/?',
   'https://cors-anywhere.herokuapp.com/',
-  'https://cors-proxy.htmldriven.com/?url=',
-  'https://api.allorigins.win/raw?url='
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+  'https://proxy.cors.sh/'
 ];
 
-/**
- * Fonction pour vérifier si une chaîne est un token OAuth Notion
- */
-export function isOAuthToken(token: string): boolean {
-  return token.startsWith('ntn_');
-}
+// Fonctions pour vérifier le type de token Notion
+export const isOAuthToken = (token: string): boolean => {
+  return token && token.startsWith('secret_');
+};
 
-/**
- * Fonction pour vérifier si une chaîne est une clé d'intégration Notion
- */
-export function isIntegrationKey(key: string): boolean {
-  return key.startsWith('secret_');
-}
+export const isIntegrationKey = (token: string): boolean => {
+  return token && /^[a-zA-Z0-9_-]{43,50}$/.test(token) && !isOAuthToken(token);
+};
 
-/**
- * Vérifie le déploiement du proxy
- */
-export async function verifyProxyDeployment(showLogs = false, apiKey?: string): Promise<boolean> {
+// Fonctions pour vérifier le déploiement
+export const getDeploymentType = (): 'vercel' | 'netlify' | 'local' | 'other' => {
+  const hostname = window.location.hostname;
+  
+  if (hostname.includes('vercel.app') || hostname.includes('now.sh')) {
+    return 'vercel';
+  }
+  
+  if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
+    return 'netlify';
+  }
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'local';
+  }
+  
+  return 'other';
+};
+
+export const verifyProxyDeployment = async (): Promise<boolean> => {
   try {
-    // Implementation stub - replace with actual implementation
-    console.log('Verifying proxy deployment', { showLogs, apiKey: apiKey ? `${apiKey.substring(0, 5)}...` : 'none' });
-    return true;
+    const response = await fetch('/api/ping');
+    const data = await response.json();
+    return data.status === 'ok';
   } catch (error) {
-    console.error('Proxy verification failed:', error);
+    console.error('Erreur lors de la vérification du proxy:', error);
     return false;
   }
-}
-
-/**
- * Obtient le type de déploiement
- */
-export function getDeploymentType(): 'vercel' | 'netlify' | 'local' | 'other' {
-  // Implementation stub - replace with actual implementation
-  return 'vercel';
-}
+};
