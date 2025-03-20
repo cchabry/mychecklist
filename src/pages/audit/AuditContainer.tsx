@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotion } from '@/contexts/NotionContext';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { RefreshCw, AlertTriangle, ClipboardList, FileCheck, ListChecks } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 
 import { 
@@ -13,7 +14,8 @@ import {
   AuditLoader, 
   AuditNotFound, 
   AuditProgress,
-  NotionConnectButton 
+  NotionConnectButton,
+  ActionPlan
 } from './components';
 import { NotionErrorDetails } from '@/components/notion';
 import { useAuditData } from './hooks/useAuditData';
@@ -51,6 +53,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     error: '',
     context: ''
   });
+  const [activeTab, setActiveTab] = useState<'checklist' | 'actions'>('checklist');
   
   const handleConnectNotionClick = () => {
     setNotionConfigOpen(true);
@@ -202,10 +205,37 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
             <AuditProgress audit={audit} />
           </div>
           
-          <AuditChecklist 
-            audit={audit} 
-            onUpdateAudit={handleUpdateAudit}
-          />
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'checklist' | 'actions')}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="checklist" className="flex items-center gap-2">
+                <ListChecks size={16} />
+                Critères d'audit
+              </TabsTrigger>
+              <TabsTrigger value="actions" className="flex items-center gap-2">
+                <ClipboardList size={16} />
+                Plan d'action
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="checklist" className="mt-0">
+              <AuditChecklist 
+                audit={audit} 
+                onUpdateAudit={handleUpdateAudit}
+              />
+            </TabsContent>
+            
+            <TabsContent value="actions" className="mt-0">
+              <ActionPlan 
+                audit={audit}
+                pages={project && project.pagesCount ? getPagesByProjectId(project.id) : []}
+                onActionUpdate={(updatedAction) => {
+                  // Note: cette fonction devra être implémentée pour mettre à jour une action spécifique
+                  console.log("Action mise à jour:", updatedAction);
+                  toast.info("Mise à jour d'action non implémentée dans le prototype");
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </>
       )}
       
@@ -218,3 +248,34 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     </AuditLayout>
   );
 };
+
+// Fonction temporaire pour obtenir les pages d'un projet, à remplacer par un hook
+function getPagesByProjectId(projectId: string) {
+  // Cette fonction sera remplacée par l'utilisation d'un hook dédié
+  return [
+    {
+      id: "page-1",
+      projectId,
+      url: "https://example.com/home",
+      title: "Page d'accueil",
+      description: "Page principale du site",
+      order: 1
+    },
+    {
+      id: "page-2",
+      projectId,
+      url: "https://example.com/contact",
+      title: "Page Contact",
+      description: "Page de contact avec formulaire",
+      order: 2
+    },
+    {
+      id: "page-3",
+      projectId,
+      url: "https://example.com/about",
+      title: "À propos",
+      description: "Présentation de l'entreprise",
+      order: 3
+    }
+  ];
+}

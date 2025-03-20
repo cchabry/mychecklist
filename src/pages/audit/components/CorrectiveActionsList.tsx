@@ -1,17 +1,15 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { CornerDownRight, Edit, Plus, Trash } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { CorrectiveAction, SamplePage, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, AlertTriangle } from 'lucide-react';
+
+import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus, SamplePage } from '@/lib/types';
+import CorrectiveActionForm from './CorrectiveActionForm';
+import CorrectiveActionDetails from './CorrectiveActionDetails';
 
 interface CorrectiveActionsListProps {
   actions: CorrectiveAction[];
@@ -21,306 +19,251 @@ interface CorrectiveActionsListProps {
   onDeleteAction: (actionId: string) => void;
 }
 
-const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({ 
-  actions, 
-  pages, 
-  onAddAction, 
-  onEditAction, 
-  onDeleteAction 
+const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({
+  actions,
+  pages,
+  onAddAction,
+  onEditAction,
+  onDeleteAction
 }) => {
   const [isAddingAction, setIsAddingAction] = useState(false);
-  const [selectedPage, setSelectedPage] = useState<string | null>(null);
-  const [selectedPriority, setSelectedPriority] = useState<ActionPriority>(ActionPriority.Medium);
-  const [selectedDueDate, setSelectedDueDate] = useState<Date | undefined>(
-    new Date(new Date().setMonth(new Date().getMonth() + 1))
-  );
-  const [responsible, setResponsible] = useState<string>("");
-  const [comment, setComment] = useState<string>("");
-  
-  const handleAddAction = () => {
-    if (!selectedPage) {
-      toast.error("Veuillez sélectionner une page");
-      return;
+  const [editingAction, setEditingAction] = useState<CorrectiveAction | null>(null);
+  const [addingProgressTo, setAddingProgressTo] = useState<string | null>(null);
+  const [completingAction, setCompletingAction] = useState<string | null>(null);
+  const [progressComment, setProgressComment] = useState('');
+  const [progressResponsible, setProgressResponsible] = useState('');
+  const [completionComment, setCompletionComment] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'todo' | 'inprogress' | 'completed'>('all');
+
+  // Filtrer les actions selon l'onglet actif
+  const filteredActions = () => {
+    switch (activeTab) {
+      case 'todo':
+        return actions.filter(action => action.status === ActionStatus.ToDo);
+      case 'inprogress':
+        return actions.filter(action => action.status === ActionStatus.InProgress);
+      case 'completed':
+        return actions.filter(action => action.status === ActionStatus.Done);
+      default:
+        return actions;
     }
+  };
+
+  // Fonctions pour les dialogues
+  const handleAddProgressSubmit = () => {
+    if (!addingProgressTo) return;
     
-    const newAction: Partial<CorrectiveAction> = {
-      pageId: selectedPage,
-      priority: selectedPriority,
-      dueDate: selectedDueDate?.toISOString() || new Date().toISOString(),
-      responsible: responsible || "Non assigné",
-      comment: comment || "Action à réaliser",
-      status: ActionStatus.ToDo
+    const action = actions.find(a => a.id === addingProgressTo);
+    if (!action) return;
+    
+    const updatedAction: CorrectiveAction = {
+      ...action,
+      status: ActionStatus.InProgress,
+      updatedAt: new Date().toISOString(),
+      progress: [
+        ...(action.progress || []),
+        {
+          id: Date.now().toString(),
+          actionId: action.id,
+          date: new Date().toISOString(),
+          responsible: progressResponsible,
+          comment: progressComment,
+          score: action.targetScore,
+          status: ActionStatus.InProgress
+        }
+      ]
     };
     
-    onAddAction(newAction);
-    resetForm();
-    setIsAddingAction(false);
+    onEditAction(updatedAction);
+    setAddingProgressTo(null);
+    setProgressComment('');
+    setProgressResponsible('');
+  };
+
+  const handleCompletionSubmit = () => {
+    if (!completingAction) return;
     
-    toast.success("Action corrective ajoutée");
+    const action = actions.find(a => a.id === completingAction);
+    if (!action) return;
+    
+    const updatedAction: CorrectiveAction = {
+      ...action,
+      status: ActionStatus.Done,
+      updatedAt: new Date().toISOString(),
+      progress: [
+        ...(action.progress || []),
+        {
+          id: Date.now().toString(),
+          actionId: action.id,
+          date: new Date().toISOString(),
+          responsible: action.responsible,
+          comment: completionComment,
+          score: action.targetScore,
+          status: ActionStatus.Done
+        }
+      ]
+    };
+    
+    onEditAction(updatedAction);
+    setCompletingAction(null);
+    setCompletionComment('');
   };
-  
-  const resetForm = () => {
-    setSelectedPage(null);
-    setSelectedPriority(ActionPriority.Medium);
-    setSelectedDueDate(new Date(new Date().setMonth(new Date().getMonth() + 1)));
-    setResponsible("");
-    setComment("");
-  };
-  
-  const getPriorityColor = (priority: ActionPriority) => {
-    switch (priority) {
-      case ActionPriority.Critical:
-        return "text-red-700 bg-red-100 border-red-300";
-      case ActionPriority.High:
-        return "text-orange-700 bg-orange-100 border-orange-300";
-      case ActionPriority.Medium:
-        return "text-amber-700 bg-amber-100 border-amber-300";
-      case ActionPriority.Low:
-        return "text-green-700 bg-green-100 border-green-300";
-      default:
-        return "text-gray-700 bg-gray-100 border-gray-300";
+
+  const handleSaveAction = (actionData: Partial<CorrectiveAction>) => {
+    if (editingAction) {
+      onEditAction({
+        ...editingAction,
+        ...actionData,
+        updatedAt: new Date().toISOString()
+      });
+      setEditingAction(null);
+    } else {
+      onAddAction(actionData);
     }
+    setIsAddingAction(false);
   };
-  
-  const getStatusColor = (status: ActionStatus) => {
-    switch (status) {
-      case ActionStatus.Done:
-        return "text-green-700 bg-green-100 border-green-300";
-      case ActionStatus.InProgress:
-        return "text-blue-700 bg-blue-100 border-blue-300";
-      case ActionStatus.ToDo:
-        return "text-gray-700 bg-gray-100 border-gray-300";
-      default:
-        return "text-gray-700 bg-gray-100 border-gray-300";
-    }
-  };
-  
-  const getPageNameById = (pageId: string) => {
-    const page = pages.find(p => p.id === pageId);
-    return page ? page.title : `Page ${pageId}`;
-  };
-  
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Actions correctives ({actions.length})</h3>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Actions correctives</h3>
         <Button 
-          onClick={() => setIsAddingAction(!isAddingAction)} 
-          variant={isAddingAction ? "secondary" : "default"}
-          size="sm"
+          onClick={() => setIsAddingAction(true)} 
+          variant="outline" 
+          size="sm" 
+          className="gap-1"
         >
-          {isAddingAction ? "Annuler" : (
-            <>
-              <Plus className="h-4 w-4 mr-1" />
-              Nouvelle action
-            </>
-          )}
+          <Plus className="h-4 w-4" />
+          Ajouter une action
         </Button>
       </div>
-      
-      {isAddingAction && (
-        <Card className="mb-4 border-dashed border-2 border-primary/30 bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Nouvelle action corrective</CardTitle>
-            <CardDescription>Définir les caractéristiques de l'action</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pb-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Page concernée</label>
-                <Select value={selectedPage || ""} onValueChange={setSelectedPage}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une page" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pages.map(page => (
-                      <SelectItem key={page.id} value={page.id}>
-                        {page.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Priorité</label>
-                <Select value={selectedPriority} onValueChange={(value) => setSelectedPriority(value as ActionPriority)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ActionPriority.Low}>Faible</SelectItem>
-                    <SelectItem value={ActionPriority.Medium}>Moyenne</SelectItem>
-                    <SelectItem value={ActionPriority.High}>Haute</SelectItem>
-                    <SelectItem value={ActionPriority.Critical}>Critique</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Date d'échéance</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      {selectedDueDate ? format(selectedDueDate, 'PPP', { locale: fr }) : "Sélectionner une date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDueDate}
-                      onSelect={setSelectedDueDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Responsable</label>
-                <input
-                  type="text"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="Nom du responsable"
-                  value={responsible}
-                  onChange={(e) => setResponsible(e.target.value)}
-                />
-              </div>
+
+      <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">Toutes</TabsTrigger>
+          <TabsTrigger value="todo">À faire</TabsTrigger>
+          <TabsTrigger value="inprogress">En cours</TabsTrigger>
+          <TabsTrigger value="completed">Terminées</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab} className="space-y-4">
+          {filteredActions().length === 0 ? (
+            <div className="text-center py-8 border rounded-md bg-gray-50 text-gray-500">
+              <AlertTriangle className="h-10 w-10 mx-auto mb-2 text-amber-500" />
+              <p>Aucune action corrective {
+                activeTab === 'all' ? '' :
+                activeTab === 'todo' ? 'à faire' :
+                activeTab === 'inprogress' ? 'en cours' : 'terminée'
+              }</p>
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Commentaire</label>
-              <textarea
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Description de l'action corrective à réaliser"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
+          ) : (
+            filteredActions().map(action => (
+              <CorrectiveActionDetails
+                key={action.id}
+                action={action}
+                pages={pages}
+                onEdit={() => setEditingAction(action)}
+                onDelete={() => onDeleteAction(action.id)}
+                onAddProgress={action.status !== ActionStatus.Done ? () => setAddingProgressTo(action.id) : undefined}
+                onComplete={action.status !== ActionStatus.Done ? () => setCompletingAction(action.id) : undefined}
+              />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog pour ajouter/modifier une action */}
+      <Dialog open={isAddingAction || !!editingAction} onOpenChange={(open) => {
+        if (!open) {
+          setIsAddingAction(false);
+          setEditingAction(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingAction ? "Modifier l'action corrective" : "Ajouter une action corrective"}
+            </DialogTitle>
+          </DialogHeader>
+          <CorrectiveActionForm
+            action={editingAction || undefined}
+            pages={pages}
+            onSave={handleSaveAction}
+            onCancel={() => {
+              setIsAddingAction(false);
+              setEditingAction(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour ajouter un suivi de progression */}
+      <Dialog open={!!addingProgressTo} onOpenChange={(open) => {
+        if (!open) setAddingProgressTo(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajouter un suivi de progression</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Responsable</label>
+              <Input
+                value={progressResponsible}
+                onChange={(e) => setProgressResponsible(e.target.value)}
+                placeholder="Nom du responsable"
               />
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleAddAction} className="w-full">
-              Ajouter cette action
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      {actions.length === 0 ? (
-        <div className="text-center py-8 border rounded-lg bg-gray-50 text-gray-500">
-          <p>Aucune action corrective définie</p>
-          <Button 
-            variant="link" 
-            onClick={() => setIsAddingAction(true)} 
-            className="mt-2"
-          >
-            Ajouter une première action
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {actions.map(action => (
-            <Card key={action.id} className="overflow-hidden">
-              <CardHeader className="py-3 px-4 bg-primary/5 flex flex-row items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2 text-sm mb-1">
-                    <Badge variant="outline" className={getPriorityColor(action.priority)}>
-                      {action.priority === ActionPriority.Critical ? "Critique" : 
-                       action.priority === ActionPriority.High ? "Haute" : 
-                       action.priority === ActionPriority.Medium ? "Moyenne" : "Faible"}
-                    </Badge>
-                    <Badge variant="outline" className={getStatusColor(action.status)}>
-                      {action.status === ActionStatus.Done ? "Terminé" : 
-                       action.status === ActionStatus.InProgress ? "En cours" : "À faire"}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-base font-medium">
-                    {action.comment}
-                  </CardTitle>
-                </div>
-                
-                <div className="flex space-x-1">
-                  <Button variant="ghost" size="icon" onClick={() => onEditAction(action)}>
-                    <Edit className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Cette action sera définitivement supprimée du plan d'action.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => {
-                          onDeleteAction(action.id);
-                          toast.success("Action supprimée");
-                        }}>
-                          Supprimer
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="py-3 px-4">
-                <div className="grid grid-cols-2 gap-3 text-sm mb-2">
-                  <div>
-                    <p className="text-muted-foreground">Page concernée</p>
-                    <p className="font-medium">{getPageNameById(action.pageId)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Responsable</p>
-                    <p className="font-medium">{action.responsible || "Non assigné"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Date d'échéance</p>
-                    <p className="font-medium">
-                      {action.dueDate ? format(new Date(action.dueDate), 'PPP', { locale: fr }) : "Non définie"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Dernière mise à jour</p>
-                    <p className="font-medium">
-                      {action.updatedAt ? format(new Date(action.updatedAt), 'PPP', { locale: fr }) : "Jamais"}
-                    </p>
-                  </div>
-                </div>
-                
-                {action.progress && action.progress.length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-sm font-medium mb-2">Suivi des modifications</p>
-                    <div className="space-y-2">
-                      {action.progress.map((progress, index) => (
-                        <div key={index} className="text-sm flex items-start gap-2">
-                          <CornerDownRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-muted-foreground">
-                              {progress.date ? format(new Date(progress.date), 'PPP', { locale: fr }) : "Date inconnue"} 
-                              {progress.responsible ? ` par ${progress.responsible}` : ""}
-                            </p>
-                            <p>{progress.comment}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Commentaire</label>
+              <Textarea
+                value={progressComment}
+                onChange={(e) => setProgressComment(e.target.value)}
+                placeholder="Détails de l'avancement..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setAddingProgressTo(null)}>
+                Annuler
+              </Button>
+              <Button onClick={handleAddProgressSubmit}>
+                Enregistrer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour marquer une action comme terminée */}
+      <Dialog open={!!completingAction} onOpenChange={(open) => {
+        if (!open) setCompletingAction(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Marquer comme terminé</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Commentaire de clôture</label>
+              <Textarea
+                value={completionComment}
+                onChange={(e) => setCompletionComment(e.target.value)}
+                placeholder="Détails sur la résolution..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setCompletingAction(null)}>
+                Annuler
+              </Button>
+              <Button onClick={handleCompletionSubmit}>
+                Terminer l'action
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
