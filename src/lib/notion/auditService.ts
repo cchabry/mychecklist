@@ -1,7 +1,7 @@
 
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { Audit, AuditItem } from './types';
-import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
+import { Audit, AuditItem, ComplianceStatus } from './types';
+import { COMPLIANCE_VALUES } from '../types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -66,7 +66,9 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             priority: relation.priority || '',
             requirementLevel: relation.requirementLevel || '',
             scope: relation.scope || '',
-            status: relation.status || ComplianceStatus.NotEvaluated
+            status: relation.status || ComplianceStatus.NotEvaluated,
+            comment: relation.comment || '',
+            pageResults: []
           } as AuditItem;
         });
       }
@@ -88,7 +90,8 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
       createdAt: page.created_time || new Date().toISOString(),
       updatedAt: page.last_edited_time || new Date().toISOString(),
       completedAt: getDateValue(properties.completedAt) || getDateValue(properties.CompletedAt),
-      score: getNumberValue(properties.score) || getNumberValue(properties.Score) || 0
+      score: getNumberValue(properties.score) || getNumberValue(properties.Score) || 0,
+      version: getRichTextValue(properties.version) || getRichTextValue(properties.Version) || '1.0'
     };
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'audit:', error);
@@ -106,6 +109,9 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
   try {
     console.log('Sauvegarde de l\'audit:', audit.id);
     
+    // Forcer la restauration du mode réel après cette opération si nécessaire
+    const wasMockForced = notionApi.mockMode.isTemporarilyForcedReal();
+    
     // Créer l'objet de propriétés pour la mise à jour
     const properties = {
       score: {
@@ -115,17 +121,25 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
         date: {
           start: new Date().toISOString()
         }
+      },
+      version: {
+        rich_text: [{
+          type: 'text',
+          text: {
+            content: audit.version || '1.0'
+          }
+        }]
       }
     };
     
-    // Update the audit page - Fixed to use the correct parameter order
+    // Update the audit page
     await notionApi.pages.update(
       audit.id,
       { properties },
       apiKey
     );
     
-    // Update individual items - Fixed to use the correct parameter order
+    // Update individual items
     for (const item of audit.items) {
       console.log('Mise à jour item:', item.id, item.status);
       
@@ -154,6 +168,11 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
         itemProperties,
         apiKey
       );
+    }
+    
+    // Restaurer le mode mock si nécessaire
+    if (wasMockForced) {
+      notionApi.mockMode.restoreAfterForceReal();
     }
     
     return true;

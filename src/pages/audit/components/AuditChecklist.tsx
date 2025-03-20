@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Audit, AuditItem, PageResult, ImportanceLevel } from '@/lib/types';
+import { Audit, AuditItem, SamplePage } from '@/lib/types';
 import CategoryTabs from './CategoryTabs';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 import ExigenceChecklist from './ExigenceChecklist';
+import { getPagesByProjectId } from '@/lib/mockData';
+import { calculateAuditScore } from '../utils/complianceUtils';
 
 interface AuditChecklistProps {
   audit: Audit;
@@ -14,9 +16,10 @@ interface AuditChecklistProps {
 const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit }) => {
   // Ensure all items have details before rendering
   const [checklistReady, setChecklistReady] = useState(false);
+  const [samplePages, setSamplePages] = useState<SamplePage[]>([]);
   
   // Process audit data on mount
-  React.useEffect(() => {
+  useEffect(() => {
     if (audit && audit.items) {
       // Enrichir les items avec des détails et des exigences de projet
       const enrichedAudit = {
@@ -29,7 +32,19 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
           projectComment: item.projectComment || getDefaultProjectComment(item.id)
         }))
       };
-      onUpdateAudit(enrichedAudit);
+      
+      // Charger les pages de l'échantillon
+      const pages = getPagesByProjectId(audit.projectId);
+      setSamplePages(pages);
+      
+      // Calculer le score global de l'audit
+      const score = calculateAuditScore(enrichedAudit.items);
+      
+      onUpdateAudit({
+        ...enrichedAudit,
+        score
+      });
+      
       setChecklistReady(true);
     }
   }, [audit, onUpdateAudit]);
@@ -45,9 +60,13 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
       item.id === updatedItem.id ? updatedItem : item
     );
     
+    // Recalculer le score global
+    const score = calculateAuditScore(updatedItems);
+    
     const updatedAudit = {
       ...audit,
-      items: updatedItems
+      items: updatedItems,
+      score
     };
     
     onUpdateAudit(updatedAudit);
@@ -65,17 +84,17 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   };
 
   // Fonctions pour générer des données de démo sur les exigences du projet
-  const getDefaultImportance = (itemId: string): ImportanceLevel => {
+  const getDefaultImportance = (itemId: string): string => {
     // Exemple de logique pour attribuer une importance basée sur l'ID
     const importances = [
-      ImportanceLevel.Majeur,
-      ImportanceLevel.Important,
-      ImportanceLevel.Moyen,
-      ImportanceLevel.Mineur,
-      ImportanceLevel.NA
+      "Majeur",
+      "Important",
+      "Moyen",
+      "Mineur",
+      "N/A"
     ];
     const itemNumber = parseInt(itemId.split('-')[1] || '1');
-    return importances[itemNumber % importances.length] || ImportanceLevel.Moyen;
+    return importances[itemNumber % importances.length] || "Moyen";
   };
 
   const getDefaultProjectRequirement = (itemId: string): string => {
@@ -113,13 +132,6 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
       </div>
     );
   }
-  
-  // Mock data for sample pages
-  const samplePages = [
-    { id: 'page-1', url: 'https://example.com/accueil', title: 'Page d\'accueil' },
-    { id: 'page-2', url: 'https://example.com/contact', title: 'Contact' },
-    { id: 'page-3', url: 'https://example.com/produits', title: 'Liste des produits' }
-  ];
   
   const filteredItems = getFilteredItems();
   
