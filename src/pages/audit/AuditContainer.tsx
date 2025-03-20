@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotion } from '@/contexts/NotionContext';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
 import { NotionErrorDetails } from '@/components/notion';
 import { useAuditData } from './hooks/useAuditData';
 import { toast } from 'sonner';
+import { CorrectiveAction, SamplePage } from '@/lib/types';
 
 interface AuditContainerProps {
   projectId: string;
@@ -54,6 +55,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     context: ''
   });
   const [activeTab, setActiveTab] = useState<'checklist' | 'actions'>('checklist');
+  const [samplePages, setSamplePages] = useState<SamplePage[]>([]);
   
   const handleConnectNotionClick = () => {
     setNotionConfigOpen(true);
@@ -113,6 +115,14 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     }
   }, [projectId, loadProject]);
   
+  // Charger les pages d'échantillon au montage
+  useEffect(() => {
+    if (project && project.id) {
+      const pages = getPagesByProjectId(project.id);
+      setSamplePages(pages);
+    }
+  }, [project]);
+  
   const handleUpdateAudit = (updatedAudit) => {
     console.log("Updating audit state");
     setAudit(updatedAudit);
@@ -135,6 +145,47 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
       loadProject();
     }, 600);
   };
+  
+  // Gestionnaire pour la mise à jour d'une action corrective
+  const handleActionUpdate = useCallback((updatedAction: CorrectiveAction) => {
+    if (!audit || !audit.items) return;
+    
+    // Trouver l'item qui contient cette action
+    const updatedItems = audit.items.map(item => {
+      if (!item.actions) return item;
+      
+      const actionIndex = item.actions.findIndex(action => action.id === updatedAction.id);
+      
+      if (actionIndex >= 0) {
+        // Mettre à jour l'action dans le tableau
+        const updatedActions = [...item.actions];
+        updatedActions[actionIndex] = updatedAction;
+        
+        return {
+          ...item,
+          actions: updatedActions
+        };
+      }
+      
+      return item;
+    });
+    
+    // Mettre à jour l'audit avec les items mis à jour
+    const updatedAudit = {
+      ...audit,
+      items: updatedItems
+    };
+    
+    setAudit(updatedAudit);
+    
+    // Sauvegarder automatiquement après une mise à jour d'action
+    setTimeout(() => {
+      handleSaveAudit();
+      toast.success("Plan d'action mis à jour", {
+        description: "Les modifications ont été enregistrées"
+      });
+    }, 300);
+  }, [audit, setAudit, handleSaveAudit]);
   
   // Si le projectId est manquant, afficher un message d'erreur
   if (!projectId) {
@@ -227,12 +278,8 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
             <TabsContent value="actions" className="mt-0">
               <ActionPlan 
                 audit={audit}
-                pages={project && project.pagesCount ? getPagesByProjectId(project.id) : []}
-                onActionUpdate={(updatedAction) => {
-                  // Note: cette fonction devra être implémentée pour mettre à jour une action spécifique
-                  console.log("Action mise à jour:", updatedAction);
-                  toast.info("Mise à jour d'action non implémentée dans le prototype");
-                }}
+                pages={samplePages}
+                onActionUpdate={handleActionUpdate}
               />
             </TabsContent>
           </Tabs>

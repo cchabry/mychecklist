@@ -16,3 +16,4 @@ export { default as ActionPlan } from './ActionPlan';
 export { default as CorrectiveActionForm } from './CorrectiveActionForm';
 export { default as CorrectiveActionDetails } from './CorrectiveActionDetails';
 export { default as ExigenceChecklist } from './ExigenceChecklist';
+export { default as ProgressUpdateForm } from './ProgressUpdateForm';
