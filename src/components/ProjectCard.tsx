@@ -104,10 +104,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                     </Link>
                   </Button>
                   
-                  <div className="flex gap-0.5 text-xs items-center">
-                    <Badge variant="outline" className="text-xs font-normal py-0 h-5">
-                      {audit.actionsCount.total} actions
-                    </Badge>
+                  <div className="flex gap-1 text-xs items-center ml-1">
                     <Badge variant="outline" className="text-xs text-red-500 font-normal py-0 h-5">
                       <Clock size={10} className="mr-0.5" />
                       {audit.actionsCount[ActionStatus.ToDo]}
