@@ -18,4 +18,6 @@ export { default as MockModeControl } from './MockModeControl';
 export { default as MockModeSelector } from './MockModeSelector';
 
 // Add the missing diagnostic tools
-export { NotionDiagnosticTool } from './diagnostic';
+export { NotionDiagnosticTool, NotionDiagnosticRunner, NotionTestResult, NotionTestSection, NotionTestSummary } from './diagnostic';
+export type { DiagnosticResults } from '@/hooks/notion/useNotionDiagnostic';
+export type { TestResult, TestStatus } from './diagnostic/NotionTestResult';

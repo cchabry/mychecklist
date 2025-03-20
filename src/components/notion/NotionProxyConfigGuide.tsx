@@ -15,7 +15,13 @@ const NotionProxyConfigGuide: React.FC = () => {
   
   // Vérifier le type de déploiement au chargement
   useEffect(() => {
-    setDeploymentType(getDeploymentType());
+    const type = getDeploymentType();
+    // Ensure we're setting a valid type
+    if (type === 'vercel' || type === 'netlify' || type === 'local' || type === 'other') {
+      setDeploymentType(type as 'vercel' | 'netlify' | 'local' | 'other');
+    } else {
+      setDeploymentType('other');
+    }
   }, []);
   
   // Vérifier si nous sommes dans un environnement de développement local

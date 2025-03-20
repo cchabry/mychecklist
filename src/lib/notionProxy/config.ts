@@ -21,7 +21,7 @@ export const STORAGE_KEYS = {
   LAST_SAVED_CONFIG: 'notion_last_saved_config',
   LAST_ERROR: 'notion_last_error',
   
-  // Keys referenced in code but not defined
+  // Keys referenced in code but not defined previously
   API_KEY: 'notion_api_key',
   DATABASE_ID: 'notion_database_id',
   SELECTED_PROXY: 'notion_selected_proxy',
@@ -78,7 +78,7 @@ export async function verifyProxyDeployment(showLogs = false, apiKey?: string): 
 /**
  * Obtient le type de déploiement
  */
-export function getDeploymentType(): string {
+export function getDeploymentType(): 'vercel' | 'netlify' | 'local' | 'other' {
   // Implementation stub - replace with actual implementation
   return 'vercel';
 }
