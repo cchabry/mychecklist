@@ -18,7 +18,6 @@ import {
 import { NotionErrorDetails } from '@/components/notion';
 import { useAuditData } from './hooks/useAuditData';
 import { toast } from 'sonner';
-import MockModeToggle from '@/components/MockModeToggle';
 
 interface AuditContainerProps {
   projectId: string;
@@ -31,7 +30,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   // Référence pour suivre si le mode démo a été activé
   const mockModeActivated = useRef(false);
   
-  // Force le mode démo si aucun mode n'est encore défini
+  // Force le mode démo, mais une seule fois
   useEffect(() => {
     if (!mockModeActivated.current && !notionApi.mockMode.isActive()) {
       console.log("Activation du mode démo pour le prototype");
@@ -118,7 +117,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
-    // Réinitialiser tous les caches
+    // Pour le prototype, on reste en mode démo
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
     
@@ -148,7 +147,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     );
   }
   
-  const isMockMode = notionApi.mockMode.isActive();
+  console.log("AuditContainer state:", { loading, hasProject: !!project, hasAudit: !!audit });
   
   return (
     <AuditLayout
@@ -176,13 +175,11 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
                   size="sm" 
                   className="gap-2 text-red-500"
                   onClick={handleForceReset}
-                  title="Réinitialiser les données"
+                  title="Réinitialiser les données du prototype"
                 >
                   <RefreshCw size={16} />
                   Réinitialiser
                 </Button>
-                
-                <MockModeToggle />
                 
                 <NotionConnectButton 
                   usingNotion={usingNotion} 
@@ -192,17 +189,15 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
               </div>
             </div>
             
-            {isMockMode && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={16} />
-                  <span className="font-medium">Mode démonstration actif</span>
-                </div>
-                <p className="mt-1 text-xs">
-                  Les données affichées sont fictives et conformes au Brief v2. Aucune connexion à Notion n'est active.
-                </p>
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} />
+                <span className="font-medium">Mode prototype actif</span>
               </div>
-            )}
+              <p className="mt-1 text-xs">
+                Les données affichées sont fictives et uniquement destinées à la démonstration du prototype.
+              </p>
+            </div>
             
             <AuditProgress audit={audit} />
           </div>

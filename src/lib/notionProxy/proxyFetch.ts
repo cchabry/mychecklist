@@ -1,6 +1,6 @@
 
 import { mockNotionResponse } from './mockData';
-import { NOTION_API_VERSION, REQUEST_TIMEOUT_MS } from './config';
+import { NOTION_API_VERSION, REQUEST_TIMEOUT_MS, MAX_RETRY_ATTEMPTS } from './config';
 import { corsProxyService } from './corsProxyService';
 import { mockMode } from './mockMode';
 import { storeNotionError, clearStoredNotionErrors, extractNotionErrorMessage } from './errorHandling';
@@ -127,9 +127,8 @@ export const notionApiRequest = async <T = any>(
     throw new Error('Clé API Notion manquante. Veuillez configurer votre clé API dans les paramètres.');
   }
   
-  // Vérifier le mode mock - si actif, retourner des données fictives
+  // Vérifier le mode mock
   if (mockMode.isActive()) {
-    console.log(`[MOCK] Request: ${method} ${endpoint}`);
     return mockNotionResponse(endpoint, method, body) as T;
   }
   

@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
 import { handleNotionError } from '@/lib/notionProxy/errorHandling';
@@ -14,29 +14,11 @@ interface RequestOptions<T, R> {
 
 /**
  * Hook optimisé pour effectuer des requêtes à l'API Notion
- * Amélioré avec une meilleure gestion du mode mock conforme au Brief v2
  */
 export function useNotionRequest<T = unknown>() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<T | null>(null);
-  const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
-
-  // Suivre l'état du mode mock
-  useEffect(() => {
-    const checkMockMode = () => {
-      const mockActive = notionApi.mockMode.isActive();
-      if (mockActive !== isMockMode) {
-        setIsMockMode(mockActive);
-      }
-    };
-    
-    // Vérifier immédiatement et à intervalle régulier
-    checkMockMode();
-    const interval = setInterval(checkMockMode, 1000);
-    
-    return () => clearInterval(interval);
-  }, [isMockMode]);
 
   /**
    * Exécute une requête à l'API Notion
@@ -62,10 +44,6 @@ export function useNotionRequest<T = unknown>() {
         
         setData(mockResponse as unknown as T);
         setIsLoading(false);
-        
-        if (successMessage) {
-          toast.success(successMessage);
-        }
         
         return mockResponse as unknown as R;
       }
@@ -99,31 +77,10 @@ export function useNotionRequest<T = unknown>() {
     }
   }, []);
   
-  /**
-   * Active explicitement le mode mock
-   */
-  const activateMockMode = useCallback(() => {
-    notionApi.mockMode.activate();
-    setIsMockMode(true);
-    toast.info('Mode démonstration activé');
-  }, []);
-  
-  /**
-   * Désactive le mode mock et passe en mode réel
-   */
-  const deactivateMockMode = useCallback(() => {
-    notionApi.mockMode.deactivate();
-    setIsMockMode(false);
-    toast.info('Mode réel activé');
-  }, []);
-  
   return {
     isLoading,
     error,
     data,
-    executeRequest,
-    isMockMode,
-    activateMockMode,
-    deactivateMockMode
+    executeRequest
   };
 }
