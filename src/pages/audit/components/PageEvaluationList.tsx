@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,7 +125,7 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
               Vous pourrez ensuite modifier individuellement chaque page si nécessaire.
             </p>
             
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-4 gap-3 mb-4">
               <Button variant="outline" size="sm" className={`transition-all duration-200 ${selectedStatus === ComplianceStatus.NonCompliant ? 'bg-red-100 text-red-700 border-red-300' : ''}`} onClick={() => setSelectedStatus(ComplianceStatus.NonCompliant)}>
                 <X size={16} className="mr-1.5" />
                 Non conforme
@@ -138,6 +139,11 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
               <Button variant="outline" size="sm" className={`transition-all duration-200 ${selectedStatus === ComplianceStatus.Compliant ? 'bg-green-100 text-green-700 border-green-300' : ''}`} onClick={() => setSelectedStatus(ComplianceStatus.Compliant)}>
                 <Check size={16} className="mr-1.5" />
                 Conforme
+              </Button>
+              
+              <Button variant="outline" size="sm" className={`transition-all duration-200 ${selectedStatus === ComplianceStatus.NotApplicable ? 'bg-gray-100 text-gray-700 border-gray-300' : ''}`} onClick={() => setSelectedStatus(ComplianceStatus.NotApplicable)}>
+                <AlertTriangle size={16} className="mr-1.5" />
+                Non applicable
               </Button>
             </div>
             
@@ -174,7 +180,7 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                     <h4 className="font-medium">Évaluation</h4>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="grid grid-cols-4 gap-2 mb-3">
                     <Button variant="outline" size="sm" className={`transition-all duration-200 ${pageResult?.status === ComplianceStatus.NonCompliant ? 'bg-red-100 text-red-700 border-red-300' : ''}`} onClick={() => updatePageStatus(page.id, ComplianceStatus.NonCompliant, pageResult?.comment)}>
                       <X size={16} className="mr-1" />
                       Non conforme
@@ -188,6 +194,11 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                     <Button variant="outline" size="sm" className={`transition-all duration-200 ${pageResult?.status === ComplianceStatus.Compliant ? 'bg-green-100 text-green-700 border-green-300' : ''}`} onClick={() => updatePageStatus(page.id, ComplianceStatus.Compliant, pageResult?.comment)}>
                       <Check size={16} className="mr-1" />
                       Conforme
+                    </Button>
+                    
+                    <Button variant="outline" size="sm" className={`transition-all duration-200 ${pageResult?.status === ComplianceStatus.NotApplicable ? 'bg-gray-100 text-gray-700 border-gray-300' : ''}`} onClick={() => updatePageStatus(page.id, ComplianceStatus.NotApplicable, pageResult?.comment)}>
+                      <AlertTriangle size={16} className="mr-1" />
+                      Non applicable
                     </Button>
                   </div>
                   
