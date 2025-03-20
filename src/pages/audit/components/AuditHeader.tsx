@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { ArrowLeft, Save, CheckSquare } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Project } from '@/lib/types';
 interface AuditHeaderProps {
@@ -9,7 +10,6 @@ interface AuditHeaderProps {
 }
 const AuditHeader: React.FC<AuditHeaderProps> = ({
   project,
-  onSave,
   onBack
 }) => {
   return <>

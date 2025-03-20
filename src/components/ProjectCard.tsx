@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -57,12 +58,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-5">
-        {mockAudits.map(audit => <div key={audit.id} className="bg-white/70 p-3 rounded-md border border-gray-100">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h4 className="font-medium text-gray-800">{audit.name}</h4>
-                
-              </div>
+        {mockAudits.map(audit => <div key={audit.id} className="bg-white/70 p-3 rounded-md border border-gray-100 relative">
+            <Link 
+              to={`/audit/${project.id}/${audit.id}`}
+              className="absolute top-3 right-3 text-tmw-coral hover:text-tmw-coral/80 transition-colors" 
+              title={audit.progress > 0 ? "Poursuivre l'audit" : "Démarrer l'audit"}
+            >
+              <Play size={16} />
+            </Link>
+            
+            <div className="mb-2">
+              <h4 className="font-medium text-gray-800">{audit.name}</h4>
             </div>
             
             <div className="space-y-3">
@@ -78,39 +84,26 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                       {Math.round(audit.progress * audit.itemsCount / 100)} / {audit.itemsCount} critères évalués
                     </p>
                   </div>
-                  <Button size="sm" className="gap-1.5 bg-[#E87A69] text-white hover:bg-[#E87A69]/90 h-7" asChild>
-                    <Link to={`/audit/${project.id}/${audit.id}`}>
-                      <Play size={12} />
-                      {audit.progress > 0 ? 'Poursuivre' : 'Démarrer'}
-                    </Link>
-                  </Button>
                 </div>
               </div>
               
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1.5">
-                  <Button variant="outline" size="sm" className="h-7 px-2 gap-1 text-xs" asChild>
-                    <Link to={`/audit/plan/${project.id}/${audit.id}`}>
-                      <FileText size={12} />
-                      Plan d'action
-                    </Link>
-                  </Button>
-                  
-                  <div className="flex gap-1 text-xs items-center ml-1">
-                    <Badge variant="outline" className="text-xs text-red-500 font-normal py-0 h-5">
-                      <Clock size={10} className="mr-0.5" />
-                      {audit.actionsCount[ActionStatus.ToDo]}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs text-blue-500 font-normal py-0 h-5">
-                      <Clock size={10} className="mr-0.5" />
-                      {audit.actionsCount[ActionStatus.InProgress]}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs text-green-500 font-normal py-0 h-5">
-                      <CheckCircle size={10} className="mr-0.5" />
-                      {audit.actionsCount[ActionStatus.Done]}
-                    </Badge>
-                  </div>
-                </div>
+              <div className="flex justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 gap-1 text-xs flex items-center" 
+                  asChild
+                >
+                  <Link to={`/audit/plan/${project.id}/${audit.id}`}>
+                    <FileText size={12} />
+                    Plan d'action
+                    <span className="ml-1 text-red-500">{audit.actionsCount[ActionStatus.ToDo]}</span>
+                    <span className="mx-0.5 text-muted-foreground">/</span>
+                    <span className="text-blue-500">{audit.actionsCount[ActionStatus.InProgress]}</span>
+                    <span className="mx-0.5 text-muted-foreground">/</span>
+                    <span className="text-green-500">{audit.actionsCount[ActionStatus.Done]}</span>
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>)}
