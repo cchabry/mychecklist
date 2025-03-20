@@ -31,3 +31,12 @@ export const queryDatabase = async (databaseId: string, queryParams: any) => {
   
   return notionApiRequest(`/databases/${databaseId}/query`, 'POST', queryParams, token);
 };
+
+// Add functions needed for the API
+export const retrieve = async (databaseId: string, apiKey: string) => {
+  return notionApiRequest(`/databases/${databaseId}`, 'GET', undefined, apiKey);
+};
+
+export const query = async (databaseId: string, queryParams: any, apiKey: string) => {
+  return notionApiRequest(`/databases/${databaseId}/query`, 'POST', queryParams, apiKey);
+};

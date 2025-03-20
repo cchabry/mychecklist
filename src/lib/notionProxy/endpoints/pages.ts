@@ -51,3 +51,16 @@ export const updatePage = async (pageId: string, properties: any) => {
   
   return notionApiRequest(`/pages/${pageId}`, 'PATCH', { properties }, token);
 };
+
+// Add functions needed for the API
+export const retrieve = async (pageId: string, apiKey: string) => {
+  return notionApiRequest(`/pages/${pageId}`, 'GET', undefined, apiKey);
+};
+
+export const create = async (data: any, apiKey: string) => {
+  return notionApiRequest('/pages', 'POST', data, apiKey);
+};
+
+export const update = async (pageId: string, data: any, apiKey: string) => {
+  return notionApiRequest(`/pages/${pageId}`, 'PATCH', data, apiKey);
+};

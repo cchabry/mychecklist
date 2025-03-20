@@ -14,6 +14,7 @@ export { default as NotionDeploymentChecker } from './NotionDeploymentChecker';
 export { default as MockModeControl } from './MockModeControl';
 export { default as MockModeSelector } from './MockModeSelector';
 export { default as ProxyStatusIndicator } from './ProxyStatusIndicator';
+export { default as NotionSolutionsSection } from './NotionSolutionsSection';
 
 // Composants de diagnostic
 export { default as NotionDiagnosticTool } from './diagnostic/NotionDiagnosticTool';

@@ -28,3 +28,8 @@ export const getUsers = async () => {
   
   return notionApiRequest('/users', 'GET', undefined, token);
 };
+
+// Add functions needed for the API
+export const me = async (apiKey: string) => {
+  return notionApiRequest('/users/me', 'GET', undefined, apiKey);
+};
