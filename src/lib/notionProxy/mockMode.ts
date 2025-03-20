@@ -40,6 +40,8 @@ export const mockMode = {
    */
   activate: (): void => {
     localStorage.setItem(STORAGE_KEYS.MOCK_MODE, 'true');
+    // Nettoyer le drapeau force_real si présent
+    localStorage.removeItem('notion_force_real');
   },
   
   /**

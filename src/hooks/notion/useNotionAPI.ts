@@ -1,96 +1,125 @@
 
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
 import { notionApi } from '@/lib/notionProxy';
-import { useNotionError } from './useNotionError';
-
-interface RequestOptions<T, R> {
-  onSuccess?: (data: R) => void;
-  onError?: (error: Error) => void;
-  successMessage?: string;
-  errorContext?: string;
-  mockResponse?: T;
-}
+import { toast } from 'sonner';
+import { useNotion } from '@/contexts/NotionContext';
+import { handleNotionError } from '@/lib/notionProxy/errorHandling';
 
 /**
- * Hook centralisé pour effectuer des requêtes à l'API Notion
- * Gère automatiquement les états de chargement, erreurs et succès
+ * Hook étendu pour les requêtes à l'API Notion, avec prise en charge explicite du mode mock
  */
-export function useNotionAPI<T = unknown>() {
+export function useNotionAPI<T = any>() {
   const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<T | null>(null);
-  const { showError, errorDetails, clearError } = useNotionError();
-
-  /**
-   * Exécute une requête à l'API Notion
-   * @param requestFn - Fonction de requête à exécuter
-   * @param options - Options de configuration
-   */
-  const executeRequest = useCallback(async <R = T>(
-    requestFn: () => Promise<R>,
-    options: RequestOptions<T, R> = {}
-  ): Promise<R | null> => {
-    const { onSuccess, onError, successMessage, errorContext, mockResponse } = options;
+  const [error, setError] = useState<Error | null>(null);
+  const { testConnection } = useNotion();
+  const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
+  
+  // Surveiller les changements du mode mock
+  useState(() => {
+    const checkMockMode = () => {
+      const mockActive = notionApi.mockMode.isActive();
+      if (mockActive !== isMockMode) {
+        setIsMockMode(mockActive);
+      }
+    };
     
-    // Réinitialiser l'état
+    // Vérifier tout de suite et à intervalle régulier
+    checkMockMode();
+    const interval = setInterval(checkMockMode, 1000);
+    
+    return () => clearInterval(interval);
+  });
+
+  // Fonction pour effectuer une requête à l'API Notion
+  const executeRequest = async <R = T>(
+    requestFn: () => Promise<R>,
+    options: {
+      onSuccess?: (data: R) => void;
+      onError?: (error: Error) => void;
+      successMessage?: string;
+      errorMessage?: string;
+      mockData?: R;
+    } = {}
+  ): Promise<R | null> => {
+    const { onSuccess, onError, successMessage, errorMessage, mockData } = options;
+    
     setIsLoading(true);
-    clearError();
+    setError(null);
     
     try {
-      // Vérifier si nous sommes en mode mock et si une réponse mock est fournie
-      if (notionApi.mockMode.isActive() && mockResponse !== undefined) {
+      // Vérifier si nous sommes en mode mock et si des données de mock ont été fournies
+      if (notionApi.mockMode.isActive() && mockData !== undefined) {
         // Simuler un délai pour l'expérience utilisateur
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        if (onSuccess) {
-          onSuccess(mockResponse as unknown as R);
+        if (successMessage) {
+          toast.success(successMessage);
         }
         
-        setData(mockResponse as unknown as T);
-        setIsLoading(false);
+        if (onSuccess) {
+          onSuccess(mockData);
+        }
         
-        return mockResponse as unknown as R;
+        setIsLoading(false);
+        return mockData;
       }
       
-      // Exécuter la requête réelle
       const result = await requestFn();
       
-      // Afficher un toast de succès si demandé
       if (successMessage) {
         toast.success(successMessage);
       }
       
-      // Appeler le callback de succès
       if (onSuccess) {
         onSuccess(result);
       }
       
-      // Mettre à jour l'état
-      setData(result as unknown as T);
       return result;
     } catch (err) {
-      // Convertir l'erreur en objet Error
       const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
       
-      // Afficher l'erreur via useNotionError
-      showError(error, errorContext);
+      // Utiliser notre service de gestion d'erreurs
+      handleNotionError(error, errorMessage);
       
-      // Appeler le callback d'erreur
       if (onError) {
         onError(error);
       }
+      
+      // Mettre à jour le statut de connexion Notion après une erreur
+      testConnection();
       
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [clearError, showError]);
+  };
+  
+  // Activer le mode mock
+  const enableMockMode = () => {
+    notionApi.mockMode.activate();
+    setIsMockMode(true);
+    toast.info('Mode démonstration activé', {
+      description: 'L\'application utilise maintenant des données fictives'
+    });
+  };
+  
+  // Désactiver le mode mock
+  const disableMockMode = () => {
+    notionApi.mockMode.deactivate();
+    setIsMockMode(false);
+    toast.info('Mode réel activé', {
+      description: 'L\'application utilise maintenant des données réelles'
+    });
+  };
   
   return {
     isLoading,
-    data,
-    error: errorDetails,
+    error,
     executeRequest,
-    api: notionApi
+    notionApi,
+    isMockMode,
+    enableMockMode,
+    disableMockMode
   };
 }

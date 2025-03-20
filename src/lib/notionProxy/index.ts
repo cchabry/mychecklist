@@ -21,3 +21,4 @@ export const notionApi = {
 
 // Réexporter la fonction principale pour la rétrocompatibilité
 export { notionApiRequest };
+export { mockMode };
