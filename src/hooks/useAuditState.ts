@@ -32,7 +32,14 @@ export const useAuditState = (projectId: string | undefined) => {
   
   // Mettre à jour l'audit
   const setAudit = useCallback((newAudit: Audit) => {
-    setState(prev => ({ ...prev, audit: newAudit }));
+    // Calculer le score global si nécessaire
+    const updatedAudit = {
+      ...newAudit,
+      // Assurez-vous que nous avons un tableau d'items
+      items: newAudit.items || []
+    };
+    
+    setState(prev => ({ ...prev, audit: updatedAudit }));
   }, []);
   
   // Charger les données du projet

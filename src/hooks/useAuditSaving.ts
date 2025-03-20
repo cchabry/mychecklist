@@ -38,7 +38,7 @@ export const useAuditSaving = () => {
           // Sauvegarder dans Notion
           try {
             success = await saveAuditToNotion(audit);
-          } catch (error) {
+          } catch (error: any) {
             // Gérer l'erreur CORS "Failed to fetch"
             if (error.message?.includes('Failed to fetch')) {
               // Activer le mode mock

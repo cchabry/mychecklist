@@ -69,7 +69,8 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             scope: relation.scope || '',
             status: relation.status || ComplianceStatus.NotEvaluated,
             comment: relation.comment || '',
-            pageResults: []
+            pageResults: [],
+            actions: []  // Ajout du tableau d'actions vide par défaut
           } as AuditItem;
         });
       }
@@ -169,6 +170,14 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
         itemProperties,
         apiKey
       );
+      
+      // Sauvegarde des actions correctives si présentes
+      if (item.actions && item.actions.length > 0) {
+        console.log(`Sauvegarde de ${item.actions.length} actions correctives pour l'item:`, item.id);
+        
+        // Pour le prototype, nous ne faisons pas de vraie sauvegarde des actions,
+        // mais nous pourrions ajouter ce code ici pour la version finale
+      }
     }
     
     // Restaurer le mode mock si nécessaire

@@ -1,94 +1,153 @@
 
 import { useState, useCallback } from 'react';
-import { 
-  CorrectiveAction, 
-  ActionPriority, 
-  ActionStatus, 
-  ComplianceStatus 
-} from '@/lib/types';
-import { toast } from 'sonner';
+import { AuditItem, CorrectiveAction } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
-export const useCorrectiveActions = (auditId: string) => {
-  const [actions, setActions] = useState<CorrectiveAction[]>([]);
-  const [loading, setLoading] = useState(false);
-  
-  // Charger les actions correctives pour un audit spécifique
-  const loadActions = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Pour l'instant, on utilise des données mockées internes
-      // À terme, ces données viendront de l'API Notion
-      const mockActions: CorrectiveAction[] = [
-        {
-          id: `action-${auditId}-1`,
-          evaluationId: `eval-page-1-${auditId}`,
-          targetScore: ComplianceStatus.Compliant,
-          priority: ActionPriority.Haute,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 jours
-          responsible: 'John Doe',
-          comment: 'Corriger les problèmes d\'accessibilité des images',
-          status: ActionStatus.InProgress
-        },
-        {
-          id: `action-${auditId}-2`,
-          evaluationId: `eval-page-2-${auditId}`,
-          targetScore: ComplianceStatus.Compliant,
-          priority: ActionPriority.Critique,
-          dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // -2 jours (en retard)
-          responsible: 'Jane Smith',
-          comment: 'Ajouter des attributs alt aux images',
-          status: ActionStatus.ToDo
-        }
-      ];
-      
-      setActions(mockActions);
-    } catch (error) {
-      console.error('Erreur lors du chargement des actions:', error);
-      toast.error('Erreur lors du chargement des actions correctives');
-    } finally {
-      setLoading(false);
-    }
-  }, [auditId]);
-  
+export const useCorrectiveActions = (
+  item: AuditItem,
+  onItemChange: (updatedItem: AuditItem) => void
+) => {
+  const [isAddingAction, setIsAddingAction] = useState(false);
+  const [editingAction, setEditingAction] = useState<CorrectiveAction | null>(null);
+
   // Ajouter une nouvelle action corrective
-  const addAction = useCallback((newAction: Omit<CorrectiveAction, 'id'>) => {
-    const id = `action-${auditId}-${Date.now()}`;
-    const createdAction: CorrectiveAction = {
-      ...newAction,
-      id
+  const addAction = useCallback((actionData: Partial<CorrectiveAction>) => {
+    const newAction: CorrectiveAction = {
+      id: uuidv4(),
+      evaluationId: item.id,
+      pageId: actionData.pageId || '',
+      targetScore: actionData.targetScore || 'compliant',
+      priority: actionData.priority || 'medium',
+      dueDate: actionData.dueDate || new Date().toISOString(),
+      responsible: actionData.responsible || '',
+      comment: actionData.comment || '',
+      status: actionData.status || 'todo',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: []
     };
-    
-    setActions(prev => [...prev, createdAction]);
-    toast.success('Action corrective ajoutée');
-    return createdAction;
-  }, [auditId]);
-  
+
+    const updatedItem = {
+      ...item,
+      actions: [...(item.actions || []), newAction]
+    };
+
+    onItemChange(updatedItem);
+    setIsAddingAction(false);
+  }, [item, onItemChange]);
+
   // Mettre à jour une action existante
-  const updateAction = useCallback((actionId: string, updates: Partial<CorrectiveAction>) => {
-    setActions(prev => prev.map(action => 
-      action.id === actionId ? { ...action, ...updates } : action
-    ));
-    toast.success('Action corrective mise à jour');
-  }, []);
-  
+  const updateAction = useCallback((updatedAction: CorrectiveAction) => {
+    if (!item.actions) return;
+
+    const updatedActions = item.actions.map(action => 
+      action.id === updatedAction.id 
+        ? { ...updatedAction, updatedAt: new Date().toISOString() } 
+        : action
+    );
+
+    const updatedItem = {
+      ...item,
+      actions: updatedActions
+    };
+
+    onItemChange(updatedItem);
+    setEditingAction(null);
+  }, [item, onItemChange]);
+
   // Supprimer une action
   const deleteAction = useCallback((actionId: string) => {
-    setActions(prev => prev.filter(action => action.id !== actionId));
-    toast.success('Action corrective supprimée');
-  }, []);
-  
-  // Obtenir les actions pour une évaluation spécifique
-  const getActionsForEvaluation = useCallback((evaluationId: string) => {
-    return actions.filter(action => action.evaluationId === evaluationId);
-  }, [actions]);
-  
+    if (!item.actions) return;
+
+    const updatedActions = item.actions.filter(action => action.id !== actionId);
+
+    const updatedItem = {
+      ...item,
+      actions: updatedActions
+    };
+
+    onItemChange(updatedItem);
+  }, [item, onItemChange]);
+
+  // Ajouter un progrès à une action
+  const addProgress = useCallback((actionId: string, progressData: { comment: string, responsible: string }) => {
+    if (!item.actions) return;
+
+    const updatedActions = item.actions.map(action => {
+      if (action.id === actionId) {
+        const newProgress = {
+          id: uuidv4(),
+          actionId: actionId,
+          date: new Date().toISOString(),
+          responsible: progressData.responsible,
+          comment: progressData.comment,
+          score: action.targetScore,
+          status: 'in-progress' as const
+        };
+
+        return {
+          ...action,
+          progress: [...(action.progress || []), newProgress],
+          status: 'in-progress' as const,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return action;
+    });
+
+    const updatedItem = {
+      ...item,
+      actions: updatedActions
+    };
+
+    onItemChange(updatedItem);
+  }, [item, onItemChange]);
+
+  // Compléter une action
+  const completeAction = useCallback((actionId: string, comment: string) => {
+    if (!item.actions) return;
+
+    const updatedActions = item.actions.map(action => {
+      if (action.id === actionId) {
+        const newProgress = {
+          id: uuidv4(),
+          actionId: actionId,
+          date: new Date().toISOString(),
+          responsible: action.responsible,
+          comment: comment,
+          score: action.targetScore,
+          status: 'done' as const
+        };
+
+        return {
+          ...action,
+          progress: [...(action.progress || []), newProgress],
+          status: 'done' as const,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return action;
+    });
+
+    const updatedItem = {
+      ...item,
+      actions: updatedActions
+    };
+
+    onItemChange(updatedItem);
+  }, [item, onItemChange]);
+
   return {
-    actions,
-    loading,
-    loadActions,
+    isAddingAction,
+    editingAction,
+    setIsAddingAction,
+    setEditingAction,
     addAction,
     updateAction,
     deleteAction,
-    getActionsForEvaluation
+    addProgress,
+    completeAction
   };
 };
+
+export default useCorrectiveActions;

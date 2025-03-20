@@ -1,31 +1,13 @@
 
 import React, { useState } from 'react';
-import { 
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  SamplePage,
-  AuditItem,
-  ComplianceStatus,
-  COMPLIANCE_VALUES,
-  PageResult
-} from '@/lib/types';
-import { ExternalLink, PlusCircle, Save } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { AuditItem, ComplianceStatus, PageResult, SamplePage } from '@/lib/types';
+import { Check, X, Minus, AlertTriangle, Globe, Upload } from 'lucide-react';
 import { getComplianceStatusColor } from '../utils/complianceUtils';
+import { toast } from 'sonner';
 
 interface PageEvaluationListProps {
   item: AuditItem;
@@ -33,223 +15,315 @@ interface PageEvaluationListProps {
   onUpdatePageResults: (pageResults: PageResult[]) => void;
 }
 
-const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
-  item,
-  pages,
-  onUpdatePageResults
+const PageEvaluationList: React.FC<PageEvaluationListProps> = ({ 
+  item, 
+  pages, 
+  onUpdatePageResults 
 }) => {
-  // États locaux pour les évaluations en cours d'édition
-  const [editingResults, setEditingResults] = useState<Record<string, {
-    status: ComplianceStatus,
-    comment: string
-  }>>({});
+  const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | null>(null);
+  const [bulkComment, setBulkComment] = useState('');
+  const [showBulkAction, setShowBulkAction] = useState(false);
   
-  // Initialiser l'état d'édition avec les résultats existants
-  React.useEffect(() => {
-    const initialEditState: Record<string, {
-      status: ComplianceStatus,
-      comment: string
-    }> = {};
+  // Fonction pour trouver le résultat d'une page
+  const findPageResult = (pageId: string): PageResult | undefined => {
+    return item.pageResults?.find(result => result.pageId === pageId);
+  };
+  
+  // Mettre à jour le statut d'une page spécifique
+  const updatePageStatus = (pageId: string, status: ComplianceStatus, comment: string = '') => {
+    const currentResults = item.pageResults || [];
+    const existingResultIndex = currentResults.findIndex(r => r.pageId === pageId);
     
-    pages.forEach(page => {
-      const existingResult = item.pageResults?.find(result => result.pageId === page.id);
-      initialEditState[page.id] = {
-        status: existingResult?.status || ComplianceStatus.NotEvaluated,
-        comment: existingResult?.comment || ''
+    let newResults;
+    if (existingResultIndex >= 0) {
+      // Mettre à jour un résultat existant
+      newResults = [...currentResults];
+      newResults[existingResultIndex] = {
+        ...newResults[existingResultIndex],
+        status,
+        comment: comment || newResults[existingResultIndex].comment
+      };
+    } else {
+      // Ajouter un nouveau résultat
+      newResults = [
+        ...currentResults,
+        {
+          pageId,
+          status,
+          comment
+        }
+      ];
+    }
+    
+    onUpdatePageResults(newResults);
+  };
+  
+  // Appliquer le statut et le commentaire sélectionnés à toutes les pages
+  const applyBulkAction = () => {
+    if (!selectedStatus) {
+      toast.error("Sélectionnez un statut à appliquer");
+      return;
+    }
+    
+    const newResults = pages.map(page => {
+      const existing = findPageResult(page.id);
+      return {
+        pageId: page.id,
+        status: selectedStatus,
+        comment: bulkComment || (existing?.comment || '')
       };
     });
     
-    setEditingResults(initialEditState);
-  }, [item.pageResults, pages]);
-  
-  // Mettre à jour le statut d'une page
-  const handleStatusChange = (pageId: string, status: ComplianceStatus) => {
-    setEditingResults(prev => ({
-      ...prev,
-      [pageId]: {
-        ...prev[pageId],
-        status
-      }
-    }));
+    onUpdatePageResults(newResults);
+    setShowBulkAction(false);
+    setSelectedStatus(null);
+    setBulkComment('');
+    
+    toast.success("Évaluation appliquée à toutes les pages");
   };
   
-  // Mettre à jour le commentaire d'une page
-  const handleCommentChange = (pageId: string, comment: string) => {
-    setEditingResults(prev => ({
-      ...prev,
-      [pageId]: {
-        ...prev[pageId],
-        comment
-      }
-    }));
+  // Obtenir une couleur pour un statut
+  const getStatusClasses = (status: ComplianceStatus | null, type: string = 'bg') => {
+    if (!status) return '';
+    
+    if (type === 'bg') {
+      return `bg-${status === ComplianceStatus.Compliant ? 'green' : 
+        status === ComplianceStatus.PartiallyCompliant ? 'amber' : 
+        status === ComplianceStatus.NonCompliant ? 'red' : 'gray'}-100`;
+    }
+    
+    if (type === 'text') {
+      return `text-${status === ComplianceStatus.Compliant ? 'green' : 
+        status === ComplianceStatus.PartiallyCompliant ? 'amber' : 
+        status === ComplianceStatus.NonCompliant ? 'red' : 'gray'}-700`;
+    }
+    
+    if (type === 'border') {
+      return `border-${status === ComplianceStatus.Compliant ? 'green' : 
+        status === ComplianceStatus.PartiallyCompliant ? 'amber' : 
+        status === ComplianceStatus.NonCompliant ? 'red' : 'gray'}-200`;
+    }
+    
+    return '';
   };
   
-  // Appliquer la même évaluation à toutes les pages
-  const applyToAllPages = (sourcePageId: string) => {
-    const sourceResult = editingResults[sourcePageId];
-    if (!sourceResult) return;
-    
-    const newResults = { ...editingResults };
-    pages.forEach(page => {
-      if (page.id !== sourcePageId) {
-        newResults[page.id] = { ...sourceResult };
-      }
-    });
-    
-    setEditingResults(newResults);
-  };
-  
-  // Sauvegarder les évaluations
-  const savePageResults = () => {
-    const results: PageResult[] = Object.entries(editingResults).map(([pageId, data]) => ({
-      pageId,
-      status: data.status,
-      comment: data.comment
-    }));
-    
-    onUpdatePageResults(results);
-  };
-  
-  // Vérifier si tous les pages ont été évaluées
-  const allPagesEvaluated = pages.every(page => 
-    editingResults[page.id]?.status !== ComplianceStatus.NotEvaluated
-  );
-  
-  // Calculer le statut global pour l'exigence
-  const calculateOverallStatus = (): ComplianceStatus => {
-    if (pages.length === 0) return ComplianceStatus.NotEvaluated;
-    
-    const results = Object.values(editingResults);
-    const evaluatedResults = results.filter(r => 
-      r.status !== ComplianceStatus.NotEvaluated && 
-      r.status !== ComplianceStatus.NotApplicable
-    );
-    
-    if (evaluatedResults.length === 0) return ComplianceStatus.NotEvaluated;
-    
-    const compliantCount = evaluatedResults.filter(r => r.status === ComplianceStatus.Compliant).length;
-    const nonCompliantCount = evaluatedResults.filter(r => r.status === ComplianceStatus.NonCompliant).length;
-    
-    if (nonCompliantCount > 0) return ComplianceStatus.NonCompliant;
-    if (compliantCount === evaluatedResults.length) return ComplianceStatus.Compliant;
-    return ComplianceStatus.PartiallyCompliant;
+  // Obtenir l'icône pour un statut
+  const StatusIcon = ({ status }: { status: ComplianceStatus }) => {
+    switch (status) {
+      case ComplianceStatus.Compliant:
+        return <Check className="h-5 w-5 text-green-600" />;
+      case ComplianceStatus.PartiallyCompliant:
+        return <Minus className="h-5 w-5 text-amber-500" />;
+      case ComplianceStatus.NonCompliant:
+        return <X className="h-5 w-5 text-red-500" />;
+      case ComplianceStatus.NotApplicable:
+        return <AlertTriangle className="h-5 w-5 text-gray-400" />;
+      default:
+        return <AlertTriangle className="h-5 w-5 text-gray-400" />;
+    }
   };
   
   return (
-    <Card className="mt-4 border border-tmw-blue/10">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg font-medium">Évaluation par page</CardTitle>
-            <CardDescription>
-              Évaluez la conformité de chaque page de l'échantillon
-            </CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={savePageResults}
-            className="flex items-center gap-1"
-          >
-            <Save className="h-4 w-4" />
-            <span>Enregistrer</span>
-          </Button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-medium mb-1">Évaluation par page</h3>
+          <p className="text-sm text-muted-foreground">
+            Évaluez la conformité de chaque page de l'échantillon pour ce critère
+          </p>
         </div>
-      </CardHeader>
-      <CardContent>
-        {pages.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-muted-foreground">Aucune page dans l'échantillon</p>
-            <Button variant="outline" className="mt-4 flex items-center gap-1">
-              <PlusCircle className="h-4 w-4" />
-              <span>Ajouter des pages à l'échantillon</span>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-muted p-4 rounded-md mb-4">
-              <p className="text-sm font-medium mb-1">Statut global : </p>
-              <Badge 
-                className="text-md"
+        <Button 
+          onClick={() => setShowBulkAction(!showBulkAction)}
+          variant={showBulkAction ? "secondary" : "outline"}
+          size="sm"
+        >
+          {showBulkAction ? "Annuler" : "Évaluer toutes les pages"}
+        </Button>
+      </div>
+      
+      {showBulkAction && (
+        <Card className="border-dashed border-2 border-primary/30 mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Évaluation globale</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Appliquer le même résultat à toutes les pages de l'échantillon pour ce critère.
+              Vous pourrez ensuite modifier individuellement chaque page si nécessaire.
+            </p>
+            
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <Button 
                 variant="outline"
-                style={{ 
-                  backgroundColor: getComplianceStatusColor(calculateOverallStatus(), "bg"),
-                  color: getComplianceStatusColor(calculateOverallStatus(), "text")
-                }}
+                size="sm"
+                className={`transition-all duration-200 ${
+                  selectedStatus === ComplianceStatus.NonCompliant 
+                    ? 'bg-red-100 text-red-700 border-red-300' 
+                    : ''
+                }`}
+                onClick={() => setSelectedStatus(ComplianceStatus.NonCompliant)}
               >
-                {calculateOverallStatus()}
-              </Badge>
-              {!allPagesEvaluated && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Attention : certaines pages n'ont pas encore été évaluées
-                </p>
-              )}
+                <X size={16} className="mr-1.5" />
+                Non conforme
+              </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                className={`transition-all duration-200 ${
+                  selectedStatus === ComplianceStatus.PartiallyCompliant 
+                    ? 'bg-amber-100 text-amber-700 border-amber-300' 
+                    : ''
+                }`}
+                onClick={() => setSelectedStatus(ComplianceStatus.PartiallyCompliant)}
+              >
+                <Minus size={16} className="mr-1.5" />
+                Partiellement
+              </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                className={`transition-all duration-200 ${
+                  selectedStatus === ComplianceStatus.Compliant 
+                    ? 'bg-green-100 text-green-700 border-green-300' 
+                    : ''
+                }`}
+                onClick={() => setSelectedStatus(ComplianceStatus.Compliant)}
+              >
+                <Check size={16} className="mr-1.5" />
+                Conforme
+              </Button>
             </div>
             
-            {pages.map((page) => (
-              <div key={page.id} className="border rounded-md p-4">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-3">
-                  <div>
+            <Textarea
+              placeholder="Commentaire global pour toutes les pages..."
+              value={bulkComment}
+              onChange={(e) => setBulkComment(e.target.value)}
+              className="mb-4"
+            />
+            
+            <Button 
+              onClick={applyBulkAction}
+              disabled={!selectedStatus}
+              className="w-full"
+            >
+              Appliquer à toutes les pages ({pages.length})
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="space-y-4">
+        {pages.map(page => {
+          const pageResult = findPageResult(page.id);
+          return (
+            <Card 
+              key={page.id}
+              className={`border overflow-hidden ${
+                pageResult ? 
+                getStatusClasses(pageResult.status, 'border') : ''
+              }`}
+            >
+              <div className="flex flex-col md:flex-row">
+                <div className="p-4 md:w-1/3 border-b md:border-b-0 md:border-r">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Globe size={16} className="text-muted-foreground" />
                     <h4 className="font-medium">{page.title}</h4>
-                    <a 
-                      href={page.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm text-muted-foreground flex items-center gap-1 hover:text-primary"
-                    >
-                      {page.url}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={editingResults[page.id]?.status || ComplianceStatus.NotEvaluated}
-                      onValueChange={(value) => handleStatusChange(page.id, value as ComplianceStatus)}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Statut" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.values(ComplianceStatus).map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => applyToAllPages(page.id)}
-                      title="Appliquer à toutes les pages"
-                    >
-                      Appliquer à toutes
+                  <p className="text-sm text-muted-foreground">{page.url}</p>
+                  
+                  <div className="mt-4 space-x-2">
+                    <Button size="sm" variant="outline" className="text-xs">
+                      <Globe size={14} className="mr-1" />
+                      Voir
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs">
+                      <Upload size={14} className="mr-1" />
+                      Joindre
                     </Button>
                   </div>
                 </div>
                 
-                <Textarea
-                  placeholder="Commentaire sur l'évaluation..."
-                  value={editingResults[page.id]?.comment || ''}
-                  onChange={(e) => handleCommentChange(page.id, e.target.value)}
-                  className="mt-2"
-                  rows={3}
-                />
+                <div className="p-4 md:w-2/3">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium">Évaluation</h4>
+                    {pageResult && (
+                      <div 
+                        className="flex items-center gap-1 text-sm rounded-full px-2 py-1"
+                        style={{ 
+                          backgroundColor: getComplianceStatusColor(pageResult.status, "bg"),
+                          color: getComplianceStatusColor(pageResult.status, "text")
+                        }}
+                      >
+                        <StatusIcon status={pageResult.status} />
+                        <span>
+                          {pageResult.status === ComplianceStatus.Compliant ? 'Conforme' : 
+                           pageResult.status === ComplianceStatus.PartiallyCompliant ? 'Partiellement conforme' : 
+                           pageResult.status === ComplianceStatus.NonCompliant ? 'Non conforme' : 
+                           'Non évalué'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className={`transition-all duration-200 ${
+                        pageResult?.status === ComplianceStatus.NonCompliant 
+                          ? 'bg-red-100 text-red-700 border-red-300' 
+                          : ''
+                      }`}
+                      onClick={() => updatePageStatus(page.id, ComplianceStatus.NonCompliant, pageResult?.comment)}
+                    >
+                      <X size={16} className="mr-1" />
+                      Non conforme
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className={`transition-all duration-200 ${
+                        pageResult?.status === ComplianceStatus.PartiallyCompliant 
+                          ? 'bg-amber-100 text-amber-700 border-amber-300' 
+                          : ''
+                      }`}
+                      onClick={() => updatePageStatus(page.id, ComplianceStatus.PartiallyCompliant, pageResult?.comment)}
+                    >
+                      <Minus size={16} className="mr-1" />
+                      Partiellement
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className={`transition-all duration-200 ${
+                        pageResult?.status === ComplianceStatus.Compliant 
+                          ? 'bg-green-100 text-green-700 border-green-300' 
+                          : ''
+                      }`}
+                      onClick={() => updatePageStatus(page.id, ComplianceStatus.Compliant, pageResult?.comment)}
+                    >
+                      <Check size={16} className="mr-1" />
+                      Conforme
+                    </Button>
+                  </div>
+                  
+                  <Textarea
+                    placeholder="Commentaire sur l'évaluation de cette page..."
+                    value={pageResult?.comment || ''}
+                    onChange={(e) => updatePageStatus(page.id, pageResult?.status || ComplianceStatus.NotEvaluated, e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
               </div>
-            ))}
-            
-            <div className="flex justify-end mt-4">
-              <Button 
-                onClick={savePageResults}
-                className="flex items-center gap-1"
-              >
-                <Save className="h-4 w-4" />
-                <span>Enregistrer les évaluations</span>
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 

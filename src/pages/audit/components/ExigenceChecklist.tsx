@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -22,13 +22,16 @@ import {
   ImportanceLevel,
   ComplianceStatus,
   SamplePage,
-  PageResult
+  PageResult,
+  CorrectiveAction
 } from '@/lib/types';
-import { AlertTriangle, CheckCircle2, HelpCircle, Info, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, Info, MessageSquare, X } from 'lucide-react';
 import ChecklistItemTags from '@/components/ChecklistItemTags';
 import PageEvaluationList from './PageEvaluationList';
 import CorrectiveActionsList from './CorrectiveActionsList';
 import { getComplianceStatusColor, calculateOverallStatus } from '../utils/complianceUtils';
+import { useCorrectiveActions } from '../hooks/useCorrectiveActions';
+import { toast } from 'sonner';
 
 interface ExigenceChecklistProps {
   item: AuditItem;
@@ -51,8 +54,17 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     importance
   );
   
+  // Utiliser le hook pour gérer les actions correctives
+  const {
+    isAddingAction,
+    setIsAddingAction,
+    addAction,
+    updateAction,
+    deleteAction
+  } = useCorrectiveActions(item, onItemChange);
+  
   // Mettre à jour les résultats par page
-  const handleUpdatePageResults = (pageResults: PageResult[]) => {
+  const handleUpdatePageResults = useCallback((pageResults: PageResult[]) => {
     const updatedItem = {
       ...item,
       pageResults,
@@ -61,7 +73,13 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
     };
     
     onItemChange(updatedItem);
-  };
+  }, [item, importance, onItemChange]);
+  
+  // Gestionnaire pour l'ajout d'une action corrective
+  const handleAddAction = useCallback((actionData: Partial<CorrectiveAction>) => {
+    addAction(actionData);
+    toast.success("Action corrective ajoutée");
+  }, [addAction]);
   
   // Icon for status
   const StatusIcon = () => {
@@ -182,18 +200,9 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
               <CorrectiveActionsList
                 actions={item.actions || []}
                 pages={samplePages}
-                onAddAction={() => {
-                  // À implémenter
-                  console.log("Ajouter une action corrective");
-                }}
-                onEditAction={(action) => {
-                  // À implémenter
-                  console.log("Modifier l'action", action.id);
-                }}
-                onDeleteAction={(actionId) => {
-                  // À implémenter
-                  console.log("Supprimer l'action", actionId);
-                }}
+                onAddAction={handleAddAction}
+                onEditAction={updateAction}
+                onDeleteAction={deleteAction}
               />
             </TabsContent>
           </Tabs>
