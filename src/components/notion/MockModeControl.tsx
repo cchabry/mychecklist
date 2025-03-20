@@ -26,22 +26,14 @@ const MockModeControl: React.FC = () => {
   
   // Basculer le mode mock
   const toggleMockMode = () => {
-    if (isMockMode) {
-      notionApi.mockMode.deactivate();
-      setIsMockMode(false);
-      toast.success('Mode réel activé', {
-        description: 'Connexion aux données réelles de Notion'
-      });
-    } else {
-      notionApi.mockMode.activateV2(); // Utiliser V2 par défaut
-      setIsMockMode(true);
-      toast.success('Mode démonstration activé', {
-        description: 'Utilisation de données fictives'
-      });
-    }
+    const newState = notionApi.mockMode.toggle();
+    setIsMockMode(newState);
     
-    // Rafraîchir la page après un délai
-    setTimeout(() => window.location.reload(), 500);
+    toast.success(newState ? 'Mode démonstration activé' : 'Mode réel activé', {
+      description: newState 
+        ? 'Utilisation de données fictives' 
+        : 'Connexion aux données réelles de Notion'
+    });
   };
   
   return (

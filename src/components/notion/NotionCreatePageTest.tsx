@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -34,6 +35,7 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
     setErrorDetails(null);
     setCreatedPageInfo(null);
 
+    // Get required values from localStorage
     const apiKey = localStorage.getItem('notion_api_key');
     const dbId = localStorage.getItem('notion_database_id');
 
@@ -49,6 +51,7 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
 
     console.log('📝 Début du test de création de page Notion');
     
+    // Force real mode for this test
     const wasMockMode = notionApi.mockMode.isActive();
     if (wasMockMode) {
       console.log('🔄 Désactivation temporaire du mode mock pour le test');
@@ -57,6 +60,7 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
     }
 
     try {
+      // First verify authentication
       try {
         console.log('🔑 Vérification de l\'authentification...');
         const user = await notionApi.users.me(apiKey);
@@ -66,6 +70,7 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
         throw new Error(`Échec d'authentification: ${authError.message}`);
       }
 
+      // Then verify database access (read)
       try {
         console.log('🔍 Vérification de l\'accès à la base de données...');
         const dbInfo = await notionApi.databases.retrieve(dbId, apiKey);
@@ -75,11 +80,13 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
         throw new Error(`Échec d'accès à la base de données: ${dbError.message}`);
       }
 
+      // Create a test page
       console.log('📝 Tentative de création d\'une page...');
 
       const timestamp = new Date().toISOString();
       const testTitle = `Test de création ${timestamp}`;
 
+      // Build properties object based on database schema
       console.log('🏗️ Préparation des données pour création...');
       const createData = {
         parent: { database_id: dbId },
@@ -87,6 +94,8 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
           Name: {
             title: [{ text: { content: testTitle } }]
           },
+          // Add fallback properties with different casings
+          // The API will only use properties that match the database schema
           Status: { select: { name: "Test" } },
           status: { select: { name: "Test" } },
           Description: { rich_text: [{ text: { content: "Test de permissioncréation via l'outil de diagnostic" } }] },
@@ -127,10 +136,12 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
       
       setStatus('error');
       
+      // Parse the error message for more details
       let errorMsg = error.message || 'Erreur inconnue';
       let errorCode = '';
       let errorDetail = '';
       
+      // Check for 403 Forbidden (permissions issue)
       if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
         errorCode = '403 Forbidden';
         errorDetail = 'L\'intégration n\'a pas les permissions d\'écriture nécessaires sur cette base de données. Vérifiez que l\'intégration est partagée avec la base et a les permissions d\'écriture.';
@@ -139,10 +150,14 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
           description: 'L\'intégration n\'a pas les permissions d\'écriture sur cette base de données Notion.',
           duration: 8000
         });
-      } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+      }
+      // Check for 401 Unauthorized (authentication issue)
+      else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
         errorCode = '401 Unauthorized';
         errorDetail = 'L\'authentification a échoué. Vérifiez que votre clé d\'API est valide et n\'a pas expiré.';
-      } else if (errorMsg.includes('validation_error') || errorMsg.includes('required')) {
+      }
+      // Check for validation issues
+      else if (errorMsg.includes('validation_error') || errorMsg.includes('required')) {
         errorCode = 'Validation Error';
         errorDetail = 'La structure des données ne correspond pas au schéma de la base de données. Vérifiez les propriétés requises.';
       }
@@ -158,6 +173,7 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
       }
     } finally {
       setIsRunning(false);
+      // Restore mock mode if it was active
       if (wasMockMode) {
         console.log('🔄 Restauration du mode mock après le test');
         notionApi.mockMode.activate();
@@ -257,7 +273,6 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
             </div>
             
             <NotionSolutionsSection 
-              errorCode="403"
               showCorsProxy={false}
               showMockMode={false}
               showApiKey={true}

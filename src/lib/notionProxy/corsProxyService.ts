@@ -39,7 +39,7 @@ export const corsProxyService = {
    * Réinitialise le cache du proxy
    */
   resetProxyCache: (): void => {
-    localStorage.removeItem(STORAGE_KEYS.LAST_ERROR);
+    localStorage.removeItem('notion_last_error');
   },
   
   /**
@@ -48,7 +48,7 @@ export const corsProxyService = {
    */
   findWorkingProxy: async (apiKey?: string): Promise<string | null> => {
     // Récupérer la clé API pour le test si disponible
-    apiKey = apiKey || localStorage.getItem(STORAGE_KEYS.NOTION_API_KEY) || '';
+    apiKey = apiKey || localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
     
     for (const proxy of PUBLIC_CORS_PROXIES) {
       try {
@@ -86,7 +86,7 @@ export const corsProxyService = {
       const apiProxyUrl = '/api/notion-proxy';
       
       // Obtenir la clé API pour le test
-      apiKey = apiKey || localStorage.getItem(STORAGE_KEYS.NOTION_API_KEY) || 'test_token_for_proxy_test';
+      apiKey = apiKey || localStorage.getItem(STORAGE_KEYS.API_KEY) || 'test_token_for_proxy_test';
       
       const response = await fetch(apiProxyUrl, {
         method: 'POST',

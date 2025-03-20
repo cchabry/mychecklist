@@ -1,98 +1,185 @@
 
-// Custom error class with status property
-export class NotionError extends Error {
-  status?: number;
+import { mockNotionResponse } from './mockData';
+import { NOTION_API_VERSION, REQUEST_TIMEOUT_MS, MAX_RETRY_ATTEMPTS } from './config';
+import { corsProxyService } from './corsProxyService';
+import { mockMode } from './mockMode';
+import { storeNotionError, clearStoredNotionErrors, extractNotionErrorMessage } from './errorHandling';
+
+// Types pour plus de clarté
+interface RequestOptions {
+  method?: string;
+  body?: any;
+  headers?: Record<string, string>;
+  timeout?: number;
+}
+
+// Variables de statut
+let _usingServerlessProxy = false;
+
+/**
+ * Tente une requête via le proxy serverless (Vercel/Netlify)
+ */
+async function tryServerlessProxy<T>(
+  endpoint: string,
+  method: string,
+  body?: any,
+  token?: string,
+  customHeaders: Record<string, string> = {}
+): Promise<T> {
+  const deploymentType = window.location.hostname.includes('netlify') ? 'netlify' : 'vercel';
+  const proxyUrl = deploymentType === 'netlify' 
+    ? '/.netlify/functions/notion-proxy' 
+    : '/api/notion-proxy';
   
-  constructor(message: string, status?: number) {
-    super(message);
-    this.name = 'NotionError';
-    this.status = status;
+  try {
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...customHeaders
+      },
+      body: JSON.stringify({
+        endpoint,
+        method,
+        body,
+        token
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = extractNotionErrorMessage(response.status, errorData);
+      throw new Error(errorMessage);
+    }
+    
+    _usingServerlessProxy = true;
+    return await response.json();
+  } catch (error) {
+    throw error;
   }
 }
 
-// Use this function instead of creating a plain Error with status property
-export function createNotionError(message: string, status?: number): NotionError {
-  return new NotionError(message, status);
+/**
+ * Tente une requête via le proxy CORS côté client
+ */
+async function tryClientProxy<T>(
+  endpoint: string,
+  method: string,
+  token: string,
+  body?: any, 
+  customHeaders: Record<string, string> = {}
+): Promise<T> {
+  const proxyUrl = corsProxyService.buildProxyUrl(endpoint);
+  
+  const headers: Record<string, string> = {
+    'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+    'Notion-Version': NOTION_API_VERSION,
+    'Content-Type': 'application/json',
+    ...customHeaders
+  };
+  
+  const requestOptions: RequestInit = {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  };
+  
+  // Add timeout
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  requestOptions.signal = controller.signal;
+  
+  try {
+    const response = await fetch(proxyUrl, requestOptions);
+    clearTimeout(id);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = extractNotionErrorMessage(response.status, errorData);
+      throw new Error(errorMessage);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`La requête a expiré après ${REQUEST_TIMEOUT_MS/1000} secondes`);
+    }
+    throw error;
+  }
 }
 
-// Import required configuration
-import { NOTION, STORAGE_KEYS } from './config';
-import { mockMode, MockVersion } from './mockMode';
-import { mockNotionResponseV2 } from './mockDataV2';
-
 /**
- * Fonction principale pour effectuer des requêtes vers l'API Notion
- * Gère la logique de proxy, mock, et cache
+ * Fonction principale pour les requêtes Notion
  */
-export const notionApiRequest = async (
+export const notionApiRequest = async <T = any>(
   endpoint: string,
   method: string = 'GET',
   body?: any,
-  token?: string
-): Promise<any> => {
-  console.log(`📡 notionApiRequest: ${method} ${endpoint}`);
-  
-  // Si nous sommes en mode mock, utiliser les données fictives
-  if (mockMode.isActive()) {
-    console.log(`🧪 Using ${mockMode.isV2Active() ? 'v2' : 'v1'} mock data for ${endpoint}`);
-    return mockMode.getMockResponse(endpoint, method, body);
+  token?: string,
+  customHeaders: Record<string, string> = {}
+): Promise<T> => {
+  // Récupérer le token depuis localStorage si non fourni
+  if (!token) {
+    token = localStorage.getItem('notion_api_key') || '';
   }
   
+  if (!token) {
+    throw new Error('Clé API Notion manquante. Veuillez configurer votre clé API dans les paramètres.');
+  }
+  
+  // Vérifier le mode mock
+  if (mockMode.isActive()) {
+    return mockNotionResponse(endpoint, method, body) as T;
+  }
+  
+  // Tenter d'abord le proxy serverless si on n'est pas en local
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (!isLocalhost) {
+    try {
+      const result = await tryServerlessProxy<T>(endpoint, method, body, token, customHeaders);
+      
+      // Nettoyer les erreurs précédentes
+      clearStoredNotionErrors();
+      
+      return result;
+    } catch (serverlessError) {
+      // Si l'erreur est d'authentification, la propager directement
+      if (serverlessError.message?.includes('authentification') || 
+          serverlessError.message?.includes('401')) {
+        throw serverlessError;
+      }
+      
+      // Continuer avec le proxy client
+    }
+  }
+  
+  // Si le proxy serverless a échoué ou si on est en local, essayer le proxy client
   try {
-    // Construction de l'URL complète
-    const baseUrl = NOTION.API_BASE_URL;
-    const fullUrl = `${baseUrl}${endpoint}`;
+    const result = await tryClientProxy<T>(endpoint, method, token, body, customHeaders);
     
-    console.log(`🔗 Requesting Notion API: ${fullUrl}`);
+    // Nettoyer les erreurs précédentes
+    clearStoredNotionErrors();
     
-    // Préparer les en-têtes pour l'API Notion
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Notion-Version': NOTION.API_VERSION,
-    };
-    
-    // Ajouter le token d'authentification s'il est fourni
-    if (token) {
-      // Si le token ne commence pas par "Bearer ", l'ajouter
-      if (!token.startsWith('Bearer ')) {
-        headers['Authorization'] = `Bearer ${token}`;
-      } else {
-        headers['Authorization'] = token;
+    return result;
+  } catch (clientProxyError) {
+    // Si c'est une erreur CORS "Failed to fetch", essayer de trouver un autre proxy
+    if (clientProxyError.message?.includes('fetch')) {
+      try {
+        // Chercher un proxy fonctionnel
+        const newProxy = await corsProxyService.findWorkingProxy(token);
+        
+        if (newProxy) {
+          // Réessayer avec le nouveau proxy
+          return await tryClientProxy<T>(endpoint, method, token, body, customHeaders);
+        }
+      } catch (proxyError) {
+        // Ignorer l'erreur de recherche de proxy
       }
     }
     
-    // Options pour la requête fetch
-    const options: RequestInit = {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    };
+    // Stocker l'erreur
+    storeNotionError(clientProxyError, endpoint);
     
-    // Effectuer la requête à l'API Notion
-    const response = await fetch(fullUrl, options);
-    
-    // Vérifier si la réponse est OK
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error(`❌ Notion API error (${response.status}):`, errorData);
-      
-      // Créer une erreur avec le statut
-      const error = createNotionError(
-        errorData?.message || `Notion API returned ${response.status}`,
-        response.status
-      );
-      
-      throw error;
-    }
-    
-    // Traiter la réponse JSON
-    const data = await response.json();
-    return data;
-    
-  } catch (error) {
-    console.error('❌ Error in notionApiRequest:', error);
-    
-    // Propagate the error
-    throw error;
+    throw clientProxyError;
   }
 };

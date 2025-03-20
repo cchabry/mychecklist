@@ -40,7 +40,6 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ isOpen, onClose
           
           <div className="mt-6 mb-2">
             <NotionSolutionsSection 
-              errorCode={isAuthError ? '401' : isPermissionError ? '403' : ''}
               showCorsProxy={isCorsError}
               showMockMode={true}
               showApiKey={isAuthError}

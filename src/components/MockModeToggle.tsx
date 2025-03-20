@@ -23,10 +23,9 @@ const MockModeToggle = ({ onToggle }: MockModeToggleProps = {}) => {
     setIsMockMode(checked);
     
     if (checked) {
-      // Utiliser le mode V2 par défaut pour les nouvelles activations
-      notionApi.mockMode.activateV2();
+      notionApi.mockMode.activate();
       toast.info('Mode démonstration activé', {
-        description: 'L\'application utilise maintenant des données fictives (version Brief v2)',
+        description: 'L\'application utilise maintenant des données fictives',
       });
       
       // Forcer l'effacement des caches lors du passage en mode mock

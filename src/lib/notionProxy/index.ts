@@ -3,7 +3,7 @@ import { notionApiRequest } from './proxyFetch';
 import * as users from './endpoints/users';
 import * as databases from './endpoints/databases';
 import * as pages from './endpoints/pages';
-import { mockMode, MockVersion } from './mockMode';
+import { mockMode } from './mockMode';
 
 // Exporter toutes les API de Notion depuis un point d'entrée unique
 export const notionApi = {
@@ -16,11 +16,8 @@ export const notionApi = {
   pages,
   
   // Support pour les données de test
-  mockMode,
-  
-  // Exporter l'énumération des modes
-  MockVersion
+  mockMode
 };
 
 // Réexporter la fonction principale pour la rétrocompatibilité
-export { notionApiRequest, MockVersion };
+export { notionApiRequest };

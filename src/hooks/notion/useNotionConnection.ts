@@ -57,10 +57,13 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
       // Teste la connexion avec l'API Users
       const user = await notionApi.users.me(apiKey);
       
+      // Réinitialise les erreurs précédentes
+      clearStoredNotionErrors();
+      
       setStatus(prev => ({ 
         ...prev, 
         isConnected: true, 
-        isLoading: false,
+        isLoading: false, 
         error: null,
         isMockMode: false,
         lastTestedAt: Date.now()
@@ -68,17 +71,11 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
       
       return true;
     } catch (error) {
-      console.error('Notion connection test failed:', error);
-      
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Erreur inconnue lors du test de connexion';
-      
       setStatus(prev => ({ 
         ...prev, 
         isConnected: false, 
-        isLoading: false,
-        error: errorMessage,
+        isLoading: false, 
+        error: error.message,
         lastTestedAt: Date.now()
       }));
       
@@ -86,42 +83,64 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
     }
   }, [apiKey]);
 
-  // Test la connexion au montage du composant
-  useEffect(() => {
-    if (hasConfig) {
+  /**
+   * Reset le mode mock et force un test de connexion
+   */
+  const resetAndTest = useCallback(async (): Promise<void> => {
+    // Réinitialiser le mode mock
+    notionApi.mockMode.forceReset();
+    
+    // Effacer les erreurs stockées
+    clearStoredNotionErrors();
+    
+    // Notification
+    toast.info('Réinitialisation du mode', {
+      description: 'Tentative de connexion en mode réel...'
+    });
+    
+    // Attendre un peu pour que les changements prennent effet
+    setTimeout(() => {
       testConnection();
-    } else {
-      setStatus(prev => ({ 
-        ...prev, 
-        isConnected: false, 
-        isLoading: false,
-        error: 'Configuration manquante'
+    }, 500);
+  }, [testConnection]);
+
+  // Vérifier la configuration au chargement
+  useEffect(() => {
+    const checkConfig = async () => {
+      // Mettre à jour status.isMockMode périodiquement
+      setStatus(prev => ({
+        ...prev,
+        isMockMode: notionApi.mockMode.isActive()
       }));
-    }
+      
+      // Ne tester la connexion que si la configuration est présente
+      if (hasConfig) {
+        await testConnection();
+      } else {
+        setStatus(prev => ({ 
+          ...prev, 
+          isConnected: false, 
+          isLoading: false 
+        }));
+      }
+    };
+    
+    checkConfig();
+    
+    // Vérifier régulièrement le mode mock
+    const interval = setInterval(() => {
+      setStatus(prev => ({
+        ...prev,
+        isMockMode: notionApi.mockMode.isActive()
+      }));
+    }, 1000);
+    
+    return () => clearInterval(interval);
   }, [hasConfig, testConnection]);
 
-  // Test la connexion à chaque changement de clé API
-  useEffect(() => {
-    if (apiKey) {
-      testConnection();
-    }
-  }, [apiKey, testConnection]);
-
   return {
-    ...status,
+    status,
     testConnection,
-    resetConnection: () => {
-      // Nettoie les erreurs stockées
-      clearStoredNotionErrors();
-      // Réinitialise le statut
-      setStatus(prev => ({ 
-        ...prev, 
-        isLoading: true, 
-        error: null,
-        lastTestedAt: undefined
-      }));
-      // Lance un nouveau test de connexion
-      testConnection();
-    }
+    resetAndTest
   };
 }

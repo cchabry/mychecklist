@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { useNotionStorage, NotionConfig } from './notion/useNotionStorage';
-import { useNotionConnection } from './notion/useNotionConnection';
+import { useNotionConnection, NotionConnectionStatus } from './notion/useNotionConnection';
 import { useNotionConfigUI } from './notion/useNotionConfigUI';
 import { useNotionError } from './notion/useNotionError';
 
@@ -20,7 +20,7 @@ export function useNotionConfig() {
   const config = storage.getStoredConfig();
   
   // Initialiser le hook de connexion avec la clé API stockée
-  const connection = useNotionConnection(
+  const { status, testConnection, resetAndTest } = useNotionConnection(
     config.apiKey, 
     storage.hasStoredConfig()
   );
@@ -34,7 +34,7 @@ export function useNotionConfig() {
     
     // Si la clé API ou l'ID de base de données a changé, tester la connexion
     if (newConfig.apiKey || newConfig.databaseId) {
-      const success = await connection.testConnection();
+      const success = await testConnection();
       
       if (success) {
         toast.success('Configuration Notion mise à jour', {
@@ -46,27 +46,15 @@ export function useNotionConfig() {
     }
     
     return true;
-  }, [storage, connection]);
+  }, [storage, testConnection]);
   
   // Propriété calculée - utilise réellement Notion (connecté et pas en mode mock)
-  const usingNotion = connection.isConnected && !connection.isMockMode && storage.hasStoredConfig();
-  
-  // Modification: Assurer que resetAndTest retourne une Promise<void>
-  const resetAndTest = useCallback(async (): Promise<void> => {
-    connection.resetConnection();
-    await connection.testConnection();
-  }, [connection]);
+  const usingNotion = status.isConnected && !status.isMockMode && storage.hasStoredConfig();
   
   return {
     // États
     config,
-    status: {
-      isConnected: connection.isConnected,
-      isLoading: connection.isLoading,
-      error: connection.error,
-      isMockMode: connection.isMockMode,
-      lastTestedAt: connection.lastTestedAt
-    },
+    status,
     showConfig: configUI.showConfig,
     errorDetails: notionError.errorDetails,
     showErrorModal: notionError.showErrorModal,
@@ -77,7 +65,7 @@ export function useNotionConfig() {
     
     // Actions principales
     updateConfig,
-    testConnection: connection.testConnection,
+    testConnection,
     resetAndTest,
     
     // Actions UI
@@ -96,5 +84,4 @@ export function useNotionConfig() {
 }
 
 // Re-exporter les types pour les consommateurs
-export type { NotionConfig };
-export type { NotionConnectionStatus } from './notion/useNotionConnection';
+export type { NotionConfig, NotionConnectionStatus };

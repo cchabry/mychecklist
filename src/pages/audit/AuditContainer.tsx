@@ -16,7 +16,6 @@ import {
   NotionConnectButton 
 } from './components';
 import { NotionErrorDetails } from '@/components/notion';
-import MockModeSelector from '@/components/notion/MockModeSelector';
 import { useAuditData } from './hooks/useAuditData';
 import { toast } from 'sonner';
 
@@ -28,12 +27,14 @@ interface AuditContainerProps {
 export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onError }) => {
   console.log("AuditContainer rendering with projectId:", projectId);
   
+  // Référence pour suivre si le mode démo a été activé
   const mockModeActivated = useRef(false);
   
+  // Force le mode démo, mais une seule fois
   useEffect(() => {
     if (!mockModeActivated.current && !notionApi.mockMode.isActive()) {
       console.log("Activation du mode démo pour le prototype");
-      notionApi.mockMode.activateV2(); // Activer V2 par défaut
+      notionApi.mockMode.activate();
       mockModeActivated.current = true;
     }
   }, []);
@@ -41,6 +42,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   const navigate = useNavigate();
   const { status, config, usingNotion, testConnection } = useNotion();
   
+  // Débogage important - assurons-nous que le projectId est bien là
   console.log("Project ID dans AuditContainer:", projectId);
   
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
@@ -58,6 +60,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     setNotionConfigOpen(false);
     testConnection();
     
+    // Force a reload of the project data
     loadProject();
   };
   
@@ -73,8 +76,10 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     });
   };
   
+  // Référence pour éviter de charger plusieurs fois
   const dataInitialized = useRef(false);
   
+  // Utilisation explicite du hook avec le projectId explicitement fourni
   const { 
     project, 
     audit, 
@@ -89,12 +94,14 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   useEffect(() => {
     if (notionError) {
       console.log("Showing Notion error from audit data:", notionError);
+      // Call the onError prop if provided
       if (onError) {
         onError(notionError);
       }
     }
   }, [notionError, onError]);
   
+  // Ne charge le projet qu'une seule fois au montage
   useEffect(() => {
     if (projectId && !dataInitialized.current) {
       console.log("Loading project data");
@@ -110,6 +117,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
+    // Pour le prototype, on reste en mode démo
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
     
@@ -117,6 +125,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
       description: "Les données vont être rechargées"
     });
     
+    // Réinitialiser le flag pour permettre de recharger
     dataInitialized.current = false;
     
     setTimeout(() => {
@@ -124,6 +133,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     }, 600);
   };
   
+  // Si le projectId est manquant, afficher un message d'erreur
   if (!projectId) {
     console.error("No projectId provided to AuditContainer");
     return (
@@ -177,10 +187,6 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
                   id="notion-connect-button"
                 />
               </div>
-            </div>
-            
-            <div className="mb-4">
-              <MockModeSelector />
             </div>
             
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
