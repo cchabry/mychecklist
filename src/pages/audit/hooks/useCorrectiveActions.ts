@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { AuditItem, CorrectiveAction } from '@/lib/types';
+import { AuditItem, CorrectiveAction, ActionProgress, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export const useCorrectiveActions = (
@@ -16,12 +16,12 @@ export const useCorrectiveActions = (
       id: uuidv4(),
       evaluationId: item.id,
       pageId: actionData.pageId || '',
-      targetScore: actionData.targetScore || 'compliant',
-      priority: actionData.priority || 'medium',
+      targetScore: actionData.targetScore || ComplianceStatus.Compliant,
+      priority: actionData.priority || ActionPriority.Medium,
       dueDate: actionData.dueDate || new Date().toISOString(),
       responsible: actionData.responsible || '',
       comment: actionData.comment || '',
-      status: actionData.status || 'todo',
+      status: actionData.status || ActionStatus.ToDo,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       progress: []
@@ -75,20 +75,20 @@ export const useCorrectiveActions = (
 
     const updatedActions = item.actions.map(action => {
       if (action.id === actionId) {
-        const newProgress = {
+        const newProgress: ActionProgress = {
           id: uuidv4(),
           actionId: actionId,
           date: new Date().toISOString(),
           responsible: progressData.responsible,
           comment: progressData.comment,
           score: action.targetScore,
-          status: 'in-progress' as const
+          status: ActionStatus.InProgress
         };
 
         return {
           ...action,
           progress: [...(action.progress || []), newProgress],
-          status: 'in-progress' as const,
+          status: ActionStatus.InProgress,
           updatedAt: new Date().toISOString()
         };
       }
@@ -109,20 +109,20 @@ export const useCorrectiveActions = (
 
     const updatedActions = item.actions.map(action => {
       if (action.id === actionId) {
-        const newProgress = {
+        const newProgress: ActionProgress = {
           id: uuidv4(),
           actionId: actionId,
           date: new Date().toISOString(),
           responsible: action.responsible,
           comment: comment,
           score: action.targetScore,
-          status: 'done' as const
+          status: ActionStatus.Done
         };
 
         return {
           ...action,
           progress: [...(action.progress || []), newProgress],
-          status: 'done' as const,
+          status: ActionStatus.Done,
           updatedAt: new Date().toISOString()
         };
       }

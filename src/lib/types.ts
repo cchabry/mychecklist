@@ -47,16 +47,16 @@ export enum ImportanceLevel {
 }
 
 export enum ActionPriority {
-  Faible = "faible",
-  Moyenne = "moyenne",
-  Haute = "haute",
-  Critique = "critique"
+  Low = "low",
+  Medium = "medium",
+  High = "high",
+  Critical = "critical"
 }
 
 export enum ActionStatus {
-  ToDo = "à faire",
-  InProgress = "en cours",
-  Done = "terminée"
+  ToDo = "todo",
+  InProgress = "in-progress",
+  Done = "done"
 }
 
 // Nouvelle structure: Page d'échantillon
@@ -85,18 +85,6 @@ export interface ProjectRequirement {
   comment?: string; // Commentaire expliquant cette exigence
 }
 
-// Action corrective
-export interface CorrectiveAction {
-  id: string;
-  evaluationId: string; // Référence à l'évaluation
-  targetScore: ComplianceStatus;
-  priority: ActionPriority;
-  dueDate: string;
-  responsible: string;
-  comment?: string;
-  status: ActionStatus;
-}
-
 // Suivi d'une action corrective
 export interface ActionProgress {
   id: string;
@@ -106,6 +94,22 @@ export interface ActionProgress {
   comment?: string;
   score: ComplianceStatus;
   status: ActionStatus;
+}
+
+// Action corrective
+export interface CorrectiveAction {
+  id: string;
+  evaluationId: string; // Référence à l'évaluation
+  pageId: string; // Page concernée par l'action
+  targetScore: ComplianceStatus;
+  priority: ActionPriority;
+  dueDate: string;
+  responsible: string;
+  comment?: string;
+  status: ActionStatus;
+  createdAt: string;
+  updatedAt: string;
+  progress?: ActionProgress[]; // Suivi de progression
 }
 
 // Évaluation d'un item pour un audit spécifique

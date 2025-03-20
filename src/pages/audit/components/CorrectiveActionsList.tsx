@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CornerDownRight, Edit, Plus, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CorrectiveAction, SamplePage } from '@/lib/types';
+import { CorrectiveAction, SamplePage, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -30,7 +30,7 @@ const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({
 }) => {
   const [isAddingAction, setIsAddingAction] = useState(false);
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
-  const [selectedPriority, setSelectedPriority] = useState<string>("medium");
+  const [selectedPriority, setSelectedPriority] = useState<ActionPriority>(ActionPriority.Medium);
   const [selectedDueDate, setSelectedDueDate] = useState<Date | undefined>(
     new Date(new Date().setMonth(new Date().getMonth() + 1))
   );
@@ -45,11 +45,11 @@ const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({
     
     const newAction: Partial<CorrectiveAction> = {
       pageId: selectedPage,
-      priority: selectedPriority as "low" | "medium" | "high" | "critical",
+      priority: selectedPriority,
       dueDate: selectedDueDate?.toISOString() || new Date().toISOString(),
       responsible: responsible || "Non assigné",
       comment: comment || "Action à réaliser",
-      status: "todo"
+      status: ActionStatus.ToDo
     };
     
     onAddAction(newAction);
@@ -61,34 +61,34 @@ const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({
   
   const resetForm = () => {
     setSelectedPage(null);
-    setSelectedPriority("medium");
+    setSelectedPriority(ActionPriority.Medium);
     setSelectedDueDate(new Date(new Date().setMonth(new Date().getMonth() + 1)));
     setResponsible("");
     setComment("");
   };
   
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: ActionPriority) => {
     switch (priority) {
-      case "critical":
+      case ActionPriority.Critical:
         return "text-red-700 bg-red-100 border-red-300";
-      case "high":
+      case ActionPriority.High:
         return "text-orange-700 bg-orange-100 border-orange-300";
-      case "medium":
+      case ActionPriority.Medium:
         return "text-amber-700 bg-amber-100 border-amber-300";
-      case "low":
+      case ActionPriority.Low:
         return "text-green-700 bg-green-100 border-green-300";
       default:
         return "text-gray-700 bg-gray-100 border-gray-300";
     }
   };
   
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: ActionStatus) => {
     switch (status) {
-      case "done":
+      case ActionStatus.Done:
         return "text-green-700 bg-green-100 border-green-300";
-      case "in-progress":
+      case ActionStatus.InProgress:
         return "text-blue-700 bg-blue-100 border-blue-300";
-      case "todo":
+      case ActionStatus.ToDo:
         return "text-gray-700 bg-gray-100 border-gray-300";
       default:
         return "text-gray-700 bg-gray-100 border-gray-300";
@@ -144,15 +144,15 @@ const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({
               
               <div className="space-y-2">
                 <label className="text-sm font-medium">Priorité</label>
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                <Select value={selectedPriority} onValueChange={(value) => setSelectedPriority(value as ActionPriority)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Faible</SelectItem>
-                    <SelectItem value="medium">Moyenne</SelectItem>
-                    <SelectItem value="high">Haute</SelectItem>
-                    <SelectItem value="critical">Critique</SelectItem>
+                    <SelectItem value={ActionPriority.Low}>Faible</SelectItem>
+                    <SelectItem value={ActionPriority.Medium}>Moyenne</SelectItem>
+                    <SelectItem value={ActionPriority.High}>Haute</SelectItem>
+                    <SelectItem value={ActionPriority.Critical}>Critique</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -228,13 +228,13 @@ const CorrectiveActionsList: React.FC<CorrectiveActionsListProps> = ({
                 <div>
                   <div className="flex items-center gap-2 text-sm mb-1">
                     <Badge variant="outline" className={getPriorityColor(action.priority)}>
-                      {action.priority === "critical" ? "Critique" : 
-                       action.priority === "high" ? "Haute" : 
-                       action.priority === "medium" ? "Moyenne" : "Faible"}
+                      {action.priority === ActionPriority.Critical ? "Critique" : 
+                       action.priority === ActionPriority.High ? "Haute" : 
+                       action.priority === ActionPriority.Medium ? "Moyenne" : "Faible"}
                     </Badge>
                     <Badge variant="outline" className={getStatusColor(action.status)}>
-                      {action.status === "done" ? "Terminé" : 
-                       action.status === "in-progress" ? "En cours" : "À faire"}
+                      {action.status === ActionStatus.Done ? "Terminé" : 
+                       action.status === ActionStatus.InProgress ? "En cours" : "À faire"}
                     </Badge>
                   </div>
                   <CardTitle className="text-base font-medium">

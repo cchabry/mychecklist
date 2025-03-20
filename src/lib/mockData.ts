@@ -362,15 +362,35 @@ const generateMockActions = (evaluationId: string): CorrectiveAction[] => {
   const actions: CorrectiveAction[] = [];
   
   for (let i = 0; i < actionsCount; i++) {
+    const mockProgress: ActionProgress[] = [];
+    const now = new Date();
+    const randomProgressCount = Math.floor(Math.random() * 3);
+    
+    for (let j = 0; j < randomProgressCount; j++) {
+      mockProgress.push({
+        id: `progress-${evaluationId}-${i}-${j}`,
+        actionId: `action-${evaluationId}-${i}`,
+        date: new Date(now.getTime() - (j * 5 * 24 * 60 * 60 * 1000)).toISOString(),
+        responsible: ["John Doe", "Jane Smith", "Marc Dubois"][Math.floor(Math.random() * 3)],
+        comment: `Progrès ${j+1}/${randomProgressCount}`,
+        score: ComplianceStatus.PartiallyCompliant,
+        status: j === randomProgressCount - 1 ? ActionStatus.Done : ActionStatus.InProgress
+      });
+    }
+    
     actions.push({
       id: `action-${evaluationId}-${i}`,
       evaluationId,
+      pageId: `page-${Math.floor(Math.random() * 3) + 1}-${Math.floor(Math.random() * 3) + 1}`,
       targetScore: ComplianceStatus.Compliant,
       priority: priorities[Math.floor(Math.random() * priorities.length)],
       dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       responsible: ["John Doe", "Jane Smith", "Marc Dubois"][Math.floor(Math.random() * 3)],
       comment: Math.random() > 0.5 ? "Action à réaliser selon les critères" : undefined,
-      status: statuses[Math.floor(Math.random() * statuses.length)]
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: mockProgress
     });
   }
   
@@ -578,12 +598,16 @@ export const getMockActionHistory = (projectId: string): CorrectiveAction[] => {
     actions.push({
       id: `action-${projectId}-${i}`,
       evaluationId: `eval-${item.id}-${page.id}`,
+      pageId: page.id,
       targetScore: ComplianceStatus.Compliant,
       priority: priorities[Math.floor(Math.random() * priorities.length)],
       dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       responsible: ["John Doe", "Jane Smith", "Marc Dubois"][Math.floor(Math.random() * 3)],
       comment: `Correction requise pour ${item.title} sur ${page.title}`,
-      status: statuses[Math.floor(Math.random() * statuses.length)]
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: []
     });
   }
   
@@ -595,7 +619,6 @@ export const getMockActionProgress = (actionId: string): ActionProgress[] => {
   const progressCount = Math.floor(Math.random() * 4);
   const progressEntries: ActionProgress[] = [];
   
-  const statuses = Object.values(ActionStatus);
   const now = new Date();
   
   for (let i = 0; i < progressCount; i++) {
