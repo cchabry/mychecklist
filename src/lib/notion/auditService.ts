@@ -1,7 +1,8 @@
 
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { Audit, AuditItem, ComplianceStatus } from './types';
-import { COMPLIANCE_VALUES } from '../types';
+import { Audit, AuditItem } from './types';
+// Nous importons directement depuis '../types' pour éviter l'erreur d'usage comme valeur
+import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
 import { notionApi } from '@/lib/notionProxy';
 

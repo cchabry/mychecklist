@@ -118,7 +118,17 @@ const ExigenceChecklist: React.FC<ExigenceChecklistProps> = ({
                     <Badge variant="secondary" className="mr-2">
                       Importance: {importance}
                     </Badge>
-                    <ChecklistItemTags item={item} />
+                    {/* Passer seulement les propriétés nécessaires à ChecklistItemTags */}
+                    <ChecklistItemTags 
+                      metaRefs={item.metaRefs}
+                      criteria={item.criteria}
+                      profile={item.profile}
+                      phase={item.phase}
+                      effort={item.effort}
+                      priority={item.priority}
+                      requirementLevel={item.requirementLevel}
+                      scope={item.scope}
+                    />
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

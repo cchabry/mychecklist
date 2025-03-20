@@ -81,14 +81,15 @@ export const calculateOverallStatus = (
 
 /**
  * Calculer le score global pour un audit basé sur les résultats des items
+ * Modifié pour accepter les AuditItem[] avec importance optionnelle
  */
 export const calculateAuditScore = (items: {
   status: ComplianceStatus;
-  importance: string;
+  importance?: string;
 }[]): number => {
   // Filtrer les items qui ne sont pas N/A et qui sont évalués
   const evaluatedItems = items.filter(
-    item => item.importance !== "N/A" && 
+    item => (item.importance !== "N/A") && 
             item.status !== ComplianceStatus.NotEvaluated && 
             item.status !== ComplianceStatus.NotApplicable
   );
