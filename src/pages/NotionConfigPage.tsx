@@ -1,12 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NotionConfig, NotionProxyConfigSection } from '@/components/notion';
 import NotionDocLink from '@/components/NotionDocLink';
 import MainMenu from '@/components/MainMenu';
+import { useNotion } from '@/contexts/NotionContext';
 
 const NotionConfigPage = () => {
+  const [showConfig, setShowConfig] = useState(false);
+  const { testConnection } = useNotion();
+  
+  const handleOpenConfig = () => setShowConfig(true);
+  const handleCloseConfig = () => setShowConfig(false);
+  const handleConfigSuccess = () => {
+    setShowConfig(false);
+    testConnection();
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <MainMenu />
@@ -31,7 +42,18 @@ const NotionConfigPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <NotionConfig />
+              <button 
+                onClick={handleOpenConfig}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mb-4"
+              >
+                Configurer l'API Notion
+              </button>
+              
+              <NotionConfig 
+                isOpen={showConfig} 
+                onClose={handleCloseConfig} 
+                onSuccess={handleConfigSuccess}
+              />
             </CardContent>
           </Card>
         </TabsContent>
