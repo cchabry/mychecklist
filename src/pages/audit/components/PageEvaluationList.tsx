@@ -72,13 +72,13 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
   const getStatusClasses = (status: ComplianceStatus | null, type: string = 'bg') => {
     if (!status) return '';
     if (type === 'bg') {
-      return `bg-${status === ComplianceStatus.Compliant ? 'green' : status === ComplianceStatus.PartiallyCompliant ? 'amber' : status === ComplianceStatus.NonCompliant ? 'red' : 'gray'}-100`;
+      return `bg-${status === ComplianceStatus.Compliant ? 'green' : status === ComplianceStatus.PartiallyCompliant ? 'amber' : status === ComplianceStatus.NonCompliant ? 'red' : 'purple'}-100`;
     }
     if (type === 'text') {
-      return `text-${status === ComplianceStatus.Compliant ? 'green' : status === ComplianceStatus.PartiallyCompliant ? 'amber' : status === ComplianceStatus.NonCompliant ? 'red' : 'gray'}-700`;
+      return `text-${status === ComplianceStatus.Compliant ? 'green' : status === ComplianceStatus.PartiallyCompliant ? 'amber' : status === ComplianceStatus.NonCompliant ? 'red' : 'purple'}-700`;
     }
     if (type === 'border') {
-      return `border-${status === ComplianceStatus.Compliant ? 'green' : status === ComplianceStatus.PartiallyCompliant ? 'amber' : status === ComplianceStatus.NonCompliant ? 'red' : 'gray'}-200`;
+      return `border-${status === ComplianceStatus.Compliant ? 'green' : status === ComplianceStatus.PartiallyCompliant ? 'amber' : status === ComplianceStatus.NonCompliant ? 'red' : 'purple'}-200`;
     }
     return '';
   };
@@ -141,7 +141,7 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                 Conforme
               </Button>
               
-              <Button variant="outline" size="sm" className={`transition-all duration-200 ${selectedStatus === ComplianceStatus.NotApplicable ? 'bg-gray-100 text-gray-700 border-gray-300' : ''}`} onClick={() => setSelectedStatus(ComplianceStatus.NotApplicable)}>
+              <Button variant="outline" size="sm" className={`transition-all duration-200 ${selectedStatus === ComplianceStatus.NotApplicable ? 'bg-purple-100 text-purple-700 border-purple-300' : ''}`} onClick={() => setSelectedStatus(ComplianceStatus.NotApplicable)}>
                 <AlertTriangle size={16} className="mr-1.5" />
                 Non applicable
               </Button>
@@ -196,7 +196,7 @@ const PageEvaluationList: React.FC<PageEvaluationListProps> = ({
                       Conforme
                     </Button>
                     
-                    <Button variant="outline" size="sm" className={`transition-all duration-200 ${pageResult?.status === ComplianceStatus.NotApplicable ? 'bg-gray-100 text-gray-700 border-gray-300' : ''}`} onClick={() => updatePageStatus(page.id, ComplianceStatus.NotApplicable, pageResult?.comment)}>
+                    <Button variant="outline" size="sm" className={`transition-all duration-200 ${pageResult?.status === ComplianceStatus.NotApplicable ? 'bg-purple-100 text-purple-700 border-purple-300' : ''}`} onClick={() => updatePageStatus(page.id, ComplianceStatus.NotApplicable, pageResult?.comment)}>
                       <AlertTriangle size={16} className="mr-1" />
                       Non applicable
                     </Button>
