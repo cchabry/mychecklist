@@ -50,6 +50,7 @@ const corsProxies: CorsProxy[] = [
 // État interne
 let currentProxyIndex = 0;
 let lastWorkingProxyIndex: number | null = null;
+let selectedProxyUrl: string | null = null;
 
 /**
  * Service pour les opérations liées aux proxies CORS
@@ -64,12 +65,40 @@ export const corsProxyService = {
       throw new Error('Aucun proxy CORS disponible.');
     }
     
+    // Si un proxy spécifique est sélectionné, l'utiliser
+    if (selectedProxyUrl) {
+      const selectedProxy = corsProxies.find(p => p.url === selectedProxyUrl);
+      if (selectedProxy && selectedProxy.enabled) {
+        return selectedProxy;
+      }
+    }
+    
     // Utiliser le dernier proxy qui a fonctionné s'il existe
     if (lastWorkingProxyIndex !== null) {
       return corsProxies[lastWorkingProxyIndex];
     }
     
     return enabledProxies[currentProxyIndex % enabledProxies.length];
+  },
+  
+  /**
+   * Récupère le proxy actuellement sélectionné
+   */
+  getSelectedProxy(): CorsProxy | null {
+    if (selectedProxyUrl) {
+      const proxy = corsProxies.find(p => p.url === selectedProxyUrl);
+      return proxy || null;
+    }
+    return this.getCurrentProxy();
+  },
+  
+  /**
+   * Définit le proxy à utiliser
+   */
+  setSelectedProxy(proxy: CorsProxy | string): void {
+    const proxyUrl = typeof proxy === 'string' ? proxy : proxy.url;
+    selectedProxyUrl = proxyUrl;
+    console.log(`Proxy sélectionné: ${proxyUrl}`);
   },
   
   /**
@@ -82,6 +111,7 @@ export const corsProxyService = {
     }
     
     currentProxyIndex = (currentProxyIndex + 1) % enabledProxies.length;
+    selectedProxyUrl = null; // Réinitialiser la sélection manuelle
     return this.getCurrentProxy();
   },
   
@@ -120,6 +150,41 @@ export const corsProxyService = {
   },
   
   /**
+   * Teste si le proxy serverless est disponible
+   */
+  async testServerlessProxy(token: string): Promise<boolean> {
+    try {
+      // Utiliser l'endpoint de notre fonction serverless
+      let serverlessUrl = '/api/notion-proxy';
+      
+      // Adapter l'URL selon l'environnement (Vercel, Netlify, etc.)
+      if (window.location.hostname === 'localhost') {
+        // En local, utiliser l'URL relative
+        serverlessUrl = '/api/notion-proxy';
+      } else if (window.location.hostname.includes('netlify.app')) {
+        // Sur Netlify
+        serverlessUrl = '/.netlify/functions/notion-proxy';
+      }
+      
+      const testUrl = 'https://api.notion.com/v1/users/me';
+      
+      const response = await fetch(`${serverlessUrl}?url=${encodeURIComponent(testUrl)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      return response.status === 200 || response.status === 401;
+    } catch (error) {
+      console.error('Erreur lors du test du proxy serverless:', error);
+      return false;
+    }
+  },
+  
+  /**
    * Trouve un proxy qui fonctionne
    */
   async findWorkingProxy(token: string): Promise<CorsProxy | null> {
@@ -150,6 +215,16 @@ export const corsProxyService = {
   reset(): void {
     currentProxyIndex = 0;
     lastWorkingProxyIndex = null;
+    selectedProxyUrl = null;
+  },
+  
+  /**
+   * Réinitialise le cache des proxies
+   */
+  resetProxyCache(): void {
+    lastWorkingProxyIndex = null;
+    selectedProxyUrl = null;
+    console.log('Cache des proxies réinitialisé');
   },
   
   /**

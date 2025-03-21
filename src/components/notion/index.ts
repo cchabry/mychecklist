@@ -13,5 +13,6 @@ export { default as NotionDeploymentChecker } from './NotionDeploymentChecker';
 export { default as NotionDatabasesCreator } from './NotionDatabasesCreator';
 export { default as NotionWriteTestButton } from './NotionWriteTestButton';
 export { default as NotionTestDataGenerator } from './NotionTestDataGenerator';
+export { default as NotionCSVExporter } from './NotionCSVExporter';
 export { NotionDiagnosticTool } from './diagnostic';
 export { default as MockModeControl } from './MockModeControl';
