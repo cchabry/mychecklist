@@ -1,3 +1,4 @@
+
 /**
  * Simule une réponse de l'API Notion
  */
@@ -32,7 +33,7 @@ export const mockNotionResponse = (endpoint: string, method: string, body?: any)
 /**
  * Simulation des réponses Notion API - Pages
  */
-const mockNotionPages = (endpoint: string, method: string, data?: any) => {
+const mockNotionPages = (endpoint: string, method: string, body?: any) => {
   if (endpoint.startsWith('/pages/') && method === 'GET') {
     const pageId = endpoint.split('/')[2];
     console.log(`[MOCK] Retourne la page mock avec l'ID ${pageId}`);
@@ -82,7 +83,7 @@ const mockNotionPages = (endpoint: string, method: string, data?: any) => {
 /**
  * Simulation des réponses Notion API - Databases
  */
-const mockNotionDatabases = (endpoint: string, method: string, data?: any) => {
+const mockNotionDatabases = (endpoint: string, method: string, body?: any) => {
   if (method === 'POST' && endpoint === '/databases') {
     console.log('🔄 [MOCK] Simulation de création de base de données');
     
@@ -90,14 +91,14 @@ const mockNotionDatabases = (endpoint: string, method: string, data?: any) => {
     const randomId = Math.random().toString(36).substring(2, 15);
     
     // Récupérer les données de la base
-    const title = data?.title?.[0]?.text?.content || 'Base sans titre';
+    const title = body?.title?.[0]?.text?.content || 'Base sans titre';
     
     // Créer une réponse simulée
     return {
       id: randomId,
       title: [{ plain_text: title }],
-      properties: data?.properties || {},
-      parent: data?.parent || {},
+      properties: body?.properties || {},
+      parent: body?.parent || {},
       created_time: new Date().toISOString(),
       last_edited_time: new Date().toISOString(),
       url: `https://notion.so/${randomId}`,
@@ -253,7 +254,7 @@ const mockNotionDatabases = (endpoint: string, method: string, data?: any) => {
 /**
  * Simulation des réponses Notion API - Users
  */
-const mockNotionUsers = (endpoint: string, method: string, data?: any) => {
+const mockNotionUsers = (endpoint: string, method: string, body?: any) => {
   if (endpoint === '/users' && method === 'GET') {
     console.log('[MOCK] Retourne une liste d\'utilisateurs mock');
     return {
