@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
-import { Database, Terminal } from 'lucide-react';
+import { Database, Terminal, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { notionApiRequest } from '@/lib/notionProxy';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface NotionScriptRunnerProps {
   apiKey?: string;
@@ -24,22 +26,36 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<ScriptResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [pageId, setPageId] = useState(localStorage.getItem('notion_parent_page_id') || '');
+  const [showPageIdInput, setShowPageIdInput] = useState(false);
 
   const runSetupScript = async () => {
+    if (!pageId) {
+      toast.error('ID de page parent manquant', {
+        description: 'Veuillez fournir l\'ID de la page Notion où créer les bases de données.'
+      });
+      setShowPageIdInput(true);
+      return;
+    }
+
     setIsRunning(true);
     setResult(null);
     toast.info('Initialisation des bases de données Notion...');
     console.log("🚀 Démarrage du script avec la clé API:", apiKey.substring(0, 8) + '...');
+    console.log("📄 Page parent ID:", pageId);
+
+    // Sauvegarder l'ID de page pour une utilisation future
+    localStorage.setItem('notion_parent_page_id', pageId);
 
     try {
       // Création de la base de données Projets
       console.log("👷 Création de la base de données Projets...");
-      const projectsDb = await createProjectsDatabase();
+      const projectsDb = await createProjectsDatabase(pageId);
       console.log("✅ Base de données Projets créée:", projectsDb);
       
       // Création de la base de données Checklists
       console.log("👷 Création de la base de données Checklists...");
-      const checklistsDb = await createChecklistsDatabase();
+      const checklistsDb = await createChecklistsDatabase(pageId);
       console.log("✅ Base de données Checklists créée:", checklistsDb);
       
       // Initialiser le résultat
@@ -103,17 +119,18 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
     }
   };
 
-  async function createProjectsDatabase() {
+  async function createProjectsDatabase(parentPageId: string) {
     try {
       console.log("📊 Définition de la structure de la BDD Projets");
+      console.log("🔄 Parent page ID utilisé:", parentPageId);
+      
       const response = await notionApiRequest(
         '/databases',
         'POST',
         {
           parent: {
             type: "page_id",
-            // Pour simplifier, on utilise une page existante ou on laisse l'utilisateur modifier manuellement
-            page_id: "dernière-page-visitée",
+            page_id: parentPageId,
           },
           title: [
             {
@@ -176,17 +193,18 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
     }
   }
 
-  async function createChecklistsDatabase() {
+  async function createChecklistsDatabase(parentPageId: string) {
     try {
       console.log("📊 Définition de la structure de la BDD Checklists");
+      console.log("🔄 Parent page ID utilisé:", parentPageId);
+      
       const response = await notionApiRequest(
         '/databases',
         'POST',
         {
           parent: {
             type: "page_id",
-            // Pour simplifier, on utilise une page existante ou on laisse l'utilisateur modifier manuellement
-            page_id: "dernière-page-visitée",
+            page_id: parentPageId,
           },
           title: [
             {
@@ -565,25 +583,108 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
 
   return (
     <div className="space-y-4">
-      <Button 
-        variant="outline" 
-        size="default"
-        onClick={runSetupScript}
-        disabled={isRunning}
-        className="flex items-center gap-2"
-      >
-        {isRunning ? (
-          <>
-            <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-primary"></div>
-            Initialisation en cours...
-          </>
-        ) : (
-          <>
+      {!showPageIdInput ? (
+        <>
+          <Alert className="mb-4 border-amber-400 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800">Configuration requise pour Notion</AlertTitle>
+            <AlertDescription className="text-amber-700 text-sm mt-2 space-y-2">
+              <p>Avant d'exécuter ce script, vous devez :</p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Créer une <strong>page Notion</strong> qui va héberger vos bases de données</li>
+                <li>Partager cette page avec votre <strong>intégration Notion</strong> :</li>
+                <ul className="list-disc pl-5 text-xs mt-1 space-y-1">
+                  <li>Ouvrez la page dans Notion</li>
+                  <li>Cliquez sur les "..." (trois points) en haut à droite</li>
+                  <li>Sélectionnez "Ajouter des connexions" ou "Connexions"</li>
+                  <li>Recherchez et sélectionnez votre intégration</li>
+                </ul>
+                <li>Récupérer l'<strong>ID de la page</strong> depuis l'URL (format: 32 caractères après notion.so/)</li>
+              </ol>
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="p-0 text-amber-600 h-auto" 
+                onClick={() => setShowPageIdInput(true)}
+              >
+                Configurer l'ID de page Notion
+              </Button>
+            </AlertDescription>
+          </Alert>
+        
+          <Button 
+            variant="outline" 
+            size="default"
+            onClick={runSetupScript}
+            disabled={isRunning || !pageId}
+            className="flex items-center gap-2"
+          >
+            {isRunning ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-primary"></div>
+                Initialisation en cours...
+              </>
+            ) : (
+              <>
+                <Database size={16} />
+                Lancer le script BDD
+              </>
+            )}
+          </Button>
+          
+          {!pageId && (
+            <div className="text-sm text-rose-600 mt-1 flex items-center gap-1.5">
+              <Info size={14} />
+              Veuillez d'abord configurer l'ID de la page parent
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="border p-4 rounded-md space-y-4">
+          <h3 className="font-medium flex items-center gap-2">
             <Database size={16} />
-            Lancer le script BDD
-          </>
-        )}
-      </Button>
+            Configuration de la page parent Notion
+          </h3>
+          
+          <div className="space-y-2">
+            <Label htmlFor="pageId">ID de la page Notion</Label>
+            <Input 
+              id="pageId" 
+              value={pageId} 
+              onChange={(e) => setPageId(e.target.value)}
+              placeholder="ID de la page (32 caractères, ex: a1b2c3d4e5f6...)"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              L'ID se trouve dans l'URL de votre page Notion : notion.so/<strong className="text-foreground">[ID-page]</strong>?v=...
+            </p>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={() => {
+                localStorage.setItem('notion_parent_page_id', pageId);
+                setShowPageIdInput(false);
+                toast.success('ID de page enregistré', {
+                  description: 'Vous pouvez maintenant exécuter le script'
+                });
+              }}
+              disabled={!pageId || pageId.length < 32}
+            >
+              Enregistrer
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowPageIdInput(false)}
+            >
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className="mt-4 space-y-4">
