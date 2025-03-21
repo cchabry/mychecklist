@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Database, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { notionApi } from '@/lib/notionProxy';
+import { notionApiRequest } from '@/lib/notionProxy';
 
 interface NotionScriptRunnerProps {
   apiKey?: string;
@@ -18,7 +18,7 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
 
     try {
       // Configuration du client Notion avec la clé API fournie
-      notionApi.setApiKey(apiKey);
+      // We'll use apiKey directly instead of setting it globally
       
       // Création de la base de données Projets
       const projectsDb = await createProjectsDatabase();
@@ -47,58 +47,63 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
 
   async function createProjectsDatabase() {
     try {
-      const response = await notionApi.databases.create({
-        parent: {
-          type: "page_id",
-          // Pour simplifier, on utilise une page existante ou on laisse l'utilisateur modifier manuellement
-          page_id: "dernière-page-visitée",
+      const response = await notionApiRequest(
+        '/databases',
+        'POST',
+        {
+          parent: {
+            type: "page_id",
+            // Pour simplifier, on utilise une page existante ou on laisse l'utilisateur modifier manuellement
+            page_id: "dernière-page-visitée",
+          },
+          title: [
+            {
+              type: "text",
+              text: {
+                content: "Projets d'audit",
+              },
+            },
+          ],
+          properties: {
+            Name: {
+              title: {},
+            },
+            URL: {
+              url: {},
+            },
+            Description: {
+              rich_text: {},
+            },
+            Status: {
+              select: {
+                options: [
+                  { name: "À faire", color: "blue" },
+                  { name: "En cours", color: "yellow" },
+                  { name: "Terminé", color: "green" },
+                  { name: "Archivé", color: "gray" },
+                ],
+              },
+            },
+            Progress: {
+              number: {
+                format: "percent",
+              },
+            },
+            Created: {
+              created_time: {},
+            },
+            Updated: {
+              last_edited_time: {},
+            },
+            Pages: {
+              number: {
+                format: "number",
+              },
+            },
+          },
         },
-        title: [
-          {
-            type: "text",
-            text: {
-              content: "Projets d'audit",
-            },
-          },
-        ],
-        properties: {
-          Name: {
-            title: {},
-          },
-          URL: {
-            url: {},
-          },
-          Description: {
-            rich_text: {},
-          },
-          Status: {
-            select: {
-              options: [
-                { name: "À faire", color: "blue" },
-                { name: "En cours", color: "yellow" },
-                { name: "Terminé", color: "green" },
-                { name: "Archivé", color: "gray" },
-              ],
-            },
-          },
-          Progress: {
-            number: {
-              format: "percent",
-            },
-          },
-          Created: {
-            created_time: {},
-          },
-          Updated: {
-            last_edited_time: {},
-          },
-          Pages: {
-            number: {
-              format: "number",
-            },
-          },
-        },
-      });
+        apiKey
+      );
 
       console.log("Base de données Projets créée avec succès!");
       console.log(`ID de la base de données Projets: ${response.id}`);
@@ -111,107 +116,112 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
 
   async function createChecklistsDatabase() {
     try {
-      const response = await notionApi.databases.create({
-        parent: {
-          type: "page_id",
-          // Pour simplifier, on utilise une page existante ou on laisse l'utilisateur modifier manuellement
-          page_id: "dernière-page-visitée",
+      const response = await notionApiRequest(
+        '/databases',
+        'POST',
+        {
+          parent: {
+            type: "page_id",
+            // Pour simplifier, on utilise une page existante ou on laisse l'utilisateur modifier manuellement
+            page_id: "dernière-page-visitée",
+          },
+          title: [
+            {
+              type: "text",
+              text: {
+                content: "Checklist de bonnes pratiques",
+              },
+            },
+          ],
+          properties: {
+            Name: {
+              title: {},
+            },
+            Description: {
+              rich_text: {},
+            },
+            Category: {
+              select: {
+                options: [
+                  { name: "Accessibilité", color: "blue" },
+                  { name: "Performance", color: "green" },
+                  { name: "Ergonomie", color: "yellow" },
+                  { name: "Technique", color: "orange" },
+                  { name: "Contenu", color: "purple" },
+                  { name: "Médias", color: "pink" },
+                  { name: "Sécurité", color: "red" },
+                ],
+              },
+            },
+            Subcategory: {
+              select: {
+                options: [
+                  { name: "Images", color: "blue" },
+                  { name: "Vidéos", color: "blue" },
+                  { name: "Formulaires", color: "yellow" },
+                  { name: "Navigation", color: "yellow" },
+                  { name: "Architecture", color: "orange" },
+                  { name: "Contenu éditorial", color: "purple" },
+                  { name: "Sécurité des données", color: "red" },
+                ],
+              },
+            },
+            Reference: {
+              multi_select: {
+                options: [
+                  { name: "RGAA", color: "blue" },
+                  { name: "RGESN", color: "green" },
+                  { name: "WCAG", color: "yellow" },
+                  { name: "OPQUAST", color: "orange" },
+                ],
+              },
+            },
+            Profile: {
+              multi_select: {
+                options: [
+                  { name: "Product Owner", color: "red" },
+                  { name: "UX Designer", color: "pink" },
+                  { name: "UI Designer", color: "purple" },
+                  { name: "Développeur", color: "blue" },
+                  { name: "Contributeur", color: "yellow" },
+                ],
+              },
+            },
+            Phase: {
+              multi_select: {
+                options: [
+                  { name: "Cadrage", color: "blue" },
+                  { name: "Conception", color: "green" },
+                  { name: "Développement", color: "yellow" },
+                  { name: "Tests", color: "orange" },
+                  { name: "Production", color: "red" },
+                ],
+              },
+            },
+            Effort: {
+              select: {
+                options: [
+                  { name: "Faible", color: "green" },
+                  { name: "Moyen", color: "yellow" },
+                  { name: "Important", color: "orange" },
+                  { name: "Critique", color: "red" },
+                ],
+              },
+            },
+            Priority: {
+              select: {
+                options: [
+                  { name: "Faible", color: "green" },
+                  { name: "Moyenne", color: "yellow" },
+                  { name: "Haute", color: "orange" },
+                  { name: "Critique", color: "red" },
+                ],
+              },
+            },
+          },
         },
-        title: [
-          {
-            type: "text",
-            text: {
-              content: "Checklist de bonnes pratiques",
-            },
-          },
-        ],
-        properties: {
-          Name: {
-            title: {},
-          },
-          Description: {
-            rich_text: {},
-          },
-          Category: {
-            select: {
-              options: [
-                { name: "Accessibilité", color: "blue" },
-                { name: "Performance", color: "green" },
-                { name: "Ergonomie", color: "yellow" },
-                { name: "Technique", color: "orange" },
-                { name: "Contenu", color: "purple" },
-                { name: "Médias", color: "pink" },
-                { name: "Sécurité", color: "red" },
-              ],
-            },
-          },
-          Subcategory: {
-            select: {
-              options: [
-                { name: "Images", color: "blue" },
-                { name: "Vidéos", color: "blue" },
-                { name: "Formulaires", color: "yellow" },
-                { name: "Navigation", color: "yellow" },
-                { name: "Architecture", color: "orange" },
-                { name: "Contenu éditorial", color: "purple" },
-                { name: "Sécurité des données", color: "red" },
-              ],
-            },
-          },
-          Reference: {
-            multi_select: {
-              options: [
-                { name: "RGAA", color: "blue" },
-                { name: "RGESN", color: "green" },
-                { name: "WCAG", color: "yellow" },
-                { name: "OPQUAST", color: "orange" },
-              ],
-            },
-          },
-          Profile: {
-            multi_select: {
-              options: [
-                { name: "Product Owner", color: "red" },
-                { name: "UX Designer", color: "pink" },
-                { name: "UI Designer", color: "purple" },
-                { name: "Développeur", color: "blue" },
-                { name: "Contributeur", color: "yellow" },
-              ],
-            },
-          },
-          Phase: {
-            multi_select: {
-              options: [
-                { name: "Cadrage", color: "blue" },
-                { name: "Conception", color: "green" },
-                { name: "Développement", color: "yellow" },
-                { name: "Tests", color: "orange" },
-                { name: "Production", color: "red" },
-              ],
-            },
-          },
-          Effort: {
-            select: {
-              options: [
-                { name: "Faible", color: "green" },
-                { name: "Moyen", color: "yellow" },
-                { name: "Important", color: "orange" },
-                { name: "Critique", color: "red" },
-              ],
-            },
-          },
-          Priority: {
-            select: {
-              options: [
-                { name: "Faible", color: "green" },
-                { name: "Moyenne", color: "yellow" },
-                { name: "Haute", color: "orange" },
-                { name: "Critique", color: "red" },
-              ],
-            },
-          },
-        },
-      });
+        apiKey
+      );
 
       console.log("Base de données Checklists créée avec succès!");
       console.log(`ID de la base de données Checklists: ${response.id}`);
@@ -225,86 +235,96 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
   async function addSampleProjects(databaseId: string) {
     try {
       // Projet 1
-      await notionApi.pages.create({
-        parent: {
-          database_id: databaseId,
-        },
-        properties: {
-          Name: {
-            title: [
-              {
-                text: {
-                  content: "Site vitrine entreprise",
+      await notionApiRequest(
+        '/pages',
+        'POST',
+        {
+          parent: {
+            database_id: databaseId,
+          },
+          properties: {
+            Name: {
+              title: [
+                {
+                  text: {
+                    content: "Site vitrine entreprise",
+                  },
                 },
-              },
-            ],
-          },
-          URL: {
-            url: "https://exemple-entreprise.com",
-          },
-          Description: {
-            rich_text: [
-              {
-                text: {
-                  content: "Audit du site vitrine de l'entreprise Exemple",
+              ],
+            },
+            URL: {
+              url: "https://exemple-entreprise.com",
+            },
+            Description: {
+              rich_text: [
+                {
+                  text: {
+                    content: "Audit du site vitrine de l'entreprise Exemple",
+                  },
                 },
+              ],
+            },
+            Status: {
+              select: {
+                name: "En cours",
               },
-            ],
-          },
-          Status: {
-            select: {
-              name: "En cours",
+            },
+            Progress: {
+              number: 25,
+            },
+            Pages: {
+              number: 5,
             },
           },
-          Progress: {
-            number: 25,
-          },
-          Pages: {
-            number: 5,
-          },
         },
-      });
+        apiKey
+      );
 
       // Projet 2
-      await notionApi.pages.create({
-        parent: {
-          database_id: databaseId,
-        },
-        properties: {
-          Name: {
-            title: [
-              {
-                text: {
-                  content: "E-commerce produits bio",
+      await notionApiRequest(
+        '/pages',
+        'POST',
+        {
+          parent: {
+            database_id: databaseId,
+          },
+          properties: {
+            Name: {
+              title: [
+                {
+                  text: {
+                    content: "E-commerce produits bio",
+                  },
                 },
-              },
-            ],
-          },
-          URL: {
-            url: "https://bio-ecoshop.com",
-          },
-          Description: {
-            rich_text: [
-              {
-                text: {
-                  content: "Audit complet de la boutique en ligne de produits biologiques",
+              ],
+            },
+            URL: {
+              url: "https://bio-ecoshop.com",
+            },
+            Description: {
+              rich_text: [
+                {
+                  text: {
+                    content: "Audit complet de la boutique en ligne de produits biologiques",
+                  },
                 },
+              ],
+            },
+            Status: {
+              select: {
+                name: "À faire",
               },
-            ],
-          },
-          Status: {
-            select: {
-              name: "À faire",
+            },
+            Progress: {
+              number: 0,
+            },
+            Pages: {
+              number: 8,
             },
           },
-          Progress: {
-            number: 0,
-          },
-          Pages: {
-            number: 8,
-          },
         },
-      });
+        apiKey
+      );
 
       console.log("Exemples de projets ajoutés avec succès!");
     } catch (error) {
@@ -316,69 +336,74 @@ const NotionScriptRunner: React.FC<NotionScriptRunnerProps> = ({ apiKey = 'ntn_3
   async function addSampleChecklists(databaseId: string) {
     try {
       // Item 1
-      await notionApi.pages.create({
-        parent: {
-          database_id: databaseId,
-        },
-        properties: {
-          Name: {
-            title: [
-              {
-                text: {
-                  content: "Images avec attribut alt",
+      await notionApiRequest(
+        '/pages',
+        'POST',
+        {
+          parent: {
+            database_id: databaseId,
+          },
+          properties: {
+            Name: {
+              title: [
+                {
+                  text: {
+                    content: "Images avec attribut alt",
+                  },
                 },
-              },
-            ],
-          },
-          Description: {
-            rich_text: [
-              {
-                text: {
-                  content: "Toutes les images doivent avoir un attribut alt pertinent décrivant leur contenu.",
+              ],
+            },
+            Description: {
+              rich_text: [
+                {
+                  text: {
+                    content: "Toutes les images doivent avoir un attribut alt pertinent décrivant leur contenu.",
+                  },
                 },
+              ],
+            },
+            Category: {
+              select: {
+                name: "Accessibilité",
               },
-            ],
-          },
-          Category: {
-            select: {
-              name: "Accessibilité",
             },
-          },
-          Subcategory: {
-            select: {
-              name: "Images",
+            Subcategory: {
+              select: {
+                name: "Images",
+              },
             },
-          },
-          Reference: {
-            multi_select: [
-              { name: "RGAA" },
-              { name: "WCAG" },
-            ],
-          },
-          Profile: {
-            multi_select: [
-              { name: "Développeur" },
-              { name: "Contributeur" },
-            ],
-          },
-          Phase: {
-            multi_select: [
-              { name: "Développement" },
-              { name: "Production" },
-            ],
-          },
-          Effort: {
-            select: {
-              name: "Faible",
+            Reference: {
+              multi_select: [
+                { name: "RGAA" },
+                { name: "WCAG" },
+              ],
             },
-          },
-          Priority: {
-            select: {
-              name: "Haute",
+            Profile: {
+              multi_select: [
+                { name: "Développeur" },
+                { name: "Contributeur" },
+              ],
+            },
+            Phase: {
+              multi_select: [
+                { name: "Développement" },
+                { name: "Production" },
+              ],
+            },
+            Effort: {
+              select: {
+                name: "Faible",
+              },
+            },
+            Priority: {
+              select: {
+                name: "Haute",
+              },
             },
           },
         },
-      });
+        apiKey
+      );
 
       // Item 2 et 3 pourraient être ajoutés de la même façon
       // J'ai simplifié pour éviter de surcharger le code
