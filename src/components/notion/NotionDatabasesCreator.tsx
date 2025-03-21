@@ -585,32 +585,25 @@ const NotionDatabasesCreator: React.FC = () => {
       
       addLog(`📝 Envoi de la requête de création pour "${schema.name}"...`);
       
-      const response = await executeRequest(
-        async () => {
-          const wasMockMode = notionApi.mockMode.isActive();
-          if (wasMockMode) {
-            notionApi.mockMode.temporarilyForceReal();
-          }
-          
-          try {
-            return await notionApi.databases.create(pageId, dbData, apiKey);
-          } finally {
-            if (wasMockMode) {
-              notionApi.mockMode.restoreAfterForceReal();
-            }
-          }
-        },
-        {
-          mockResponse: {
-            id: `mock-${schema.key}-${Date.now()}`,
-            created_time: new Date().toISOString(),
-            last_edited_time: new Date().toISOString(),
-            title: [{ type: "text", text: { content: schema.name } }],
-            properties: schema.properties
-          },
-          errorContext: `Création de la base de données "${schema.name}"`
+      const wasMockActive = notionApi.mockMode.isActive();
+      
+      if (wasMockActive) {
+        addLog("⚠️ Désactivation temporaire du mode mock pour la création de BDD");
+        notionApi.mockMode.deactivate();
+      }
+      
+      let response;
+      try {
+        response = await notionApi.databases.create(pageId, dbData, apiKey);
+      } catch (createError) {
+        addLog(`❌ Erreur lors de la création: ${createError.message}`);
+        throw createError;
+      } finally {
+        if (wasMockActive) {
+          addLog("⚠️ Restauration du mode mock après création");
+          notionApi.mockMode.activate();
         }
-      );
+      }
       
       if (response && response.id) {
         addLog(`✅ Base de données "${schema.name}" créée avec succès. ID: ${response.id}`);
@@ -1042,3 +1035,4 @@ const NotionDatabasesCreator: React.FC = () => {
 };
 
 export default NotionDatabasesCreator;
+
