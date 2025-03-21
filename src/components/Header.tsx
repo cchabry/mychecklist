@@ -2,13 +2,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Menu, TestTube, Database } from 'lucide-react';
+import { Home, Menu, TestTube, Database, FileCode } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import NotionScriptRunner from './NotionScriptRunner';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -36,6 +37,8 @@ const Header: React.FC = () => {
             </Button>
           )}
           
+          <NotionScriptRunner />
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
@@ -57,6 +60,17 @@ const Header: React.FC = () => {
                   <Database size={16} />
                   <span>Configurer Notion</span>
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a 
+                  href="/scriptsNotion.md" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-2"
+                >
+                  <FileCode size={16} />
+                  <span>Documentation Script Notion</span>
+                </a>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
