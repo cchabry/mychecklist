@@ -145,6 +145,7 @@ const NewProject = () => {
               
               // Si l'utilisateur a choisi de démarrer un audit, rediriger vers la page de création d'audit
               if (startAudit) {
+                console.log(`🔄 Redirection vers la page de création d'audit: /audit/new/${project.id}`);
                 navigate(`/audit/new/${project.id}`);
               } else {
                 navigate('/');
@@ -195,9 +196,14 @@ const NewProject = () => {
             description: "Le projet a été ajouté en mode simulation.",
           });
           
+          // Générer un ID de projet mock unique
+          const mockProjectId = `mock-project-${Date.now()}`;
+          console.log(`🔄 ID de projet généré: ${mockProjectId}`);
+          
           // Si l'utilisateur a choisi de démarrer un audit, rediriger vers la page de création d'audit
           if (startAudit) {
-            navigate(`/audit/new/mock-project-${Date.now()}`);
+            console.log(`🔄 Redirection vers la page de création d'audit: /audit/new/${mockProjectId}`);
+            navigate(`/audit/new/${mockProjectId}`);
           } else {
             navigate('/');
           }
