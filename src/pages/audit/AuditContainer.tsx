@@ -30,6 +30,24 @@ interface AuditContainerProps {
 export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onError }) => {
   console.log("AuditContainer rendering with projectId:", projectId);
   
+  // Normaliser l'ID du projet si nécessaire
+  const getNormalizedProjectId = () => {
+    if (!projectId) return '';
+    
+    try {
+      // Si l'ID est une chaîne JSON, on l'extrait
+      if (projectId.startsWith('"') && projectId.endsWith('"')) {
+        return JSON.parse(projectId);
+      }
+    } catch (e) {
+      console.error("Erreur lors de la normalisation de l'ID du projet:", e);
+    }
+    
+    return projectId;
+  };
+  
+  const normalizedProjectId = getNormalizedProjectId();
+  
   // Ne plus forcer le mode mock par défaut
   // Référence pour suivre les diagnostics
   const diagnosticRun = useRef(false);
@@ -38,7 +56,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   const { status, config, usingNotion, testConnection } = useNotion();
   
   // Débogage important - assurons-nous que le projectId est bien là
-  console.log("Project ID dans AuditContainer:", projectId);
+  console.log("Project ID dans AuditContainer (normalisé):", normalizedProjectId);
   
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   const [notionErrorDetails, setNotionErrorDetails] = useState({
@@ -77,7 +95,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   // Référence pour éviter de charger plusieurs fois
   const dataInitialized = useRef(false);
   
-  // Utilisation explicite du hook avec le projectId explicitement fourni
+  // Utilisation explicite du hook avec le projectId normalisé
   const { 
     project, 
     audit, 
@@ -88,7 +106,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     setAudit, 
     handleSaveAudit,
     loadProject 
-  } = useAuditData(projectId);
+  } = useAuditData(normalizedProjectId);
   
   useEffect(() => {
     if (notionError) {
@@ -102,12 +120,12 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   
   // Ne charge le projet qu'une seule fois au montage
   useEffect(() => {
-    if (projectId && !dataInitialized.current) {
+    if (normalizedProjectId && !dataInitialized.current) {
       console.log("Loading project data");
       loadProject();
       dataInitialized.current = true;
     }
-  }, [projectId, loadProject]);
+  }, [normalizedProjectId, loadProject]);
   
   // Charger les pages d'échantillon au montage
   useEffect(() => {
@@ -233,7 +251,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   }, [audit, setAudit, handleSaveAudit]);
   
   // Si le projectId est manquant, afficher un message d'erreur
-  if (!projectId) {
+  if (!normalizedProjectId) {
     console.error("No projectId provided to AuditContainer");
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
@@ -257,7 +275,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
       {loading ? (
         <AuditLoader />
       ) : !project || !audit ? (
-        <AuditNotFound navigate={navigate} />
+        <AuditNotFound navigate={navigate} projectId={normalizedProjectId} />
       ) : (
         <>
           <div className="mb-8">

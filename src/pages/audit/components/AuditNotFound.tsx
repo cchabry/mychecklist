@@ -11,6 +11,24 @@ interface AuditNotFoundProps {
 }
 
 const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId }) => {
+  // Fonction pour nettoyer l'ID du projet si nécessaire
+  const getCleanProjectId = () => {
+    if (!projectId) return undefined;
+    
+    // Si l'ID est une chaîne JSON, essayons de l'extraire
+    try {
+      if (projectId.startsWith('"') && projectId.endsWith('"')) {
+        return JSON.parse(projectId);
+      }
+    } catch (e) {
+      console.error("Erreur lors du nettoyage de l'ID:", e);
+    }
+    
+    return projectId;
+  };
+  
+  const cleanProjectId = getCleanProjectId();
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -22,6 +40,11 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId }) =>
           <h2 className="text-2xl font-bold mb-2">Projet non trouvé</h2>
           <p className="text-muted-foreground mb-6">
             Le projet que vous cherchez n'existe pas ou a été supprimé.
+            {cleanProjectId && (
+              <span className="block mt-2 text-xs text-gray-500">
+                ID: {cleanProjectId}
+              </span>
+            )}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="outline" onClick={() => navigate('/')}>
@@ -29,10 +52,10 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId }) =>
               Retour à l'accueil
             </Button>
             
-            {projectId && (
+            {cleanProjectId && (
               <Button 
                 variant="default"
-                onClick={() => navigate(`/audit/new/${projectId}`)}
+                onClick={() => navigate(`/audit/new/${cleanProjectId}`)}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Créer un audit

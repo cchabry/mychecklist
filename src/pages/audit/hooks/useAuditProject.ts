@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getProjectById, createMockAudit, createNewAudit, getPagesByProjectId } from '@/lib/mockData';
+import { getProjectById, createMockAudit, createNewAudit, getPagesByProjectId, getAllProjects } from '@/lib/mockData';
 import { Audit, Project, SamplePage } from '@/lib/types';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -136,7 +136,39 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
           isLoadingProject.current = false;
         }, 300); // Réduit le délai pour le prototype
       } else {
-        console.error("Le projet avec l'ID", projectId, "n'a pas été trouvé dans les données mock");
+        console.log("Le projet avec l'ID", projectId, "n'a pas été trouvé dans les données mock");
+        
+        // AMÉLIORATION: Vérifier dans TOUS les projets disponibles
+        const allProjects = getAllProjects();
+        console.log("Tous les projets disponibles:", allProjects.map(p => p.id));
+        
+        // Double vérification avec un projectId nettoyé (si c'est une chaîne JSON)
+        let cleanedProjectId = projectId;
+        try {
+          // Si l'ID est une chaîne JSON, essayons de l'extraire
+          if (projectId.startsWith('"') && projectId.endsWith('"')) {
+            cleanedProjectId = JSON.parse(projectId);
+            console.log("ID nettoyé:", cleanedProjectId);
+            const projectWithCleanedId = getProjectById(cleanedProjectId);
+            if (projectWithCleanedId) {
+              console.log("Projet trouvé avec ID nettoyé!");
+              setProject(projectWithCleanedId);
+              setPages(getPagesByProjectId(cleanedProjectId));
+              
+              setTimeout(() => {
+                const mockAudit = projectWithCleanedId.progress === 0 
+                  ? createNewAudit(cleanedProjectId) 
+                  : createMockAudit(cleanedProjectId);
+                setAudit(mockAudit);
+                setLoading(false);
+                isLoadingProject.current = false;
+              }, 300);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log("Erreur lors du nettoyage de l'ID:", e);
+        }
         
         // Vérifier si l'ID commence par 'mock-project-' (généré par NewProject.tsx)
         if (projectId.startsWith('mock-project-')) {
