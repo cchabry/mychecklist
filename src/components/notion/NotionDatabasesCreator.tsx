@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,6 @@ import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { useNotionAPI } from '@/hooks/notion/useNotionAPI';
 
-// Interface pour une base de données à créer
 interface DatabaseSchema {
   name: string;
   description: string;
@@ -22,7 +20,6 @@ interface DatabaseSchema {
   storageKey: string;
 }
 
-// Interface pour stocker les résultats des créations
 interface DatabaseResult {
   id: string | null;
   name: string;
@@ -31,7 +28,6 @@ interface DatabaseResult {
   response?: any;
 }
 
-// Schémas des bases de données à créer
 const DATABASE_SCHEMAS: DatabaseSchema[] = [
   {
     name: "Projets d'audit",
@@ -384,9 +380,7 @@ const NotionDatabasesCreator: React.FC = () => {
   const [isMockMode, setIsMockMode] = useState<boolean>(false);
   const { isLoading, executeRequest } = useNotionAPI();
 
-  // Initialiser les résultats
   useEffect(() => {
-    // Vérifier si on est en mode mock
     const checkMockMode = async () => {
       const mockActive = notionApi.mockMode.isActive();
       setIsMockMode(mockActive);
@@ -400,26 +394,23 @@ const NotionDatabasesCreator: React.FC = () => {
     
     const initialResults: Record<string, DatabaseResult> = {};
     DATABASE_SCHEMAS.forEach(schema => {
-      // Vérifier si l'ID est déjà stocké
       const savedId = localStorage.getItem(schema.storageKey);
       initialResults[schema.key] = {
         id: savedId,
         name: schema.name,
         status: savedId ? 'success' : 'pending',
-        error: undefined,  // Add explicit undefined for error
-        response: undefined // Add explicit undefined for response
+        error: undefined,
+        response: undefined
       };
     });
     setResults(initialResults);
   }, []);
 
-  // Fonction pour ajouter un log
   const addLog = (message: string) => {
     console.log(`[DB Creator] ${message}`);
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
-  // Fonction pour mettre à jour le statut d'une base de données
   const updateDatabaseStatus = (key: string, status: 'pending' | 'success' | 'error', data?: { id?: string; error?: string; response?: any }) => {
     setResults(prev => ({
       ...prev,
@@ -433,15 +424,12 @@ const NotionDatabasesCreator: React.FC = () => {
     }));
   };
 
-  // Test de connexion Notion avant création
   const testNotionConnection = async (): Promise<boolean> => {
     addLog("🔍 Test de connexion à l'API Notion...");
     
     try {
-      // Désactiver le mode mock pour le test
       notionApi.mockMode.forceReset();
       
-      // Tester la connexion à l'API
       const response = await notionApi.users.me(apiKey);
       
       if (response && response.id) {
@@ -456,7 +444,6 @@ const NotionDatabasesCreator: React.FC = () => {
     }
   };
 
-  // Fonction pour récupérer une base de données existante
   const retrieveDatabase = async (dbId: string): Promise<any> => {
     if (!dbId) return null;
     
@@ -475,13 +462,82 @@ const NotionDatabasesCreator: React.FC = () => {
     }
   };
 
-  // Création d'une seule base de données
+  const updateRelationIds = (schema: DatabaseSchema): DatabaseSchema => {
+    const updatedSchema = { ...schema, properties: { ...schema.properties } };
+    
+    if (updatedSchema.properties) {
+      for (const propKey in updatedSchema.properties) {
+        const prop = updatedSchema.properties[propKey];
+        if (prop.relation && prop.relation.database_id === "") {
+          if (propKey === "Project") {
+            const projectsDbId = localStorage.getItem("notion_database_id");
+            if (projectsDbId) {
+              prop.relation.database_id = projectsDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Projets (${projectsDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Projets" manquant`);
+            }
+          } else if (propKey === "Checklist") {
+            const checklistsDbId = localStorage.getItem("notion_checklists_database_id");
+            if (checklistsDbId) {
+              prop.relation.database_id = checklistsDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Checklists (${checklistsDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Checklists" manquant`);
+            }
+          } else if (propKey === "Page") {
+            const pagesDbId = localStorage.getItem("notion_pages_database_id");
+            if (pagesDbId) {
+              prop.relation.database_id = pagesDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Pages (${pagesDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Pages" manquant`);
+            }
+          } else if (propKey === "Audit") {
+            const auditsDbId = localStorage.getItem("notion_audits_database_id");
+            if (auditsDbId) {
+              prop.relation.database_id = auditsDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Audits (${auditsDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Audits" manquant`);
+            }
+          } else if (propKey === "Requirement") {
+            const requirementsDbId = localStorage.getItem("notion_requirements_database_id");
+            if (requirementsDbId) {
+              prop.relation.database_id = requirementsDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Exigences (${requirementsDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Exigences" manquant`);
+            }
+          } else if (propKey === "Evaluation") {
+            const evaluationsDbId = localStorage.getItem("notion_evaluations_database_id");
+            if (evaluationsDbId) {
+              prop.relation.database_id = evaluationsDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Évaluations (${evaluationsDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Évaluations" manquant`);
+            }
+          } else if (propKey === "Action") {
+            const actionsDbId = localStorage.getItem("notion_actions_database_id");
+            if (actionsDbId) {
+              prop.relation.database_id = actionsDbId;
+              addLog(`ℹ️ Relation mise à jour: "${propKey}" → Actions (${actionsDbId})`);
+            } else {
+              addLog(`⚠️ Impossible de définir la relation "${propKey}": ID de base "Actions" manquant`);
+            }
+          }
+        }
+      }
+    }
+    
+    return updatedSchema;
+  };
+
   const createSingleDatabase = async (schema: DatabaseSchema): Promise<string | null> => {
     addLog(`🏗️ Création de la base de données "${schema.name}"...`);
     updateDatabaseStatus(schema.key, 'pending');
     
     try {
-      // Vérifier si un ID est déjà enregistré
       const existingId = localStorage.getItem(schema.storageKey);
       if (existingId) {
         const existingDb = await retrieveDatabase(existingId);
@@ -495,72 +551,19 @@ const NotionDatabasesCreator: React.FC = () => {
         }
       }
       
-      // Pour les bases avec relations, mettre à jour les ID de référence
-      if (schema.properties) {
-        for (const propKey in schema.properties) {
-          const prop = schema.properties[propKey];
-          if (prop.relation && prop.relation.database_id === "") {
-            // Projets
-            if (propKey === "Project") {
-              const projectsDbId = localStorage.getItem("notion_database_id");
-              if (projectsDbId) {
-                prop.relation.database_id = projectsDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Projets (${projectsDbId})`);
-              }
-            }
-            // Checklist
-            if (propKey === "Checklist") {
-              const checklistsDbId = localStorage.getItem("notion_checklists_database_id");
-              if (checklistsDbId) {
-                prop.relation.database_id = checklistsDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Checklists (${checklistsDbId})`);
-              }
-            }
-            // Pages
-            if (propKey === "Page") {
-              const pagesDbId = localStorage.getItem("notion_pages_database_id");
-              if (pagesDbId) {
-                prop.relation.database_id = pagesDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Pages (${pagesDbId})`);
-              }
-            }
-            // Audit
-            if (propKey === "Audit") {
-              const auditsDbId = localStorage.getItem("notion_audits_database_id");
-              if (auditsDbId) {
-                prop.relation.database_id = auditsDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Audits (${auditsDbId})`);
-              }
-            }
-            // Requirement/Exigence
-            if (propKey === "Requirement") {
-              const requirementsDbId = localStorage.getItem("notion_requirements_database_id");
-              if (requirementsDbId) {
-                prop.relation.database_id = requirementsDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Exigences (${requirementsDbId})`);
-              }
-            }
-            // Evaluation
-            if (propKey === "Evaluation") {
-              const evaluationsDbId = localStorage.getItem("notion_evaluations_database_id");
-              if (evaluationsDbId) {
-                prop.relation.database_id = evaluationsDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Évaluations (${evaluationsDbId})`);
-              }
-            }
-            // Action
-            if (propKey === "Action") {
-              const actionsDbId = localStorage.getItem("notion_actions_database_id");
-              if (actionsDbId) {
-                prop.relation.database_id = actionsDbId;
-                addLog(`ℹ️ Relation mise à jour: "${propKey}" → Actions (${actionsDbId})`);
-              }
-            }
-          }
-        }
+      const updatedSchema = updateRelationIds(schema);
+      
+      const hasRelationIssues = Object.values(updatedSchema.properties || {}).some(prop => {
+        return prop.relation && prop.relation.database_id === "";
+      });
+      
+      if (hasRelationIssues) {
+        const errorMsg = `La base "${schema.name}" contient des relations non résolues. Assurez-vous que les bases principales sont créées d'abord.`;
+        addLog(`❌ ${errorMsg}`);
+        updateDatabaseStatus(schema.key, 'error', { error: errorMsg });
+        return null;
       }
       
-      // Préparer les données pour la création (méthode éprouvée)
       const dbData = {
         title: [
           {
@@ -570,16 +573,32 @@ const NotionDatabasesCreator: React.FC = () => {
             }
           }
         ],
-        properties: schema.properties
+        properties: updatedSchema.properties
       };
 
-      // Créer la base de données de manière directe (méthode éprouvée)
+      if (!pageId || pageId.trim() === "") {
+        const errorMsg = `Impossible de créer "${schema.name}": ID de page parent manquant`;
+        addLog(`❌ ${errorMsg}`);
+        updateDatabaseStatus(schema.key, 'error', { error: errorMsg });
+        return null;
+      }
+      
       addLog(`📝 Envoi de la requête de création pour "${schema.name}"...`);
       
-      // Utiliser la méthode qui a fonctionné précédemment
       const response = await executeRequest(
         async () => {
-          return notionApi.databases.create(pageId, dbData, apiKey);
+          const wasMockMode = notionApi.mockMode.isActive();
+          if (wasMockMode) {
+            notionApi.mockMode.temporarilyForceReal();
+          }
+          
+          try {
+            return await notionApi.databases.create(pageId, dbData, apiKey);
+          } finally {
+            if (wasMockMode) {
+              notionApi.mockMode.restore();
+            }
+          }
         },
         {
           mockResponse: {
@@ -598,7 +617,6 @@ const NotionDatabasesCreator: React.FC = () => {
         localStorage.setItem(schema.storageKey, response.id);
         updateDatabaseStatus(schema.key, 'success', { id: response.id, response });
         
-        // Afficher un toast de succès
         toast.success(`Base "${schema.name}" créée`, {
           description: `ID: ${response.id}`
         });
@@ -613,7 +631,6 @@ const NotionDatabasesCreator: React.FC = () => {
       addLog(`❌ Erreur: "${schema.name}": ${errorMessage}`);
       updateDatabaseStatus(schema.key, 'error', { error: errorMessage });
       
-      // Afficher un toast d'erreur
       toast.error(`Erreur: ${schema.name}`, {
         description: errorMessage
       });
@@ -622,7 +639,29 @@ const NotionDatabasesCreator: React.FC = () => {
     }
   };
 
-  // Création des bases de données
+  const checkRequiredDatabases = (): boolean => {
+    const projectsDbId = localStorage.getItem("notion_database_id");
+    const checklistsDbId = localStorage.getItem("notion_checklists_database_id");
+    
+    if (!projectsDbId) {
+      addLog("❌ Base de données 'Projets' manquante - Nécessaire pour les relations");
+      toast.error("Création impossible", {
+        description: "La base de données 'Projets' doit être créée en premier"
+      });
+      return false;
+    }
+    
+    if (!checklistsDbId) {
+      addLog("❌ Base de données 'Checklist' manquante - Nécessaire pour les relations");
+      toast.error("Création impossible", {
+        description: "La base de données 'Checklist' doit être créée en premier"
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const createDatabases = async () => {
     if (!pageId.trim()) {
       toast.error("Veuillez spécifier l'ID de la page parent");
@@ -634,20 +673,17 @@ const NotionDatabasesCreator: React.FC = () => {
       return;
     }
     
-    // Sauvegarder les valeurs dans localStorage
     localStorage.setItem('notion_parent_page_id', pageId);
     localStorage.setItem('notion_api_key', apiKey);
     
     setIsCreating(true);
     setLogs([]);
     
-    // Désactiver le mode mock pour les opérations réelles
     if (notionApi.mockMode.isActive()) {
       addLog("⚠️ Mode mock désactivé pour les opérations de création");
       notionApi.mockMode.forceReset();
     }
     
-    // Tester la connexion avant de poursuivre
     const connectionOk = await testNotionConnection();
     if (!connectionOk) {
       toast.error("Impossible de se connecter à l'API Notion", {
@@ -660,27 +696,45 @@ const NotionDatabasesCreator: React.FC = () => {
     addLog("🚀 Début de la création des bases de données...");
     
     try {
-      // Créer d'abord les bases principales (projets et checklists)
       const mainSchemas = DATABASE_SCHEMAS.filter(s => s.key === 'projects' || s.key === 'checklists');
-      const restSchemas = DATABASE_SCHEMAS.filter(s => s.key !== 'projects' && s.key !== 'checklists');
       
       addLog("1️⃣ Création des bases de données principales...");
       for (const schema of mainSchemas) {
         await createSingleDatabase(schema);
-        // Court délai entre chaque création
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
       
-      addLog("2️⃣ Création des bases de données secondaires...");
-      for (const schema of restSchemas) {
+      if (!checkRequiredDatabases()) {
+        addLog("❌ Impossible de continuer - Bases principales non créées");
+        setIsCreating(false);
+        return;
+      }
+      
+      const earlySchemas = DATABASE_SCHEMAS.filter(s => s.key === 'pages' || s.key === 'requirements' || s.key === 'audits');
+      const lateSchemas = DATABASE_SCHEMAS.filter(s => s.key !== 'pages' && s.key !== 'requirements' && s.key !== 'audits');
+      
+      addLog("2️⃣ Création des bases de données intermédiaires...");
+      for (const schema of earlySchemas) {
         await createSingleDatabase(schema);
-        // Court délai entre chaque création
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+      const pagesDbId = localStorage.getItem("notion_pages_database_id");
+      const auditsDbId = localStorage.getItem("notion_audits_database_id");
+      const requirementsDbId = localStorage.getItem("notion_requirements_database_id");
+      
+      if (!pagesDbId || !auditsDbId || !requirementsDbId) {
+        addLog("⚠️ Certaines bases intermédiaires n'ont pas été créées - La suite peut échouer");
+      }
+      
+      addLog("3️⃣ Création des bases de données finales...");
+      for (const schema of lateSchemas) {
+        await createSingleDatabase(schema);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
       addLog("✅ Processus de création terminé.");
       
-      // Vérifier si tout s'est bien passé
       const successCount = Object.values(results).filter(r => r.status === 'success').length;
       const totalCount = DATABASE_SCHEMAS.length;
       
@@ -709,7 +763,6 @@ const NotionDatabasesCreator: React.FC = () => {
     }
   };
 
-  // Fonction pour tester individuellement l'accès à une base de données
   const testDatabaseAccess = async (schema: DatabaseSchema) => {
     const dbId = localStorage.getItem(schema.storageKey);
     if (!dbId) {
@@ -740,7 +793,6 @@ const NotionDatabasesCreator: React.FC = () => {
     }
   };
 
-  // Tester l'accès à toutes les bases de données
   const testAllDatabases = async () => {
     if (!apiKey) {
       toast.error("Veuillez spécifier la clé API Notion");
@@ -750,13 +802,11 @@ const NotionDatabasesCreator: React.FC = () => {
     setLogs([]);
     addLog("🔍 Test de l'accès aux bases de données...");
     
-    // Désactiver le mode mock pour les tests réels
     if (notionApi.mockMode.isActive()) {
       addLog("⚠️ Mode mock désactivé pour les tests d'accès");
       notionApi.mockMode.forceReset();
     }
     
-    // Tester d'abord la connexion à l'API
     const connectionOk = await testNotionConnection();
     if (!connectionOk) {
       toast.error("Impossible de se connecter à l'API Notion", {
@@ -765,10 +815,8 @@ const NotionDatabasesCreator: React.FC = () => {
       return;
     }
     
-    // Tester chaque base de données
     for (const schema of DATABASE_SCHEMAS) {
       await testDatabaseAccess(schema);
-      // Court délai entre chaque test
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
@@ -777,7 +825,6 @@ const NotionDatabasesCreator: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Onglets pour la navigation */}
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="settings">Configuration</TabsTrigger>
@@ -785,7 +832,6 @@ const NotionDatabasesCreator: React.FC = () => {
           <TabsTrigger value="logs">Logs ({logs.length})</TabsTrigger>
         </TabsList>
         
-        {/* Onglet Configuration */}
         <TabsContent value="settings" className="space-y-4">
           <Card>
             <CardHeader>
@@ -864,7 +910,6 @@ const NotionDatabasesCreator: React.FC = () => {
           </Alert>
         </TabsContent>
         
-        {/* Onglet Statut */}
         <TabsContent value="status">
           <Card>
             <CardHeader>
@@ -940,7 +985,6 @@ const NotionDatabasesCreator: React.FC = () => {
           </Card>
         </TabsContent>
         
-        {/* Onglet Logs */}
         <TabsContent value="logs">
           <Card>
             <CardHeader>
@@ -958,7 +1002,6 @@ const NotionDatabasesCreator: React.FC = () => {
                 ) : (
                   <div className="space-y-2 font-mono text-sm">
                     {logs.map((log, index) => {
-                      // Styliser différemment selon le contenu du log
                       const isError = log.includes('❌') || log.includes('Erreur');
                       const isSuccess = log.includes('✅') || log.includes('réussi');
                       const isWarning = log.includes('⚠️') || log.includes('attention');
