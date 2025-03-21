@@ -50,7 +50,6 @@ const corsProxies: CorsProxy[] = [
 // État interne
 let currentProxyIndex = 0;
 let lastWorkingProxyIndex: number | null = null;
-let selectedProxy: string | null = null;
 
 /**
  * Service pour les opérations liées aux proxies CORS
@@ -123,7 +122,7 @@ export const corsProxyService = {
   /**
    * Trouve un proxy qui fonctionne
    */
-  async findWorkingProxy(token: string = "test_token"): Promise<string | null> {
+  async findWorkingProxy(token: string): Promise<CorsProxy | null> {
     const enabledProxies = corsProxies.filter(p => p.enabled);
     
     for (let i = 0; i < enabledProxies.length; i++) {
@@ -137,7 +136,7 @@ export const corsProxyService = {
         console.log(`Proxy fonctionnel trouvé: ${proxy.name}`);
         lastWorkingProxyIndex = corsProxies.findIndex(p => p.url === proxy.url);
         currentProxyIndex = proxyIndex;
-        return proxy.url;
+        return proxy;
       }
     }
     
@@ -151,15 +150,6 @@ export const corsProxyService = {
   reset(): void {
     currentProxyIndex = 0;
     lastWorkingProxyIndex = null;
-  },
-  
-  /**
-   * Réinitialise le cache du proxy
-   */
-  resetProxyCache(): void {
-    this.reset();
-    selectedProxy = null;
-    localStorage.removeItem('cors_proxy_selected');
   },
   
   /**
@@ -183,53 +173,6 @@ export const corsProxyService = {
   getActivationUrl(proxyUrl: string): string | null {
     const proxy = corsProxies.find(p => p.url === proxyUrl);
     return proxy && proxy.requiresActivation ? proxy.activationUrl || null : null;
-  },
-  
-  /**
-   * Définit le proxy sélectionné
-   */
-  setSelectedProxy(proxyUrl: string): void {
-    selectedProxy = proxyUrl;
-    localStorage.setItem('cors_proxy_selected', proxyUrl);
-  },
-  
-  /**
-   * Obtient le proxy sélectionné
-   */
-  getSelectedProxy(): string {
-    if (selectedProxy) return selectedProxy;
-    
-    // Essayer de charger depuis localStorage
-    try {
-      const stored = localStorage.getItem('cors_proxy_selected');
-      if (stored) {
-        selectedProxy = stored;
-        return stored;
-      }
-    } catch (e) {
-      // Ignorer les erreurs de localStorage
-    }
-    
-    // Sinon, retourner le premier proxy disponible
-    const defaultProxy = corsProxies[0].url;
-    selectedProxy = defaultProxy;
-    return defaultProxy;
-  },
-  
-  /**
-   * Teste le proxy serverless (si disponible)
-   */
-  async testServerlessProxy(): Promise<boolean> {
-    try {
-      // URL de l'API serverless (peut être vérifiée via des headers personnalisés)
-      const response = await fetch('/api/ping');
-      const data = await response.json();
-      
-      return data && data.success === true;
-    } catch (error) {
-      console.error('Erreur lors du test du proxy serverless:', error);
-      return false;
-    }
   }
 };
 

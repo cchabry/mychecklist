@@ -57,7 +57,6 @@ const NotionProxyConfigSection: React.FC = () => {
       
       if (bestProxy) {
         setSelectedProxyState(bestProxy);
-        corsProxyService.setSelectedProxy(bestProxy);
         toast.success('Proxy trouvé', {
           description: `Proxy fonctionnel trouvé: ${bestProxy}`
         });
