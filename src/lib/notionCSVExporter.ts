@@ -150,8 +150,9 @@ export const notionCSVExporter = {
       });
     });
     
-    mockEvaluations.forEach(eval => {
-      csv += `"${eval.name}","${eval.auditName}","${eval.pageName}","${eval.exigenceName}","${eval.status}","${eval.comment}","${eval.createdAt}"\n`;
+    // Modifié 'eval' à 'evaluation' car eval est un mot réservé
+    mockEvaluations.forEach(evaluation => {
+      csv += `"${evaluation.name}","${evaluation.auditName}","${evaluation.pageName}","${evaluation.exigenceName}","${evaluation.status}","${evaluation.comment}","${evaluation.createdAt}"\n`;
     });
     
     return csv;
