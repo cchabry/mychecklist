@@ -1,4 +1,3 @@
-
 // Types pour l'application d'audit qualité
 
 export interface ChecklistItem {
@@ -23,6 +22,8 @@ export interface Project {
   id: string;
   name: string;
   url: string;
+  description?: string; // Ajout du champ description
+  status?: string;     // Ajout du champ status
   createdAt: string;
   updatedAt: string;
   progress: number; // Pourcentage de complétion 0-100

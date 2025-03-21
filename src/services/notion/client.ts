@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 
 // Types de base pour l'API Notion
@@ -118,7 +117,10 @@ export class NotionClient {
       
       if (!userResponse.success) {
         this.status = ConnectionStatus.Error;
-        return userResponse;
+        return {
+          success: false,
+          error: userResponse.error
+        };
       }
       
       // 2. Tester l'accès à la base de données de projets
@@ -135,6 +137,7 @@ export class NotionClient {
         };
       }
       
+      // Convertir les réponses en format attendu
       const result: NotionAPIResponse<{user: string, databases: {projectsDb: string, checklistsDb?: string}}> = {
         success: true,
         data: {
