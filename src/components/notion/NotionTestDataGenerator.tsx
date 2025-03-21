@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 interface NotionTestDataGeneratorProps {
   onComplete?: () => void;
+  onClose?: () => void;
 }
 
 interface DatabaseInfo {
@@ -21,7 +21,6 @@ interface DatabaseInfo {
   recordCount: number;
 }
 
-// Type pour les relations entre bases de données
 interface RelationMap {
   [sourceDb: string]: {
     [relationField: string]: {
@@ -31,7 +30,7 @@ interface RelationMap {
   }
 }
 
-const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onComplete }) => {
+const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onComplete, onClose }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [step, setStep] = useState<'idle' | 'collecting' | 'generating' | 'verifying' | 'complete' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
@@ -39,25 +38,21 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
   const [overallStatus, setOverallStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [logs, setLogs] = useState<string[]>([]);
 
-  // Fonction pour ajouter des logs
   const addLog = (message: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
-  // Fonction pour mettre à jour le statut d'une base de données
   const updateDatabaseStatus = (dbId: string, updates: Partial<DatabaseInfo>) => {
     setDatabases(prev => prev.map(db => 
       db.id === dbId ? { ...db, ...updates } : db
     ));
   };
 
-  // Collecter les informations sur les bases de données Notion
   const collectDatabases = async () => {
     try {
       setStep('collecting');
       addLog('Collecte des informations sur les bases de données...');
 
-      // Récupérer les IDs des bases de données depuis localStorage
       const dbIds = {
         projects: localStorage.getItem('notion_projects_database_id'),
         pages: localStorage.getItem('notion_pages_database_id'),
@@ -69,7 +64,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         progress: localStorage.getItem('notion_progress_database_id')
       };
 
-      // Vérifier que toutes les bases sont configurées
       const missingDbs = Object.entries(dbIds)
         .filter(([_, id]) => !id)
         .map(([name]) => name);
@@ -93,10 +87,8 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         return false;
       }
 
-      // Initialiser les informations de base de données
       const dbInfos: DatabaseInfo[] = [];
       
-      // Fonction pour récupérer les détails d'une base
       const getDbInfo = async (dbId: string, dbName: string) => {
         try {
           const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
@@ -114,7 +106,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         }
       };
 
-      // Récupérer les informations pour chaque base
       for (const [dbName, dbId] of Object.entries(dbIds)) {
         if (dbId) {
           await getDbInfo(dbId, dbName);
@@ -134,7 +125,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     }
   };
 
-  // Générer des données de test pour toutes les bases
   const generateTestData = async () => {
     const apiKey = localStorage.getItem('notion_api_key');
     
@@ -146,11 +136,9 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     setStep('generating');
     addLog('Génération des données de test...');
 
-    // Dictionnaire pour stocker les IDs de référence (pour les relations)
     const referenceIds: Record<string, string[]> = {};
     
     try {
-      // 1. Générer d'abord les données pour la base Checklist (pas de dépendances)
       addLog('Étape 1: Création des items de checklist');
       const checklistDbId = databases.find(db => db.name === 'checklists')?.id;
       
@@ -165,7 +153,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           { consigne: "Site responsive sur mobile", category: "Technique", subcategory: "Responsive", priority: "High" }
         ];
         
-        // Créer les items de checklist
         for (const item of checklistItems) {
           try {
             const response = await notionApi.pages.create({
@@ -178,7 +165,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
               }
             }, apiKey);
             
-            // Stocker l'ID pour les références futures
             if (!referenceIds.checklists) referenceIds.checklists = [];
             referenceIds.checklists.push(response.id);
             
@@ -196,7 +182,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(20);
       
-      // 2. Générer les données pour les projets
       addLog('Étape 2: Création des projets');
       const projectsDbId = databases.find(db => db.name === 'projects')?.id;
       
@@ -208,7 +193,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           { name: "Application mobile", url: "https://app.example.com", progress: "Planifié" }
         ];
         
-        // Créer les projets
         for (const project of projects) {
           try {
             const response = await notionApi.pages.create({
@@ -220,7 +204,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
               }
             }, apiKey);
             
-            // Stocker l'ID pour les références futures
             if (!referenceIds.projects) referenceIds.projects = [];
             referenceIds.projects.push(response.id);
             
@@ -238,14 +221,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(30);
       
-      // 3. Créer les pages d'échantillon (dépend des projets)
       addLog('Étape 3: Création des pages d\'échantillon');
       const pagesDbId = databases.find(db => db.name === 'pages')?.id;
       
       if (pagesDbId && referenceIds.projects?.length > 0) {
         updateDatabaseStatus(pagesDbId, { status: 'processing' });
         
-        // Utiliser le premier projet comme référence
         const projectId = referenceIds.projects[0];
         
         const pages = [
@@ -254,7 +235,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           { title: "Fiche produit", url: "https://shop.example.com/products/1", description: "Détail d'un produit" }
         ];
         
-        // Créer les pages
         for (const page of pages) {
           try {
             const response = await notionApi.pages.create({
@@ -263,14 +243,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
                 Name: { title: [{ text: { content: page.title } }] },
                 URL: { url: page.url },
                 Description: { rich_text: [{ text: { content: page.description } }] },
-                // Relation avec le projet
                 Projet: {
                   relation: [{ id: projectId }]
                 }
               }
             }, apiKey);
             
-            // Stocker l'ID pour les références futures
             if (!referenceIds.pages) referenceIds.pages = [];
             referenceIds.pages.push(response.id);
             
@@ -288,17 +266,14 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(40);
       
-      // 4. Créer les exigences (dépend des projets et de la checklist)
       addLog('Étape 4: Création des exigences');
       const exigencesDbId = databases.find(db => db.name === 'exigences')?.id;
       
       if (exigencesDbId && referenceIds.projects?.length > 0 && referenceIds.checklists?.length > 0) {
         updateDatabaseStatus(exigencesDbId, { status: 'processing' });
         
-        // Utiliser le premier projet comme référence
         const projectId = referenceIds.projects[0];
         
-        // Créer une exigence pour chaque item de checklist
         for (let i = 0; i < referenceIds.checklists.length; i++) {
           const checklistId = referenceIds.checklists[i];
           const importance = ["Mineur", "Moyen", "Important", "Majeur"][i % 4];
@@ -310,13 +285,11 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
                 Name: { title: [{ text: { content: `Exigence ${i+1}` } }] },
                 Importance: { select: { name: importance } },
                 Comment: { rich_text: [{ text: { content: `Commentaire pour l'exigence ${i+1}` } }] },
-                // Relations
                 Projet: { relation: [{ id: projectId }] },
                 Item: { relation: [{ id: checklistId }] }
               }
             }, apiKey);
             
-            // Stocker l'ID pour les références futures
             if (!referenceIds.exigences) referenceIds.exigences = [];
             referenceIds.exigences.push(response.id);
             
@@ -334,14 +307,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(50);
       
-      // 5. Créer un audit (dépend des projets)
       addLog('Étape 5: Création d\'un audit');
       const auditsDbId = databases.find(db => db.name === 'audits')?.id;
       
       if (auditsDbId && referenceIds.projects?.length > 0) {
         updateDatabaseStatus(auditsDbId, { status: 'processing' });
         
-        // Utiliser le premier projet comme référence
         const projectId = referenceIds.projects[0];
         
         try {
@@ -350,12 +321,10 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
             properties: {
               Name: { title: [{ text: { content: "Audit initial" } }] },
               CreatedAt: { date: { start: new Date().toISOString() } },
-              // Relation avec le projet
               Projet: { relation: [{ id: projectId }] }
             }
           }, apiKey);
           
-          // Stocker l'ID pour les références futures
           if (!referenceIds.audits) referenceIds.audits = [];
           referenceIds.audits.push(response.id);
           
@@ -376,7 +345,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(60);
       
-      // 6. Créer des évaluations (dépend des audits, pages et exigences)
       addLog('Étape 6: Création des évaluations');
       const evaluationsDbId = databases.find(db => db.name === 'evaluations')?.id;
       
@@ -391,7 +359,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         const evaluations = [];
         let count = 0;
         
-        // Créer une évaluation pour chaque combinaison page/exigence
         for (const pageId of referenceIds.pages) {
           for (const exigenceId of referenceIds.exigences) {
             const scores = ["Conforme", "Partiellement conforme", "Non conforme", "Non applicable"];
@@ -404,14 +371,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
                   Name: { title: [{ text: { content: `Évaluation ${++count}` } }] },
                   Score: { select: { name: score } },
                   Comment: { rich_text: [{ text: { content: `Commentaire pour l'évaluation ${count}` } }] },
-                  // Relations
                   Audit: { relation: [{ id: auditId }] },
                   Page: { relation: [{ id: pageId }] },
                   Exigence: { relation: [{ id: exigenceId }] }
                 }
               }, apiKey);
               
-              // Stocker l'ID pour les références futures
               if (!referenceIds.evaluations) referenceIds.evaluations = [];
               referenceIds.evaluations.push(response.id);
               
@@ -431,7 +396,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(80);
       
-      // 7. Créer des actions correctives (dépend des évaluations)
       addLog('Étape 7: Création des actions correctives');
       const actionsDbId = databases.find(db => db.name === 'actions')?.id;
       
@@ -440,7 +404,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         const actionCount = Math.min(3, referenceIds.evaluations.length);
         
-        // Créer quelques actions pour certaines évaluations
         for (let i = 0; i < actionCount; i++) {
           const evaluationId = referenceIds.evaluations[i];
           const priorities = ["Faible", "Moyenne", "Haute", "Critique"];
@@ -457,12 +420,10 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
                 Responsible: { rich_text: [{ text: { content: "John Doe" } }] },
                 Status: { select: { name: "À faire" } },
                 Comment: { rich_text: [{ text: { content: `Commentaire pour l'action corrective ${i+1}` } }] },
-                // Relation avec l'évaluation
                 Evaluation: { relation: [{ id: evaluationId }] }
               }
             }, apiKey);
             
-            // Stocker l'ID pour les références futures
             if (!referenceIds.actions) referenceIds.actions = [];
             referenceIds.actions.push(response.id);
             
@@ -480,14 +441,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(90);
       
-      // 8. Créer des progrès (dépend des actions)
       addLog('Étape 8: Création des progrès');
       const progressDbId = databases.find(db => db.name === 'progress')?.id;
       
       if (progressDbId && referenceIds.actions?.length > 0) {
         updateDatabaseStatus(progressDbId, { status: 'processing' });
         
-        // Créer un progrès pour chaque action
         for (let i = 0; i < referenceIds.actions.length; i++) {
           const actionId = referenceIds.actions[i];
           const statuses = ["À faire", "En cours", "Terminée"];
@@ -503,7 +462,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
                 Comment: { rich_text: [{ text: { content: `Mise à jour du progrès ${i+1}` } }] },
                 Score: { select: { name: "Partiellement conforme" } },
                 Status: { select: { name: status } },
-                // Relation avec l'action
                 Action: { relation: [{ id: actionId }] }
               }
             }, apiKey);
@@ -522,11 +480,9 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       setProgress(95);
       
-      // 9. Vérifier les relations et l'intégrité
       addLog('Étape 9: Vérification de l\'intégrité des données');
       setStep('verifying');
       
-      // Vérifier que toutes les données ont été correctement créées
       const databasesWithErrors = databases.filter(db => db.status === 'error');
       
       if (databasesWithErrors.length > 0) {
@@ -543,13 +499,11 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       setProgress(100);
       setStep('complete');
       
-      // Récapitulatif des données générées
       addLog('--- Récapitulatif des données générées ---');
       for (const db of databases) {
         addLog(`${db.name}: ${db.recordCount} enregistrements (${db.status})`);
       }
       
-      // Appeler le callback onComplete si fourni
       if (onComplete) {
         onComplete();
       }
@@ -568,7 +522,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     }
   };
 
-  // Gérer le processus complet
   const handleGenerateData = async () => {
     if (isGenerating) return;
     
@@ -578,14 +531,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     setOverallStatus('idle');
     
     try {
-      // Forcer le mode réel pour ce test
       const wasMockActive = notionApi.mockMode.isActive();
       if (wasMockActive) {
         notionApi.mockMode.deactivate();
         addLog('🔄 Mode réel forcé pour la génération de données');
       }
       
-      // Étape 1: Collecter les informations sur les bases de données
       const collectSuccessful = await collectDatabases();
       
       if (!collectSuccessful) {
@@ -593,10 +544,8 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         return;
       }
       
-      // Étape 2: Générer les données
       await generateTestData();
       
-      // Restaurer le mode mock si nécessaire
       if (wasMockActive) {
         notionApi.mockMode.activate();
         addLog('🔄 Mode mock restauré après la génération de données');
