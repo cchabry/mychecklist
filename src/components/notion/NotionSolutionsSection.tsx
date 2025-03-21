@@ -1,47 +1,79 @@
 
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { notionApi } from '@/lib/notionProxy';
+import { Button } from '@/components/ui/button';
+import { AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { Settings, Database, X } from 'lucide-react';
 
 interface NotionSolutionsSectionProps {
+  showApiKey?: boolean;
   showCorsProxy?: boolean;
   showMockMode?: boolean;
-  showApiKey?: boolean;
 }
 
-const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ 
-  showCorsProxy = true, 
-  showMockMode = true, 
-  showApiKey = true 
+const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
+  showApiKey = false,
+  showCorsProxy = false,
+  showMockMode = false
 }) => {
+  // Activation du mode mock
+  const handleEnableMockMode = () => {
+    notionApi.mockMode.activate();
+    // Forcer un rechargement pour appliquer le mode mock
+    setTimeout(() => window.location.reload(), 1000);
+  };
+  
   return (
-    <div className="border border-amber-200 bg-amber-50 rounded-md p-3 text-sm">
-      <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
-        <AlertCircle size={16} className="text-amber-500" />
-        Solutions possibles :
-      </h3>
-      <ul className="space-y-2 text-amber-700">
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Solutions possibles</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {showApiKey && (
-          <li>
-            • Vérifiez que votre <strong>clé d'API Notion</strong> est correcte et a les permissions suffisantes
-          </li>
+          <Button 
+            variant="outline" 
+            className="justify-start"
+            onClick={() => {
+              // Ouvrir la page de configuration Notion
+              window.location.href = "/diagnostics"; 
+            }}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Configurer l'API Notion
+          </Button>
         )}
+        
         {showCorsProxy && (
-          <li>
-            • Les restrictions CORS empêchent les appels directs à l'API Notion depuis le navigateur.
-            Utilisez le <strong>mode démonstration</strong> ou configurez un proxy CORS.
-          </li>
+          <Button 
+            variant="outline" 
+            className="justify-start"
+            onClick={() => {
+              // Ouvrir la documentation
+              window.open("https://developers.notion.com/reference/cors", "_blank");
+            }}
+          >
+            <Database className="mr-2 h-4 w-4" />
+            Vérifier le CORS Proxy
+          </Button>
         )}
+        
         {showMockMode && (
-          <li>
-            • Activez le <strong>mode démonstration</strong> pour utiliser des données simulées pendant
-            la résolution du problème.
-          </li>
+          <Button 
+            variant="outline" 
+            className="justify-start"
+            onClick={handleEnableMockMode}
+          >
+            <Database className="mr-2 h-4 w-4" />
+            Utiliser le mode démo
+          </Button>
         )}
-        <li className="text-red-600">
-          • <strong>IMPORTANT</strong>: Assurez-vous que votre intégration Notion a bien été <strong>partagée</strong> avec 
-          votre base de données et possède les <strong>permissions d'écriture</strong>.
-        </li>
-      </ul>
+        
+        <AlertDialogCancel asChild>
+          <Button variant="outline" className="justify-start">
+            <X className="mr-2 h-4 w-4" />
+            Fermer
+          </Button>
+        </AlertDialogCancel>
+      </div>
     </div>
   );
 };

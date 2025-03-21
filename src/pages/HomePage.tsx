@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import HomeIndex from './HomeIndex';
 import { Button } from '@/components/ui/button';
-import { Download, Activity } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { notionApi } from '@/lib/notionProxy';
