@@ -2,16 +2,27 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Menu, TestTube, Database, FileCode } from 'lucide-react';
+import { Home, Menu, TestTube, Database, FileCode, Beaker } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { NotionTestDataGenerator } from '@/components/notion';
+import { useState } from 'react';
 
 const Header: React.FC = () => {
   const location = useLocation();
+  const [showTestGenerator, setShowTestGenerator] = useState(false);
   
   return (
     <header className="w-full bg-[#eeeeee]/90 backdrop-blur-lg border-b border-border sticky top-0 z-10 transition-all duration-300">
@@ -35,6 +46,16 @@ const Header: React.FC = () => {
               </Link>
             </Button>
           )}
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="text-amber-600 border-amber-200 hover:bg-amber-50"
+            onClick={() => setShowTestGenerator(true)}
+            title="Générer des données de test"
+          >
+            <Beaker size={20} />
+          </Button>
           
           <Button variant="outline" size="icon" asChild>
             <Link to="/create-databases" className="transition-all duration-300">
@@ -70,6 +91,15 @@ const Header: React.FC = () => {
                   <span>Configurer Notion</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="flex items-center gap-2"
+                onClick={() => setShowTestGenerator(true)}
+              >
+                <Beaker size={16} />
+                <span>Générer données de test</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <a 
                   href="/scriptsNotion.md" 
@@ -85,6 +115,21 @@ const Header: React.FC = () => {
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Dialog pour le générateur de données de test */}
+      <Dialog open={showTestGenerator} onOpenChange={setShowTestGenerator}>
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Générateur de données de test Notion</DialogTitle>
+            <DialogDescription>
+              Création et insertion des données de test dans les bases de données Notion
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            <NotionTestDataGenerator onClose={() => setShowTestGenerator(false)} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };

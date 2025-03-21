@@ -14,3 +14,4 @@ export { default as NotionDatabasesCreator } from './NotionDatabasesCreator';
 export { default as NotionWriteTestButton } from './NotionWriteTestButton';
 export { default as NotionTestDataGenerator } from './NotionTestDataGenerator';
 export { NotionDiagnosticTool } from './diagnostic';
+export { default as MockModeControl } from './MockModeControl';
