@@ -1,3 +1,4 @@
+
 /**
  * Simule une réponse de l'API Notion
  */
@@ -163,6 +164,33 @@ const mockNotionDatabases = (endpoint: string, method: string, body: any) => {
     };
   }
   
+  if (endpoint === '/databases' && method === 'POST') {
+    console.log(`[MOCK] Création d'une database mock`);
+    return {
+      object: 'database',
+      id: `mock-database-${Date.now()}`,
+      created_time: new Date().toISOString(),
+      last_edited_time: new Date().toISOString(),
+      title: body.title || [
+        {
+          type: 'text',
+          text: {
+            content: 'New Mock Database',
+            link: null
+          }
+        }
+      ],
+      properties: body.properties || {
+        Name: {
+          id: 'title',
+          name: 'Name',
+          type: 'title',
+          title: {}
+        }
+      }
+    };
+  }
+  
   console.warn(`[MOCK] Endpoint Databases non géré: ${method} ${endpoint}`);
   return {
     object: 'error',
@@ -210,6 +238,18 @@ const mockNotionPages = (endpoint: string, method: string, body: any) => {
           ]
         }
       }
+    };
+  }
+  
+  if (endpoint === '/pages' && method === 'POST') {
+    console.log(`[MOCK] Création d'une page mock`);
+    return {
+      object: 'page',
+      id: `mock-page-${Date.now()}`,
+      created_time: new Date().toISOString(),
+      last_edited_time: new Date().toISOString(),
+      parent: body.parent,
+      properties: body.properties || {}
     };
   }
   

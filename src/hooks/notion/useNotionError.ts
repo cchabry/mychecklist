@@ -1,99 +1,78 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { clearStoredNotionErrors, getStoredNotionError, NotionErrorDetails } from '@/lib/notionProxy/errorHandling';
-import { notionApi } from '@/lib/notionProxy';
+
+interface NotionErrorDetails {
+  message: string;
+  context?: string;
+  timestamp: number;
+  stack?: string;
+}
 
 /**
- * Hook centralisé pour gérer les erreurs liées à Notion
- * Unifie la logique d'affichage et de gestion des erreurs
+ * Hook pour la gestion centralisée des erreurs de l'API Notion
  */
 export function useNotionError() {
-  // État des erreurs
   const [errorDetails, setErrorDetails] = useState<NotionErrorDetails | null>(null);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  
-  // Charger les erreurs stockées au démarrage
-  useEffect(() => {
-    const storedError = getStoredNotionError();
-    if (storedError) {
-      setErrorDetails(storedError);
-    }
-  }, []);
-  
-  // Afficher une erreur
-  const showError = useCallback((error: Error | string, context?: string) => {
-    const errorMessage = typeof error === 'string' ? error : error.message;
+
+  /**
+   * Affiche une erreur dans l'UI et l'enregistre dans l'état
+   */
+  const showError = useCallback((error: Error, context?: string) => {
+    console.error(`Erreur Notion ${context ? `(${context})` : ''}:`, error);
     
-    // Déterminer le type d'erreur pour personnaliser le message
-    const isAuthError = errorMessage.includes('auth') || errorMessage.includes('401');
-    const isPermissionError = errorMessage.includes('permission') || errorMessage.includes('403');
-    const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
-    
-    // Configurer le toast en fonction du type d'erreur
-    let toastTitle = 'Erreur Notion';
-    let toastDescription = errorMessage;
-    
-    if (isAuthError) {
-      toastTitle = "Erreur d'authentification";
-      toastDescription = "Votre clé API Notion est invalide ou a expiré";
-    } else if (isPermissionError) {
-      toastTitle = "Erreur de permission";
-      toastDescription = "Votre intégration n'a pas accès à cette ressource";
-    } else if (isNetworkError) {
-      toastTitle = "Erreur de connexion";
-      toastDescription = "Impossible de se connecter à l'API Notion. Vérifiez votre connexion internet.";
-      
-      // Activer automatiquement le mode mock pour les erreurs réseau
-      if (!notionApi.mockMode.isActive()) {
-        notionApi.mockMode.activate();
-        toast.info('Mode démonstration activé', {
-          description: 'Utilisation de données fictives en attendant le rétablissement de la connexion'
-        });
-      }
-    }
-    
-    // Afficher le toast d'erreur
-    toast.error(toastTitle, { description: toastDescription });
-    
-    // Mettre à jour l'état des erreurs
-    setErrorDetails({
-      message: errorMessage,
-      type: isAuthError ? 'auth' : isPermissionError ? 'permission' : isNetworkError ? 'network' : 'unknown',
+    // Créer l'objet d'erreur
+    const errorInfo: NotionErrorDetails = {
+      message: error.message || 'Erreur inconnue',
       context,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      stack: error.stack
+    };
+    
+    // Mettre à jour l'état
+    setErrorDetails(errorInfo);
+    
+    // Afficher un toast d'erreur
+    toast.error(`Erreur Notion${context ? ` (${context})` : ''}`, {
+      description: error.message || 'Une erreur s\'est produite lors de la communication avec Notion'
     });
     
-    // Afficher automatiquement le modal pour les erreurs critiques
-    if (isAuthError || isPermissionError) {
-      setShowErrorModal(true);
+    // Stocker l'erreur dans localStorage pour référence
+    try {
+      localStorage.setItem('notion_last_error', JSON.stringify(errorInfo));
+    } catch (e) {
+      // Ignorer les erreurs de stockage
     }
+    
+    return errorInfo;
   }, []);
-  
-  // Effacer l'erreur actuelle
+
+  /**
+   * Efface l'erreur actuelle
+   */
   const clearError = useCallback(() => {
     setErrorDetails(null);
-    setShowErrorModal(false);
-    clearStoredNotionErrors();
   }, []);
-  
-  // Afficher le modal d'erreur
-  const openErrorModal = useCallback(() => {
-    setShowErrorModal(true);
+
+  /**
+   * Récupère la dernière erreur stockée
+   */
+  const getLastStoredError = useCallback((): NotionErrorDetails | null => {
+    try {
+      const stored = localStorage.getItem('notion_last_error');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      // Ignorer les erreurs de parsing
+    }
+    return null;
   }, []);
-  
-  // Fermer le modal d'erreur
-  const closeErrorModal = useCallback(() => {
-    setShowErrorModal(false);
-  }, []);
-  
+
   return {
     errorDetails,
-    showErrorModal,
     showError,
     clearError,
-    openErrorModal,
-    closeErrorModal,
-    hasError: !!errorDetails
+    getLastStoredError
   };
 }
