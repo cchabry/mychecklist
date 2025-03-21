@@ -10,7 +10,10 @@ import MockModeControl from './MockModeControl';
 import ProxyStatusIndicator from './ProxyStatusIndicator';
 
 const NotionProxyConfigSection: React.FC = () => {
-  const [selectedProxy, setSelectedProxyState] = React.useState<string>(corsProxyService.getSelectedProxy());
+  const [selectedProxy, setSelectedProxyState] = React.useState<string>(() => {
+    const proxy = corsProxyService.getSelectedProxy();
+    return proxy ? proxy.url : PUBLIC_CORS_PROXIES[0];
+  });
   const [testing, setTesting] = React.useState<string | null>(null);
 
   // Test a specific proxy
@@ -53,12 +56,13 @@ const NotionProxyConfigSection: React.FC = () => {
   const findBestProxy = async () => {
     setTesting('auto');
     try {
-      const bestProxy = await corsProxyService.findWorkingProxy();
+      // Ajout du token de test comme argument
+      const bestProxy = await corsProxyService.findWorkingProxy("test_token");
       
       if (bestProxy) {
-        setSelectedProxyState(bestProxy);
+        setSelectedProxyState(bestProxy.url);
         toast.success('Proxy trouvé', {
-          description: `Proxy fonctionnel trouvé: ${bestProxy}`
+          description: `Proxy fonctionnel trouvé: ${bestProxy.url}`
         });
       } else {
         toast.error('Aucun proxy fonctionnel', {

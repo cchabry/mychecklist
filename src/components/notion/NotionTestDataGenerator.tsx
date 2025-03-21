@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -205,11 +206,13 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         return 'mock_' + Math.random().toString(36).substring(2, 11);
       };
       
+      // Fonction helper pour créer un élément dans la base de données
       const createDatabaseItem = async (dbId: string, properties: any) => {
         if (forceMockMode) {
           return { id: generateMockId() };
         }
         
+        // Corriger l'appel à la méthode pages.create
         return await notionApi.pages.create({
           parent: { database_id: dbId },
           properties
@@ -232,6 +235,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         for (const item of checklistItems) {
           try {
+            // Corriger l'appel à createDatabaseItem
             const response = await createDatabaseItem(checklistDbId, {
               Name: { title: [{ text: { content: item.consigne } }] },
               Category: { select: { name: item.category } },
@@ -269,6 +273,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         for (const project of projects) {
           try {
+            // Corriger l'appel à createDatabaseItem
             const response = await createDatabaseItem(projectsDbId, {
               Name: { title: [{ text: { content: project.name } }] },
               URL: { url: project.url },
@@ -308,17 +313,15 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         for (const page of pages) {
           try {
-            const response = await createDatabaseItem(pagesDbId, {
-              parent: { database_id: pagesDbId },
-              properties: {
-                Name: { title: [{ text: { content: page.title } }] },
-                URL: { url: page.url },
-                Description: { rich_text: [{ text: { content: page.description } }] },
-                Projet: {
-                  relation: [{ id: projectId }]
-                }
-              }
-            }, apiKey);
+            // Simplifier et corriger l'appel à createDatabaseItem
+            const properties = {
+              Name: { title: [{ text: { content: page.title } }] },
+              URL: { url: page.url },
+              Description: { rich_text: [{ text: { content: page.description } }] },
+              Projet: { relation: [{ id: projectId }] }
+            };
+            
+            const response = await createDatabaseItem(pagesDbId, properties);
             
             if (!referenceIds.pages) referenceIds.pages = [];
             referenceIds.pages.push(response.id);
@@ -350,16 +353,16 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           const importance = ["Mineur", "Moyen", "Important", "Majeur"][i % 4];
           
           try {
-            const response = await createDatabaseItem(exigencesDbId, {
-              parent: { database_id: exigencesDbId },
-              properties: {
-                Name: { title: [{ text: { content: `Exigence ${i+1}` } }] },
-                Importance: { select: { name: importance } },
-                Comment: { rich_text: [{ text: { content: `Commentaire pour l'exigence ${i+1}` } }] },
-                Projet: { relation: [{ id: projectId }] },
-                Item: { relation: [{ id: checklistId }] }
-              }
-            }, apiKey);
+            // Simplifier et corriger l'appel à createDatabaseItem
+            const properties = {
+              Name: { title: [{ text: { content: `Exigence ${i+1}` } }] },
+              Importance: { select: { name: importance } },
+              Comment: { rich_text: [{ text: { content: `Commentaire pour l'exigence ${i+1}` } }] },
+              Projet: { relation: [{ id: projectId }] },
+              Item: { relation: [{ id: checklistId }] }
+            };
+            
+            const response = await createDatabaseItem(exigencesDbId, properties);
             
             if (!referenceIds.exigences) referenceIds.exigences = [];
             referenceIds.exigences.push(response.id);
@@ -387,14 +390,14 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         const projectId = referenceIds.projects[0];
         
         try {
-          const response = await createDatabaseItem(auditsDbId, {
-            parent: { database_id: auditsDbId },
-            properties: {
-              Name: { title: [{ text: { content: "Audit initial" } }] },
-              CreatedAt: { date: { start: new Date().toISOString() } },
-              Projet: { relation: [{ id: projectId }] }
-            }
-          }, apiKey);
+          // Simplifier et corriger l'appel à createDatabaseItem
+          const properties = {
+            Name: { title: [{ text: { content: "Audit initial" } }] },
+            CreatedAt: { date: { start: new Date().toISOString() } },
+            Projet: { relation: [{ id: projectId }] }
+          };
+          
+          const response = await createDatabaseItem(auditsDbId, properties);
           
           if (!referenceIds.audits) referenceIds.audits = [];
           referenceIds.audits.push(response.id);
@@ -436,17 +439,17 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
             const score = scores[Math.floor(Math.random() * scores.length)];
             
             try {
-              const response = await createDatabaseItem(evaluationsDbId, {
-                parent: { database_id: evaluationsDbId },
-                properties: {
-                  Name: { title: [{ text: { content: `Évaluation ${++count}` } }] },
-                  Score: { select: { name: score } },
-                  Comment: { rich_text: [{ text: { content: `Commentaire pour l'évaluation ${count}` } }] },
-                  Audit: { relation: [{ id: auditId }] },
-                  Page: { relation: [{ id: pageId }] },
-                  Exigence: { relation: [{ id: exigenceId }] }
-                }
-              }, apiKey);
+              // Simplifier et corriger l'appel à createDatabaseItem
+              const properties = {
+                Name: { title: [{ text: { content: `Évaluation ${++count}` } }] },
+                Score: { select: { name: score } },
+                Comment: { rich_text: [{ text: { content: `Commentaire pour l'évaluation ${count}` } }] },
+                Audit: { relation: [{ id: auditId }] },
+                Page: { relation: [{ id: pageId }] },
+                Exigence: { relation: [{ id: exigenceId }] }
+              };
+              
+              const response = await createDatabaseItem(evaluationsDbId, properties);
               
               if (!referenceIds.evaluations) referenceIds.evaluations = [];
               referenceIds.evaluations.push(response.id);
@@ -481,19 +484,19 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           const priority = priorities[Math.floor(Math.random() * priorities.length)];
           
           try {
-            const response = await createDatabaseItem(actionsDbId, {
-              parent: { database_id: actionsDbId },
-              properties: {
-                Name: { title: [{ text: { content: `Action corrective ${i+1}` } }] },
-                TargetScore: { select: { name: "Conforme" } },
-                Priority: { select: { name: priority } },
-                DueDate: { date: { start: new Date(Date.now() + 1000*60*60*24*30).toISOString() } },
-                Responsible: { rich_text: [{ text: { content: "John Doe" } }] },
-                Status: { select: { name: "À faire" } },
-                Comment: { rich_text: [{ text: { content: `Commentaire pour l'action corrective ${i+1}` } }] },
-                Evaluation: { relation: [{ id: evaluationId }] }
-              }
-            }, apiKey);
+            // Simplifier et corriger l'appel à createDatabaseItem
+            const properties = {
+              Name: { title: [{ text: { content: `Action corrective ${i+1}` } }] },
+              TargetScore: { select: { name: "Conforme" } },
+              Priority: { select: { name: priority } },
+              DueDate: { date: { start: new Date(Date.now() + 1000*60*60*24*30).toISOString() } },
+              Responsible: { rich_text: [{ text: { content: "John Doe" } }] },
+              Status: { select: { name: "À faire" } },
+              Comment: { rich_text: [{ text: { content: `Commentaire pour l'action corrective ${i+1}` } }] },
+              Evaluation: { relation: [{ id: evaluationId }] }
+            };
+            
+            const response = await createDatabaseItem(actionsDbId, properties);
             
             if (!referenceIds.actions) referenceIds.actions = [];
             referenceIds.actions.push(response.id);
@@ -524,18 +527,18 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           const status = statuses[Math.floor(Math.random() * statuses.length)];
           
           try {
-            const response = await createDatabaseItem(progressDbId, {
-              parent: { database_id: progressDbId },
-              properties: {
-                Name: { title: [{ text: { content: `Progrès ${i+1}` } }] },
-                Date: { date: { start: new Date().toISOString() } },
-                Responsible: { rich_text: [{ text: { content: "Jane Smith" } }] },
-                Comment: { rich_text: [{ text: { content: `Mise à jour du progrès ${i+1}` } }] },
-                Score: { select: { name: "Partiellement conforme" } },
-                Status: { select: { name: status } },
-                Action: { relation: [{ id: actionId }] }
-              }
-            }, apiKey);
+            // Simplifier et corriger l'appel à createDatabaseItem
+            const properties = {
+              Name: { title: [{ text: { content: `Progrès ${i+1}` } }] },
+              Date: { date: { start: new Date().toISOString() } },
+              Responsible: { rich_text: [{ text: { content: "Jane Smith" } }] },
+              Comment: { rich_text: [{ text: { content: `Mise à jour du progrès ${i+1}` } }] },
+              Score: { select: { name: "Partiellement conforme" } },
+              Status: { select: { name: status } },
+              Action: { relation: [{ id: actionId }] }
+            };
+            
+            const response = await createDatabaseItem(progressDbId, properties);
             
             addLog(`✅ Progrès créé: "Progrès ${i+1}"`);
           } catch (error) {
@@ -653,7 +656,6 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
                     id="force-mock"
                     checked={forceMockMode}
                     onCheckedChange={setForceMockMode}
-                    size="sm"
                   />
                   <label htmlFor="force-mock" className="text-xs">Mode local</label>
                 </div>

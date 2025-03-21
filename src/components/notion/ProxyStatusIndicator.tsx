@@ -20,10 +20,10 @@ const ProxyStatusIndicator: React.FC = () => {
     
     try {
       // Vérifier le proxy CORS côté client
-      const clientProxyWorks = await corsProxyService.findWorkingProxy();
+      const clientProxyWorks = await corsProxyService.findWorkingProxy("test_token");
       
       // Vérifier le proxy serverless
-      const serverlessProxyWorks = await corsProxyService.testServerlessProxy();
+      const serverlessProxyWorks = await corsProxyService.testServerlessProxy("test_token");
       
       setProxyStatus({
         clientProxy: clientProxyWorks ? 'Fonctionnel' : 'Non disponible',
