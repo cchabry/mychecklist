@@ -1,39 +1,36 @@
-
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 /**
- * Nettoie un ID de projet qui pourrait être entouré de guillemets JSON
- * @param id L'ID à nettoyer
- * @returns L'ID nettoyé
+ * Nettoie l'ID du projet si nécessaire (pour traiter les cas d'IDs sous forme de chaînes JSON)
  */
-export function cleanProjectId(id: string | undefined): string | undefined {
+export const cleanProjectId = (id: string | undefined): string | undefined => {
   if (!id) {
     console.error("cleanProjectId: ID vide ou undefined");
     return undefined;
   }
   
-  console.log(`utils.cleanProjectId - ID original: "${id}" (type: ${typeof id})`);
+  console.log(`Traitement de l'ID projet original: "${id}"`);
   
-  // Si l'ID est déjà une chaîne simple, la retourner
+  // Si l'ID est une chaîne simple non-JSON, la retourner directement
   if (typeof id === 'string' && !id.startsWith('"')) {
-    console.log(`utils.cleanProjectId - ID déjà propre: "${id}"`);
+    console.log(`ID projet déjà propre: "${id}"`);
     return id;
   }
   
-  // Essayer de parser l'ID s'il est entouré de guillemets JSON
+  // Si l'ID est une chaîne JSON, essayons de l'extraire
   try {
     if (typeof id === 'string' && id.startsWith('"') && id.endsWith('"')) {
       const cleanedId = JSON.parse(id);
-      console.log(`utils.cleanProjectId - ID nettoyé de JSON: "${id}" => "${cleanedId}"`);
+      console.log(`ID projet nettoyé de JSON: "${id}" => "${cleanedId}"`);
       return cleanedId;
     }
   } catch (e) {
-    console.error(`utils.cleanProjectId - Erreur lors du nettoyage de l'ID: "${id}"`, e);
+    console.error(`Erreur lors du nettoyage de l'ID: "${id}"`, e);
   }
   
   return id;
-}
+};
 
 /**
  * Réinitialise complètement l'état de l'application (cache, mode mock)

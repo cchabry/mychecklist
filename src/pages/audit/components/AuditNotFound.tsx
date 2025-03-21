@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Home, Plus, Info, RefreshCw, ArrowLeft } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
+import { cleanProjectId } from '@/lib/utils';
 
 interface AuditNotFoundProps {
   navigate: NavigateFunction;
@@ -13,34 +14,8 @@ interface AuditNotFoundProps {
 }
 
 const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
-  // Fonction pour nettoyer l'ID du projet
-  const getCleanProjectId = () => {
-    if (!projectId) return undefined;
-    
-    console.log(`AuditNotFound - Tentative de nettoyage de l'ID: "${projectId}"`);
-    
-    // Si l'ID est une chaîne simple, la retourner directement
-    if (typeof projectId === 'string' && !projectId.startsWith('"')) {
-      console.log(`AuditNotFound - ID déjà propre: "${projectId}"`);
-      return projectId;
-    }
-    
-    // Si l'ID est une chaîne JSON, essayons de l'extraire
-    try {
-      if (projectId.startsWith('"') && projectId.endsWith('"')) {
-        const cleanedId = JSON.parse(projectId);
-        console.log(`AuditNotFound - ID nettoyé de JSON: "${projectId}" => "${cleanedId}"`);
-        return cleanedId;
-      }
-    } catch (e) {
-      console.error(`AuditNotFound - Erreur lors du nettoyage de l'ID: "${projectId}"`, e);
-    }
-    
-    // Si on arrive ici, retourner l'ID tel quel
-    return projectId;
-  };
-  
-  const cleanProjectId = getCleanProjectId();
+  // Obtenir l'ID propre du projet
+  const cleanedProjectId = cleanProjectId(projectId);
   
   // Fonction pour réinitialiser le mode mock et recharger
   const handleForceReset = () => {
@@ -81,11 +56,11 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, erro
                   {projectId ? `"${projectId}"` : 'aucun ID fourni'}
                 </code>
               </p>
-              {cleanProjectId !== projectId && (
+              {cleanedProjectId !== projectId && (
                 <p>
                   <span className="font-medium">ID nettoyé:</span>{' '}
                   <code className="bg-gray-100 px-1 py-0.5 rounded">
-                    {cleanProjectId ? `"${cleanProjectId}"` : 'échec du nettoyage'}
+                    {cleanedProjectId ? `"${cleanedProjectId}"` : 'échec du nettoyage'}
                   </code>
                 </p>
               )}
@@ -110,10 +85,10 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, erro
               Retour à l'accueil
             </Button>
             
-            {cleanProjectId && (
+            {cleanedProjectId && (
               <Button 
                 variant="default"
-                onClick={() => navigate(`/audit/new/${cleanProjectId}`)}
+                onClick={() => navigate(`/audit/new/${cleanedProjectId}`)}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Créer un audit

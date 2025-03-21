@@ -13,6 +13,7 @@ import { ArrowLeft, CheckSquare, Loader2, AlertCircle, Info, Home } from 'lucide
 import { notionApi } from '@/lib/notionProxy';
 import { createMockAudit, getProjectById, getAllProjects } from '@/lib/mockData';
 import { Project, Audit } from '@/lib/types';
+import { cleanProjectId } from '@/lib/utils';
 
 const NewAuditPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -25,22 +26,6 @@ const NewAuditPage: React.FC = () => {
   const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   
-  // Fonction pour nettoyer l'ID du projet si nécessaire
-  const getCleanProjectId = () => {
-    if (!projectId) return undefined;
-    
-    // Si l'ID est une chaîne JSON, essayons de l'extraire
-    try {
-      if (projectId.startsWith('"') && projectId.endsWith('"')) {
-        return JSON.parse(projectId);
-      }
-    } catch (e) {
-      console.error("Erreur lors du nettoyage de l'ID:", e);
-    }
-    
-    return projectId;
-  };
-  
   // Charger les données du projet
   useEffect(() => {
     console.log("NewAuditPage - projectId reçu:", projectId);
@@ -52,8 +37,8 @@ const NewAuditPage: React.FC = () => {
       return;
     }
     
-    const cleanProjectId = getCleanProjectId();
-    console.log("NewAuditPage - projectId nettoyé:", cleanProjectId);
+    const cleanedProjectId = cleanProjectId(projectId);
+    console.log("NewAuditPage - projectId nettoyé:", cleanedProjectId);
     
     const fetchProject = async () => {
       setIsLoading(true);
@@ -63,7 +48,7 @@ const NewAuditPage: React.FC = () => {
         await notionApi.mockMode.applySimulatedDelay();
         
         // Pour la démo, utiliser les données mock pour tous les cas
-        let projectData = getProjectById(cleanProjectId || projectId);
+        let projectData = getProjectById(cleanedProjectId || projectId);
         
         console.log("NewAuditPage - Projet trouvé:", projectData ? "Oui" : "Non");
         
@@ -74,11 +59,11 @@ const NewAuditPage: React.FC = () => {
           console.log("NewAuditPage - Tous les projets disponibles:", allProjects.map(p => ({ id: p.id, name: p.name })));
           
           // Si projet non trouvé mais qu'il s'agit d'un ID mock-project, créer un projet fictif
-          if (cleanProjectId && cleanProjectId.toString().startsWith('mock-project-')) {
-            console.log("Création d'un nouveau projet mock à partir de l'ID généré", cleanProjectId);
+          if (cleanedProjectId && cleanedProjectId.toString().startsWith('mock-project-')) {
+            console.log("Création d'un nouveau projet mock à partir de l'ID généré", cleanedProjectId);
             projectData = {
-              id: cleanProjectId.toString(),
-              name: `Projet ${cleanProjectId.toString().substring(12)}`,
+              id: cleanedProjectId.toString(),
+              name: `Projet ${cleanedProjectId.toString().substring(12)}`,
               url: "https://example.com",
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
@@ -87,8 +72,8 @@ const NewAuditPage: React.FC = () => {
               pagesCount: 0
             };
           } else {
-            setErrorDetails(`Projet avec ID "${cleanProjectId || projectId}" non trouvé dans la base de données`);
-            throw new Error(`Projet avec ID "${cleanProjectId || projectId}" non trouvé dans la base de données`);
+            setErrorDetails(`Projet avec ID "${cleanedProjectId || projectId}" non trouvé dans la base de données`);
+            throw new Error(`Projet avec ID "${cleanedProjectId || projectId}" non trouvé dans la base de données`);
           }
         }
         
@@ -97,11 +82,10 @@ const NewAuditPage: React.FC = () => {
           // Initialiser le nom de l'audit avec le nom du projet
           setName(`Audit de ${projectData.name} - ${new Date().toLocaleDateString()}`);
         } else {
-          setErrorDetails(`Projet non trouvé malgré les tentatives de récupération (ID: ${cleanProjectId || projectId})`);
+          setErrorDetails(`Projet non trouvé malgré les tentatives de récupération (ID: ${cleanedProjectId || projectId})`);
           toast.error("Projet non trouvé", {
-            description: `ID: ${cleanProjectId || projectId}`
+            description: `ID: ${cleanedProjectId || projectId}`
           });
-          setTimeout(() => navigate('/'), 2000);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
@@ -110,7 +94,6 @@ const NewAuditPage: React.FC = () => {
         toast.error("Impossible de charger les données du projet", {
           description: errorMessage
         });
-        setTimeout(() => navigate('/'), 2000);
       } finally {
         setIsLoading(false);
       }
@@ -149,15 +132,11 @@ const NewAuditPage: React.FC = () => {
       await notionApi.mockMode.applySimulatedDelay();
       
       // Pour la démo, créer un audit mock
-      // Dans une implémentation complète, on créerait un nouvel audit dans Notion si on n'est pas en mode mock
-      const cleanProjectId = getCleanProjectId() || projectId;
-      const auditData: Audit = createMockAudit(cleanProjectId);
+      const cleanedProjectId = cleanProjectId(projectId) || projectId;
+      const auditData: Audit = createMockAudit(cleanedProjectId);
       
       // Mettre à jour le nom et la description
       auditData.name = name;
-      // La description serait enregistrée dans un champ approprié de la BDD Notion
-      
-      // Dans une implémentation complète, on sauvegarderait l'audit dans Notion ici
       
       toast.success("Audit créé avec succès", {
         description: "Vous allez être redirigé vers l'interface d'évaluation"
@@ -165,9 +144,9 @@ const NewAuditPage: React.FC = () => {
       
       // Rediriger vers la page d'audit après un court délai
       setTimeout(() => {
-        console.log("Redirection vers la page d'audit:", `/audit/${cleanProjectId}/${auditData.id}`);
-        navigate(`/audit/${cleanProjectId}/${auditData.id}`);
-      }, 500);
+        console.log("Redirection vers la page d'audit:", `/audit/${cleanedProjectId}/${auditData.id}`);
+        navigate(`/audit/${cleanedProjectId}/${auditData.id}`);
+      }, 1000);
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
@@ -213,7 +192,7 @@ const NewAuditPage: React.FC = () => {
                     <p className="mb-2">{errorDetails}</p>
                     <div className="text-xs bg-gray-100 p-2 rounded-md mt-2 font-mono">
                       <p><strong>ID reçu:</strong> {projectId || 'aucun'}</p>
-                      <p><strong>ID nettoyé:</strong> {getCleanProjectId() || 'échec du nettoyage'}</p>
+                      <p><strong>ID nettoyé:</strong> {cleanProjectId(projectId) || 'échec du nettoyage'}</p>
                     </div>
                   </div>
                 </div>
@@ -277,7 +256,7 @@ const NewAuditPage: React.FC = () => {
                 <div className="mt-3 text-xs bg-gray-50 border border-gray-200 rounded-md p-2">
                   <p className="text-gray-500">
                     <span className="font-medium">ID du projet:</span> {project?.id}
-                    {getCleanProjectId() !== projectId && (
+                    {cleanProjectId(projectId) !== projectId && (
                       <span className="ml-2">
                         (nettoyé depuis <code className="bg-gray-100 px-1 py-0.5 rounded">{projectId}</code>)
                       </span>
