@@ -405,7 +405,9 @@ const NotionDatabasesCreator: React.FC = () => {
       initialResults[schema.key] = {
         id: savedId,
         name: schema.name,
-        status: savedId ? 'success' : 'pending'
+        status: savedId ? 'success' : 'pending',
+        error: undefined,  // Add explicit undefined for error
+        response: undefined // Add explicit undefined for response
       };
     });
     setResults(initialResults);
@@ -874,7 +876,13 @@ const NotionDatabasesCreator: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {DATABASE_SCHEMAS.map((schema) => {
-                  const result = results[schema.key] || { status: 'pending', id: null };
+                  const result = results[schema.key] || { 
+                    status: 'pending', 
+                    id: null, 
+                    name: schema.name,
+                    error: undefined,
+                    response: undefined
+                  };
                   return (
                     <div key={schema.key} className="flex items-start space-x-4 p-3 rounded-md border">
                       <div className="flex-shrink-0 mt-1">
