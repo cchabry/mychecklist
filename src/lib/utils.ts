@@ -1,4 +1,7 @@
 
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 /**
  * Nettoie un ID de projet qui pourrait être entouré de guillemets JSON
  * @param id L'ID à nettoyer
@@ -49,4 +52,12 @@ export function resetApplicationState(): void {
   localStorage.removeItem('notion_last_error');
   
   console.log('État de l\'application réinitialisé complètement');
+}
+
+/**
+ * Utilitaire pour combiner des classes CSS avec clsx et tailwind-merge
+ * Utilisé par les composants UI
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
