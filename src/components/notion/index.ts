@@ -16,3 +16,4 @@ export { default as NotionTestDataGenerator } from './NotionTestDataGenerator';
 export { default as NotionCSVExporter } from './NotionCSVExporter';
 export { NotionDiagnosticTool } from './diagnostic';
 export { default as MockModeControl } from './MockModeControl';
+export { default as ProxyStatusIndicator } from './ProxyStatusIndicator';
