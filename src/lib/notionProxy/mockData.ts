@@ -1,4 +1,3 @@
-
 /**
  * Simule une réponse de l'API Notion
  */
@@ -254,7 +253,7 @@ const mockNotionDatabases = (endpoint: string, method: string, data?: any) => {
 /**
  * Simulation des réponses Notion API - Users
  */
-const mockNotionUsers = (endpoint: string, method: string) => {
+const mockNotionUsers = (endpoint: string, method: string, data?: any) => {
   if (endpoint === '/users' && method === 'GET') {
     console.log('[MOCK] Retourne une liste d\'utilisateurs mock');
     return {
@@ -303,7 +302,7 @@ const mockNotionUsers = (endpoint: string, method: string) => {
  * Simulation des réponses Notion API - Blocks (ajouté pour la v2)
  * Utilisé notamment pour les fichiers joints et contenus riches
  */
-const mockNotionBlocks = (endpoint: string, method: string, body: any) => {
+const mockNotionBlocks = (endpoint: string, method: string, body?: any) => {
   if (endpoint.startsWith('/blocks/') && method === 'GET') {
     const blockId = endpoint.split('/')[2];
     console.log(`[MOCK] Retourne le block mock avec l'ID ${blockId}`);
