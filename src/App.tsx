@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { HomePage, AuditPage, NewProjectPage, NotFoundPage } from './pages';
+import { HomePage, AuditPage, NewProjectPage, NotFoundPage, CreateDatabasesPage } from './pages';
 import { NotionProvider } from './contexts/NotionContext';
 import { Toaster } from './components/ui/toaster';
 import DiagnosticsPage from './pages/Diagnostics';
@@ -22,6 +22,7 @@ const App: React.FC = () => {
           <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
           <Route path="/project/edit/:projectId" element={<NewProjectPage />} />
           <Route path="/diagnostics" element={<DiagnosticsPage />} />
+          <Route path="/create-databases" element={<CreateDatabasesPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>

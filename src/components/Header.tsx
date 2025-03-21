@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import NotionScriptRunner from './NotionScriptRunner';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -37,7 +36,11 @@ const Header: React.FC = () => {
             </Button>
           )}
           
-          <NotionScriptRunner />
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/create-databases" className="transition-all duration-300">
+              <Database size={20} />
+            </Link>
+          </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -50,6 +53,12 @@ const Header: React.FC = () => {
                 <Link to="/diagnostics" className="flex items-center gap-2">
                   <TestTube size={16} />
                   <span>Diagnostics Notion</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/create-databases" className="flex items-center gap-2">
+                  <Database size={16} />
+                  <span>Créer les 8 BDD</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

@@ -1,5 +1,14 @@
 
-export { default as HomePage } from './HomePage';
-export { default as AuditPage } from './AuditPage';
-export { default as NewProjectPage } from './NewProject';
-export { default as NotFoundPage } from './NotFound';
+import HomePage from './HomePage';
+import AuditPage from './audit';
+import NewProjectPage from './NewProject';
+import NotFoundPage from './NotFound';
+import CreateDatabasesPage from './CreateDatabases';
+
+export {
+  HomePage,
+  AuditPage,
+  NewProjectPage,
+  NotFoundPage,
+  CreateDatabasesPage
+};
