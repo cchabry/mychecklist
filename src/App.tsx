@@ -10,6 +10,7 @@ import NotionConfig from '@/pages/NotionConfig';
 import NewProject from '@/pages/NewProject';
 import EditProject from '@/pages/EditProject';
 import ProjectAudit from '@/pages/audit/ProjectAudit';
+import NewAuditPage from '@/pages/audit/NewAuditPage';
 import NotFound from '@/pages/NotFound';
 import ErrorPage from '@/pages/ErrorPage';
 
@@ -48,7 +49,7 @@ function App() {
           {/* Audits */}
           <Route path="/audit/:projectId" element={<ProjectAudit />} />
           <Route path="/audit/:projectId/:auditId" element={<ProjectAudit />} />
-          <Route path="/audit/new/:projectId" element={<ProjectAudit />} />
+          <Route path="/audit/new/:projectId" element={<NewAuditPage />} />
           
           {/* Configuration Notion */}
           <Route path="/notion-config" element={<NotionConfig />} />
