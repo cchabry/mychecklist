@@ -596,7 +596,7 @@ const NotionDatabasesCreator: React.FC = () => {
             return await notionApi.databases.create(pageId, dbData, apiKey);
           } finally {
             if (wasMockMode) {
-              notionApi.mockMode.restore();
+              notionApi.mockMode.restoreAfterForceReal();
             }
           }
         },
