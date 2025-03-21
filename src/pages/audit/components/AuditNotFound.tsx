@@ -30,7 +30,10 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId }) =>
             </Button>
             
             {projectId && (
-              <Button as={Link} to={`/audit/new/${projectId}`}>
+              <Button 
+                variant="default"
+                onClick={() => navigate(`/audit/new/${projectId}`)}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Créer un audit
               </Button>
