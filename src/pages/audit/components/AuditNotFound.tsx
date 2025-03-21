@@ -16,19 +16,33 @@ interface AuditNotFoundProps {
 const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
   // Obtenir l'ID propre du projet
   const cleanedProjectId = cleanProjectId(projectId);
+  console.log(`🔍 AuditNotFound - projectId original: "${projectId}", nettoyé: "${cleanedProjectId}"`);
   
   // Fonction pour réinitialiser le mode mock et recharger
   const handleForceReset = () => {
-    notionApi.mockMode.forceReset();
+    console.log('🔄 AuditNotFound - Réinitialisation complète demandée');
+    
+    // Supprimer toutes les données de cache
     localStorage.removeItem('notion_mock_mode');
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
+    localStorage.removeItem('notion_last_error');
+    
+    // Désactiver forcément le mode mock
+    notionApi.mockMode.forceReset();
     
     // Redirige vers l'accueil
     setTimeout(() => {
+      console.log('🔄 AuditNotFound - Redirection vers l\'accueil après réinitialisation');
       navigate('/');
     }, 500);
   };
+  
+  // Récupérer des données de diagnostic supplémentaires
+  const mockModeActive = notionApi.mockMode.isActive();
+  const notionApiKey = localStorage.getItem('notion_api_key') ? "Configurée" : "Non configurée";
+  const notionDbId = localStorage.getItem('notion_database_id') ? "Configurée" : "Non configurée";
+  const cacheProjects = localStorage.getItem('projects_cache') ? "Présent" : "Absent";
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -73,8 +87,20 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, erro
               <p>
                 <span className="font-medium">Mode mock:</span>{' '}
                 <code className="bg-gray-100 px-1 py-0.5 rounded">
-                  {notionApi.mockMode.isActive() ? 'Actif' : 'Inactif'}
+                  {mockModeActive ? 'Actif' : 'Inactif'}
                 </code>
+              </p>
+              <p>
+                <span className="font-medium">Clé API Notion:</span>{' '}
+                <code className="bg-gray-100 px-1 py-0.5 rounded">{notionApiKey}</code>
+              </p>
+              <p>
+                <span className="font-medium">Base de données Notion:</span>{' '}
+                <code className="bg-gray-100 px-1 py-0.5 rounded">{notionDbId}</code>
+              </p>
+              <p>
+                <span className="font-medium">Cache des projets:</span>{' '}
+                <code className="bg-gray-100 px-1 py-0.5 rounded">{cacheProjects}</code>
               </p>
             </div>
           </div>

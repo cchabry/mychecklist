@@ -1,7 +1,7 @@
-
 import { notionApiRequest } from '../proxyFetch';
 import { mockMode } from '../mockMode';
 import { MOCK_PROJECTS } from '../../mockData';
+import { cleanProjectId } from '../../utils';
 
 /**
  * Récupère tous les projets
@@ -55,54 +55,91 @@ export const getProjects = async () => {
 };
 
 /**
- * Récupère un projet par son ID
+ * Récupère un projet par son ID de manière fiable
+ * Implémentation simplifiée et robuste
  */
 export const getProject = async (id: string) => {
+  // Nettoyer l'ID pour assurer la cohérence
+  const cleanedId = cleanProjectId(id);
+  console.log(`🔍 getProject - ID original: "${id}", ID nettoyé: "${cleanedId}"`);
+  
+  if (!cleanedId) {
+    console.error("❌ getProject - ID invalide après nettoyage");
+    return null;
+  }
+  
   // Si nous sommes en mode mock, retourner les données mock
   if (mockMode.isActive()) {
-    console.log('Using mock project data for ID:', id);
-    return MOCK_PROJECTS.find(project => project.id === id) || null;
+    console.log(`🔍 getProject - Recherche du projet mock ID: "${cleanedId}"`);
+    
+    // Rechercher le projet dans les données mock
+    const mockProject = MOCK_PROJECTS.find(project => project.id === cleanedId);
+    
+    if (mockProject) {
+      console.log(`✅ getProject - Projet mock trouvé: "${mockProject.name}"`);
+    } else {
+      console.error(`❌ getProject - Projet mock non trouvé pour ID: "${cleanedId}"`);
+    }
+    
+    return mockProject || null;
   }
 
   // Sinon, récupérer depuis Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  
-  if (!apiKey) {
-    throw new Error('Clé API Notion manquante');
-  }
+  try {
+    const apiKey = localStorage.getItem('notion_api_key');
+    
+    if (!apiKey) {
+      console.error("❌ getProject - Clé API Notion manquante");
+      throw new Error('Clé API Notion manquante');
+    }
 
-  const response = await notionApiRequest(
-    `/pages/${id}`,
-    'GET',
-    undefined,
-    apiKey
-  );
+    console.log(`🔍 getProject - Appel API Notion pour page ID: "${cleanedId}"`);
+    const response = await notionApiRequest(
+      `/pages/${cleanedId}`,
+      'GET',
+      undefined,
+      apiKey
+    );
 
-  if (!response) {
+    if (!response) {
+      console.error(`❌ getProject - Réponse vide de l'API Notion pour ID: "${cleanedId}"`);
+      return null;
+    }
+
+    const properties = response.properties;
+    console.log(`✅ getProject - Projet Notion récupéré: "${properties.Name?.title?.[0]?.plain_text || 'Sans titre'}"`);
+    
+    return {
+      id: response.id,
+      name: properties.Name?.title?.[0]?.plain_text || 
+            properties.name?.title?.[0]?.plain_text || 'Sans titre',
+      url: properties.URL?.url || 
+           properties.url?.url || 
+           properties.Url?.url || '',
+      description: properties.Description?.rich_text?.[0]?.plain_text || 
+                   properties.description?.rich_text?.[0]?.plain_text || '',
+      status: properties.Status?.select?.name || 
+              properties.status?.select?.name || 'Non démarré',
+      createdAt: response.created_time,
+      updatedAt: response.last_edited_time,
+      progress: properties.Progress?.number || 
+                properties.progress?.number || 0,
+      itemsCount: properties.ItemsCount?.number || 
+                  properties.itemsCount?.number ||
+                  properties.Nombre?.number || 15
+    };
+  } catch (error) {
+    console.error(`❌ getProject - Erreur lors de la récupération du projet ID: "${cleanedId}"`, error);
+    // Activer le mode mock en cas d'erreur d'accès à l'API
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('401')) {
+      console.log('🔄 getProject - Activation du mode mock suite à une erreur API');
+      mockMode.activate();
+      
+      // Retenter avec les données mock
+      return getProject(cleanedId);
+    }
     return null;
   }
-
-  const properties = response.properties;
-  
-  return {
-    id: response.id,
-    name: properties.Name?.title?.[0]?.plain_text || 
-          properties.name?.title?.[0]?.plain_text || 'Sans titre',
-    url: properties.URL?.url || 
-         properties.url?.url || 
-         properties.Url?.url || '',
-    description: properties.Description?.rich_text?.[0]?.plain_text || 
-                 properties.description?.rich_text?.[0]?.plain_text || '',
-    status: properties.Status?.select?.name || 
-            properties.status?.select?.name || 'Non démarré',
-    createdAt: response.created_time,
-    updatedAt: response.last_edited_time,
-    progress: properties.Progress?.number || 
-              properties.progress?.number || 0,
-    itemsCount: properties.ItemsCount?.number || 
-                properties.itemsCount?.number ||
-                properties.Nombre?.number || 15
-  };
 };
 
 /**

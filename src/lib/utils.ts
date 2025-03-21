@@ -1,35 +1,47 @@
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 /**
- * Nettoie l'ID du projet si nécessaire (pour traiter les cas d'IDs sous forme de chaînes JSON)
+ * Nettoie l'ID du projet de manière robuste et cohérente
+ * - Gère les chaînes JSON (ID entre guillemets)
+ * - Gère les cas où l'ID est déjà propre
+ * - Gère les cas où l'ID est undefined ou null
+ * - Ajoute des logs détaillés pour faciliter le débogage
  */
 export const cleanProjectId = (id: string | undefined): string | undefined => {
-  if (!id) {
-    console.error("cleanProjectId: ID vide ou undefined");
+  console.log(`🧹 cleanProjectId - ID original: "${id}" (type: ${typeof id})`);
+  
+  // Cas 1: ID manquant
+  if (id === undefined || id === null || id === '') {
+    console.error("❌ cleanProjectId - ID vide ou undefined");
     return undefined;
   }
   
-  console.log(`Traitement de l'ID projet original: "${id}"`);
-  
-  // Si l'ID est une chaîne simple non-JSON, la retourner directement
-  if (typeof id === 'string' && !id.startsWith('"')) {
-    console.log(`ID projet déjà propre: "${id}"`);
-    return id;
-  }
-  
-  // Si l'ID est une chaîne JSON, essayons de l'extraire
   try {
-    if (typeof id === 'string' && id.startsWith('"') && id.endsWith('"')) {
-      const cleanedId = JSON.parse(id);
-      console.log(`ID projet nettoyé de JSON: "${id}" => "${cleanedId}"`);
-      return cleanedId;
+    // Cas 2: ID déjà sous forme de chaîne simple
+    if (typeof id === 'string') {
+      // Vérifier si l'ID est une chaîne JSON (commence et finit par des guillemets)
+      if (id.startsWith('"') && id.endsWith('"')) {
+        // Extraire le contenu entre guillemets
+        const cleanedId = JSON.parse(id);
+        console.log(`✅ cleanProjectId - ID nettoyé depuis JSON: "${id}" => "${cleanedId}"`);
+        return cleanedId;
+      }
+      
+      // ID déjà propre
+      console.log(`✅ cleanProjectId - ID déjà propre: "${id}"`);
+      return id;
     }
+    
+    // Cas 3: ID est un objet ou autre chose
+    console.error(`❌ cleanProjectId - Type d'ID non géré: ${typeof id}`);
+    // Tenter de convertir en chaîne comme dernier recours
+    return String(id);
   } catch (e) {
-    console.error(`Erreur lors du nettoyage de l'ID: "${id}"`, e);
+    console.error(`❌ cleanProjectId - Erreur lors du nettoyage: "${id}"`, e);
+    return id; // Retourner l'ID original en cas d'erreur
   }
-  
-  return id;
 };
 
 /**
@@ -48,7 +60,7 @@ export function resetApplicationState(): void {
   localStorage.removeItem('notion_mock_mode');
   localStorage.removeItem('notion_last_error');
   
-  console.log('État de l\'application réinitialisé complètement');
+  console.log('🔄 État de l\'application réinitialisé complètement');
 }
 
 /**
