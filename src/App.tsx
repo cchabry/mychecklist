@@ -6,6 +6,7 @@ import { NotionProvider } from './contexts/NotionContext';
 import { Toaster } from './components/ui/toaster';
 import DiagnosticsPage from './pages/Diagnostics';
 import SamplePagesPage from './pages/SamplePages';
+import NewAuditPage from './pages/audit/NewAuditPage';
 
 const App: React.FC = () => {
   console.log("App component rendering...");
@@ -18,6 +19,7 @@ const App: React.FC = () => {
           <Route path="/audit/:projectId" element={<AuditPage />} />
           <Route path="/audit/:projectId/:auditId" element={<AuditPage />} />
           <Route path="/audit/plan/:projectId/:auditId" element={<AuditPage />} />
+          <Route path="/audit/new/:projectId" element={<NewAuditPage />} />
           <Route path="/new-project" element={<NewProjectPage />} />
           <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
           <Route path="/project/edit/:projectId" element={<NewProjectPage />} />

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CheckSquare, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CheckSquare, AlertCircle, RefreshCw, ClipboardEdit } from 'lucide-react';
 import { isNotionConfigured, createProjectInNotion } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -74,7 +75,7 @@ const NewProject = () => {
     };
   }, []);
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, startAudit = false) => {
     e.preventDefault();
     
     if (!name.trim() || !url.trim()) {
@@ -141,7 +142,13 @@ const NewProject = () => {
             setTimeout(() => {
               // Effacer le cache pour assurer un rechargement frais
               localStorage.removeItem('projects_cache');
-              navigate('/');
+              
+              // Si l'utilisateur a choisi de démarrer un audit, rediriger vers la page de création d'audit
+              if (startAudit) {
+                navigate(`/audit/new/${project.id}`);
+              } else {
+                navigate('/');
+              }
             }, 2000);
             return;
           } else {
@@ -187,7 +194,13 @@ const NewProject = () => {
           toast.success("Projet créé en mode démonstration", {
             description: "Le projet a été ajouté en mode simulation.",
           });
-          navigate('/');
+          
+          // Si l'utilisateur a choisi de démarrer un audit, rediriger vers la page de création d'audit
+          if (startAudit) {
+            navigate(`/audit/new/mock-project-${Date.now()}`);
+          } else {
+            navigate('/');
+          }
         }, 1000);
       }
     } catch (error) {
@@ -292,7 +305,7 @@ const NewProject = () => {
               )}
             </CardHeader>
             
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={(e) => handleSubmit(e, false)}>
               <CardContent className="space-y-6 pt-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nom du projet <span className="text-error">*</span></Label>
@@ -345,6 +358,24 @@ const NewProject = () => {
                     </>
                   ) : (
                     "Créer le projet"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={(e) => handleSubmit(e, true)}
+                  className="min-w-[200px] bg-tmw-coral hover:bg-tmw-coral/90 flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Création...
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardEdit size={16} />
+                      Créer et commencer l'audit
+                    </>
                   )}
                 </Button>
               </CardFooter>

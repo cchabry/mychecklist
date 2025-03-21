@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NotionTestDataGenerator } from '@/components/notion';
+import MockModeToggle from './MockModeToggle';
 import { useState } from 'react';
 
 const Header: React.FC = () => {
@@ -39,6 +40,9 @@ const Header: React.FC = () => {
         </Link>
         
         <div className="flex items-center space-x-4">
+          {/* Ajout du toggle de mode mock */}
+          <MockModeToggle />
+          
           {location.pathname !== "/" && (
             <Button variant="ghost" size="icon" asChild>
               <Link to="/" className="transition-all duration-300 hover:text-tmw-teal">
