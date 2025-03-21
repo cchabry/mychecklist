@@ -5,20 +5,19 @@ import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
 import { isOAuthToken, isIntegrationKey, STORAGE_KEYS } from '@/lib/notionProxy/config';
+import AuditNotFound from './components/AuditNotFound';
+import { useNavigate } from 'react-router-dom';
 
 const AuditPage = () => {
   const [notionReady, setNotionReady] = useState<boolean>(false);
   const [checking, setChecking] = useState<boolean>(true);
   const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
 
   // Vérification si l'ID du projet est disponible
   if (!projectId) {
     console.error("Aucun projectId fourni à AuditPage (dans audit/index.tsx)");
-    return (
-      <div className="text-center p-8">
-        Erreur: Identifiant de projet manquant
-      </div>
-    );
+    return <AuditNotFound navigate={navigate} />;
   }
 
   useEffect(() => {

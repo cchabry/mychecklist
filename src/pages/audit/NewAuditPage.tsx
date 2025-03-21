@@ -41,7 +41,22 @@ const NewAuditPage: React.FC = () => {
         
         // Pour la démo, utiliser les données mock pour tous les cas
         // Dans une implémentation complète, on interrogerait Notion si on n'est pas en mode mock
-        const projectData = getProjectById(projectId);
+        let projectData = getProjectById(projectId);
+        
+        // Si projet non trouvé mais qu'il s'agit d'un ID mock-project, créer un projet fictif
+        if (!projectData && projectId.startsWith('mock-project-')) {
+          console.log("Création d'un nouveau projet mock à partir de l'ID généré", projectId);
+          projectData = {
+            id: projectId,
+            name: `Projet ${projectId.substring(12)}`,
+            url: "https://example.com",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 0,
+            itemsCount: 15,
+            pagesCount: 0
+          };
+        }
         
         if (projectData) {
           setProject(projectData);
@@ -54,6 +69,7 @@ const NewAuditPage: React.FC = () => {
       } catch (error) {
         console.error("Erreur lors du chargement du projet:", error);
         toast.error("Impossible de charger les données du projet");
+        navigate('/');
       } finally {
         setIsLoading(false);
       }
@@ -107,6 +123,7 @@ const NewAuditPage: React.FC = () => {
       
       // Rediriger vers la page d'audit après un court délai
       setTimeout(() => {
+        console.log("Redirection vers la page d'audit:", `/audit/${projectId}/${auditData.id}`);
         navigate(`/audit/${projectId}/${auditData.id}`);
       }, 500);
       

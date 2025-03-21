@@ -50,7 +50,6 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
     
     if (!projectId) {
       toast.error('Projet non trouvé');
-      // Ne pas rediriger pour le prototype
       setLoading(false);
       isLoadingProject.current = false;
       return;
@@ -139,27 +138,38 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       } else {
         console.error("Le projet avec l'ID", projectId, "n'a pas été trouvé dans les données mock");
         
-        // Pour le prototype, au lieu de rediriger, on crée un projet fictif
-        const mockProject: Project = {
-          id: projectId,
-          name: "Projet Prototype",
-          url: "https://example.com",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 0,
-          itemsCount: 15,
-          pagesCount: 0
-        };
+        // Vérifier si l'ID commence par 'mock-project-' (généré par NewProject.tsx)
+        if (projectId.startsWith('mock-project-')) {
+          console.log("Création d'un nouveau projet mock à partir de l'ID généré", projectId);
+          const mockProject: Project = {
+            id: projectId,
+            name: `Projet ${projectId.substring(12)}`,
+            url: "https://example.com",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 0,
+            itemsCount: 15,
+            pagesCount: 0
+          };
+          
+          setProject(mockProject);
+          setPages([]);
+          
+          setTimeout(() => {
+            const mockAudit = createNewAudit(projectId);
+            setAudit(mockAudit);
+            setLoading(false);
+            isLoadingProject.current = false;
+          }, 300);
+          return;
+        }
         
-        setProject(mockProject);
-        setPages([]);
-        
-        setTimeout(() => {
-          const mockAudit = createNewAudit(projectId);
-          setAudit(mockAudit);
-          setLoading(false);
-          isLoadingProject.current = false;
-        }, 300);
+        // Projet vraiment introuvable, afficher message et redirection
+        toast.error("Projet non trouvé", {
+          description: "Le projet que vous cherchez n'existe pas ou a été supprimé"
+        });
+        setLoading(false);
+        isLoadingProject.current = false;
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
