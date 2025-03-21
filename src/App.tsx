@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HomePage, AuditPage, NewProjectPage, NotFoundPage } from './pages';
@@ -5,7 +6,6 @@ import { NotionProvider } from './contexts/NotionContext';
 import { Toaster } from './components/ui/toaster';
 import DiagnosticsPage from './pages/Diagnostics';
 import SamplePagesPage from './pages/SamplePages';
-import NotionConfigPage from './pages/NotionConfigPage';
 
 const App: React.FC = () => {
   console.log("App component rendering...");
@@ -22,7 +22,6 @@ const App: React.FC = () => {
           <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
           <Route path="/project/edit/:projectId" element={<NewProjectPage />} />
           <Route path="/diagnostics" element={<DiagnosticsPage />} />
-          <Route path="/notion-config" element={<NotionConfigPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>
