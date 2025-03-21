@@ -37,19 +37,28 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
    * Nettoie l'ID du projet si nécessaire (pour traiter les cas d'IDs sous forme de chaînes JSON)
    */
   const getCleanProjectId = (id: string | undefined): string | undefined => {
-    if (!id) return undefined;
+    if (!id) {
+      console.error("getCleanProjectId: ID vide ou undefined");
+      return undefined;
+    }
     
-    console.log("Tentative de nettoyage de l'ID:", id);
+    console.log(`useAuditProject - Tentative de nettoyage de l'ID: "${id}" (type: ${typeof id})`);
+    
+    // Si l'ID est une chaîne simple non-JSON, la retourner directement
+    if (typeof id === 'string' && !id.startsWith('"')) {
+      console.log(`useAuditProject - ID déjà propre: "${id}"`);
+      return id;
+    }
     
     // Si l'ID est une chaîne JSON, essayons de l'extraire
     try {
       if (typeof id === 'string' && id.startsWith('"') && id.endsWith('"')) {
         const cleanedId = JSON.parse(id);
-        console.log("ID nettoyé avec succès:", cleanedId);
+        console.log(`useAuditProject - ID nettoyé de JSON: "${id}" => "${cleanedId}"`);
         return cleanedId;
       }
     } catch (e) {
-      console.error("Erreur lors du nettoyage de l'ID:", e);
+      console.error(`useAuditProject - Erreur lors du nettoyage de l'ID: "${id}"`, e);
     }
     
     return id;
@@ -65,7 +74,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       return;
     }
     
-    console.log("Starting loadProject() with projectId:", projectId);
+    console.log(`useAuditProject - Starting loadProject() with projectId: "${projectId}"`);
     isLoadingProject.current = true;
     setLoading(true);
     setNotionError(null);
@@ -76,12 +85,28 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       });
       setLoading(false);
       isLoadingProject.current = false;
+      
+      // Naviguer vers la page d'erreur avec l'ID problématique
+      navigate(`/error/project-not-found?id=undefined&error=${encodeURIComponent("ID projet manquant")}`);
       return;
     }
     
     // Nettoyer l'ID du projet si nécessaire
     const cleanedProjectId = getCleanProjectId(projectId);
-    console.log("ID du projet nettoyé:", cleanedProjectId);
+    console.log(`useAuditProject - ID du projet nettoyé: "${cleanedProjectId}" (type: ${typeof cleanedProjectId})`);
+    
+    // Vérifier si l'ID est valide après nettoyage
+    if (!cleanedProjectId) {
+      toast.error('Projet non trouvé - ID invalide', {
+        description: `L'identifiant de projet "${projectId}" n'est pas valide après nettoyage`
+      });
+      setLoading(false);
+      isLoadingProject.current = false;
+      
+      // Naviguer vers la page d'erreur avec l'ID problématique
+      navigate(`/error/project-not-found?id=${encodeURIComponent(String(projectId))}&error=${encodeURIComponent("ID projet invalide après nettoyage")}`);
+      return;
+    }
     
     try {
       // Simuler le délai configuré dans le mock mode
@@ -98,7 +123,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       if (scenario === 'empty') {
         // Scénario "vide" - projet minimal sans données
         setProject({
-          id: cleanedProjectId || projectId,
+          id: cleanedProjectId,
           name: "Projet vide",
           url: "https://example.com",
           createdAt: new Date().toISOString(),
@@ -116,16 +141,16 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       
       if (scenario === 'error') {
         // Scénario "erreur" - tout fonctionne mais avec un avertissement
-        const projectData = getProjectById(cleanedProjectId || projectId);
+        const projectData = getProjectById(cleanedProjectId);
         
         if (projectData) {
           setProject(projectData);
-          setPages(getPagesByProjectId(cleanedProjectId || projectId));
+          setPages(getPagesByProjectId(cleanedProjectId));
           
           setTimeout(() => {
             const mockAudit = projectData.progress === 0 
-              ? createNewAudit(cleanedProjectId || projectId) 
-              : createMockAudit(cleanedProjectId || projectId);
+              ? createNewAudit(cleanedProjectId) 
+              : createMockAudit(cleanedProjectId);
             setAudit(mockAudit);
             
             // Ajouter une erreur non-bloquante
@@ -138,45 +163,51 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
             isLoadingProject.current = false;
           }, 300);
         } else {
-          throw new Error(`Projet non trouvé dans le scénario 'error' (ID: ${cleanedProjectId || projectId})`);
+          throw new Error(`Projet non trouvé dans le scénario 'error' (ID: "${cleanedProjectId}")`);
         }
         return;
       }
       
       // Scénarios "standard" ou "large" - chargement normal
-      console.log('Loading mock data for project', cleanedProjectId || projectId);
+      console.log(`useAuditProject - Loading mock data for project ID: "${cleanedProjectId}" (type: ${typeof cleanedProjectId})`);
       
       // Afficher tous les projets disponibles pour déboguer
       const allProjects = getAllProjects();
       console.log("Tous les projets disponibles:", allProjects.map(p => ({ id: p.id, name: p.name })));
       
-      let projectData = getProjectById(cleanedProjectId || projectId);
+      // Afficher les types d'IDs pour déboguer
+      console.log("Types d'IDs dans les projets disponibles:", allProjects.map(p => ({ id: p.id, type: typeof p.id })));
+      
+      let projectData = getProjectById(cleanedProjectId);
       
       if (projectData) {
+        console.log(`useAuditProject - Projet trouvé: "${projectData.name}" (ID: "${projectData.id}")`);
         setProject(projectData);
         
         // Charger les pages du projet
-        const projectPages = getPagesByProjectId(cleanedProjectId || projectId);
+        const projectPages = getPagesByProjectId(cleanedProjectId);
+        console.log(`useAuditProject - ${projectPages.length} pages trouvées pour le projet`);
         setPages(projectPages);
         
         // Load mock audit with a slight delay for UX
         setTimeout(() => {
           const mockAudit = projectData.progress === 0 
-            ? createNewAudit(cleanedProjectId || projectId) 
-            : createMockAudit(cleanedProjectId || projectId);
+            ? createNewAudit(cleanedProjectId) 
+            : createMockAudit(cleanedProjectId);
+          console.log(`useAuditProject - Audit créé/chargé pour projet ID: "${cleanedProjectId}"`);
           setAudit(mockAudit);
           setLoading(false);
           isLoadingProject.current = false;
         }, 300); // Réduit le délai pour le prototype
       } else {
-        console.log("Le projet avec l'ID", cleanedProjectId || projectId, "n'a pas été trouvé dans les données mock");
+        console.log(`useAuditProject - Le projet avec l'ID "${cleanedProjectId}" n'a pas été trouvé dans les données mock`);
         
         // Vérifier si l'ID commence par 'mock-project-' (généré par NewProject.tsx)
-        if ((cleanedProjectId || projectId).toString().startsWith('mock-project-')) {
-          console.log("Création d'un nouveau projet mock à partir de l'ID généré", cleanedProjectId || projectId);
+        if (cleanedProjectId.toString().startsWith('mock-project-')) {
+          console.log(`useAuditProject - Création d'un nouveau projet mock à partir de l'ID généré "${cleanedProjectId}"`);
           const mockProject: Project = {
-            id: (cleanedProjectId || projectId).toString(),
-            name: `Projet ${(cleanedProjectId || projectId).toString().substring(12)}`,
+            id: cleanedProjectId.toString(),
+            name: `Projet ${cleanedProjectId.toString().substring(12)}`,
             url: "https://example.com",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -189,7 +220,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
           setPages([]);
           
           setTimeout(() => {
-            const mockAudit = createNewAudit((cleanedProjectId || projectId).toString());
+            const mockAudit = createNewAudit(cleanedProjectId.toString());
             setAudit(mockAudit);
             setLoading(false);
             isLoadingProject.current = false;
@@ -198,13 +229,13 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
         }
         
         // Projet vraiment introuvable, afficher message détaillé et redirection
-        const errorMsg = `Projet non trouvé (ID: ${cleanedProjectId || projectId})`;
+        const errorMsg = `Projet non trouvé (ID: "${cleanedProjectId}")`;
         toast.error(errorMsg, {
           description: "Le projet que vous cherchez n'existe pas ou a été supprimé"
         });
         
         // Naviguer vers la page d'erreur spécifique avec l'ID problématique
-        navigate(`/error/project-not-found?id=${cleanedProjectId || projectId}`);
+        navigate(`/error/project-not-found?id=${encodeURIComponent(String(cleanedProjectId))}`);
         
         setLoading(false);
         isLoadingProject.current = false;
@@ -214,14 +245,14 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       
       const errorMsg = error instanceof Error 
         ? error.message 
-        : `Erreur inconnue (ID: ${cleanedProjectId || projectId})`;
+        : `Erreur inconnue (ID: "${cleanedProjectId}")`;
       
       toast.error("Erreur de chargement", {
         description: errorMsg
       });
       
       // Naviguer vers la page d'erreur avec l'ID problématique
-      navigate(`/error/project-not-found?id=${cleanedProjectId || projectId}&error=${encodeURIComponent(errorMsg)}`);
+      navigate(`/error/project-not-found?id=${encodeURIComponent(String(cleanedProjectId))}&error=${encodeURIComponent(errorMsg)}`);
       
       setLoading(false);
       isLoadingProject.current = false;

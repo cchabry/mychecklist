@@ -1,35 +1,67 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { HomePage, AuditPage, NewProjectPage, NotFoundPage, CreateDatabasesPage } from './pages';
-import { NotionProvider } from './contexts/NotionContext';
-import { Toaster } from './components/ui/toaster';
-import DiagnosticsPage from './pages/Diagnostics';
-import SamplePagesPage from './pages/SamplePages';
-import NewAuditPage from './pages/audit/NewAuditPage';
+import { Toaster } from '@/components/ui/sonner';
+import { notionApi } from '@/lib/notionProxy';
 
-const App: React.FC = () => {
-  console.log("App component rendering...");
+// Pages
+import Dashboard from '@/pages/Dashboard';
+import NotionConfig from '@/pages/NotionConfig';
+import NewProject from '@/pages/NewProject';
+import EditProject from '@/pages/EditProject';
+import ProjectAudit from '@/pages/audit/ProjectAudit';
+import NotFound from '@/pages/NotFound';
+import ErrorPage from '@/pages/ErrorPage';
+
+// Contextes
+import { NotionProvider } from '@/contexts/NotionContext';
+
+/**
+ * Point d'entrée principal de l'application
+ * Configuration de la navigation et des routes
+ */
+function App() {
+  // Forcer le mode mock au démarrage pour le prototype
+  useEffect(() => {
+    console.log('App component rendering...');
+    
+    // Vérifier si le mode mock est déjà activé
+    if (!notionApi.mockMode.isActive()) {
+      // Activer le mode mock pour le prototype
+      notionApi.mockMode.activate();
+      console.log('Mode mock activé automatiquement au démarrage de l\'application');
+    }
+  }, []);
+  
   return (
     <NotionProvider>
-      <Toaster />
       <Router>
+        <Toaster position="top-right" />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/audit/:projectId" element={<AuditPage />} />
-          <Route path="/audit/:projectId/:auditId" element={<AuditPage />} />
-          <Route path="/audit/plan/:projectId/:auditId" element={<AuditPage />} />
-          <Route path="/audit/new/:projectId" element={<NewAuditPage />} />
-          <Route path="/new-project" element={<NewProjectPage />} />
-          <Route path="/project/:projectId/pages" element={<SamplePagesPage />} />
-          <Route path="/project/edit/:projectId" element={<NewProjectPage />} />
-          <Route path="/diagnostics" element={<DiagnosticsPage />} />
-          <Route path="/create-databases" element={<CreateDatabasesPage />} />
-          <Route path="*" element={<NotFoundPage />} />
+          {/* Page d'accueil - Dashboard */}
+          <Route path="/" element={<Dashboard />} />
+          
+          {/* Gestion des projets */}
+          <Route path="/project/new" element={<NewProject />} />
+          <Route path="/project/edit/:id" element={<EditProject />} />
+          
+          {/* Audits */}
+          <Route path="/audit/:projectId" element={<ProjectAudit />} />
+          <Route path="/audit/:projectId/:auditId" element={<ProjectAudit />} />
+          <Route path="/audit/new/:projectId" element={<ProjectAudit />} />
+          
+          {/* Configuration Notion */}
+          <Route path="/notion-config" element={<NotionConfig />} />
+          
+          {/* Pages d'erreur */}
+          <Route path="/error/:errorType" element={<ErrorPage />} />
+          
+          {/* Page 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </NotionProvider>
   );
-};
+}
 
 export default App;

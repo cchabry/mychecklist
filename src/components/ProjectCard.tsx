@@ -44,21 +44,35 @@ const mockAudits = [{
 const ProjectCard: React.FC<ProjectCardProps> = ({
   project
 }) => {
-  // Vérifier et normaliser l'ID du projet si nécessaire
+  // Vérifier et normaliser l'ID du projet
   const getCleanProjectId = () => {
-    if (!project || !project.id) return '';
+    if (!project || !project.id) {
+      console.error("Projet sans ID détecté:", project);
+      return '';
+    }
     
-    // Nettoyer l'ID du projet si c'est une chaîne JSON
+    console.log(`Traitement de l'ID projet original: "${project.id}"`);
+    
+    // Si c'est déjà une chaîne simple, la retourner directement
+    if (typeof project.id === 'string' && !project.id.startsWith('"')) {
+      console.log(`ID projet déjà propre: "${project.id}"`);
+      return project.id;
+    }
+    
+    // Nettoyer l'ID du projet s'il est entouré de guillemets
     try {
       if (typeof project.id === 'string' && 
           project.id.startsWith('"') && 
           project.id.endsWith('"')) {
-        return JSON.parse(project.id);
+        const cleanedId = JSON.parse(project.id);
+        console.log(`ID projet nettoyé de JSON: "${project.id}" => "${cleanedId}"`);
+        return cleanedId;
       }
     } catch (e) {
-      console.error("Erreur lors du nettoyage de l'ID du projet:", e);
+      console.error(`Erreur lors du nettoyage de l'ID projet: "${project.id}"`, e);
     }
     
+    // Si on arrive ici, retourner l'ID tel quel
     return project.id;
   };
   
@@ -66,14 +80,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   
   // Log pour le débogage
   useEffect(() => {
-    console.log(`ProjectCard - ID original: ${project.id}, ID nettoyé: ${cleanProjectId}`);
+    console.log(`ProjectCard - ID Brut: "${project.id}", Type: ${typeof project.id}, ID nettoyé: "${cleanProjectId}", Type: ${typeof cleanProjectId}`);
   }, [project.id, cleanProjectId]);
   
   return (
     <Card className="bg-[#fff8f0] backdrop-blur-md rounded-lg border border-tmw-teal/20 shadow-md transition-shadow hover:shadow-lg">
       <CardHeader className="relative">
         <div className="absolute top-4 right-4 flex space-x-2">
-          <Link to={`/project/edit/${cleanProjectId}`} className="p-1.5 text-gray-500 hover:text-tmw-teal transition-colors">
+          <Link 
+            to={`/project/edit/${cleanProjectId}`} 
+            className="p-1.5 text-gray-500 hover:text-tmw-teal transition-colors"
+            title={`Modifier le projet ${project.name} (ID: ${cleanProjectId})`}
+          >
             <Pencil size={16} />
           </Link>
         </div>
@@ -160,6 +178,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             to={`/audit/new/${cleanProjectId}`} 
             className="flex items-center justify-center"
             title={`Créer un nouvel audit pour le projet ${project.name} (ID: ${cleanProjectId})`}
+            onClick={(e) => {
+              // Vérifier que l'ID est valide avant la navigation
+              if (!cleanProjectId) {
+                e.preventDefault();
+                console.error("Navigation empêchée : ID projet manquant ou invalide");
+                alert(`Erreur : ID projet manquant ou invalide (${project.id})`);
+              }
+              console.log(`Navigation vers nouvel audit avec ID projet: "${cleanProjectId}"`);
+            }}
           >
             <FilePlus size={16} className="mr-2" />
             Nouvel audit
@@ -171,8 +198,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="text-sm text-muted-foreground">
           Créé le {new Date(project.createdAt).toLocaleDateString('fr-FR')}
         </div>
-        <div className="text-xs text-muted-foreground/60">
-          ID: {cleanProjectId}
+        <div className="text-xs text-muted-foreground/60 flex items-center gap-1">
+          ID: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{cleanProjectId}</code>
         </div>
       </CardFooter>
     </Card>

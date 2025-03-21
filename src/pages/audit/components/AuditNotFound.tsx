@@ -3,7 +3,8 @@ import React from 'react';
 import { NavigateFunction, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Home, Plus, Info } from 'lucide-react';
+import { AlertCircle, Home, Plus, Info, RefreshCw, ArrowLeft } from 'lucide-react';
+import { notionApi } from '@/lib/notionProxy';
 
 interface AuditNotFoundProps {
   navigate: NavigateFunction;
@@ -12,29 +13,53 @@ interface AuditNotFoundProps {
 }
 
 const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
-  // Fonction pour nettoyer l'ID du projet si nécessaire
+  // Fonction pour nettoyer l'ID du projet
   const getCleanProjectId = () => {
     if (!projectId) return undefined;
+    
+    console.log(`AuditNotFound - Tentative de nettoyage de l'ID: "${projectId}"`);
+    
+    // Si l'ID est une chaîne simple, la retourner directement
+    if (typeof projectId === 'string' && !projectId.startsWith('"')) {
+      console.log(`AuditNotFound - ID déjà propre: "${projectId}"`);
+      return projectId;
+    }
     
     // Si l'ID est une chaîne JSON, essayons de l'extraire
     try {
       if (projectId.startsWith('"') && projectId.endsWith('"')) {
-        return JSON.parse(projectId);
+        const cleanedId = JSON.parse(projectId);
+        console.log(`AuditNotFound - ID nettoyé de JSON: "${projectId}" => "${cleanedId}"`);
+        return cleanedId;
       }
     } catch (e) {
-      console.error("Erreur lors du nettoyage de l'ID:", e);
+      console.error(`AuditNotFound - Erreur lors du nettoyage de l'ID: "${projectId}"`, e);
     }
     
+    // Si on arrive ici, retourner l'ID tel quel
     return projectId;
   };
   
   const cleanProjectId = getCleanProjectId();
   
+  // Fonction pour réinitialiser le mode mock et recharger
+  const handleForceReset = () => {
+    notionApi.mockMode.forceReset();
+    localStorage.removeItem('notion_mock_mode');
+    localStorage.removeItem('projects_cache');
+    localStorage.removeItem('audit_cache');
+    
+    // Redirige vers l'accueil
+    setTimeout(() => {
+      navigate('/');
+    }, 500);
+  };
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex-1 flex items-center justify-center">
-        <div className="max-w-md text-center p-6 bg-white rounded-lg shadow-md border border-gray-100">
+        <div className="max-w-md w-full text-center p-6 bg-white rounded-lg shadow-md border border-gray-100">
           <div className="mx-auto w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
             <AlertCircle className="h-6 w-6 text-red-500" />
           </div>
@@ -70,10 +95,16 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, erro
                   <code className="bg-gray-100 px-1 py-0.5 rounded">{error}</code>
                 </p>
               )}
+              <p>
+                <span className="font-medium">Mode mock:</span>{' '}
+                <code className="bg-gray-100 px-1 py-0.5 rounded">
+                  {notionApi.mockMode.isActive() ? 'Actif' : 'Inactif'}
+                </code>
+              </p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
             <Button variant="outline" onClick={() => navigate('/')}>
               <Home className="mr-2 h-4 w-4" />
               Retour à l'accueil
@@ -88,6 +119,21 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, erro
                 Créer un audit
               </Button>
             )}
+          </div>
+          
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <p className="text-xs text-gray-500 mb-3">
+              Si le problème persiste, essayez de réinitialiser les caches et le mode mock :
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleForceReset}
+              className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+            >
+              <RefreshCw size={14} className="mr-2" />
+              Réinitialiser et recharger
+            </Button>
           </div>
         </div>
       </div>
