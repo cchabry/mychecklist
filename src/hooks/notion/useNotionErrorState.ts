@@ -9,10 +9,11 @@ import { useNotionError } from './useNotionError';
 export function useNotionErrorState() {
   const {
     errorDetails,
-    showErrorModal,
+    showError,
     clearError,
     openErrorModal,
-    closeErrorModal
+    closeErrorModal,
+    showErrorModal
   } = useNotionError();
   
   return {

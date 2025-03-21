@@ -1,12 +1,14 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { NotionErrorType } from '@/lib/notionProxy/errorHandling';
 
 interface NotionErrorDetails {
   message: string;
   context?: string;
   timestamp: number;
   stack?: string;
+  type: NotionErrorType;
 }
 
 /**
@@ -14,6 +16,7 @@ interface NotionErrorDetails {
  */
 export function useNotionError() {
   const [errorDetails, setErrorDetails] = useState<NotionErrorDetails | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
 
   /**
    * Affiche une erreur dans l'UI et l'enregistre dans l'état
@@ -21,12 +24,21 @@ export function useNotionError() {
   const showError = useCallback((error: Error, context?: string) => {
     console.error(`Erreur Notion ${context ? `(${context})` : ''}:`, error);
     
+    // Déterminer le type d'erreur
+    const type: NotionErrorType = error.message.toLowerCase().includes('auth') ? 'auth' :
+                                  error.message.toLowerCase().includes('permission') ? 'permission' :
+                                  error.message.toLowerCase().includes('not found') ? 'notFound' :
+                                  error.message.toLowerCase().includes('network') ? 'network' :
+                                  error.message.toLowerCase().includes('timeout') ? 'timeout' :
+                                  error.message.toLowerCase().includes('cors') ? 'cors' : 'unknown';
+    
     // Créer l'objet d'erreur
     const errorInfo: NotionErrorDetails = {
       message: error.message || 'Erreur inconnue',
       context,
       timestamp: Date.now(),
-      stack: error.stack
+      stack: error.stack,
+      type
     };
     
     // Mettre à jour l'état
@@ -69,10 +81,27 @@ export function useNotionError() {
     return null;
   }, []);
 
+  /**
+   * Ouvre la modal d'erreur
+   */
+  const openErrorModal = useCallback(() => {
+    setShowErrorModal(true);
+  }, []);
+
+  /**
+   * Ferme la modal d'erreur
+   */
+  const closeErrorModal = useCallback(() => {
+    setShowErrorModal(false);
+  }, []);
+
   return {
     errorDetails,
     showError,
     clearError,
-    getLastStoredError
+    getLastStoredError,
+    showErrorModal,
+    openErrorModal,
+    closeErrorModal
   };
 }
