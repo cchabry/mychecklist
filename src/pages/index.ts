@@ -1,6 +1,6 @@
 
 export { default as HomePage } from './HomePage';
-export { default as NotFoundPage } from './NotFoundPage';
+export { default as NotFoundPage } from './NotFound';
 export { default as NewProjectPage } from './NewProject';
 export { default as CreateDatabasesPage } from './CreateDatabases';
 export { default as AuditPage } from './audit';
