@@ -1,8 +1,7 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
-import { notionApi } from '@/lib/notionProxy';
 
 // Pages
 import Dashboard from '@/pages/Dashboard';
@@ -14,28 +13,18 @@ import NewAuditPage from '@/pages/audit/NewAuditPage';
 import NotFound from '@/pages/NotFound';
 import ErrorPage from '@/pages/ErrorPage';
 
-// Contextes
-import { NotionProvider } from '@/contexts/NotionContext';
+// Provider pour les services Notion
+import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
 
 /**
  * Point d'entrée principal de l'application
  * Configuration de la navigation et des routes
  */
 function App() {
-  // Forcer le mode mock au démarrage pour le prototype
-  useEffect(() => {
-    console.log('App component rendering...');
-    
-    // Vérifier si le mode mock est déjà activé
-    if (!notionApi.mockMode.isActive()) {
-      // Activer le mode mock pour le prototype
-      notionApi.mockMode.activate();
-      console.log('Mode mock activé automatiquement au démarrage de l\'application');
-    }
-  }, []);
+  console.log('App component rendering...');
   
   return (
-    <NotionProvider>
+    <NotionServiceProvider>
       <Router>
         <Toaster position="top-right" />
         <Routes>
@@ -61,7 +50,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
-    </NotionProvider>
+    </NotionServiceProvider>
   );
 }
 
