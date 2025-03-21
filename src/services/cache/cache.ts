@@ -1,175 +1,115 @@
 
 /**
- * Système de cache local pour les données Notion
- * Permet de réduire les appels API et d'améliorer les performances
- */
-
-// Types de base pour le cache
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  version?: string;
-}
-
-interface CacheConfig {
-  ttl: number; // Durée de vie du cache en millisecondes
-  prefix: string; // Préfixe pour les clés localStorage
-}
-
-// Configuration par défaut
-const DEFAULT_CONFIG: CacheConfig = {
-  ttl: 5 * 60 * 1000, // 5 minutes par défaut
-  prefix: 'notion_cache_'
-};
-
-/**
- * Classe pour gérer le cache des données
+ * Service de cache local utilisant le localStorage
  */
 export class Cache {
-  private config: CacheConfig;
-  
-  constructor(config: Partial<CacheConfig> = {}) {
-    this.config = {
-      ...DEFAULT_CONFIG,
-      ...config
-    };
+  /**
+   * Récupère une valeur du cache
+   * @param key Clé du cache
+   * @returns La valeur stockée ou null si inexistante ou expirée
+   */
+  get<T>(key: string): T | null {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return null;
+      
+      const parsedItem = JSON.parse(item);
+      
+      // Vérifier si l'entrée a expiré
+      if (parsedItem.expiry && parsedItem.expiry < Date.now()) {
+        // Supprimer l'entrée expirée
+        this.remove(key);
+        return null;
+      }
+      
+      return parsedItem.data;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération depuis le cache (${key}):`, error);
+      return null;
+    }
   }
   
   /**
-   * Stocke des données dans le cache
+   * Enregistre une valeur dans le cache
+   * @param key Clé du cache
+   * @param data Données à stocker
+   * @param ttl Durée de vie en millisecondes (0 = pas d'expiration)
    */
-  public set<T>(key: string, data: T, version?: string): void {
+  set(key: string, data: any, ttl: number = 0): void {
     try {
-      const cacheKey = this.getCacheKey(key);
-      const entry: CacheEntry<T> = {
+      const item = {
         data,
-        timestamp: Date.now(),
-        version
+        expiry: ttl > 0 ? Date.now() + ttl : null
       };
       
-      localStorage.setItem(cacheKey, JSON.stringify(entry));
-      console.log(`Cache: Données stockées pour la clé "${key}"`);
+      localStorage.setItem(key, JSON.stringify(item));
     } catch (error) {
-      console.error(`Erreur lors du stockage dans le cache pour la clé "${key}":`, error);
+      console.error(`Erreur lors de l'enregistrement dans le cache (${key}):`, error);
     }
   }
   
   /**
-   * Récupère des données du cache
-   * Retourne null si les données n'existent pas ou sont expirées
+   * Supprime une entrée du cache
+   * @param key Clé du cache à supprimer
    */
-  public get<T>(key: string): T | null {
+  remove(key: string): void {
     try {
-      const cacheKey = this.getCacheKey(key);
-      const storedData = localStorage.getItem(cacheKey);
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.error(`Erreur lors de la suppression du cache (${key}):`, error);
+    }
+  }
+  
+  /**
+   * Supprime toutes les entrées du cache correspondant à un préfixe
+   * @param prefix Préfixe des clés à supprimer
+   */
+  removeByPrefix(prefix: string): void {
+    try {
+      const keys = Object.keys(localStorage);
+      const keysToRemove = keys.filter(key => key.startsWith(prefix));
       
-      if (!storedData) {
-        return null;
-      }
-      
-      const entry: CacheEntry<T> = JSON.parse(storedData);
-      const now = Date.now();
-      
-      // Vérifier si les données sont expirées
-      if (now - entry.timestamp > this.config.ttl) {
-        console.log(`Cache: Données expirées pour la clé "${key}"`);
+      keysToRemove.forEach(key => {
         this.remove(key);
-        return null;
-      }
-      
-      console.log(`Cache: Données récupérées pour la clé "${key}"`);
-      return entry.data;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération du cache pour la clé "${key}":`, error);
-      return null;
-    }
-  }
-  
-  /**
-   * Récupère des données du cache avec vérification de version
-   * Retourne null si les données n'existent pas, sont expirées ou ont une version différente
-   */
-  public getWithVersion<T>(key: string, version: string): T | null {
-    try {
-      const cacheKey = this.getCacheKey(key);
-      const storedData = localStorage.getItem(cacheKey);
-      
-      if (!storedData) {
-        return null;
-      }
-      
-      const entry: CacheEntry<T> = JSON.parse(storedData);
-      const now = Date.now();
-      
-      // Vérifier si les données sont expirées ou ont une version différente
-      if (now - entry.timestamp > this.config.ttl || entry.version !== version) {
-        console.log(`Cache: Données expirées ou version différente pour la clé "${key}"`);
-        this.remove(key);
-        return null;
-      }
-      
-      console.log(`Cache: Données récupérées pour la clé "${key}" (version: ${version})`);
-      return entry.data;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération du cache pour la clé "${key}":`, error);
-      return null;
-    }
-  }
-  
-  /**
-   * Supprime des données du cache
-   */
-  public remove(key: string): void {
-    try {
-      const cacheKey = this.getCacheKey(key);
-      localStorage.removeItem(cacheKey);
-      console.log(`Cache: Données supprimées pour la clé "${key}"`);
-    } catch (error) {
-      console.error(`Erreur lors de la suppression du cache pour la clé "${key}":`, error);
-    }
-  }
-  
-  /**
-   * Vide tout le cache
-   */
-  public clear(): void {
-    try {
-      const keys = this.getAllCacheKeys();
-      
-      keys.forEach(key => {
-        localStorage.removeItem(key);
       });
       
-      console.log(`Cache: ${keys.length} entrées effacées`);
+      console.log(`${keysToRemove.length} entrées de cache supprimées avec le préfixe '${prefix}'`);
     } catch (error) {
-      console.error('Erreur lors de la suppression du cache:', error);
+      console.error(`Erreur lors de la suppression du cache par préfixe (${prefix}):`, error);
     }
   }
   
   /**
-   * Récupère toutes les clés du cache
+   * Nettoie les entrées expirées du cache
    */
-  private getAllCacheKeys(): string[] {
-    const keys: string[] = [];
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+  cleanExpired(): void {
+    try {
+      const keys = Object.keys(localStorage);
+      let expiredCount = 0;
       
-      if (key && key.startsWith(this.config.prefix)) {
-        keys.push(key);
+      keys.forEach(key => {
+        try {
+          const item = localStorage.getItem(key);
+          if (!item) return;
+          
+          const parsedItem = JSON.parse(item);
+          if (parsedItem.expiry && parsedItem.expiry < Date.now()) {
+            this.remove(key);
+            expiredCount++;
+          }
+        } catch (e) {
+          // Si une entrée ne peut pas être analysée, on la laisse
+        }
+      });
+      
+      if (expiredCount > 0) {
+        console.log(`${expiredCount} entrées de cache expirées nettoyées`);
       }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage des entrées expirées:', error);
     }
-    
-    return keys;
-  }
-  
-  /**
-   * Génère une clé de cache préfixée
-   */
-  private getCacheKey(key: string): string {
-    return `${this.config.prefix}${key}`;
   }
 }
 
-// Exporter une instance unique du cache
+// Créer et exporter une instance unique du service de cache
 export const cacheService = new Cache();

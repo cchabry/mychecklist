@@ -1,132 +1,121 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { NotionAPIResponse } from '@/services/notion';
-import { useNotionService } from '@/contexts/NotionServiceContext';
-import { cacheService } from '@/services/cache';
+import { notionService } from '@/services/notion';
+import { ConnectionStatus } from '@/services/notion/client';
 
-// Options pour les requêtes
-interface NotionQueryOptions<T, R> {
-  onSuccess?: (data: R) => void;
+interface QueryOptions<T> {
+  onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
-  successMessage?: string;
-  errorMessage?: string;
-  useCache?: boolean;
-  cacheKey?: string;
-  cacheVersion?: string;
+  onSettled?: () => void;
+  enabled?: boolean;
+  retry?: number;
+  retryDelay?: number;
+  cacheTime?: number;
+  staleTime?: number;
 }
 
 /**
- * Hook pour effectuer des requêtes à l'API Notion avec gestion du cache
+ * Hook personnalisé pour les requêtes au service Notion avec gestion d'état
  */
-export function useNotionQuery<T = unknown>() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export function useNotionQuery<T = unknown>(
+  queryFn: () => Promise<T>,
+  options: QueryOptions<T> = {}
+) {
   const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const { 
+    onSuccess, 
+    onError, 
+    onSettled,
+    enabled = true,
+    retry = 0,
+    retryDelay = 1000
+  } = options;
   
-  // Accéder au service Notion
-  const { notion, isConnected } = useNotionService();
-  
-  /**
-   * Exécute une requête à l'API Notion
-   */
-  const executeQuery = useCallback(async <R = T>(
-    queryFn: () => Promise<NotionAPIResponse<R>>,
-    options: NotionQueryOptions<T, R> = {}
-  ): Promise<R | null> => {
-    const { 
-      onSuccess, 
-      onError, 
-      successMessage, 
-      errorMessage,
-      useCache = true,
-      cacheKey,
-      cacheVersion
-    } = options;
-    
+  const executeQuery = useCallback(async () => {
     setIsLoading(true);
+    setIsError(false);
     setError(null);
     
     try {
-      // Vérifier le cache si activé et une clé est fournie
-      if (useCache && cacheKey) {
-        const cachedData = cacheVersion 
-          ? cacheService.getWithVersion<R>(cacheKey, cacheVersion)
-          : cacheService.get<R>(cacheKey);
-        
-        if (cachedData) {
-          setData(cachedData as unknown as T);
-          setIsLoading(false);
-          
-          if (onSuccess) {
-            onSuccess(cachedData);
-          }
-          
-          return cachedData;
-        }
+      // Vérifier si Notion est configuré
+      if (!notionService.isConfigured()) {
+        throw new Error('Notion n\'est pas configuré. Veuillez configurer votre API Notion.');
+      }
+      
+      // Vérifier la connectivité si nécessaire
+      const status = notionService.getConnectionStatus();
+      if (status === ConnectionStatus.Error) {
+        throw new Error('Problème de connexion à Notion. Vérifiez votre configuration.');
       }
       
       // Exécuter la requête
-      const response = await queryFn();
+      const result = await queryFn();
       
-      if (!response.success) {
-        throw new Error(response.error?.message || 'Erreur inconnue lors de la requête');
-      }
+      setData(result);
+      setIsSuccess(true);
       
-      // Stocker dans le cache si activé
-      if (useCache && cacheKey && response.data) {
-        cacheService.set(cacheKey, response.data, cacheVersion);
-      }
-      
-      // Afficher un message de succès si demandé
-      if (successMessage) {
-        toast.success(successMessage);
-      }
-      
-      // Appeler le callback de succès
+      // Callback de succès
       if (onSuccess) {
-        onSuccess(response.data);
+        onSuccess(result);
       }
       
-      // Mettre à jour l'état
-      setData(response.data as unknown as T);
-      return response.data;
-    } catch (error) {
-      // Gérer l'erreur
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      setError(errorObj);
+      return result;
+    } catch (err) {
+      const errorObject = err instanceof Error ? err : new Error(String(err));
+      setIsError(true);
+      setError(errorObject);
       
-      // Afficher un message d'erreur
-      toast.error(errorMessage || 'Erreur lors de la requête', {
-        description: errorObj.message
+      // Afficher un toast d'erreur
+      toast.error('Erreur Notion', {
+        description: errorObject.message,
+        duration: 5000
       });
       
-      // Appeler le callback d'erreur
+      // Callback d'erreur
       if (onError) {
-        onError(errorObj);
+        onError(errorObject);
       }
       
-      return null;
+      // Gestion de la réessai
+      if (retryCount < retry) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          executeQuery();
+        }, retryDelay);
+      }
+      
+      throw errorObject;
     } finally {
       setIsLoading(false);
+      
+      // Callback de fin
+      if (onSettled) {
+        onSettled();
+      }
     }
-  }, []);
+  }, [queryFn, onSuccess, onError, onSettled, retry, retryCount, retryDelay]);
   
-  /**
-   * Réinitialise l'état de la requête
-   */
-  const reset = useCallback(() => {
-    setData(null);
-    setError(null);
-    setIsLoading(false);
-  }, []);
+  // Exécuter la requête initiale si enabled
+  useEffect(() => {
+    if (enabled) {
+      executeQuery();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
   
   return {
-    isLoading,
-    error,
     data,
-    executeQuery,
-    reset,
-    isConnected
+    isLoading,
+    isError,
+    error,
+    isSuccess,
+    refetch: executeQuery
   };
 }
