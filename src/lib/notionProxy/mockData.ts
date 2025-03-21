@@ -1,7 +1,8 @@
+
 /**
  * Simule une réponse de l'API Notion
  */
-export const mockNotionResponse = (endpoint: string, method: string, body: any) => {
+export const mockNotionResponse = (endpoint: string, method: string, body?: any) => {
   console.log(`[MOCK] Appel API Notion: ${method} ${endpoint}`);
   
   if (endpoint.startsWith('/users')) {

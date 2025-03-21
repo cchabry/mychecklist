@@ -1,13 +1,19 @@
+
 import { STORAGE_KEYS } from './config';
 
 /**
  * Service de gestion du mode mock pour Notion
  */
 
-// Variable d'état du mode mock (singleton)
+// Variables d'état du mode mock (singleton)
 let _isMockModeActive = false;
 let _isForcedRealMode = false;
 let _previousMockState = false;
+
+// Nouvelles variables pour la configuration avancée du mode mock
+let _scenario = 'standard';
+let _delay = 300;
+let _errorRate = 0;
 
 export const mockMode = {
   isActive: () => {
@@ -16,6 +22,13 @@ export const mockMode = {
     
     // Sinon, retourner l'état actuel du mode mock
     return _isMockModeActive;
+  },
+  
+  /**
+   * Vérifie si le mode est temporairement forcé en mode réel
+   */
+  isTemporarilyForcedReal: () => {
+    return _isForcedRealMode;
   },
   
   /**
@@ -85,13 +98,20 @@ export const mockMode = {
     
     // Retourner une fonction pour restaurer l'état
     return () => {
-      _isForcedRealMode = false;
-      
-      // Si nécessaire, restaurer l'état précédent
-      if (_previousMockState && !_isMockModeActive) {
-        mockMode.activate();
-      }
+      mockMode.restoreAfterForceReal();
     };
+  },
+  
+  /**
+   * Restaure l'état après avoir forcé le mode réel
+   */
+  restoreAfterForceReal: () => {
+    _isForcedRealMode = false;
+    
+    // Si nécessaire, restaurer l'état précédent
+    if (_previousMockState && !_isMockModeActive) {
+      mockMode.activate();
+    }
   },
   
   /**
@@ -104,7 +124,76 @@ export const mockMode = {
     _isMockModeActive = false;
     _isForcedRealMode = false;
     _previousMockState = false;
+    
+    // Réinitialiser les paramètres avancés
+    _scenario = 'standard';
+    _delay = 300;
+    _errorRate = 0;
+    
     return true;
+  },
+  
+  /**
+   * Obtient le scénario actuel
+   */
+  getScenario: () => {
+    return _scenario;
+  },
+  
+  /**
+   * Définit le scénario
+   */
+  setScenario: (scenario) => {
+    _scenario = scenario;
+    return true;
+  },
+  
+  /**
+   * Obtient le délai de simulation
+   */
+  getDelay: () => {
+    return _delay;
+  },
+  
+  /**
+   * Définit le délai de simulation
+   */
+  setDelay: (delay) => {
+    _delay = delay;
+    return true;
+  },
+  
+  /**
+   * Obtient le taux d'erreur
+   */
+  getErrorRate: () => {
+    return _errorRate;
+  },
+  
+  /**
+   * Définit le taux d'erreur
+   */
+  setErrorRate: (rate) => {
+    _errorRate = rate;
+    return true;
+  },
+  
+  /**
+   * Applique un délai simulé basé sur la configuration
+   */
+  applySimulatedDelay: async () => {
+    if (_delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, _delay));
+    }
+  },
+  
+  /**
+   * Détermine si une erreur doit être simulée
+   * basé sur le taux d'erreur configuré
+   */
+  shouldSimulateError: () => {
+    if (_errorRate <= 0) return false;
+    return Math.random() * 100 < _errorRate;
   }
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -623,7 +622,7 @@ const NotionDatabasesCreator: React.FC = () => {
         </CardDescription>
         
         {notionApi.mockMode.isActive() && (
-          <Alert variant="warning" className="mt-2">
+          <Alert variant="default" className="mt-2">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Mode démonstration actif</AlertTitle>
             <AlertDescription>
