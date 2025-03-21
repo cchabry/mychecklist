@@ -1,108 +1,180 @@
 
-import { STORAGE_KEYS, PUBLIC_CORS_PROXIES } from './config';
+/**
+ * Service pour gérer les proxies CORS
+ */
+
+// Définir l'interface d'un proxy CORS
+interface CorsProxy {
+  url: string;
+  name: string;
+  enabled: boolean; // Si le proxy est actif et peut être utilisé
+  requiresActivation?: boolean; // Si le proxy nécessite une activation manuelle
+  activationUrl?: string; // URL pour activer le proxy
+  instructions?: string; // Instructions d'activation
+  dynamicToken?: boolean; // Si le proxy nécessite un token qui change
+}
+
+// Liste des proxies CORS disponibles
+const corsProxies: CorsProxy[] = [
+  {
+    name: 'CORS Anywhere',
+    url: 'https://cors-anywhere.herokuapp.com/',
+    enabled: true,
+    requiresActivation: true,
+    activationUrl: 'https://cors-anywhere.herokuapp.com/corsdemo',
+    instructions: 'Visitez le lien et cliquez sur "Request temporary access to the demo server"'
+  },
+  {
+    name: 'allOrigins',
+    url: 'https://api.allorigins.win/raw?url=',
+    enabled: true
+  },
+  {
+    name: 'CORS Proxy',
+    url: 'https://corsproxy.io/?',
+    enabled: true
+  },
+  {
+    name: 'CORS Bridge',
+    url: 'https://api.codetabs.com/v1/proxy/?quest=',
+    enabled: true
+  },
+  {
+    name: 'CORS Online',
+    url: 'https://cors-anywhere.azm.workers.dev/',
+    enabled: true
+  },
+  // Ajouter d'autres proxies ici
+];
+
+// État interne
+let currentProxyIndex = 0;
+let lastWorkingProxyIndex: number | null = null;
 
 /**
- * Service de gestion des proxies CORS pour l'API Notion
+ * Service pour les opérations liées aux proxies CORS
  */
 export const corsProxyService = {
   /**
-   * Obtient le proxy CORS sélectionné
+   * Obtient le proxy CORS actuel
    */
-  getSelectedProxy: (): string => {
-    const selectedProxy = localStorage.getItem(STORAGE_KEYS.SELECTED_PROXY);
-    if (selectedProxy) {
-      return selectedProxy;
+  getCurrentProxy(): CorsProxy {
+    const enabledProxies = corsProxies.filter(p => p.enabled);
+    if (enabledProxies.length === 0) {
+      throw new Error('Aucun proxy CORS disponible.');
     }
     
-    // Proxy par défaut
-    const defaultProxy = PUBLIC_CORS_PROXIES[0];
-    return defaultProxy;
-  },
-  
-  /**
-   * Définit le proxy CORS à utiliser
-   */
-  setSelectedProxy: (proxyUrl: string): void => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_PROXY, proxyUrl);
-  },
-  
-  /**
-   * Construit l'URL complète pour la requête via le proxy CORS
-   */
-  buildProxyUrl: (endpoint: string): string => {
-    const proxy = corsProxyService.getSelectedProxy();
-    const targetUrl = `https://api.notion.com/v1${endpoint}`;
-    return `${proxy}${encodeURIComponent(targetUrl)}`;
-  },
-  
-  /**
-   * Réinitialise le cache du proxy
-   */
-  resetProxyCache: (): void => {
-    localStorage.removeItem('notion_last_error');
-  },
-  
-  /**
-   * Recherche un proxy CORS fonctionnel
-   * @param apiKey Clé API Notion optionnelle pour le test
-   */
-  findWorkingProxy: async (apiKey?: string): Promise<string | null> => {
-    // Récupérer la clé API pour le test si disponible
-    apiKey = apiKey || localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
+    // Utiliser le dernier proxy qui a fonctionné s'il existe
+    if (lastWorkingProxyIndex !== null) {
+      return corsProxies[lastWorkingProxyIndex];
+    }
     
-    for (const proxy of PUBLIC_CORS_PROXIES) {
-      try {
-        const testUrl = `${proxy}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
-        
-        const response = await fetch(testUrl, {
-          method: 'HEAD',
-          headers: {
-            'Authorization': apiKey ? `Bearer ${apiKey}` : 'Bearer test_token',
-            'Notion-Version': '2022-06-28'
-          }
-        });
-        
-        // Même un 401 est bon - cela signifie que nous avons atteint l'API Notion
-        const isWorking = response.status !== 0 && response.status !== 404;
-        
-        if (isWorking) {
-          corsProxyService.setSelectedProxy(proxy);
-          return proxy;
+    return enabledProxies[currentProxyIndex % enabledProxies.length];
+  },
+  
+  /**
+   * Passe au proxy suivant
+   */
+  rotateProxy(): CorsProxy {
+    const enabledProxies = corsProxies.filter(p => p.enabled);
+    if (enabledProxies.length === 0) {
+      throw new Error('Aucun proxy CORS disponible.');
+    }
+    
+    currentProxyIndex = (currentProxyIndex + 1) % enabledProxies.length;
+    return this.getCurrentProxy();
+  },
+  
+  /**
+   * Construit l'URL complète avec le proxy CORS
+   */
+  buildProxyUrl(targetUrl: string): string {
+    const currentProxy = this.getCurrentProxy();
+    return `${currentProxy.url}${encodeURIComponent(targetUrl)}`;
+  },
+  
+  /**
+   * Teste un proxy spécifique
+   */
+  async testProxy(proxy: CorsProxy, token: string): Promise<boolean> {
+    try {
+      const testUrl = 'https://api.notion.com/v1/users/me';
+      const proxyUrl = `${proxy.url}${encodeURIComponent(testUrl)}`;
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
         }
-      } catch (error) {
-        // Continuer avec le proxy suivant
+      });
+      
+      // Si la réponse est 401, c'est que le proxy fonctionne mais le token est invalide
+      // Si la réponse est 200, c'est que le proxy et le token fonctionnent
+      return response.status === 200 || response.status === 401;
+    } catch (error) {
+      console.error(`Erreur lors du test du proxy ${proxy.name}:`, error);
+      return false;
+    }
+  },
+  
+  /**
+   * Trouve un proxy qui fonctionne
+   */
+  async findWorkingProxy(token: string): Promise<CorsProxy | null> {
+    const enabledProxies = corsProxies.filter(p => p.enabled);
+    
+    for (let i = 0; i < enabledProxies.length; i++) {
+      const proxyIndex = (currentProxyIndex + i) % enabledProxies.length;
+      const proxy = enabledProxies[proxyIndex];
+      
+      console.log(`Test du proxy ${proxy.name}...`);
+      const works = await this.testProxy(proxy, token);
+      
+      if (works) {
+        console.log(`Proxy fonctionnel trouvé: ${proxy.name}`);
+        lastWorkingProxyIndex = corsProxies.findIndex(p => p.url === proxy.url);
+        currentProxyIndex = proxyIndex;
+        return proxy;
       }
     }
     
+    console.error('Aucun proxy CORS fonctionnel trouvé.');
     return null;
   },
   
   /**
-   * Vérifie si le proxy serverless est opérationnel
-   * @param apiKey Clé API Notion optionnelle pour le test
+   * Réinitialise l'état du service
    */
-  testServerlessProxy: async (apiKey?: string): Promise<boolean> => {
-    try {
-      const apiProxyUrl = '/api/notion-proxy';
-      
-      // Obtenir la clé API pour le test
-      apiKey = apiKey || localStorage.getItem(STORAGE_KEYS.API_KEY) || 'test_token_for_proxy_test';
-      
-      const response = await fetch(apiProxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: '/users/me',
-          method: 'GET',
-          token: apiKey
-        })
-      });
-      
-      // Même un 401 est bon - cela signifie que le proxy fonctionne
-      const proxyWorks = response.status !== 404 && response.status !== 0;
-      return proxyWorks;
-    } catch (error) {
-      return false;
-    }
+  reset(): void {
+    currentProxyIndex = 0;
+    lastWorkingProxyIndex = null;
+  },
+  
+  /**
+   * Obtient la liste des proxies disponibles
+   */
+  getAvailableProxies(): CorsProxy[] {
+    return corsProxies.filter(p => p.enabled);
+  },
+  
+  /**
+   * Vérifie si un proxy nécessite une activation
+   */
+  requiresActivation(proxyUrl: string): boolean {
+    const proxy = corsProxies.find(p => p.url === proxyUrl);
+    return proxy ? !!proxy.requiresActivation : false;
+  },
+  
+  /**
+   * Obtient l'URL d'activation d'un proxy
+   */
+  getActivationUrl(proxyUrl: string): string | null {
+    const proxy = corsProxies.find(p => p.url === proxyUrl);
+    return proxy && proxy.requiresActivation ? proxy.activationUrl || null : null;
   }
 };
+
+// Exportation du service
+export default corsProxyService;

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { RotateCw, Database, Check, XCircle, AlertTriangle } from 'lucide-react';
+import { RotateCw, Database, Check, XCircle, AlertTriangle, HelpCircle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface NotionTestDataGeneratorProps {
   onComplete?: () => void;
@@ -37,9 +39,14 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [overallStatus, setOverallStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [logs, setLogs] = useState<string[]>([]);
+  const [forceMockMode, setForceMockMode] = useState(false);
+  const [verboseMode, setVerboseMode] = useState(false);
 
   const addLog = (message: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    if (verboseMode) {
+      console.log(`[TestDataGenerator] ${message}`);
+    }
   };
 
   const updateDatabaseStatus = (dbId: string, updates: Partial<DatabaseInfo>) => {
@@ -53,8 +60,27 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       setStep('collecting');
       addLog('Collecte des informations sur les bases de données...');
 
+      if (forceMockMode) {
+        addLog('🔄 Mode forcé activé: utilisation de données simulées');
+        
+        const mockDatabases: DatabaseInfo[] = [
+          { id: 'mock-projects-id', name: 'projects', status: 'pending', recordCount: 0 },
+          { id: 'mock-pages-id', name: 'pages', status: 'pending', recordCount: 0 },
+          { id: 'mock-checklists-id', name: 'checklists', status: 'pending', recordCount: 0 },
+          { id: 'mock-exigences-id', name: 'exigences', status: 'pending', recordCount: 0 },
+          { id: 'mock-audits-id', name: 'audits', status: 'pending', recordCount: 0 },
+          { id: 'mock-evaluations-id', name: 'evaluations', status: 'pending', recordCount: 0 },
+          { id: 'mock-actions-id', name: 'actions', status: 'pending', recordCount: 0 },
+          { id: 'mock-progress-id', name: 'progress', status: 'pending', recordCount: 0 }
+        ];
+        
+        setDatabases(mockDatabases);
+        setProgress(10);
+        return true;
+      }
+
       const dbIds = {
-        projects: localStorage.getItem('notion_projects_database_id'),
+        projects: localStorage.getItem('notion_database_id') || localStorage.getItem('notion_projects_database_id'),
         pages: localStorage.getItem('notion_pages_database_id'),
         checklists: localStorage.getItem('notion_checklists_database_id'),
         exigences: localStorage.getItem('notion_exigences_database_id'),
@@ -91,17 +117,44 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       const getDbInfo = async (dbId: string, dbName: string) => {
         try {
-          const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
+          const wasMockActive = notionApi.mockMode.isActive();
+          if (wasMockActive) {
+            notionApi.mockMode.temporarilyForceReal();
+          }
+          
+          try {
+            const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
+            dbInfos.push({
+              id: dbId,
+              name: dbName,
+              status: 'pending',
+              recordCount: 0
+            });
+            addLog(`✅ Base "${dbName}" trouvée: ${dbId.substring(0, 8)}...`);
+            
+            if (wasMockActive) {
+              notionApi.mockMode.restoreState();
+            }
+            
+            return true;
+          } catch (error) {
+            if (wasMockActive) {
+              notionApi.mockMode.restoreState();
+            }
+            
+            throw error;
+          }
+        } catch (error) {
+          addLog(`❌ Erreur lors de la récupération de la base "${dbName}": ${error.message}`);
+          
           dbInfos.push({
             id: dbId,
             name: dbName,
-            status: 'pending',
+            status: 'error',
+            error: error.message,
             recordCount: 0
           });
-          addLog(`✅ Base "${dbName}" trouvée: ${dbId.substring(0, 8)}...`);
-          return true;
-        } catch (error) {
-          addLog(`❌ Erreur lors de la récupération de la base "${dbName}": ${error.message}`);
+          
           return false;
         }
       };
@@ -114,6 +167,15 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
 
       setDatabases(dbInfos);
       setProgress(10);
+      
+      const allErrors = dbInfos.every(db => db.status === 'error');
+      if (allErrors) {
+        addLog('❌ Impossible de se connecter à aucune base de données Notion');
+        addLog('ℹ️ Suggestion: activez le mode forcé pour générer des données fictives');
+        setStep('error');
+        return false;
+      }
+      
       return true;
     } catch (error) {
       addLog(`❌ Erreur lors de la collecte des bases de données: ${error.message}`);
@@ -128,7 +190,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
   const generateTestData = async () => {
     const apiKey = localStorage.getItem('notion_api_key');
     
-    if (!apiKey) {
+    if (!apiKey && !forceMockMode) {
       addLog('❌ Clé API Notion manquante');
       return false;
     }
@@ -139,6 +201,21 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     const referenceIds: Record<string, string[]> = {};
     
     try {
+      const generateMockId = () => {
+        return 'mock_' + Math.random().toString(36).substring(2, 11);
+      };
+      
+      const createDatabaseItem = async (dbId: string, properties: any) => {
+        if (forceMockMode) {
+          return { id: generateMockId() };
+        }
+        
+        return await notionApi.pages.create({
+          parent: { database_id: dbId },
+          properties
+        }, apiKey);
+      };
+      
       addLog('Étape 1: Création des items de checklist');
       const checklistDbId = databases.find(db => db.name === 'checklists')?.id;
       
@@ -155,15 +232,12 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         for (const item of checklistItems) {
           try {
-            const response = await notionApi.pages.create({
-              parent: { database_id: checklistDbId },
-              properties: {
-                Name: { title: [{ text: { content: item.consigne } }] },
-                Category: { select: { name: item.category } },
-                Subcategory: { select: { name: item.subcategory } },
-                Priority: { select: { name: item.priority } }
-              }
-            }, apiKey);
+            const response = await createDatabaseItem(checklistDbId, {
+              Name: { title: [{ text: { content: item.consigne } }] },
+              Category: { select: { name: item.category } },
+              Subcategory: { select: { name: item.subcategory } },
+              Priority: { select: { name: item.priority } }
+            });
             
             if (!referenceIds.checklists) referenceIds.checklists = [];
             referenceIds.checklists.push(response.id);
@@ -195,14 +269,11 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         for (const project of projects) {
           try {
-            const response = await notionApi.pages.create({
-              parent: { database_id: projectsDbId },
-              properties: {
-                Name: { title: [{ text: { content: project.name } }] },
-                URL: { url: project.url },
-                Progress: { select: { name: project.progress } }
-              }
-            }, apiKey);
+            const response = await createDatabaseItem(projectsDbId, {
+              Name: { title: [{ text: { content: project.name } }] },
+              URL: { url: project.url },
+              Progress: { select: { name: project.progress } }
+            });
             
             if (!referenceIds.projects) referenceIds.projects = [];
             referenceIds.projects.push(response.id);
@@ -237,7 +308,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         
         for (const page of pages) {
           try {
-            const response = await notionApi.pages.create({
+            const response = await createDatabaseItem(pagesDbId, {
               parent: { database_id: pagesDbId },
               properties: {
                 Name: { title: [{ text: { content: page.title } }] },
@@ -279,7 +350,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           const importance = ["Mineur", "Moyen", "Important", "Majeur"][i % 4];
           
           try {
-            const response = await notionApi.pages.create({
+            const response = await createDatabaseItem(exigencesDbId, {
               parent: { database_id: exigencesDbId },
               properties: {
                 Name: { title: [{ text: { content: `Exigence ${i+1}` } }] },
@@ -316,7 +387,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
         const projectId = referenceIds.projects[0];
         
         try {
-          const response = await notionApi.pages.create({
+          const response = await createDatabaseItem(auditsDbId, {
             parent: { database_id: auditsDbId },
             properties: {
               Name: { title: [{ text: { content: "Audit initial" } }] },
@@ -365,7 +436,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
             const score = scores[Math.floor(Math.random() * scores.length)];
             
             try {
-              const response = await notionApi.pages.create({
+              const response = await createDatabaseItem(evaluationsDbId, {
                 parent: { database_id: evaluationsDbId },
                 properties: {
                   Name: { title: [{ text: { content: `Évaluation ${++count}` } }] },
@@ -410,7 +481,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           const priority = priorities[Math.floor(Math.random() * priorities.length)];
           
           try {
-            const response = await notionApi.pages.create({
+            const response = await createDatabaseItem(actionsDbId, {
               parent: { database_id: actionsDbId },
               properties: {
                 Name: { title: [{ text: { content: `Action corrective ${i+1}` } }] },
@@ -453,7 +524,7 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
           const status = statuses[Math.floor(Math.random() * statuses.length)];
           
           try {
-            const response = await notionApi.pages.create({
+            const response = await createDatabaseItem(progressDbId, {
               parent: { database_id: progressDbId },
               properties: {
                 Name: { title: [{ text: { content: `Progrès ${i+1}` } }] },
@@ -532,7 +603,11 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     
     try {
       const wasMockActive = notionApi.mockMode.isActive();
-      if (wasMockActive) {
+      
+      if (forceMockMode && !wasMockActive) {
+        notionApi.mockMode.activate();
+        addLog('🔄 Mode mock activé pour la génération de données');
+      } else if (!forceMockMode && wasMockActive && !notionApi.mockMode.isPermanent()) {
         notionApi.mockMode.deactivate();
         addLog('🔄 Mode réel forcé pour la génération de données');
       }
@@ -546,7 +621,10 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       await generateTestData();
       
-      if (wasMockActive) {
+      if (forceMockMode && !wasMockActive) {
+        notionApi.mockMode.deactivate();
+        addLog('🔄 Mode mock désactivé après la génération de données');
+      } else if (!forceMockMode && wasMockActive && !notionApi.mockMode.isPermanent()) {
         notionApi.mockMode.activate();
         addLog('🔄 Mode mock restauré après la génération de données');
       }
@@ -566,22 +644,43 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
     <Card className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Générateur de données de test</h3>
-        <Button
-          onClick={handleGenerateData}
-          disabled={isGenerating}
-          variant={overallStatus === 'success' ? 'default' : overallStatus === 'error' ? 'destructive' : 'outline'}
-          className="gap-2"
-        >
-          {isGenerating ? (
-            <><RotateCw size={16} className="animate-spin" /> Génération en cours...</>
-          ) : overallStatus === 'success' ? (
-            <><Check size={16} /> Données générées</>
-          ) : overallStatus === 'error' ? (
-            <><XCircle size={16} /> Réessayer</>
-          ) : (
-            <><Database size={16} /> Générer des données de test</>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1">
+                  <Switch
+                    id="force-mock"
+                    checked={forceMockMode}
+                    onCheckedChange={setForceMockMode}
+                    size="sm"
+                  />
+                  <label htmlFor="force-mock" className="text-xs">Mode local</label>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">Génère des données localement sans appeler l'API Notion. Utile quand l'API ne répond pas.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <Button
+            onClick={handleGenerateData}
+            disabled={isGenerating}
+            variant={overallStatus === 'success' ? 'default' : overallStatus === 'error' ? 'destructive' : 'outline'}
+            className="gap-2"
+          >
+            {isGenerating ? (
+              <><RotateCw size={16} className="animate-spin" /> Génération en cours...</>
+            ) : overallStatus === 'success' ? (
+              <><Check size={16} /> Données générées</>
+            ) : overallStatus === 'error' ? (
+              <><XCircle size={16} /> Réessayer</>
+            ) : (
+              <><Database size={16} /> Générer des données de test</>
+            )}
+          </Button>
+        </div>
       </div>
       
       {step !== 'idle' && (
@@ -643,9 +742,18 @@ const NotionTestDataGenerator: React.FC<NotionTestDataGeneratorProps> = ({ onCom
       
       {step === 'idle' && (
         <div className="text-sm text-gray-500">
-          Cet outil va générer des données de test dans toutes vos bases de données Notion configurées.
-          Il va créer des projets, des pages, des checklists, des exigences, des audits, des évaluations,
-          des actions correctives et des progrès, avec toutes les relations nécessaires entre ces entités.
+          <p className="mb-2">
+            Cet outil va générer des données de test dans toutes vos bases de données Notion configurées.
+            Il va créer des projets, des pages, des checklists, des exigences, des audits, des évaluations,
+            des actions correctives et des progrès, avec toutes les relations nécessaires entre ces entités.
+          </p>
+          <div className="p-2 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2">
+            <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+            <p className="text-xs text-amber-700">
+              Si vous rencontrez des problèmes de connexion avec l'API Notion, activez le "Mode local"
+              pour générer des données fictives sans appeler l'API.
+            </p>
+          </div>
         </div>
       )}
     </Card>
