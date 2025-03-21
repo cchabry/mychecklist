@@ -7,9 +7,11 @@ interface ErrorHeaderProps {
   error: string;
   context?: string;
   isPermissionError?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const ErrorHeader: React.FC<ErrorHeaderProps> = ({ error, context, isPermissionError }) => {
+const ErrorHeader: React.FC<ErrorHeaderProps> = ({ error, context, isPermissionError, isOpen, onClose }) => {
   return (
     <>
       <AlertDialogTitle className="flex items-center gap-2 text-red-600">

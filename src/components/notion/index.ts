@@ -4,6 +4,9 @@ export { default as NotionCSVExporter } from './NotionCSVExporter';
 export { default as NotionErrorDetails } from './error/ErrorHeader';
 export { default as NotionDiagnosticReport } from './NotionDiagnosticReport';
 export { default as NotionSolutionsSection } from './NotionSolutionsSection';
+export { default as NotionConfig } from './NotionConfig';
+export { default as NotionTestDataGenerator } from './NotionTestDataGenerator';
+export { default as NotionConfigForm } from './NotionConfigForm';
 
 // Export du sous-module error
 export * from './error';

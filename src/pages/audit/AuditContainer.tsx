@@ -350,10 +350,10 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
       )}
       
       <NotionErrorDetails
-        isOpen={notionErrorDetails.show}
-        onClose={hideNotionError}
         error={notionErrorDetails.error}
         context={notionErrorDetails.context}
+        isOpen={notionErrorDetails.show}
+        onClose={hideNotionError}
       />
     </AuditLayout>
   );

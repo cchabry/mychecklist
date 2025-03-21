@@ -5,3 +5,4 @@ export { default as NotionIntegrationGuide } from './NotionIntegrationGuide';
 export { default as NotionFormActions } from './NotionFormActions';
 export { default as NotionConnectionTests } from './NotionConnectionTests';
 export { default as NotionLastSavedInfo } from './NotionLastSavedInfo';
+export { default as NotionConfigForm } from '../NotionConfigForm';
