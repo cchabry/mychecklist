@@ -1,78 +1,62 @@
 
 import React from 'react';
-import { notionApi } from '@/lib/notionProxy';
-import { Button } from '@/components/ui/button';
-import { AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { Settings, Database, X } from 'lucide-react';
+import { AlertCircle, Code, ExternalLink } from 'lucide-react';
 
 interface NotionSolutionsSectionProps {
-  showApiKey?: boolean;
-  showCorsProxy?: boolean;
-  showMockMode?: boolean;
+  errorType?: string;
 }
 
-const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
-  showApiKey = false,
-  showCorsProxy = false,
-  showMockMode = false
-}) => {
-  // Activation du mode mock
-  const handleEnableMockMode = () => {
-    notionApi.mockMode.activate();
-    // Forcer un rechargement pour appliquer le mode mock
-    setTimeout(() => window.location.reload(), 1000);
-  };
-  
+const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ errorType }) => {
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Solutions possibles</h3>
+    <div className="mt-4 border rounded-md p-4 bg-blue-50 border-blue-200">
+      <h3 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
+        <AlertCircle size={16} />
+        Solutions recommandées
+      </h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {showApiKey && (
-          <Button 
-            variant="outline" 
-            className="justify-start"
-            onClick={() => {
-              // Ouvrir la page de configuration Notion
-              window.location.href = "/diagnostics"; 
-            }}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Configurer l'API Notion
-          </Button>
+      <div className="space-y-2 text-sm">
+        {errorType === 'auth' && (
+          <>
+            <p>Problème d'authentification détecté. Essayez de :</p>
+            <ul className="list-disc list-inside pl-2 space-y-1 text-blue-700">
+              <li>Vérifier que votre clé d'API est correcte</li>
+              <li>Régénérer une nouvelle clé d'API dans Notion</li>
+            </ul>
+          </>
         )}
         
-        {showCorsProxy && (
-          <Button 
-            variant="outline" 
-            className="justify-start"
-            onClick={() => {
-              // Ouvrir la documentation
-              window.open("https://developers.notion.com/reference/cors", "_blank");
-            }}
-          >
-            <Database className="mr-2 h-4 w-4" />
-            Vérifier le CORS Proxy
-          </Button>
+        {errorType === 'permission' && (
+          <>
+            <p>Problème de permissions détecté. Essayez de :</p>
+            <ul className="list-disc list-inside pl-2 space-y-1 text-blue-700">
+              <li>Vérifier que votre intégration a accès à la base de données</li>
+              <li>Ajouter l'intégration à la base de données depuis Notion</li>
+            </ul>
+          </>
         )}
         
-        {showMockMode && (
-          <Button 
-            variant="outline" 
-            className="justify-start"
-            onClick={handleEnableMockMode}
-          >
-            <Database className="mr-2 h-4 w-4" />
-            Utiliser le mode démo
-          </Button>
+        {(!errorType || errorType === 'network' || errorType === 'cors') && (
+          <>
+            <p>Problème de connexion détecté. Essayez de :</p>
+            <ul className="list-disc list-inside pl-2 space-y-1 text-blue-700">
+              <li>Vérifier votre connexion internet</li>
+              <li>Activer le mode de démonstration temporairement</li>
+              <li>Utiliser un proxy CORS pour les requêtes</li>
+            </ul>
+            
+            <div className="flex items-center gap-2 mt-2">
+              <Code size={14} className="text-blue-500" />
+              <a 
+                href="https://developers.notion.com/docs/getting-started" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline inline-flex items-center gap-1"
+              >
+                Documentation Notion <ExternalLink size={12} />
+              </a>
+            </div>
+          </>
         )}
-        
-        <AlertDialogCancel asChild>
-          <Button variant="outline" className="justify-start">
-            <X className="mr-2 h-4 w-4" />
-            Fermer
-          </Button>
-        </AlertDialogCancel>
       </div>
     </div>
   );

@@ -1,69 +1,101 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Activity } from 'lucide-react';
-import { AlertDialog, AlertDialogContent } from '@/components/ui/alert-dialog';
+import React from 'react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface NotionDiagnosticReportProps {
-  buttonLabel?: string;
-  buttonClassName?: string;
+export interface NotionDiagnosticReportProps {
+  results?: {
+    success: boolean;
+    message: string;
+    details?: string;
+    items?: Array<{
+      name: string;
+      status: 'success' | 'error' | 'warning' | 'info';
+      message: string;
+    }>;
+  };
   showDetails?: boolean;
-  onDiagnosticComplete?: (success: boolean) => void;
+  buttonLabel?: string;
 }
 
-const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({
-  buttonLabel = "Diagnostic Notion",
-  buttonClassName = "",
+const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({ 
+  results, 
   showDetails = false,
-  onDiagnosticComplete
+  buttonLabel = "Détails techniques" 
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = React.useState(showDetails);
   
-  const runDiagnostic = () => {
-    setIsOpen(true);
-    // Simulate successful diagnostic
-    if (onDiagnosticComplete) {
-      setTimeout(() => onDiagnosticComplete(true), 1000);
-    }
-  };
+  if (!results) {
+    return null;
+  }
+  
+  const { success, message, details, items } = results;
   
   return (
-    <>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className={`flex items-center gap-2 ${buttonClassName}`}
-        onClick={runDiagnostic}
-      >
-        <Activity size={16} />
-        {buttonLabel}
-      </Button>
-      
-      <AlertDialog open={isOpen && showDetails} onOpenChange={setIsOpen}>
-        <AlertDialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <div className="p-4">
-            <h2 className="text-xl font-bold mb-4">Rapport de diagnostic Notion</h2>
-            <p>Analyse de la connexion et des bases de données Notion...</p>
-            
-            <div className="mt-4 space-y-2">
-              <div className="p-2 bg-green-50 rounded border border-green-200">
-                <p className="text-sm text-green-700">✅ Connexion à l'API Notion réussie</p>
-              </div>
-              <div className="p-2 bg-green-50 rounded border border-green-200">
-                <p className="text-sm text-green-700">✅ Accès à la base de données des projets</p>
-              </div>
-              <div className="p-2 bg-green-50 rounded border border-green-200">
-                <p className="text-sm text-green-700">✅ Accès à la base de données des checklists</p>
-              </div>
+    <div className={`rounded-lg border ${success ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'} p-4 mb-4`}>
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 flex-shrink-0 ${success ? 'text-green-600' : 'text-amber-600'}`}>
+          {success ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+        </div>
+        
+        <div className="flex-1">
+          <h3 className={`font-medium ${success ? 'text-green-800' : 'text-amber-800'}`}>
+            {success ? 'Diagnostic réussi' : 'Problèmes détectés'}
+          </h3>
+          
+          <p className={`mt-1 text-sm ${success ? 'text-green-700' : 'text-amber-700'}`}>
+            {message}
+          </p>
+          
+          {(details || (items && items.length > 0)) && (
+            <button
+              className="mt-2 flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? (
+                <>
+                  <ChevronUp size={14} />
+                  Masquer les {buttonLabel.toLowerCase()}
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={14} />
+                  Afficher les {buttonLabel.toLowerCase()}
+                </>
+              )}
+            </button>
+          )}
+          
+          {isOpen && (
+            <div className="mt-3 text-sm">
+              {details && (
+                <div className="p-2 bg-white bg-opacity-50 rounded border border-gray-200 mb-2 whitespace-pre-wrap font-mono text-xs">
+                  {details}
+                </div>
+              )}
+              
+              {items && items.length > 0 && (
+                <ul className="space-y-2">
+                  {items.map((item, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="mt-0.5 flex-shrink-0">
+                        {item.status === 'success' && <CheckCircle2 size={16} className="text-green-600" />}
+                        {item.status === 'error' && <XCircle size={16} className="text-red-600" />}
+                        {item.status === 'warning' && <AlertTriangle size={16} className="text-amber-600" />}
+                        {item.status === 'info' && <Info size={16} className="text-blue-600" />}
+                      </span>
+                      <div>
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-gray-700">{item.message}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            
-            <div className="mt-6 flex justify-end">
-              <Button onClick={() => setIsOpen(false)}>Fermer</Button>
-            </div>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

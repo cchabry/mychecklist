@@ -1,7 +1,7 @@
 
 // Export des composants notion disponibles
 export { default as NotionCSVExporter } from './NotionCSVExporter';
-export { default as NotionErrorDetails } from './error/ErrorHeader';
+export { default as NotionErrorDetails } from './NotionErrorDetails';
 export { default as NotionDiagnosticReport } from './NotionDiagnosticReport';
 export { default as NotionSolutionsSection } from './NotionSolutionsSection';
 export { default as NotionConfig } from './NotionConfig';

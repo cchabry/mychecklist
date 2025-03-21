@@ -24,6 +24,8 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
           error={error} 
           context={context} 
           isPermissionError={error.toLowerCase().includes('permission')}
+          isOpen={isOpen}
+          onClose={onClose}
         />
         
         <div className="flex justify-end mt-6">
