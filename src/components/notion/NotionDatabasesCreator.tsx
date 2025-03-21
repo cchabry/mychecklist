@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -379,7 +380,6 @@ const NotionDatabasesCreator: React.FC = () => {
   const [results, setResults] = useState<Record<string, DatabaseResult>>({});
   const [logs, setLogs] = useState<string[]>([]);
   const [currentTab, setCurrentTab] = useState<string>("settings");
-  const [wasMockMode, setWasMockMode] = useState<boolean>(false);
 
   // Initialiser les résultats
   useEffect(() => {
@@ -434,16 +434,6 @@ const NotionDatabasesCreator: React.FC = () => {
     setIsCreating(true);
     setLogs([]);
     addLog("Début de la création des bases de données...");
-
-    // Vérifier si le mode mock est actif et le désactiver temporairement
-    const isMockActive = notionApi.mockMode.isActive();
-    setWasMockMode(isMockActive);
-    
-    if (isMockActive) {
-      addLog("⚠️ Mode mock détecté - Désactivation temporaire pour la création des BDD");
-      notionApi.mockMode.deactivate();
-      addLog("✅ Mode mock désactivé temporairement");
-    }
     
     try {
       // Créer chaque base de données dans l'ordre
@@ -538,10 +528,14 @@ const NotionDatabasesCreator: React.FC = () => {
             properties: schema.properties
           };
           
-          addLog(`Tentative de création avec la configuration: Mode mock = ${notionApi.mockMode.isActive() ? 'Activé' : 'Désactivé'}`);
+          console.log(`Création de la BDD ${schema.name}:`, {
+            parent: { page_id: pageId },
+            ...dbData
+          });
           
           // Créer la base de données
           const response = await notionApi.databases.create(pageId, dbData, apiKey);
+          console.log(`Réponse de l'API pour ${schema.name}:`, response);
           
           if (response && response.id) {
             addLog(`✅ Base de données "${schema.name}" créée avec succès. ID: ${response.id}`);
@@ -592,13 +586,6 @@ const NotionDatabasesCreator: React.FC = () => {
         description: errorMessage
       });
     } finally {
-      // Restaurer le mode mock si nécessaire
-      if (wasMockMode) {
-        addLog("Restauration du mode mock...");
-        notionApi.mockMode.activate();
-        addLog("✅ Mode mock restauré");
-      }
-      
       setIsCreating(false);
     }
   };
@@ -620,17 +607,6 @@ const NotionDatabasesCreator: React.FC = () => {
         <CardDescription>
           Cet outil va créer toutes les bases de données nécessaires au fonctionnement de l'application dans votre espace Notion.
         </CardDescription>
-        
-        {notionApi.mockMode.isActive() && (
-          <Alert variant="default" className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Mode démonstration actif</AlertTitle>
-            <AlertDescription>
-              Le mode démonstration sera temporairement désactivé pendant la création des bases de données.
-              Assurez-vous que vos identifiants Notion sont corrects.
-            </AlertDescription>
-          </Alert>
-        )}
       </CardHeader>
       
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
@@ -764,8 +740,6 @@ const NotionDatabasesCreator: React.FC = () => {
                       <span className="text-green-600">{log}</span>
                     ) : log.includes("❌") ? (
                       <span className="text-red-600">{log}</span>
-                    ) : log.includes("⚠️") ? (
-                      <span className="text-amber-600">{log}</span>
                     ) : (
                       <span>{log}</span>
                     )}
