@@ -128,7 +128,7 @@ export const notionCSVExporter = {
     let csv = 'Name,Audit,Page,Exigence,Score,Comment,CreatedAt\n';
     
     // Générer des données fictives pour les évaluations
-    const mockAudits = getMockAuditHistory();
+    const mockAudits = getMockAuditHistory("project-1"); // Ajout du projectId requis
     const mockEvaluations = [];
     
     mockAudits.forEach((audit, auditIndex) => {
@@ -166,7 +166,7 @@ export const notionCSVExporter = {
     let csv = 'Name,Evaluation,TargetScore,Priority,DueDate,Responsible,Status,Comment\n';
     
     // Générer des données fictives pour les actions
-    const mockActions = getMockActionHistory().slice(0, 20);
+    const mockActions = getMockActionHistory("project-1").slice(0, 20); // Ajout du projectId requis
     
     mockActions.forEach((action, index) => {
       const priorities = Object.values(ActionPriority);
