@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotion } from '@/contexts/NotionContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { RefreshCw, AlertTriangle, ClipboardList, FileCheck, ListChecks } from 'lucide-react';
+import { RefreshCw, AlertTriangle, ClipboardList, FileCheck, ListChecks, Database, LucideActivity } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
+import { notionDiagnostic } from '@/lib/notion/diagnosticHelper';
 
 import { 
   AuditChecklist, 
@@ -30,17 +30,9 @@ interface AuditContainerProps {
 export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onError }) => {
   console.log("AuditContainer rendering with projectId:", projectId);
   
-  // Référence pour suivre si le mode démo a été activé
-  const mockModeActivated = useRef(false);
-  
-  // Force le mode démo, mais une seule fois
-  useEffect(() => {
-    if (!mockModeActivated.current && !notionApi.mockMode.isActive()) {
-      console.log("Activation du mode démo pour le prototype");
-      notionApi.mockMode.activate();
-      mockModeActivated.current = true;
-    }
-  }, []);
+  // Ne plus forcer le mode mock par défaut
+  // Référence pour suivre les diagnostics
+  const diagnosticRun = useRef(false);
   
   const navigate = useNavigate();
   const { status, config, usingNotion, testConnection } = useNotion();
@@ -56,6 +48,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   });
   const [activeTab, setActiveTab] = useState<'checklist' | 'actions'>('checklist');
   const [samplePages, setSamplePages] = useState<SamplePage[]>([]);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
   
   const handleConnectNotionClick = () => {
     setNotionConfigOpen(true);
@@ -91,6 +84,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     loading, 
     notionError,
     hasChecklistDb,
+    mockModeActive,
     setAudit, 
     handleSaveAudit,
     loadProject 
@@ -130,12 +124,15 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
   
   const handleForceReset = () => {
     console.log("Force resetting all caches from AuditContainer");
-    // Pour le prototype, on reste en mode démo
+    // Réinitialiser les caches
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
     
+    // Tenter de désactiver le mode mock
+    notionApi.mockMode.forceReset();
+    
     toast.info("Réinitialisation effectuée", {
-      description: "Les données vont être rechargées"
+      description: "Les données vont être rechargées avec le mode réel"
     });
     
     // Réinitialiser le flag pour permettre de recharger
@@ -144,6 +141,54 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     setTimeout(() => {
       loadProject();
     }, 600);
+  };
+  
+  // Lancer un diagnostic complet
+  const handleRunDiagnostic = async () => {
+    setIsDiagnosing(true);
+    toast.info('Diagnostic Notion en cours', {
+      description: 'Vérification de la connexion et des bases de données...'
+    });
+    
+    try {
+      const result = await notionDiagnostic.runFullDiagnostic();
+      diagnosticRun.current = true;
+      
+      if (result.success) {
+        toast.success('Diagnostic réussi', {
+          description: 'La connexion à Notion fonctionne correctement'
+        });
+        
+        // Désactiver le mode mock si le diagnostic réussit
+        if (notionApi.mockMode.isActive()) {
+          notionApi.mockMode.forceReset();
+          console.log('Mode mock désactivé suite au diagnostic réussi');
+          
+          // Rafraîchir les données
+          dataInitialized.current = false;
+          setTimeout(() => {
+            loadProject();
+          }, 600);
+        }
+      } else {
+        toast.error('Problèmes détectés', {
+          description: result.message,
+          action: {
+            label: 'Tenter réparation',
+            onClick: () => notionDiagnostic.fixNotionIssues()
+          }
+        });
+        
+        // Afficher les détails dans la console pour déboguer
+        console.error('Détails du diagnostic:', result.details);
+      }
+    } catch (error) {
+      toast.error('Erreur de diagnostic', {
+        description: error.message || 'Une erreur est survenue pendant le diagnostic'
+      });
+    } finally {
+      setIsDiagnosing(false);
+    }
   };
   
   // Gestionnaire pour la mise à jour d'une action corrective
@@ -201,7 +246,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     );
   }
   
-  console.log("AuditContainer state:", { loading, hasProject: !!project, hasAudit: !!audit });
+  console.log("AuditContainer state:", { loading, hasProject: !!project, hasAudit: !!audit, mockModeActive });
   
   return (
     <AuditLayout
@@ -229,10 +274,26 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
                   size="sm" 
                   className="gap-2 text-red-500"
                   onClick={handleForceReset}
-                  title="Réinitialiser les données du prototype"
+                  title="Réinitialiser les données et forcer le mode réel"
                 >
                   <RefreshCw size={16} />
                   Réinitialiser
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleRunDiagnostic}
+                  disabled={isDiagnosing}
+                  title="Exécuter un diagnostic Notion complet"
+                >
+                  {isDiagnosing ? (
+                    <RefreshCw size={16} className="animate-spin" />
+                  ) : (
+                    <LucideActivity size={16} />
+                  )}
+                  Diagnostic
                 </Button>
                 
                 <NotionConnectButton 
@@ -243,15 +304,17 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
               </div>
             </div>
             
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={16} />
-                <span className="font-medium">Mode prototype actif</span>
+            {mockModeActive && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={16} />
+                  <span className="font-medium">Mode démonstration actif</span>
+                </div>
+                <p className="mt-1 text-xs">
+                  Les données affichées sont fictives. Cliquez sur "Diagnostic" pour tester la connexion à Notion ou "Réinitialiser" pour forcer le mode réel.
+                </p>
               </div>
-              <p className="mt-1 text-xs">
-                Les données affichées sont fictives et uniquement destinées à la démonstration du prototype.
-              </p>
-            </div>
+            )}
             
             <AuditProgress audit={audit} />
           </div>
@@ -298,7 +361,6 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
 
 // Fonction temporaire pour obtenir les pages d'un projet, à remplacer par un hook
 function getPagesByProjectId(projectId: string) {
-  // Cette fonction sera remplacée par l'utilisation d'un hook dédié
   return [
     {
       id: "page-1",
