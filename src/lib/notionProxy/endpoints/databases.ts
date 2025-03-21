@@ -26,3 +26,13 @@ export const query = async (databaseId: string, queryParams: any, token: string)
 export const list = async (token: string) => {
   return notionApiRequest('/databases', 'GET', undefined, token);
 };
+
+/**
+ * Crée une base de données dans Notion
+ */
+export const create = async (pageId: string, data: any, token: string) => {
+  return notionApiRequest('/databases', 'POST', {
+    parent: { page_id: pageId },
+    ...data
+  }, token);
+};
