@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -63,6 +63,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
   
   const cleanProjectId = getCleanProjectId();
+  
+  // Log pour le débogage
+  useEffect(() => {
+    console.log(`ProjectCard - ID original: ${project.id}, ID nettoyé: ${cleanProjectId}`);
+  }, [project.id, cleanProjectId]);
   
   return (
     <Card className="bg-[#fff8f0] backdrop-blur-md rounded-lg border border-tmw-teal/20 shadow-md transition-shadow hover:shadow-lg">
@@ -144,14 +149,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           </div>
         )}
         
-        {/* Bouton Nouvel Audit */}
+        {/* Bouton Nouvel Audit avec ID de projet clairement défini */}
         <Button 
           variant="outline" 
           size="sm" 
           className="w-full bg-white hover:bg-tmw-teal/10 border-tmw-teal/20 text-tmw-teal"
           asChild
         >
-          <Link to={`/audit/new/${cleanProjectId}`} className="flex items-center justify-center">
+          <Link 
+            to={`/audit/new/${cleanProjectId}`} 
+            className="flex items-center justify-center"
+            title={`Créer un nouvel audit pour le projet ${project.name} (ID: ${cleanProjectId})`}
+          >
             <FilePlus size={16} className="mr-2" />
             Nouvel audit
           </Link>
@@ -161,6 +170,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       <CardFooter className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
           Créé le {new Date(project.createdAt).toLocaleDateString('fr-FR')}
+        </div>
+        <div className="text-xs text-muted-foreground/60">
+          ID: {cleanProjectId}
         </div>
       </CardFooter>
     </Card>

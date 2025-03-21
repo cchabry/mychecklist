@@ -9,9 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, CheckSquare, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Loader2, AlertCircle, Info, Home } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
-import { createMockAudit, getProjectById } from '@/lib/mockData';
+import { createMockAudit, getProjectById, getAllProjects } from '@/lib/mockData';
 import { Project, Audit } from '@/lib/types';
 
 const NewAuditPage: React.FC = () => {
@@ -23,14 +23,37 @@ const NewAuditPage: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isMockMode, setIsMockMode] = useState(notionApi.mockMode.isActive());
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  
+  // Fonction pour nettoyer l'ID du projet si nécessaire
+  const getCleanProjectId = () => {
+    if (!projectId) return undefined;
+    
+    // Si l'ID est une chaîne JSON, essayons de l'extraire
+    try {
+      if (projectId.startsWith('"') && projectId.endsWith('"')) {
+        return JSON.parse(projectId);
+      }
+    } catch (e) {
+      console.error("Erreur lors du nettoyage de l'ID:", e);
+    }
+    
+    return projectId;
+  };
   
   // Charger les données du projet
   useEffect(() => {
+    console.log("NewAuditPage - projectId reçu:", projectId);
+    
     if (!projectId) {
+      setErrorDetails("ID de projet non spécifié");
       toast.error("ID de projet non spécifié");
-      navigate('/');
+      setIsLoading(false);
       return;
     }
+    
+    const cleanProjectId = getCleanProjectId();
+    console.log("NewAuditPage - projectId nettoyé:", cleanProjectId);
     
     const fetchProject = async () => {
       setIsLoading(true);
@@ -40,22 +63,33 @@ const NewAuditPage: React.FC = () => {
         await notionApi.mockMode.applySimulatedDelay();
         
         // Pour la démo, utiliser les données mock pour tous les cas
-        // Dans une implémentation complète, on interrogerait Notion si on n'est pas en mode mock
-        let projectData = getProjectById(projectId);
+        let projectData = getProjectById(cleanProjectId || projectId);
         
-        // Si projet non trouvé mais qu'il s'agit d'un ID mock-project, créer un projet fictif
-        if (!projectData && projectId.startsWith('mock-project-')) {
-          console.log("Création d'un nouveau projet mock à partir de l'ID généré", projectId);
-          projectData = {
-            id: projectId,
-            name: `Projet ${projectId.substring(12)}`,
-            url: "https://example.com",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            progress: 0,
-            itemsCount: 15,
-            pagesCount: 0
-          };
+        console.log("NewAuditPage - Projet trouvé:", projectData ? "Oui" : "Non");
+        
+        // Si projet non trouvé, essayer une recherche plus approfondie
+        if (!projectData) {
+          // Afficher tous les projets disponibles pour déboguer
+          const allProjects = getAllProjects();
+          console.log("NewAuditPage - Tous les projets disponibles:", allProjects.map(p => ({ id: p.id, name: p.name })));
+          
+          // Si projet non trouvé mais qu'il s'agit d'un ID mock-project, créer un projet fictif
+          if (cleanProjectId && cleanProjectId.toString().startsWith('mock-project-')) {
+            console.log("Création d'un nouveau projet mock à partir de l'ID généré", cleanProjectId);
+            projectData = {
+              id: cleanProjectId.toString(),
+              name: `Projet ${cleanProjectId.toString().substring(12)}`,
+              url: "https://example.com",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              progress: 0,
+              itemsCount: 15,
+              pagesCount: 0
+            };
+          } else {
+            setErrorDetails(`Projet avec ID "${cleanProjectId || projectId}" non trouvé dans la base de données`);
+            throw new Error(`Projet avec ID "${cleanProjectId || projectId}" non trouvé dans la base de données`);
+          }
         }
         
         if (projectData) {
@@ -63,13 +97,20 @@ const NewAuditPage: React.FC = () => {
           // Initialiser le nom de l'audit avec le nom du projet
           setName(`Audit de ${projectData.name} - ${new Date().toLocaleDateString()}`);
         } else {
-          toast.error("Projet non trouvé");
-          navigate('/');
+          setErrorDetails(`Projet non trouvé malgré les tentatives de récupération (ID: ${cleanProjectId || projectId})`);
+          toast.error("Projet non trouvé", {
+            description: `ID: ${cleanProjectId || projectId}`
+          });
+          setTimeout(() => navigate('/'), 2000);
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
         console.error("Erreur lors du chargement du projet:", error);
-        toast.error("Impossible de charger les données du projet");
-        navigate('/');
+        setErrorDetails(errorMessage);
+        toast.error("Impossible de charger les données du projet", {
+          description: errorMessage
+        });
+        setTimeout(() => navigate('/'), 2000);
       } finally {
         setIsLoading(false);
       }
@@ -109,7 +150,8 @@ const NewAuditPage: React.FC = () => {
       
       // Pour la démo, créer un audit mock
       // Dans une implémentation complète, on créerait un nouvel audit dans Notion si on n'est pas en mode mock
-      const auditData: Audit = createMockAudit(projectId as string);
+      const cleanProjectId = getCleanProjectId() || projectId;
+      const auditData: Audit = createMockAudit(cleanProjectId);
       
       // Mettre à jour le nom et la description
       auditData.name = name;
@@ -123,17 +165,74 @@ const NewAuditPage: React.FC = () => {
       
       // Rediriger vers la page d'audit après un court délai
       setTimeout(() => {
-        console.log("Redirection vers la page d'audit:", `/audit/${projectId}/${auditData.id}`);
-        navigate(`/audit/${projectId}/${auditData.id}`);
+        console.log("Redirection vers la page d'audit:", `/audit/${cleanProjectId}/${auditData.id}`);
+        navigate(`/audit/${cleanProjectId}/${auditData.id}`);
       }, 500);
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
       console.error("Erreur lors de la création de l'audit:", error);
-      toast.error("Impossible de créer l'audit");
+      setErrorDetails(errorMessage);
+      toast.error("Impossible de créer l'audit", {
+        description: errorMessage
+      });
     } finally {
       setIsSaving(false);
     }
   };
+  
+  // Si une erreur est survenue, afficher un écran d'erreur
+  if (errorDetails && !isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <div className="flex-1 container px-4 py-8 mx-auto max-w-3xl flex items-center justify-center">
+          <Card className="w-full border border-red-200 shadow-md">
+            <CardHeader className="bg-red-50 border-b border-red-100">
+              <div className="flex items-center gap-3">
+                <div className="bg-red-100 rounded-full p-2">
+                  <AlertCircle size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl text-red-700">Erreur lors du chargement du projet</CardTitle>
+                  <CardDescription className="text-red-600">
+                    Impossible de créer un nouvel audit
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                  <h3 className="font-medium flex items-center gap-1 text-gray-700 mb-2">
+                    <Info size={16} className="text-blue-500" />
+                    Détails du problème
+                  </h3>
+                  <div className="text-sm text-gray-600">
+                    <p className="mb-2">{errorDetails}</p>
+                    <div className="text-xs bg-gray-100 p-2 rounded-md mt-2 font-mono">
+                      <p><strong>ID reçu:</strong> {projectId || 'aucun'}</p>
+                      <p><strong>ID nettoyé:</strong> {getCleanProjectId() || 'échec du nettoyage'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button
+                  variant="default"
+                  onClick={() => navigate('/')}
+                  className="w-full bg-tmw-teal hover:bg-tmw-teal/90"
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Retour à l'accueil
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-tmw-teal/5">
@@ -172,6 +271,18 @@ const NewAuditPage: React.FC = () => {
                       Créez un nouvel audit pour le projet {project?.name}.
                     </CardDescription>
                   </div>
+                </div>
+                
+                {/* Informations sur l'ID du projet pour débogage */}
+                <div className="mt-3 text-xs bg-gray-50 border border-gray-200 rounded-md p-2">
+                  <p className="text-gray-500">
+                    <span className="font-medium">ID du projet:</span> {project?.id}
+                    {getCleanProjectId() !== projectId && (
+                      <span className="ml-2">
+                        (nettoyé depuis <code className="bg-gray-100 px-1 py-0.5 rounded">{projectId}</code>)
+                      </span>
+                    )}
+                  </p>
                 </div>
                 
                 {/* Indicateur de mode mock */}
