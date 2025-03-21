@@ -15,12 +15,16 @@ export interface NotionDiagnosticReportProps {
   };
   showDetails?: boolean;
   buttonLabel?: string;
+  buttonClassName?: string;
+  onDiagnosticComplete?: (success: boolean) => void;
 }
 
 const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({ 
   results, 
   showDetails = false,
-  buttonLabel = "Détails techniques" 
+  buttonLabel = "Détails techniques",
+  buttonClassName = "",
+  onDiagnosticComplete
 }) => {
   const [isOpen, setIsOpen] = React.useState(showDetails);
   
@@ -29,6 +33,13 @@ const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({
   }
   
   const { success, message, details, items } = results;
+  
+  // Appel du callback si présent
+  React.useEffect(() => {
+    if (results && onDiagnosticComplete) {
+      onDiagnosticComplete(success);
+    }
+  }, [results, onDiagnosticComplete, success]);
   
   return (
     <div className={`rounded-lg border ${success ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'} p-4 mb-4`}>
@@ -48,7 +59,7 @@ const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({
           
           {(details || (items && items.length > 0)) && (
             <button
-              className="mt-2 flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800"
+              className={`mt-2 flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 ${buttonClassName}`}
               onClick={() => setIsOpen(!isOpen)}
             >
               {isOpen ? (

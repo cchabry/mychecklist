@@ -4,9 +4,17 @@ import { AlertCircle, Code, ExternalLink } from 'lucide-react';
 
 interface NotionSolutionsSectionProps {
   errorType?: string;
+  showApiKey?: boolean;
+  showCorsProxy?: boolean;
+  showMockMode?: boolean;
 }
 
-const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ errorType }) => {
+const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ 
+  errorType,
+  showApiKey = false,
+  showCorsProxy = false,
+  showMockMode = false
+}) => {
   return (
     <div className="mt-4 border rounded-md p-4 bg-blue-50 border-blue-200">
       <h3 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
@@ -33,6 +41,33 @@ const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ errorTy
               <li>Ajouter l'intégration à la base de données depuis Notion</li>
             </ul>
           </>
+        )}
+        
+        {showCorsProxy && (
+          <div className="mt-3">
+            <p className="font-medium">Utiliser un proxy CORS:</p>
+            <p className="text-blue-700">
+              Si vous rencontrez des erreurs CORS, activez l'option de proxy dans les paramètres.
+            </p>
+          </div>
+        )}
+        
+        {showApiKey && (
+          <div className="mt-3">
+            <p className="font-medium">Vérifier la clé API:</p>
+            <p className="text-blue-700">
+              Assurez-vous que votre clé d'API est correcte et que l'intégration a les permissions nécessaires.
+            </p>
+          </div>
+        )}
+        
+        {showMockMode && (
+          <div className="mt-3">
+            <p className="font-medium">Activer le mode démonstration:</p>
+            <p className="text-blue-700">
+              Pour tester l'application sans connexion à Notion, activez le mode démonstration.
+            </p>
+          </div>
         )}
         
         {(!errorType || errorType === 'network' || errorType === 'cors') && (
