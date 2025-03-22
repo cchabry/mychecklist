@@ -1,20 +1,13 @@
 
 import { OperationMode, OperationModeSettings, SwitchReason } from './types';
+import { DEFAULT_SETTINGS } from './constants';
+import { operationModeStorage } from './storage';
 
 // Interface pour les abonnés au changement de mode
 type OperationModeSubscriber = (mode: OperationMode, reason: SwitchReason | null) => void;
 
-// État initial du service
-const DEFAULT_SETTINGS: OperationModeSettings = {
-  maxConsecutiveFailures: 3,
-  autoSwitchOnFailure: true,
-  persistentModeStorage: true,
-  notificationDuration: 5000
-};
-
 /**
  * Service central pour la gestion du mode opérationnel de l'application
- * Remplace le système mockMode avec une API plus robuste et flexible
  */
 class OperationModeService {
   private mode: OperationMode = OperationMode.REAL;
@@ -23,7 +16,6 @@ class OperationModeService {
   private subscribers: OperationModeSubscriber[] = [];
   private consecutiveFailures: number = 0;
   private lastError: Error | null = null;
-  private storageKey = 'operation_mode';
   
   constructor() {
     this.loadModeFromStorage();
@@ -35,20 +27,11 @@ class OperationModeService {
    */
   private loadModeFromStorage(): void {
     if (this.settings.persistentModeStorage) {
-      try {
-        const savedMode = localStorage.getItem(this.storageKey);
-        const savedReason = localStorage.getItem(`${this.storageKey}_reason`);
-        
-        if (savedMode === OperationMode.DEMO) {
-          this.mode = OperationMode.DEMO;
-          this.switchReason = savedReason || 'Mode démo activé manuellement';
-          console.log('Mode démo chargé depuis le stockage');
-        } else {
-          this.mode = OperationMode.REAL;
-          this.switchReason = null;
-        }
-      } catch (e) {
-        console.warn('Impossible de charger le mode depuis localStorage:', e);
+      const { mode, reason } = operationModeStorage.loadMode();
+      if (mode === OperationMode.DEMO) {
+        this.mode = OperationMode.DEMO;
+        this.switchReason = reason;
+        console.log('Mode démo chargé depuis le stockage');
       }
     }
   }
@@ -58,19 +41,7 @@ class OperationModeService {
    */
   private saveModeToStorage(): void {
     if (this.settings.persistentModeStorage) {
-      try {
-        if (this.mode === OperationMode.DEMO) {
-          localStorage.setItem(this.storageKey, this.mode);
-          if (this.switchReason) {
-            localStorage.setItem(`${this.storageKey}_reason`, this.switchReason);
-          }
-        } else {
-          localStorage.removeItem(this.storageKey);
-          localStorage.removeItem(`${this.storageKey}_reason`);
-        }
-      } catch (e) {
-        console.warn('Impossible de sauvegarder le mode dans localStorage:', e);
-      }
+      operationModeStorage.saveMode(this.mode, this.switchReason);
     }
   }
   
@@ -270,8 +241,7 @@ class OperationModeService {
     this.switchReason = null;
     this.consecutiveFailures = 0;
     this.lastError = null;
-    localStorage.removeItem(this.storageKey);
-    localStorage.removeItem(`${this.storageKey}_reason`);
+    operationModeStorage.clearMode();
     this.notifySubscribers();
   }
 }

@@ -14,7 +14,7 @@ export const operationModeNotifications = {
   notifyDemoMode: (reason?: string) => {
     toast.info('Mode démonstration activé', {
       description: reason || 'L\'application utilise maintenant des données simulées',
-      icon: <Database size={16} className="text-blue-500" />,
+      icon: React.createElement(Database, { size: 16, className: "text-blue-500" }),
       duration: 5000
     });
   },
@@ -25,7 +25,7 @@ export const operationModeNotifications = {
   notifyRealMode: () => {
     toast.success('Mode réel activé', {
       description: 'L\'application se connecte maintenant à Notion',
-      icon: <Info size={16} className="text-green-500" />,
+      icon: React.createElement(Info, { size: 16, className: "text-green-500" }),
       duration: 5000
     });
   },

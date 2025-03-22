@@ -49,6 +49,20 @@ export function useOperationMode() {
   };
 
   /**
+   * Signale une erreur de connexion
+   */
+  const handleConnectionError = (error: Error, context?: string) => {
+    operationMode.handleConnectionError(error, context);
+  };
+
+  /**
+   * Signale une opération réussie
+   */
+  const handleSuccessfulOperation = () => {
+    operationMode.handleSuccessfulOperation();
+  };
+
+  /**
    * Met à jour les paramètres
    */
   const updateSettings = (newSettings: Partial<OperationModeSettings>) => {
@@ -79,6 +93,8 @@ export function useOperationMode() {
     enableDemoMode,
     enableRealMode,
     toggle,
+    handleConnectionError,
+    handleSuccessfulOperation,
     updateSettings,
     reset
   };

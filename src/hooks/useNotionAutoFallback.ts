@@ -20,7 +20,7 @@ export function useNotionAutoFallback() {
       setFailures(operationMode.getConsecutiveFailures());
       
       // Afficher une notification détaillée lors du basculement automatique
-      if (newMode === 'demo' && operationMode.getSwitchReason()?.includes('Échec de connexion')) {
+      if (newMode === 'demo' && reason?.includes('automatique')) {
         toast.warning('Passage automatique en mode démonstration', {
           description: 'Des problèmes de connexion à Notion ont été détectés. L\'application utilise maintenant des données fictives.',
           duration: 5000,
