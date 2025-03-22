@@ -8,6 +8,8 @@ import * as audits from './endpoints/audits';
 import * as exigences from './endpoints/exigences';
 import * as checklist from './endpoints/checklist';
 import * as samplePages from './endpoints/samplePages';
+import * as evaluations from './endpoints/evaluations';
+import * as actions from './endpoints/actions';
 import { mockMode } from './mockMode';
 import { operationMode } from '@/services/operationMode';
 
@@ -60,7 +62,23 @@ export const notionApi = {
   getSamplePage: samplePages.getSamplePage,
   createSamplePage: samplePages.createSamplePage,
   updateSamplePage: samplePages.updateSamplePage,
-  deleteSamplePage: samplePages.deleteSamplePage
+  deleteSamplePage: samplePages.deleteSamplePage,
+  
+  // Méthodes pour les évaluations
+  getEvaluations: evaluations.getEvaluations,
+  getEvaluation: evaluations.getEvaluation,
+  getEvaluationsByAuditId: evaluations.getEvaluationsByAuditId,
+  createEvaluation: evaluations.createEvaluation,
+  updateEvaluation: evaluations.updateEvaluation,
+  deleteEvaluation: evaluations.deleteEvaluation,
+  
+  // Méthodes pour les actions correctives
+  getActions: actions.getActions,
+  getAction: actions.getAction,
+  getActionsByEvaluationId: actions.getActionsByEvaluationId,
+  createAction: actions.createAction,
+  updateAction: actions.updateAction,
+  deleteAction: actions.deleteAction
 };
 
 // Réexporter la fonction principale pour la rétrocompatibilité
