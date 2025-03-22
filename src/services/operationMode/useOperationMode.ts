@@ -1,44 +1,60 @@
 
 import { useState, useEffect } from 'react';
-import { operationModeService } from './operationModeService';
-import { OperationMode } from './types';
+import { OperationMode, SwitchReason } from './types';
+import { operationMode } from './operationModeService';
 
 /**
- * Hook React pour interagir avec le service de mode opérationnel
+ * Hook React pour utiliser le service operationMode
+ * Fournit des fonctions et états réactifs pour interagir avec le service
  */
 export function useOperationMode() {
-  const [mode, setMode] = useState<OperationMode>(operationModeService.mode);
-  const [switchReason, setSwitchReason] = useState<string | null>(operationModeService.switchReason);
-  const [failures, setFailures] = useState<number>(operationModeService.failures);
-  const [lastError, setLastError] = useState<Error | null>(operationModeService.lastError);
-  
+  const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
+  const [switchReason, setSwitchReason] = useState<SwitchReason | null>(
+    operationMode.getSwitchReason()
+  );
+  const [failures, setFailures] = useState<number>(
+    operationMode.getConsecutiveFailures()
+  );
+  const [lastError, setLastError] = useState<Error | null>(
+    operationMode.getLastError()
+  );
+
+  // S'abonner aux changements de mode
   useEffect(() => {
-    // S'abonner aux changements
-    const unsubscribe = operationModeService.subscribe(() => {
-      setMode(operationModeService.mode);
-      setSwitchReason(operationModeService.switchReason);
-      setFailures(operationModeService.failures);
-      setLastError(operationModeService.lastError);
+    const unsubscribe = operationMode.subscribe((newMode, reason) => {
+      setMode(newMode);
+      setSwitchReason(reason);
+      setFailures(operationMode.getConsecutiveFailures());
+      setLastError(operationMode.getLastError());
     });
     
-    // Se désabonner au démontage
     return unsubscribe;
   }, []);
-  
+
+  // Valeurs dérivées
+  const isDemoMode = mode === OperationMode.DEMO;
+  const isRealMode = mode === OperationMode.REAL;
+
   return {
+    // États
     mode,
-    isDemoMode: operationModeService.isDemoMode,
-    isRealMode: operationModeService.isRealMode,
-    enableDemoMode: operationModeService.enableDemoMode,
-    enableRealMode: operationModeService.enableRealMode,
-    toggle: operationModeService.toggle,
-    handleConnectionError: operationModeService.handleConnectionError,
-    handleSuccessfulOperation: operationModeService.handleSuccessfulOperation,
-    settings: operationModeService.settings,
-    updateSettings: operationModeService.updateSettings,
     switchReason,
-    lastError,
     failures,
-    isTransitioning: operationModeService.isTransitioning
+    lastError,
+    
+    // Valeurs dérivées
+    isDemoMode,
+    isRealMode,
+    
+    // Actions
+    enableDemoMode: operationMode.enableDemoMode.bind(operationMode),
+    enableRealMode: operationMode.enableRealMode.bind(operationMode),
+    toggle: operationMode.toggle.bind(operationMode),
+    
+    // Configuration
+    updateSettings: operationMode.updateSettings.bind(operationMode),
+    
+    // Utilitaires
+    reset: operationMode.reset.bind(operationMode)
   };
 }

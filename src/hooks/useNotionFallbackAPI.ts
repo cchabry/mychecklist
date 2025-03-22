@@ -1,151 +1,148 @@
 
 import { useState, useCallback } from 'react';
-import { operationMode, OperationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
+import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
+import { useOperationModeListener } from './useOperationModeListener';
 
-// Type générique pour les options de requête
-interface NotionRequestOptions<T> {
-  // Fonction pour générer des données de démonstration
-  demoData?: () => T | Promise<T>;
-  // Message de succès à afficher
+interface RequestOptions<T> {
+  // Données à utiliser en mode démo
+  demoData: T | (() => T);
+  
+  // Messages et notifications
   successMessage?: string;
-  // Message d'erreur personnalisé
   errorMessage?: string;
-  // Contexte de l'opération (pour les logs et erreurs)
-  context?: string;
-  // Forcer le mode de fonctionnement pour cette requête uniquement
-  forceMode?: OperationMode;
-  // Afficher des notifications pour cette requête
-  notifications?: boolean;
-  // Désactiver le fallback automatique pour cette requête
-  disableAutoFallback?: boolean;
+  
+  // Callbacks
+  onSuccess?: (data: T) => void;
+  onError?: (error: Error) => void;
 }
 
 /**
- * Hook pour l'interaction avec l'API Notion avec fallback automatique
- * Remplace l'ancien système de Mock par une approche plus élégante
+ * Hook pour faire des requêtes à l'API Notion avec fallback automatique
+ * Remplace useNotionRequest avec une API plus cohérente et robuste
  */
 export function useNotionFallbackAPI<T = unknown>() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<T | null>(null);
+  const { isDemoMode } = useOperationModeListener();
   
   /**
-   * Exécute une requête à l'API Notion avec fallback sur les données de démo
+   * Exécute une requête avec gestion automatique du mode opérationnel
    */
   const executeRequest = useCallback(async <R = T>(
-    // Fonction qui exécute la requête réelle à l'API Notion
     requestFn: () => Promise<R>,
-    // Options pour la requête
-    options: NotionRequestOptions<R> = {}
+    options: RequestOptions<R>
   ): Promise<R | null> => {
+    // Destructurer les options
     const {
       demoData,
       successMessage,
-      errorMessage = 'Erreur lors de la requête Notion',
-      context = 'Opération Notion',
-      forceMode,
-      notifications = true,
-      disableAutoFallback = false
+      errorMessage = 'Erreur lors de la requête',
+      onSuccess,
+      onError
     } = options;
-    
-    // Déterminer le mode d'opération
-    const currentMode = forceMode || operationMode.mode;
-    const isDemo = currentMode === OperationMode.DEMO;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      // En mode démo, utiliser les données de démonstration si disponibles
-      if (isDemo && demoData) {
-        // Simuler un délai réaliste pour l'UX
-        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 300));
+      // En mode démo, retourner les données de démo
+      if (isDemoMode) {
+        // Simuler un délai réseau
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Récupérer les données de démo (synchrones ou asynchrones)
-        const mockResult = await Promise.resolve(demoData());
+        // Récupérer les données de démo (fonction ou valeur directe)
+        const mockResult = typeof demoData === 'function' 
+          ? (demoData as () => R)() 
+          : demoData;
         
         setData(mockResult as unknown as T);
-        setIsLoading(false);
         
-        if (successMessage && notifications) {
+        if (onSuccess) {
+          onSuccess(mockResult);
+        }
+        
+        if (successMessage) {
           toast.success(successMessage, {
-            description: 'Utilisation de données démo'
+            description: 'Données de démonstration utilisées'
           });
         }
         
+        setIsLoading(false);
         return mockResult;
       }
       
-      // En mode réel, exécuter la requête Notion
+      // Mode réel: exécuter la requête effective
       const result = await requestFn();
       
-      // Opération réussie
-      if (successMessage && notifications) {
-        toast.success(successMessage);
-      }
-      
-      // Notifier le service de mode qu'une opération a réussi
+      // Signaler l'opération réussie
       operationMode.handleSuccessfulOperation();
       
       setData(result as unknown as T);
-      return result;
-    } catch (err) {
-      // Conversion en Error standard
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
       
-      // Afficher l'erreur
-      if (notifications) {
-        toast.error(errorMessage, {
-          description: error.message
-        });
+      if (onSuccess) {
+        onSuccess(result);
       }
       
-      // Notifier le service de mode
-      operationMode.handleConnectionError(error, context);
-      
-      // Vérifier si on doit faire un fallback automatique
-      if (!disableAutoFallback && demoData) {
-        // Si la limite d'échecs est atteinte OU si nous sommes déjà en mode transition
-        if (operationMode.failures >= 2 || operationMode.isTransitioning) {
-          try {
-            // Activer le mode démo si ce n'est pas déjà fait
-            if (!operationMode.isDemoMode) {
-              operationMode.enableDemoMode(`Erreur: ${error.message}`);
-            }
-            
-            // Récupérer les données de démo en fallback
-            const fallbackData = await Promise.resolve(demoData());
-            
-            // Informer l'utilisateur du fallback
-            if (notifications) {
-              toast.info('Utilisation de données de secours', {
-                description: "Suite à une erreur de connexion à Notion"
-              });
-            }
-            
-            setData(fallbackData as unknown as T);
-            return fallbackData;
-          } catch (fallbackError) {
-            // En cas d'erreur dans le fallback, on garde l'erreur originale
-            console.error('Erreur dans les données de fallback', fallbackError);
-          }
-        }
+      if (successMessage) {
+        toast.success(successMessage);
       }
       
-      return null;
-    } finally {
       setIsLoading(false);
+      return result;
+    } catch (error) {
+      // Formater l'erreur
+      const formattedError = error instanceof Error 
+        ? error 
+        : new Error(String(error));
+      
+      // Signaler l'erreur au système operationMode
+      operationMode.handleConnectionError(
+        formattedError,
+        'Requête API Notion'
+      );
+      
+      setError(formattedError);
+      
+      if (onError) {
+        onError(formattedError);
+      }
+      
+      toast.error(errorMessage, {
+        description: formattedError.message
+      });
+      
+      // Tenter de basculer automatiquement en mode démo
+      try {
+        if (operationMode.isRealMode() && demoData) {
+          const mockResult = typeof demoData === 'function' 
+            ? (demoData as () => R)() 
+            : demoData;
+            
+          setData(mockResult as unknown as T);
+          toast.info('Mode démonstration activé', {
+            description: 'L\'application continue avec des données de démonstration'
+          });
+          
+          setIsLoading(false);
+          return mockResult;
+        }
+      } catch (fallbackError) {
+        console.error('Erreur lors du fallback en mode démonstration:', fallbackError);
+      }
+      
+      setIsLoading(false);
+      return null;
     }
-  }, []);
+  }, [isDemoMode]);
   
   return {
     isLoading,
     error,
     data,
     executeRequest,
-    isDemoMode: operationMode.isDemoMode,
-    isRealMode: operationMode.isRealMode
+    notionApi
   };
 }

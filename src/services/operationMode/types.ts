@@ -1,38 +1,28 @@
 
 /**
- * Types pour le service de mode opérationnel
+ * Types pour le système operationMode
  */
 
-// Énumération des modes opérationnels
+// Modes d'opération disponibles
 export enum OperationMode {
   REAL = 'real',
-  DEMO = 'demo',
-  TRANSITIONING = 'transitioning'
+  DEMO = 'demo'
 }
 
-// État du mode opérationnel
-export interface OperationModeState {
-  mode: OperationMode;
-  switchReason: string | null;
-  consecutiveFailures: number;
-  lastError: Error | null;
-  failures: number; // Nombre total d'échecs
-}
+// Raison d'un changement de mode
+export type SwitchReason = string;
 
-// Paramètres du mode opérationnel
+// Configuration du service operationMode
 export interface OperationModeSettings {
-  autoSwitch: boolean;          // Bascule automatique en mode démo en cas d'échec
-  autoFallbackEnabled: boolean; // Synonyme de autoSwitch pour compatibilité
-  persistMode: boolean;         // Conserver le mode entre les sessions
-  switchThreshold: number;      // Nombre d'échecs consécutifs avant bascule
-  showNotifications: boolean;   // Afficher des notifications lors des changements de mode
+  // Nombre maximum d'échecs consécutifs avant basculement automatique
+  maxConsecutiveFailures: number;
+  
+  // Activer le basculement automatique en cas d'échecs répétés
+  autoSwitchOnFailure: boolean;
+  
+  // Stocker le mode dans localStorage pour persistance
+  persistentModeStorage: boolean;
+  
+  // Durée d'affichage des notifications (ms)
+  notificationDuration: number;
 }
-
-// Paramètres par défaut
-export const defaultSettings: OperationModeSettings = {
-  autoSwitch: true,
-  autoFallbackEnabled: true,
-  persistMode: true,
-  switchThreshold: 2,
-  showNotifications: true
-};
