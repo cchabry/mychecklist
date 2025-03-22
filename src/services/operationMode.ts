@@ -1,5 +1,5 @@
-
 import { toast } from 'sonner';
+import React from 'react';
 
 /**
  * Types de mode de fonctionnement de l'application
