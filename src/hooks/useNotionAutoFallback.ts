@@ -63,15 +63,15 @@ export function useNotionAutoFallback() {
    * Fonction pour tenter de revenir en mode réel
    */
   const attemptRealMode = () => {
-    if (operationMode.isDemoMode()) {
+    if (operationMode.isDemoMode) {
       operationMode.enableRealMode();
       toast.info('Tentative de reconnexion à Notion...'); 
     }
   };
 
   return {
-    isDemoMode: operationMode.isDemoMode(),
-    isRealMode: operationMode.isRealMode(),
+    isDemoMode: operationMode.isDemoMode,
+    isRealMode: operationMode.isRealMode,
     currentMode,
     lastReason,
     failures,

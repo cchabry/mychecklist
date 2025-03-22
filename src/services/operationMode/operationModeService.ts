@@ -133,74 +133,33 @@ class OperationModeService {
    * Active le mode réel
    */
   public enableRealMode(): void {
-    // Réinitialiser les compteurs d'erreur
-    this.consecutiveFailures = 0;
-    this.lastError = null;
-    
-    this.setMode(OperationMode.REAL, null);
+    this.setMode(OperationMode.REAL);
   }
   
   /**
    * Bascule entre les modes réel et démo
-   * @returns Le nouveau mode
    */
-  public toggle(): OperationMode {
-    const newMode = this.mode === OperationMode.REAL ? 
-      OperationMode.DEMO : 
-      OperationMode.REAL;
+  public toggle(): void {
+    if (this.mode === OperationMode.REAL) {
+      this.enableDemoMode();
+    } else {
+      this.enableRealMode();
+    }
+  }
+  
+  /**
+   * Signale une erreur de connexion
+   */
+  public handleConnectionError(error: Error, context: string = 'Opération'): void {
+    console.error(`Erreur de connexion (${context}):`, error);
     
-    const reason = newMode === OperationMode.DEMO ? 
-      'Mode démo activé manuellement' : 
-      null;
-    
-    this.setMode(newMode, reason);
-    return newMode;
-  }
-  
-  /**
-   * Indique si le mode démo est actif
-   */
-  public get isDemoMode(): boolean {
-    return this.mode === OperationMode.DEMO;
-  }
-  
-  /**
-   * Indique si le mode réel est actif
-   */
-  public get isRealMode(): boolean {
-    return this.mode === OperationMode.REAL;
-  }
-  
-  /**
-   * Obtient les paramètres actuels
-   */
-  public getSettings(): OperationModeSettings {
-    return { ...this.settings };
-  }
-  
-  /**
-   * Met à jour les paramètres
-   */
-  public updateSettings(newSettings: Partial<OperationModeSettings>): void {
-    this.settings = { ...this.settings, ...newSettings };
-  }
-  
-  /**
-   * Gère une erreur de connexion
-   * @param error L'erreur rencontrée
-   * @param context Contexte de l'erreur
-   */
-  public handleConnectionError(error: Error, context?: string): void {
-    this.consecutiveFailures++;
     this.lastError = error;
+    this.consecutiveFailures++;
     
-    const contextStr = context || 'inconnu';
-    console.warn(`Erreur de connexion (${contextStr}):`, error.message);
+    // Afficher une notification d'erreur
+    operationModeNotifications.showConnectionErrorNotification(error, context);
     
-    // Notification d'erreur
-    operationModeNotifications.showConnectionErrorNotification(error, contextStr);
-    
-    // Vérifier si on doit basculer automatiquement
+    // Vérifier si le basculement automatique est nécessaire
     this.checkAutoSwitch();
   }
   
@@ -208,54 +167,96 @@ class OperationModeService {
    * Signale une opération réussie
    */
   public handleSuccessfulOperation(): void {
-    // Réinitialiser le compteur d'échecs consécutifs
     if (this.consecutiveFailures > 0) {
       this.consecutiveFailures = 0;
-      console.log('Compteur d\'échecs réinitialisé suite à une opération réussie');
+      console.log('Compteur d\'erreurs réinitialisé après une opération réussie');
     }
   }
   
   /**
-   * Obtient le nombre d'échecs consécutifs
+   * Met à jour les paramètres du service
    */
-  public getConsecutiveFailures(): number {
-    return this.consecutiveFailures;
+  public updateSettings(partialSettings: Partial<OperationModeSettings>): void {
+    this.settings = { ...this.settings, ...partialSettings };
+    
+    // Sauvegarder les paramètres si nécessaire
+    if (this.settings.persistentModeStorage) {
+      operationModeStorage.saveSettings(this.settings);
+    }
+    
+    console.log('Paramètres du mode opérationnel mis à jour:', partialSettings);
   }
   
   /**
-   * Obtient la dernière erreur
+   * Réinitialise complètement le service
    */
-  public getLastError(): Error | null {
-    return this.lastError;
+  public reset(): void {
+    this.mode = OperationMode.REAL;
+    this.switchReason = null;
+    this.settings = { ...DEFAULT_SETTINGS };
+    this.consecutiveFailures = 0;
+    this.lastError = null;
+    
+    // Nettoyer le stockage
+    operationModeStorage.clear();
+    
+    // Notifier les abonnés du changement
+    this.notifySubscribers();
+    
+    console.log('Service de mode opérationnel réinitialisé');
   }
   
-  /**
-   * Obtient la raison du dernier changement de mode
-   */
-  public getSwitchReason(): SwitchReason | null {
-    return this.switchReason;
-  }
+  // Accesseurs
   
   /**
-   * Obtient le mode actuel
+   * Récupère le mode opérationnel actuel
    */
   public getMode(): OperationMode {
     return this.mode;
   }
   
   /**
-   * Réinitialise complètement le service
-   * Principalement utilisé pour les tests
+   * Récupère la raison du changement de mode
    */
-  public reset(): void {
-    this.mode = OperationMode.REAL;
-    this.switchReason = null;
-    this.consecutiveFailures = 0;
-    this.lastError = null;
-    operationModeStorage.clearMode();
-    this.notifySubscribers();
+  public getSwitchReason(): SwitchReason | null {
+    return this.switchReason;
+  }
+  
+  /**
+   * Récupère les paramètres actuels
+   */
+  public getSettings(): OperationModeSettings {
+    return { ...this.settings };
+  }
+  
+  /**
+   * Récupère le nombre d'échecs consécutifs
+   */
+  public getConsecutiveFailures(): number {
+    return this.consecutiveFailures;
+  }
+  
+  /**
+   * Récupère la dernière erreur enregistrée
+   */
+  public getLastError(): Error | null {
+    return this.lastError;
+  }
+  
+  /**
+   * Vérifie si le mode démonstration est actif
+   */
+  public get isDemoMode(): boolean {
+    return this.mode === OperationMode.DEMO;
+  }
+  
+  /**
+   * Vérifie si le mode réel est actif
+   */
+  public get isRealMode(): boolean {
+    return this.mode === OperationMode.REAL;
   }
 }
 
-// Exporter une instance singleton
+// Instancier et exporter le service
 export const operationMode = new OperationModeService();

@@ -38,6 +38,6 @@ export function useNotionApi<T = any>() {
   return {
     ...notionAPI,
     makeRequest,
-    isDemoMode: operationMode.isDemoMode()
+    isDemoMode: operationMode.isDemoMode
   };
 }

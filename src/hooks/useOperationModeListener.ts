@@ -1,28 +1,35 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { operationMode } from '@/services/operationMode';
+import { OperationMode } from '@/services/operationMode/types';
 
 /**
- * Hook pour écouter les changements de mode opérationnel (démo/réel)
- * @returns {boolean} Indique si le mode démo est actif
+ * Hook pour écouter les changements du mode opérationnel
  */
-export const useOperationModeListener = () => {
-  // Définir un état pour suivre si le mode démo est actif
-  const [demoModeActive, setDemoModeActive] = useState(operationMode.isDemoMode);
-  
-  // Mettre à jour l'état du mode démo lors des changements
+export function useOperationModeListener() {
+  const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
+  const [reason, setReason] = useState<string | null>(operationMode.getSwitchReason());
+  const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
+  const [error, setError] = useState<Error | null>(operationMode.getLastError());
+
   useEffect(() => {
-    const unsubscribe = operationMode.subscribe((newMode) => {
-      setDemoModeActive(operationMode.isDemoMode);
+    // S'abonner aux changements de mode
+    const unsubscribe = operationMode.subscribe((newMode, newReason) => {
+      setMode(newMode);
+      setReason(newReason);
+      setFailures(operationMode.getConsecutiveFailures());
+      setError(operationMode.getLastError());
     });
-    
-    // Nettoyer l'abonnement au démontage
+
     return unsubscribe;
   }, []);
-  
-  return { 
-    isDemoMode: demoModeActive,
-    enableRealMode: operationMode.enableRealMode,
-    enableDemoMode: operationMode.enableDemoMode
+
+  return {
+    mode,
+    reason,
+    failures,
+    error,
+    isDemoMode: operationMode.isDemoMode,
+    isRealMode: operationMode.isRealMode
   };
-};
+}

@@ -67,6 +67,13 @@ export const mockUtils = {
   temporarilyDisableMock: (): void => {
     console.warn('temporarilyDisableMock est déprécié. Utiliser temporarilyForceReal à la place');
     mockUtils.temporarilyForceReal();
+  },
+  
+  /**
+   * Active le mode mock (redirection vers operationMode)
+   */
+  enableMock: (): void => {
+    operationMode.enableDemoMode('Activation via API legacy');
   }
 };
 
@@ -76,3 +83,4 @@ export const mockUtils = {
  */
 export const isMockActive = mockUtils.isMockActive;
 export const temporarilyDisableMock = mockUtils.temporarilyDisableMock;
+export const enableMock = mockUtils.enableMock;

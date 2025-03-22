@@ -25,4 +25,10 @@ export interface OperationModeSettings {
   
   // Durée d'affichage des notifications (ms)
   notificationDuration: number;
+  
+  // Délai simulé pour les opérations en mode démo (ms)
+  simulatedNetworkDelay: number;
+  
+  // Taux de simulation d'erreurs en mode démo (%)
+  errorSimulationRate: number;
 }

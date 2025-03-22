@@ -28,7 +28,7 @@ export const useNotionConnectionStatus = () => {
       }
 
       // Si on est en mode démo, considérer non connecté
-      if (operationMode.isDemoMode()) {
+      if (operationMode.isDemoMode) {
         setIsConnected(false);
         setIsLoading(false);
         return;
