@@ -5,6 +5,7 @@ import { notionApi } from '@/lib/notionProxy';
 import { useNotionConfig } from './useNotionConfig';
 import { useNotionConnectionStatus } from './useNotionConnectionStatus';
 import { useNotionErrorHandling } from './useNotionErrorHandling';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Hook principal pour l'intégration Notion
@@ -28,7 +29,10 @@ export const useNotionIntegration = () => {
   }, [connectionStatus.error]);
   
   // Calculer si on utilise Notion (configuré et connecté)
-  const usingNotion = connectionStatus.isConnected && isNotionConfigured();
+  // En prenant en compte le nouveau système de mode opérationnel
+  const usingNotion = connectionStatus.isConnected && 
+                      isNotionConfigured() && 
+                      !operationMode.isDemoMode;
   
   return {
     // États et propriétés calculées
@@ -40,6 +44,7 @@ export const useNotionIntegration = () => {
     usingNotion,
     showErrorDetails: errorHandling.showErrorDetails,
     notionErrorDetails: errorHandling.notionErrorDetails,
+    isDemoMode: operationMode.isDemoMode, // Exposer le mode démo
     
     // Actions de configuration Notion
     setShowConfig: notionConfig.setShowConfig,
@@ -57,6 +62,10 @@ export const useNotionIntegration = () => {
     setShowErrorDetails: errorHandling.setShowErrorDetails,
     handleShowErrorDetails: errorHandling.handleShowErrorDetails,
     handleCloseErrorDetails: errorHandling.handleCloseErrorDetails,
-    hideNotionError: errorHandling.hideNotionError
+    hideNotionError: errorHandling.hideNotionError,
+    
+    // Actions liées au mode opérationnel
+    enableRealMode: operationMode.enableRealMode,
+    enableDemoMode: operationMode.enableDemoMode
   };
 };

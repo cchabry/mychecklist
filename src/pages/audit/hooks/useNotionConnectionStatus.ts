@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
-import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 /**
@@ -20,11 +20,11 @@ export const useNotionConnectionStatus = () => {
     
     // Vérifier si Notion est configuré
     const hasConfig = isNotionConfigured();
-    const isMockMode = notionApi.mockMode.isActive();
+    const isDemoActive = operationMode.isDemoMode;
     
     console.log('🔍 Vérification de la configuration Notion:', {
       'Notion configuré': hasConfig,
-      'Mode mock actif': isMockMode,
+      'Mode démonstration actif': isDemoActive,
       'API Key': localStorage.getItem('notion_api_key') ? 'Définie' : 'Non définie',
       'Database ID': localStorage.getItem('notion_database_id') ? 'Défini' : 'Non défini'
     });
@@ -36,9 +36,10 @@ export const useNotionConnectionStatus = () => {
       return;
     }
     
-    // Si on est en mode mock, on considère ça comme "non connecté"
-    if (isMockMode) {
-      console.log('📢 Mode mock actif - considéré comme non connecté');
+    // Si on est en mode démonstration, on considère ça comme "non connecté"
+    // car on n'utilise pas l'API Notion réelle
+    if (isDemoActive) {
+      console.log('📢 Mode démonstration actif - considéré comme non connecté à Notion');
       setIsConnected(false);
       setIsLoading(false);
       
@@ -56,10 +57,20 @@ export const useNotionConnectionStatus = () => {
     }
     
     try {
-      // Tester la connexion si on n'est pas en mode mock
+      // Tester la connexion si on n'est pas en mode démonstration
       const apiKey = localStorage.getItem('notion_api_key');
       if (apiKey) {
         console.log('🔑 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
+        
+        // Utiliser le nouveau système pour tester la connexion
+        // Cela va créer une requête temporaire en mode réel même si le mode démo est actif
+        const wasMockMode = operationMode.isDemoMode;
+        if (wasMockMode) {
+          operationMode.enableRealMode(); // Forcer temporairement le mode réel pour ce test
+        }
+        
+        // Importer dynamiquement notionApi pour éviter les dépendances cycliques
+        const { notionApi } = await import('@/lib/notionProxy');
         
         // Tenter une connexion à l'API Notion
         await notionApi.users.me(apiKey);
@@ -69,6 +80,11 @@ export const useNotionConnectionStatus = () => {
         localStorage.removeItem('notion_last_error');
         localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
         
+        // Si on était en mode démo, on le restaure après le test
+        if (wasMockMode) {
+          operationMode.enableDemoMode('Mode restauré après test de connexion réussi');
+        }
+        
         setIsConnected(true);
         setError(null);
       } else {
@@ -77,6 +93,12 @@ export const useNotionConnectionStatus = () => {
       }
     } catch (testError) {
       console.error('❌ Test de connexion Notion échoué:', testError);
+      
+      // Notifier le service de mode opérationnel de l'erreur
+      operationMode.handleConnectionError(
+        testError instanceof Error ? testError : new Error(String(testError)),
+        'Test de connexion Notion'
+      );
       
       // Stocker l'erreur pour référence future
       try {
@@ -100,10 +122,11 @@ export const useNotionConnectionStatus = () => {
     checkNotionConfig();
   }, []);
   
-  // Gérer la réinitialisation du mode mock et tester à nouveau
+  // Gérer la réinitialisation du mode et tester à nouveau
   const handleResetAndTest = () => {
-    // Réinitialiser le mode mock
-    notionApi.mockMode.forceReset();
+    // Utiliser le nouveau système pour réinitialiser le mode
+    operationMode.enableRealMode();
+    
     toast.success('Configuration réinitialisée', {
       description: 'Tentative de connexion en mode réel...'
     });

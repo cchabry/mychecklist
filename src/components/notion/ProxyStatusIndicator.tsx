@@ -2,6 +2,7 @@
 import React from 'react';
 import { Wifi, WifiOff, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { operationMode } from '@/services/operationMode';
 
 interface ProxyStatusIndicatorProps {
   isDemoMode?: boolean;
@@ -11,13 +12,16 @@ interface ProxyStatusIndicatorProps {
  * Composant qui affiche l'état du proxy CORS et du mode démo
  */
 const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({
-  isDemoMode
+  isDemoMode: propsDemoMode
 }) => {
+  // Utiliser le nouveau système operationMode comme source de vérité,
+  // avec fallback sur les props pour la rétrocompatibilité
   const [proxyStatus, setProxyStatus] = React.useState<'unknown' | 'working' | 'not-working'>('unknown');
+  const isDemoActive = propsDemoMode !== undefined ? propsDemoMode : operationMode.isDemoMode;
   
   React.useEffect(() => {
     // Nous n'avons pas besoin de tester le proxy si on est en mode démo
-    if (isDemoMode) {
+    if (isDemoActive) {
       setProxyStatus('unknown');
       return;
     }
@@ -31,9 +35,9 @@ const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({
     } else {
       setProxyStatus('unknown');
     }
-  }, [isDemoMode]);
+  }, [isDemoActive]);
   
-  if (isDemoMode) {
+  if (isDemoActive) {
     return (
       <Alert className="bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 text-blue-600" />

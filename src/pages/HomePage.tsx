@@ -7,9 +7,11 @@ import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
+import OperationModeControl from '@/components/OperationModeControl';
 
 const HomePage = () => {
   const [showExporter, setShowExporter] = useState(false);
+  const [showModeControl, setShowModeControl] = useState(false);
   
   const handleDiagnosticComplete = (success: boolean) => {
     if (success) {
@@ -25,6 +27,10 @@ const HomePage = () => {
             }
           }
         });
+      } else {
+        toast.success('Diagnostic réussi', {
+          description: 'La connexion à Notion fonctionne correctement.'
+        });
       }
     }
   };
@@ -32,6 +38,14 @@ const HomePage = () => {
   return (
     <>
       <div className="fixed bottom-4 right-4 z-50 flex gap-2">
+        <Button
+          onClick={() => setShowModeControl(true)}
+          className="shadow-lg"
+          variant={operationMode.isDemoMode ? "outline" : "default"}
+        >
+          {operationMode.isDemoMode ? 'Mode démo actif' : 'Mode réel actif'}
+        </Button>
+        
         <NotionDiagnosticReport 
           buttonLabel="Diagnostic Notion"
           buttonClassName="shadow-lg"
@@ -50,6 +64,12 @@ const HomePage = () => {
       <Dialog open={showExporter} onOpenChange={setShowExporter}>
         <DialogContent className="max-w-3xl">
           <NotionCSVExporter onClose={() => setShowExporter(false)} />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showModeControl} onOpenChange={setShowModeControl}>
+        <DialogContent>
+          <OperationModeControl onToggle={() => setShowModeControl(false)} />
         </DialogContent>
       </Dialog>
       
