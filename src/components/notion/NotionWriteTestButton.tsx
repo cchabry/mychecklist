@@ -4,20 +4,15 @@ import { Button } from '@/components/ui/button';
 import { RotateCw, Check, XCircle, AlertTriangle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
-import { STORAGE_KEYS } from '@/lib/notionProxy/config';
+import { 
+  prepareRealModeTest, 
+  createTestPageData, 
+  enrichWithRequiredProperties, 
+  NotionCreateData 
+} from '@/utils/notionWriteTest';
 
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
-}
-
-// Define the type for the Notion page creation data
-interface NotionCreateData {
-  parent: { database_id: string };
-  properties: {
-    Name: { title: { text: { content: string } }[] };
-    Status: { select: { name: string } };
-    [key: string]: any; // Allow for additional dynamic properties
-  };
 }
 
 const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess }) => {
@@ -25,7 +20,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const handleTestWrite = async () => {
-    // Toujours vérifier d'abord les valeurs dans localStorage
+    // Vérifier les valeurs dans localStorage
     const apiKey = localStorage.getItem('notion_api_key');
     const dbId = localStorage.getItem('notion_database_id');
     
@@ -47,11 +42,8 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
     setTestStatus('idle');
     
     try {
-      // Forcer le mode réel pour ce test et désactiver complètement le mode mock
-      localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-      localStorage.removeItem('notion_last_error');
-      notionApi.mockMode.forceReset();
-      console.log('🔄 Test d\'écriture: Mode réel forcé temporairement');
+      // Forcer le mode réel pour ce test
+      prepareRealModeTest();
       
       // Créer un objet de test avec un timestamp pour garantir l'unicité
       const timestamp = new Date().toISOString();
@@ -61,97 +53,22 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       console.log(`📝 Utilisation de la base de données: "${dbId}"`);
       console.log(`📝 Utilisation de la clé API: "${apiKey.substring(0, 8)}..."`);
       
-      // Préparation des données pour la création de page
-      const createData: NotionCreateData = {
-        parent: { database_id: dbId },
-        properties: {
-          Name: {
-            title: [{ text: { content: testTitle } }]
-          },
-          Status: {
-            select: { name: "Test" }
-          }
-        }
-      };
+      // Créer les données de test de base
+      let createData = createTestPageData(timestamp);
+      createData.parent.database_id = dbId;
       
-      console.log('📋 Structure de données pour la création:', JSON.stringify(createData, null, 2));
-      
-      // Ajouter d'autres propriétés courantes au cas où elles sont requises
-      try {
-        // Tenter d'ajouter une propriété URL (optionnelle)
-        createData.properties.URL = {
-          url: "https://test.example.com"
-        };
-        
-        // Tenter d'ajouter d'autres propriétés courantes
-        try {
-          createData.properties.Description = {
-            rich_text: [{ text: { content: "Description de test automatique" } }]
-          };
-        } catch (e) {
-          console.log('ℹ️ La propriété Description n\'est peut-être pas supportée');
-        }
-        
-        try {
-          createData.properties.Tags = {
-            multi_select: [{ name: "Test" }]
-          };
-        } catch (e) {
-          console.log('ℹ️ La propriété Tags n\'est peut-être pas supportée');
-        }
-        
-      } catch (e) {
-        // Ignorer si la propriété URL n'est pas supportée
-        console.log('ℹ️ La propriété URL n\'est peut-être pas supportée par cette base de données');
-      }
-      
-      // Tentative de création via le proxy
-      console.log('📡 Envoi de la requête de création avec les données:', JSON.stringify(createData, null, 2));
-      
-      // Tester la structure des propriétés de la base de données
-      try {
-        console.log('🔍 Vérification de la structure de la base de données avant création...');
-        const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
-        console.log('✅ Structure de la base de données récupérée:', JSON.stringify(dbDetails.properties, null, 2));
-        
-        // Analyser les propriétés requises de la base de données
-        const requiredProps = Object.entries(dbDetails.properties)
-          .filter(([_, prop]: [string, any]) => prop.type === 'title' || (prop.type === 'rich_text' && prop.rich_text?.is_required))
-          .map(([name, _]: [string, any]) => name);
-          
-        console.log('⚠️ Propriétés potentiellement requises dans la base:', requiredProps);
-        
-        // Assurer que toutes les propriétés requises sont présentes
-        if (requiredProps.length > 0) {
-          for (const propName of requiredProps) {
-            if (!createData.properties[propName]) {
-              if (propName === 'Name' || propName === 'Nom' || propName === 'Title' || propName === 'Titre') {
-                // Déjà défini comme Name, mais peut-être que la base utilise un nom différent
-                createData.properties[propName] = createData.properties.Name;
-                console.log(`🔄 Ajout de la propriété requise "${propName}" (copie de Name)`);
-              } else {
-                // Ajouter une valeur par défaut pour cette propriété requise
-                createData.properties[propName] = {
-                  rich_text: [{ text: { content: "Valeur de test requise" } }]
-                };
-                console.log(`🔄 Ajout de valeur par défaut pour la propriété requise "${propName}"`);
-              }
-            }
-          }
-        }
-      } catch (dbError) {
-        console.error('❌ Erreur lors de la vérification de la structure de la base:', dbError);
-        // Continuer quand même, car l'erreur pourrait venir d'autre chose
-      }
+      // Enrichir avec les propriétés requises
+      createData = await enrichWithRequiredProperties(createData, dbId, apiKey);
       
       console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
       
+      // Tenter de créer la page
       const response = await notionApi.pages.create(createData, apiKey);
       
       if (response && response.id) {
         console.log('✅ Test d\'écriture réussi! ID de la page créée:', response.id);
         
-        // On essaie maintenant de lire la page qu'on vient de créer pour vérifier
+        // Vérifier en lisant la page créée
         const pageData = await notionApi.pages.retrieve(response.id, apiKey);
         
         if (pageData && pageData.id === response.id) {
@@ -161,19 +78,16 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
             description: 'Une page de test a été créée et lue avec succès dans votre base de données Notion.'
           });
           
-          // Supprimer la page de test si possible (optionnel, pas bloquant)
+          // Tentative d'archivage de la page de test
           try {
-            // Tentative de "suppression" (archive) via mise à jour
             await notionApi.pages.update(response.id, {
               archived: true
             }, apiKey);
             console.log('🧹 Nettoyage: Page de test archivée');
           } catch (cleanupError) {
             console.log('⚠️ Impossible d\'archiver la page de test:', cleanupError);
-            // On ne bloque pas le flux en cas d'échec de nettoyage
           }
           
-          // Appeler le callback onSuccess si fourni
           if (onSuccess) {
             onSuccess();
           }
@@ -185,16 +99,10 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       }
     } catch (error) {
       console.error('❌ Test d\'écriture Notion échoué:', error);
-      console.error('❌ Message d\'erreur complet:', error.message);
-      
-      // Détails supplémentaires sur l'erreur
-      if (error.response) {
-        console.error('❌ Données de réponse:', JSON.stringify(error.response, null, 2));
-      }
       
       setTestStatus('error');
       
-      // Afficher un message d'erreur détaillé et plus explicite
+      // Afficher un message d'erreur adapté selon le type d'erreur
       let errorMessage = 'Échec du test d\'écriture';
       let errorDescription = '';
       
@@ -203,21 +111,16 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         errorDescription = 'Vérifiez votre clé API. Elle peut être invalide ou expirée.';
       } else if (error.message?.includes('403')) {
         errorMessage = 'Accès refusé';
-        errorDescription = 'Vérifiez que votre intégration Notion a les permissions d\'écriture et a été correctement connectée à votre base de données dans le menu "..." > "Connexions".';
+        errorDescription = 'Vérifiez que votre intégration Notion a les permissions d\'écriture.';
       } else if (error.message?.includes('404')) {
         errorMessage = 'Base de données introuvable';
         errorDescription = 'Vérifiez l\'ID de base de données et assurez-vous qu\'elle existe toujours.';
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('network') || error.message?.includes('CORS')) {
         errorMessage = 'Problème de réseau';
-        errorDescription = 'Erreur CORS ou connexion internet. Le proxy ne fonctionne peut-être pas correctement. Vérifiez que le proxy est correctement déployé.';
+        errorDescription = 'Erreur CORS ou connexion internet. Le proxy ne fonctionne peut-être pas correctement.';
       } else if (error.message?.includes('required') || error.message?.includes('validation_error')) {
         errorMessage = 'Erreur de validation';
-        errorDescription = 'Structure de données incorrecte. Certains champs requis peuvent manquer ou être mal formatés.';
-        
-        // Ajouter des détails sur l'erreur
-        if (error.message) {
-          errorDescription += '\nDétails: ' + error.message;
-        }
+        errorDescription = 'Structure de données incorrecte. Certains champs requis peuvent manquer.';
       } else {
         errorDescription = error.message || 'Erreur inconnue lors du test d\'écriture.';
       }
@@ -229,8 +132,6 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
           label: 'Réinitialiser',
           onClick: () => {
             notionApi.mockMode.forceReset();
-            localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-            localStorage.removeItem('notion_last_error');
             setTimeout(() => window.location.reload(), 500);
           }
         }

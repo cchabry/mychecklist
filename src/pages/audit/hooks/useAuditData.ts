@@ -1,13 +1,14 @@
 
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Audit } from '@/lib/types';
 import { useAuditProject } from './useAuditProject';
 import { useAuditSave } from './useAuditSave';
 import { useChecklistDatabase } from './useChecklistDatabase';
 import { useNotion } from '@/contexts/NotionContext';
-import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
-import { useAuditError, AuditError } from './useAuditError';
+import { useAuditError } from './useAuditError';
+import { useOperationModeListener } from '@/hooks/useOperationModeListener';
+import { useErrorReporter } from '@/hooks/useErrorReporter';
 
 /**
  * Hook principal pour gérer les données d'audit
@@ -15,27 +16,20 @@ import { useAuditError, AuditError } from './useAuditError';
 export const useAuditData = (projectId: string | undefined) => {
   console.log("useAuditData called with projectId:", projectId);
   
-  // Définir un état pour suivre si le mode démo est actif
-  const [demoModeActive, setDemoModeActive] = useState(operationMode.isDemoMode);
+  // Utiliser le hook d'écoute du mode opérationnel
+  const { isDemoMode } = useOperationModeListener();
   
-  // Mettre à jour l'état du mode démo lors des changements
-  useEffect(() => {
-    const unsubscribe = operationMode.subscribe((newMode) => {
-      setDemoModeActive(operationMode.isDemoMode);
-    });
-    
-    // Nettoyer l'abonnement au démontage
-    return unsubscribe;
-  }, []);
-  
-  // Accéder au contexte Notion pour savoir si on utilise Notion
+  // Accéder au contexte Notion
   const { usingNotion } = useNotion();
+  
+  // Utiliser le reporter d'erreur
+  const { reportError, reportSuccess } = useErrorReporter();
   
   // Utiliser le hook de gestion d'erreurs
   const { handleError, error: auditError } = useAuditError();
   
   // Déterminer si on utilise Notion en fonction du mode actif
-  const shouldUseNotion = usingNotion && !demoModeActive;
+  const shouldUseNotion = usingNotion && !isDemoMode;
   
   // Utiliser des hooks spécialisés avec le mode réel si possible
   const { project, audit, loading, notionError, setAudit, loadProject } = useAuditProject(projectId, shouldUseNotion);
@@ -43,13 +37,12 @@ export const useAuditData = (projectId: string | undefined) => {
   const { hasChecklistDb } = useChecklistDatabase();
   
   // Si nous avons une erreur Notion, l'envoyer au gestionnaire d'erreurs
-  // et la signaler également à operationMode pour activer le mode démo si nécessaire
   useEffect(() => {
     if (notionError) {
       console.log("Handling Notion error in useAuditData:", notionError);
       
       // Convertir l'erreur Notion en format AuditError
-      const auditError: AuditError = {
+      const auditError = {
         message: notionError.error,
         details: notionError.context,
         source: "Chargement des données d'audit"
@@ -58,13 +51,13 @@ export const useAuditData = (projectId: string | undefined) => {
       // Signaler l'erreur au hook d'audit
       handleError(auditError);
       
-      // Signaler également l'erreur au système operationMode pour une éventuelle bascule en mode démo
-      operationMode.handleConnectionError(
+      // Signaler également l'erreur au système operationMode via reportError
+      reportError(
         new Error(notionError.error || "Erreur inconnue"), 
         notionError.context || "Chargement des données d'audit"
       );
     }
-  }, [notionError, handleError]);
+  }, [notionError, handleError, reportError]);
   
   // Référence pour suivre si le projet a été chargé
   const projectLoaded = useRef(false);
@@ -100,23 +93,16 @@ export const useAuditData = (projectId: string | undefined) => {
       await saveAudit(audit);
       toast.success("Audit sauvegardé avec succès");
       
-      // Signaler l'opération réussie au système operationMode
-      operationMode.handleSuccessfulOperation();
+      // Signaler l'opération réussie
+      reportSuccess();
     } catch (error) {
       console.error("Error saving audit:", error);
       
       // Signaler l'erreur au hook d'audit
       handleError(error, "Sauvegarde de l'audit");
       
-      // Signaler également l'erreur au système operationMode
-      if (error instanceof Error) {
-        operationMode.handleConnectionError(error, "Sauvegarde de l'audit");
-      } else {
-        operationMode.handleConnectionError(
-          new Error("Erreur inconnue lors de la sauvegarde"), 
-          "Sauvegarde de l'audit"
-        );
-      }
+      // Signaler également l'erreur via reportError
+      reportError(error, "Sauvegarde de l'audit");
     }
   };
   
@@ -125,7 +111,7 @@ export const useAuditData = (projectId: string | undefined) => {
     hasAudit: !!audit, 
     loading, 
     hasError: !!auditError,
-    demoModeActive
+    isDemoMode
   });
   
   return {
@@ -135,7 +121,7 @@ export const useAuditData = (projectId: string | undefined) => {
     notionError: auditError || notionError,
     hasChecklistDb,
     isSaving,
-    mockModeActive: demoModeActive, // Gardé pour compatibilité
+    mockModeActive: isDemoMode, // Gardé pour compatibilité
     setAudit,
     loadProject,
     handleSaveAudit
