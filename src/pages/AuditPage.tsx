@@ -22,7 +22,8 @@ const MOCK_PROJECT: Project = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   progress: 0.35,
-  itemsCount: 15
+  itemsCount: 15,
+  pagesCount: 5 // Adding the missing property
 };
 
 const MOCK_AUDIT = createMockAudit('project-1');

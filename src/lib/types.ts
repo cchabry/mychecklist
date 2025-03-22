@@ -14,7 +14,7 @@ export interface ChecklistItem {
   requirementLevel: string;
   scope: string;
   consigne: string;
-  status?: ComplianceStatus;
+  status: ComplianceStatus; // Make sure status is required, not optional
   pageResults?: PageResult[];
   importance?: ImportanceLevel;
   projectRequirement?: string;
