@@ -1,4 +1,3 @@
-
 /**
  * Service de cache de base
  * Fournit les fonctionnalités essentielles pour stocker et récupérer des données en cache
@@ -105,6 +104,13 @@ export class Cache {
   }
 
   /**
+   * Alias pour delete() - pour compatibilité
+   */
+  remove(key: string): boolean {
+    return this.delete(key);
+  }
+
+  /**
    * Récupère une valeur avec possibilité de recharger si absente/expirée
    * @param key Clé d'identification
    * @param fetcher Fonction pour récupérer les données si absentes
@@ -188,6 +194,13 @@ export class Cache {
   }
 
   /**
+   * Alias pour cleanup() - pour compatibilité
+   */
+  cleanExpired(): number {
+    return this.cleanup();
+  }
+
+  /**
    * Récupère toutes les entrées correspondant à un préfixe
    * @param prefix Préfixe à rechercher
    * @returns Liste de paires [clé, valeur]
@@ -235,6 +248,32 @@ export class Cache {
     
     this.log(`Préfixe supprimé: ${prefix} (${count} entrées)`);
     return count;
+  }
+
+  /**
+   * Récupère toutes les entrées du cache
+   * @returns Liste des entrées avec leurs métadonnées
+   */
+  getAll(): Array<{key: string, data: any, expiry: number | null, timestamp: number}> {
+    const entries: Array<{key: string, data: any, expiry: number | null, timestamp: number}> = [];
+    
+    for (const [fullKey, entry] of this.storage.entries()) {
+      // Vérifier l'expiration
+      if (entry.expiry !== null && entry.expiry < Date.now()) {
+        this.storage.delete(fullKey);
+        continue;
+      }
+      
+      // Ajouter à la liste
+      entries.push({
+        key: this.getOriginalKey(fullKey),
+        data: entry.data,
+        expiry: entry.expiry,
+        timestamp: entry.timestamp
+      });
+    }
+    
+    return entries;
   }
 
   /**
@@ -323,4 +362,3 @@ export class Cache {
 export const cacheService = new Cache({
   debug: process.env.NODE_ENV === 'development'
 });
-

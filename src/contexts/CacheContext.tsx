@@ -2,7 +2,15 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { cacheManager } from '@/services/cache/cacheManager';
 import { cacheService } from '@/services/cache/cache';
-import { projectsCache, auditsCache, pagesCache, checklistsCache } from '@/services/cache/utils';
+import { 
+  projectsCache, 
+  auditsCache, 
+  pagesCache, 
+  checklistsCache,
+  exigencesCache,
+  evaluationsCache,
+  actionsCache
+} from '@/services/cache/utils';
 
 // Définir l'interface du contexte
 interface CacheContextValue {
@@ -15,6 +23,9 @@ interface CacheContextValue {
   auditsCache: typeof auditsCache;
   pagesCache: typeof pagesCache;
   checklistsCache: typeof checklistsCache;
+  exigencesCache: typeof exigencesCache;
+  evaluationsCache: typeof evaluationsCache;
+  actionsCache: typeof actionsCache;
   
   // Actions
   clearAllCaches: () => void;
@@ -37,6 +48,9 @@ export const CacheProvider: React.FC<CacheProviderProps> = ({ children }) => {
     auditsCache.invalidateAll();
     pagesCache.invalidateAll();
     checklistsCache.invalidateAll();
+    exigencesCache.invalidateAll();
+    evaluationsCache.invalidateAll();
+    actionsCache.invalidateAll();
   };
   
   // Nettoyer un cache spécifique
@@ -50,6 +64,12 @@ export const CacheProvider: React.FC<CacheProviderProps> = ({ children }) => {
         return pagesCache.invalidateAll();
       case 'checklists':
         return checklistsCache.invalidateAll();
+      case 'exigences':
+        return exigencesCache.invalidateAll();
+      case 'evaluations':
+        return evaluationsCache.invalidateAll();
+      case 'actions':
+        return actionsCache.invalidateAll();
       default:
         return cacheManager.invalidateByPrefix(`entity:${entityName}`);
     }
@@ -63,6 +83,9 @@ export const CacheProvider: React.FC<CacheProviderProps> = ({ children }) => {
     auditsCache,
     pagesCache,
     checklistsCache,
+    exigencesCache,
+    evaluationsCache,
+    actionsCache,
     clearAllCaches,
     clearEntityCache
   };
