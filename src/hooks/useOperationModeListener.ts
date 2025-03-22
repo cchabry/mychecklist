@@ -24,12 +24,24 @@ export function useOperationModeListener() {
     return unsubscribe;
   }, []);
 
+  // Ajout des méthodes de contrôle de mode en exposant directement celles du service
+  const enableRealMode = () => {
+    operationMode.enableRealMode();
+  };
+  
+  const enableDemoMode = (reason: string = 'Activation via hook') => {
+    operationMode.enableDemoMode(reason);
+  };
+
   return {
     mode,
     reason,
     failures,
     error,
     isDemoMode: operationMode.isDemoMode,
-    isRealMode: operationMode.isRealMode
+    isRealMode: operationMode.isRealMode,
+    // Ajout des méthodes pour contrôler le mode
+    enableRealMode,
+    enableDemoMode
   };
 }
