@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { useCache, useStaleWhileRevalidate } from '@/hooks/useCache';
+import { useCache, useStaleWhileRevalidate } from '@/hooks/cache';
 import { cacheManager } from '@/services/cache/cacheManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
