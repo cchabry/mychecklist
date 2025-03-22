@@ -54,6 +54,11 @@ export interface CacheFetchOptions<T> {
   ttl?: number;
   
   /**
+   * Si true, le cache sera ignoré et une nouvelle requête sera effectuée
+   */
+  skipCache?: boolean;
+  
+  /**
    * Si true, le cache sera utilisé même s'il est expiré, mais sera rafraîchi en arrière-plan
    */
   staleWhileRevalidate?: boolean;

@@ -4,7 +4,7 @@
  */
 
 import { mockState } from './state';
-import { getMockData } from './data';
+import { mockData } from './data';
 
 // Valeurs de configuration
 let _getDelay = () => mockState.getConfig().delay;
@@ -99,7 +99,7 @@ export const mockMode = {
    * Génère une réponse simulée pour une requête Notion
    */
   getMockResponse: (endpoint: string, method: string, body: any) => {
-    return getMockData(endpoint, method, body, _getScenario());
+    return mockData.getMockData(endpoint, method, body, _getScenario());
   }
 };
 
