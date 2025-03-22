@@ -113,7 +113,7 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
     console.log('Sauvegarde de l\'audit:', audit.id);
     
     // Forcer la restauration du mode réel après cette opération si nécessaire
-    const wasMockForced = notionApi.mockMode.isTemporarilyForcedReal();
+    const wasMockForced = notionApi.mockMode.isTemporarilyForcedReal(false);
     
     // Créer l'objet de propriétés pour la mise à jour
     const properties = {
@@ -183,7 +183,7 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
     
     // Restaurer le mode mock si nécessaire
     if (wasMockForced) {
-      notionApi.mockMode.restoreAfterForceReal();
+      notionApi.mockMode.restoreAfterForceReal(wasMockForced);
     }
     
     return true;

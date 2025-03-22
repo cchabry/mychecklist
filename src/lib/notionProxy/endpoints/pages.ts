@@ -33,7 +33,7 @@ export const create = async (data: any, token: string) => {
     'forceRealMode': forceRealMode,
     'localStorage.notion_mock_mode': localStorage.getItem('notion_mock_mode'),
     'localStorage.notion_force_real': localStorage.getItem('notion_force_real'),
-    'temporarilyForcedReal': mockMode.isTemporarilyForcedReal ? mockMode.isTemporarilyForcedReal() : 'non disponible'
+    'temporarilyForcedReal': mockMode.isTemporarilyForcedReal ? mockMode.isTemporarilyForcedReal(false) : 'non disponible'
   });
   
   // Désactiver le mode mock pendant la création
@@ -310,7 +310,7 @@ export const create = async (data: any, token: string) => {
   } finally {
     // Restaurer le mode mock si nécessaire
     if (isMockMode) {
-      mockMode.restoreAfterForceReal();
+      mockMode.restoreAfterForceReal(true);
       console.log('⚠️ État du mode mock restauré à son état initial');
     }
   }
@@ -364,7 +364,7 @@ export const update = async (pageId: string, properties: any, token: string) => 
   } finally {
     // Restaurer le mode mock si nécessaire
     if (isMockMode) {
-      mockMode.restoreAfterForceReal();
+      mockMode.restoreAfterForceReal(true);
     }
   }
 };

@@ -12,12 +12,6 @@ const compatibilityMockMode = {
   /**
    * @deprecated Utilisez operationMode.isDemoMode à la place
    */
-  get isActive() {
-    console.warn('mockMode.isActive (getter) est déprécié. Utilisez operationMode.isDemoMode à la place');
-    return operationMode.isDemoMode;
-  },
-  
-  // Make sure this is a function that can be called with parentheses  
   isActive() {
     console.warn('mockMode.isActive() est déprécié. Utilisez operationMode.isDemoMode à la place');
     return operationMode.isDemoMode;

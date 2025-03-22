@@ -4,7 +4,7 @@
  */
 
 import { mockMode } from '../mockMode';
-import { mockUtils } from './data';
+import { mockState } from './state';
 
 /**
  * Version sécurisée de la vérification du mode mock
@@ -12,7 +12,7 @@ import { mockUtils } from './data';
  */
 export function isMockActive(): boolean {
   try {
-    // Try as a function first (legacy)
+    // Try as a function first
     return mockMode.isActive();
   } catch (e) {
     try {
@@ -54,18 +54,64 @@ export function enableMock(): void {
 }
 
 /**
+ * Applique un délai simulé pour les opérations mock
+ */
+export async function applySimulatedDelay(): Promise<void> {
+  const delay = mockState.getConfig().delay || 300;
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+}
+
+/**
+ * Détermine si une erreur doit être simulée
+ */
+export function shouldSimulateError(): boolean {
+  const errorRate = mockState.getConfig().errorRate || 0;
+  return Math.random() * 100 < errorRate;
+}
+
+/**
+ * Force temporairement le mode réel pour une opération
+ * @returns {boolean} True si le mode mock était actif et a été désactivé
+ */
+export function temporarilyForceReal(): boolean {
+  const wasMock = isMockActive();
+  if (wasMock) {
+    temporarilyDisableMock();
+  }
+  return wasMock;
+}
+
+/**
+ * Restaure le mode mock après une opération en mode réel forcé
+ * @param {boolean} wasMock - Si le mode mock était actif avant
+ */
+export function restoreAfterForceReal(wasMock: boolean): void {
+  if (wasMock) {
+    enableMock();
+  }
+}
+
+/**
+ * Vérifie si le mode réel est temporairement forcé
+ * @param {boolean} wasMock - Si le mode mock était actif avant
+ * @returns {boolean} True si on est en mode réel forcé
+ */
+export function isTemporarilyForcedReal(wasMock: boolean): boolean {
+  return wasMock && !isMockActive();
+}
+
+/**
  * Exporte les utilitaires du mode mock pour une utilisation facile
  */
-export const mockModeUtils = {
-  // Vérification du mode
+export const mockUtils = {
   isMockActive,
   temporarilyDisableMock,
   enableMock,
-  
-  // Utilitaires supplémentaires
-  applySimulatedDelay: mockUtils.applySimulatedDelay,
-  shouldSimulateError: mockUtils.shouldSimulateError,
-  temporarilyForceReal: mockUtils.temporarilyForceReal,
-  restoreAfterForceReal: mockUtils.restoreAfterForceReal,
-  isTemporarilyForcedReal: mockUtils.isTemporarilyForcedReal
+  applySimulatedDelay,
+  shouldSimulateError,
+  temporarilyForceReal,
+  restoreAfterForceReal,
+  isTemporarilyForcedReal
 };
