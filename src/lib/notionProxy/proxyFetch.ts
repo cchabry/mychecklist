@@ -128,7 +128,7 @@ export const notionApiRequest = async <T = any>(
   }
   
   // Vérifier le mode mock
-  if (mockMode.isActive()) {
+  if (mockMode.isActive) {
     return mockNotionResponse(endpoint, method, body) as T;
   }
   

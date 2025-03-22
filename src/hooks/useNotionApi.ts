@@ -21,25 +21,15 @@ export function useNotionApi<T = any>() {
       const result = await apiFunction();
       
       // Signaler l'opération réussie au système operationMode
-      if (typeof operationMode.handleSuccessfulOperation === 'function') {
-        operationMode.handleSuccessfulOperation();
-      } else {
-        // Fallback if the method doesn't exist
-        operationMode.enableRealMode();
-      }
+      operationMode.handleSuccessfulOperation();
       
       return result;
     } catch (error) {
       // Signaler l'erreur au système operationMode
-      if (typeof operationMode.handleConnectionError === 'function') {
-        operationMode.handleConnectionError(
-          error instanceof Error ? error : new Error(String(error)),
-          errorContext
-        );
-      } else {
-        // Fallback if the method doesn't exist
-        operationMode.enableDemoMode(errorContext);
-      }
+      operationMode.handleConnectionError(
+        error instanceof Error ? error : new Error(String(error)),
+        errorContext
+      );
       
       // Relancer l'erreur pour la gestion en aval
       throw error;

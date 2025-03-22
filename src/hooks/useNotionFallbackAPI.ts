@@ -50,7 +50,7 @@ export function useNotionFallbackAPI<T = unknown>() {
     } = options;
     
     // Déterminer le mode d'opération
-    const currentMode = forceMode || operationMode.getMode();
+    const currentMode = forceMode || operationMode.mode;
     const isDemo = currentMode === OperationMode.DEMO;
     
     setIsLoading(true);
@@ -108,10 +108,10 @@ export function useNotionFallbackAPI<T = unknown>() {
       // Vérifier si on doit faire un fallback automatique
       if (!disableAutoFallback && demoData) {
         // Si la limite d'échecs est atteinte OU si nous sommes déjà en mode transition
-        if (operationMode.getConsecutiveFailures() >= 2 || operationMode.isTransitioning()) {
+        if (operationMode.failures >= 2 || operationMode.isTransitioning) {
           try {
             // Activer le mode démo si ce n'est pas déjà fait
-            if (!operationMode.isDemoMode()) {
+            if (!operationMode.isDemoMode) {
               operationMode.enableDemoMode(`Erreur: ${error.message}`);
             }
             
@@ -145,7 +145,7 @@ export function useNotionFallbackAPI<T = unknown>() {
     error,
     data,
     executeRequest,
-    isDemoMode: operationMode.isDemoMode(),
-    isRealMode: operationMode.isRealMode()
+    isDemoMode: operationMode.isDemoMode,
+    isRealMode: operationMode.isRealMode
   };
 }

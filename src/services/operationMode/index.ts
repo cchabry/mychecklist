@@ -17,6 +17,7 @@ export const operationMode = {
   get mode() { return operationModeService.mode; },
   get isDemoMode() { return operationModeService.isDemoMode; },
   get isRealMode() { return operationModeService.isRealMode; },
+  get isTransitioning() { return operationModeService.isTransitioning; },
   get switchReason() { return operationModeService.switchReason; },
   get lastError() { return operationModeService.lastError; },
   get failures() { return operationModeService.failures; },

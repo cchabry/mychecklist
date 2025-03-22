@@ -16,12 +16,12 @@ export const useAuditData = (projectId: string | undefined) => {
   console.log("useAuditData called with projectId:", projectId);
   
   // Définir un état pour suivre si le mode démo est actif
-  const [demoModeActive, setDemoModeActive] = useState(operationMode.isDemoMode());
+  const [demoModeActive, setDemoModeActive] = useState(operationMode.isDemoMode);
   
   // Mettre à jour l'état du mode démo lors des changements
   useEffect(() => {
     const unsubscribe = operationMode.subscribe((newMode) => {
-      setDemoModeActive(operationMode.isDemoMode());
+      setDemoModeActive(operationMode.isDemoMode);
     });
     
     // Nettoyer l'abonnement au démontage

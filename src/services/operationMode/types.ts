@@ -30,6 +30,7 @@ export interface OperationModeSettings {
   autoSwitch: boolean;     // Basculement automatique vers le mode démo en cas d'erreur
   notifyOnSwitch: boolean; // Notification lors du basculement automatique
   persistMode: boolean;    // Mémoriser le mode entre les sessions
+  autoFallbackEnabled: boolean; // Pour la compatibilité avec le code existant
 }
 
 /**
@@ -40,4 +41,15 @@ export interface OperationModeState {
   switchReason: string | null;
   consecutiveFailures: number;
   lastError: Error | null;
+  failures: number; // Pour la compatibilité avec le code existant
 }
+
+/**
+ * Paramètres par défaut du mode opérationnel
+ */
+export const defaultSettings: OperationModeSettings = {
+  autoSwitch: true,
+  notifyOnSwitch: true,
+  persistMode: true,
+  autoFallbackEnabled: true
+};

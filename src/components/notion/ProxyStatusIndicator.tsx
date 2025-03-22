@@ -50,37 +50,21 @@ const ProxyStatusIndicator: React.FC = () => {
       
       // Signaler une erreur de connectivité si les deux proxies échouent
       if (!clientProxyWorks && !serverlessProxyResult.success) {
-        // Use operationMode.handleConnectionError if it exists, otherwise use a safer approach
-        if (typeof operationMode.handleConnectionError === 'function') {
-          operationMode.handleConnectionError(
-            new Error("Aucun proxy n'est disponible"), 
-            "Vérification des proxies"
-          );
-        } else {
-          // Fallback if the method doesn't exist
-          operationMode.enableDemoMode("Aucun proxy n'est disponible");
-        }
+        operationMode.handleConnectionError(
+          new Error("Aucun proxy n'est disponible"), 
+          "Vérification des proxies"
+        );
       } else {
         // Sinon, indiquer une opération réussie
-        if (typeof operationMode.handleSuccessfulOperation === 'function') {
-          operationMode.handleSuccessfulOperation();
-        } else {
-          // Fallback if the method doesn't exist
-          operationMode.enableRealMode();
-        }
+        operationMode.handleSuccessfulOperation();
       }
     } catch (error) {
       console.error("Erreur lors de la vérification des proxies:", error);
       // Signaler l'erreur au système de mode opérationnel
-      if (typeof operationMode.handleConnectionError === 'function') {
-        operationMode.handleConnectionError(
-          error instanceof Error ? error : new Error(String(error)),
-          "Vérification des proxies"
-        );
-      } else {
-        // Fallback if the method doesn't exist
-        operationMode.enableDemoMode("Erreur de vérification des proxies");
-      }
+      operationMode.handleConnectionError(
+        error instanceof Error ? error : new Error(String(error)),
+        "Vérification des proxies"
+      );
     }
   };
   

@@ -8,19 +8,19 @@ import { toast } from 'sonner';
  * vers le mode démo en cas d'erreur, avec une notification claire pour l'utilisateur
  */
 export function useNotionAutoFallback() {
-  const [currentMode, setCurrentMode] = useState<OperationMode>(operationMode.getMode());
-  const [lastReason, setLastReason] = useState<string | null>(operationMode.getSwitchReason());
-  const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
+  const [currentMode, setCurrentMode] = useState<OperationMode>(operationMode.mode);
+  const [lastReason, setLastReason] = useState<string | null>(operationMode.switchReason);
+  const [failures, setFailures] = useState<number>(operationMode.failures);
 
   // S'abonner aux changements de mode
   useEffect(() => {
     const unsubscribe = operationMode.subscribe((newMode: OperationMode) => {
       setCurrentMode(newMode);
-      setLastReason(operationMode.getSwitchReason());
-      setFailures(operationMode.getConsecutiveFailures());
+      setLastReason(operationMode.switchReason);
+      setFailures(operationMode.failures);
       
       // Afficher une notification détaillée lors du basculement automatique
-      if (newMode === OperationMode.DEMO && operationMode.getSwitchReason()?.includes('Échec de connexion')) {
+      if (newMode === OperationMode.DEMO && operationMode.switchReason?.includes('Échec de connexion')) {
         toast.warning('Passage automatique en mode démonstration', {
           description: 'Des problèmes de connexion à Notion ont été détectés. L\'application utilise maintenant des données fictives.',
           duration: 5000,
@@ -63,15 +63,15 @@ export function useNotionAutoFallback() {
    * Fonction pour tenter de revenir en mode réel
    */
   const attemptRealMode = () => {
-    if (operationMode.isDemoMode()) {
+    if (operationMode.isDemoMode) {
       operationMode.enableRealMode();
       toast.info('Tentative de reconnexion à Notion...'); 
     }
   };
 
   return {
-    isDemoMode: operationMode.isDemoMode(),
-    isRealMode: operationMode.isRealMode(),
+    isDemoMode: operationMode.isDemoMode,
+    isRealMode: operationMode.isRealMode,
     currentMode,
     lastReason,
     failures,
