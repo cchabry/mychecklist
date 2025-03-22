@@ -40,7 +40,12 @@ export function useNotionAPI<T = unknown>() {
       // Vérifier si nous sommes en mode mock et si une réponse mock est fournie
       if (notionApi.mockMode.isActive() && mockResponse !== undefined) {
         // Simuler un délai pour l'expérience utilisateur
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await notionApi.mockMode.applySimulatedDelay();
+        
+        // Simuler une erreur si nécessaire
+        if (notionApi.mockMode.shouldSimulateError()) {
+          throw new Error('Erreur simulée en mode mock');
+        }
         
         if (onSuccess) {
           onSuccess(mockResponse as unknown as R);
