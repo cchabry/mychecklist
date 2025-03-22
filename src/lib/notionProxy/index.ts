@@ -5,6 +5,7 @@ import * as databases from './endpoints/databases';
 import * as pages from './endpoints/pages';
 import * as projects from './endpoints/projects';
 import { mockMode } from './mockMode';
+import { operationMode } from '@/services/operationMode';
 
 // Exporter toutes les API de Notion depuis un point d'entrée unique
 export const notionApi = {
@@ -16,8 +17,11 @@ export const notionApi = {
   databases,
   pages,
   
-  // Support pour les données de test
+  // Support pour les données de test - maintenu pour la compatibilité
   mockMode,
+  
+  // Nouveau système de mode opérationnel
+  operationMode,
   
   // Méthodes de haut niveau pour les projets
   getProjects: projects.getProjects,

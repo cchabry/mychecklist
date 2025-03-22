@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Settings, Database, AlertTriangle } from 'lucide-react';
 import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
 import { useNotion } from '@/contexts/NotionContext';
+import { useOperationMode } from '@/services/operationMode';
 
 const HomePage = () => {
   const { openConfig, closeConfig, status, showConfig } = useNotion();
+  const { isDemoMode } = useOperationMode();
   
   return (
     <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
@@ -20,7 +22,7 @@ const HomePage = () => {
           Vérifiez et configurez votre intégration avec Notion
         </p>
         
-        {status.isMockMode && (
+        {isDemoMode && (
           <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start space-x-2">
             <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>

@@ -4,17 +4,21 @@ import { Wifi, Globe, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 import { PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';
-import { corsProxy } from '@/services/corsProxy'; // Updated import path
+import { corsProxy } from '@/services/corsProxy';
 import { toast } from 'sonner';
-import MockModeControl from './MockModeControl';
+import { useOperationMode } from '@/services/operationMode';
+import OperationModeControl from '@/components/OperationModeControl';
 import ProxyStatusIndicator from './ProxyStatusIndicator';
 
 const NotionProxyConfigSection: React.FC = () => {
   const [selectedProxy, setSelectedProxyState] = React.useState<string>(() => {
-    const proxy = corsProxy.getCurrentProxy(); // Use corsProxy instead of corsProxyService
+    const proxy = corsProxy.getCurrentProxy();
     return proxy ? proxy.url : PUBLIC_CORS_PROXIES[0];
   });
   const [testing, setTesting] = React.useState<string | null>(null);
+  
+  // Utiliser le hook de mode d'opération
+  const { isDemoMode } = useOperationMode();
 
   // Test a specific proxy
   const testProxy = async (proxyUrl: string) => {
@@ -34,7 +38,7 @@ const NotionProxyConfigSection: React.FC = () => {
       const isWorking = response.status !== 0 && response.status !== 404;
       
       if (isWorking) {
-        corsProxy.setSelectedProxy(proxyUrl); // Use corsProxy instead
+        corsProxy.setSelectedProxy(proxyUrl);
         setSelectedProxyState(proxyUrl);
         toast.success('Proxy testé avec succès', {
           description: `Le proxy ${proxyUrl} fonctionne et a été sélectionné`
@@ -57,7 +61,7 @@ const NotionProxyConfigSection: React.FC = () => {
     setTesting('auto');
     try {
       // Ajout du token de test comme argument
-      const bestProxy = await corsProxy.findWorkingProxy("test_token"); // Use corsProxy instead
+      const bestProxy = await corsProxy.findWorkingProxy("test_token");
       
       if (bestProxy) {
         setSelectedProxyState(bestProxy.url);
@@ -79,9 +83,9 @@ const NotionProxyConfigSection: React.FC = () => {
 
   // Reset all proxy settings
   const resetProxy = () => {
-    corsProxy.resetProxyCache(); // Use corsProxy instead
+    corsProxy.resetProxyCache();
     const defaultProxy = PUBLIC_CORS_PROXIES[0];
-    corsProxy.setSelectedProxy(defaultProxy); // Use corsProxy instead
+    corsProxy.setSelectedProxy(defaultProxy);
     setSelectedProxyState(defaultProxy);
     toast.success('Proxy réinitialisé', {
       description: `Les paramètres du proxy ont été réinitialisés à ${defaultProxy}`
@@ -92,11 +96,11 @@ const NotionProxyConfigSection: React.FC = () => {
     <div className="space-y-4">
       <NotionDeploymentChecker />
       
-      {/* Contrôle du mode mock */}
-      <MockModeControl />
+      {/* Contrôle du mode d'opération */}
+      <OperationModeControl />
       
       {/* Indicateur de statut du proxy */}
-      <ProxyStatusIndicator />
+      <ProxyStatusIndicator isDemoMode={isDemoMode} />
       
       <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
         <h3 className="font-medium mb-3 flex items-center gap-2 text-blue-700">

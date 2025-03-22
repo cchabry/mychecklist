@@ -1,9 +1,9 @@
 
 import { mockNotionResponse } from './mockData';
 import { NOTION_API_VERSION, REQUEST_TIMEOUT_MS, MAX_RETRY_ATTEMPTS } from './config';
-import { corsProxy } from '@/services/corsProxy'; // Changed import to use the new path
-import { mockMode } from './mockMode';
+import { corsProxy } from '@/services/corsProxy';
 import { storeNotionError, clearStoredNotionErrors, extractNotionErrorMessage } from './errorHandling';
+import { operationMode } from '@/services/operationMode';
 
 // Types pour plus de clarté
 interface RequestOptions {
@@ -69,7 +69,7 @@ async function tryClientProxy<T>(
   body?: any, 
   customHeaders: Record<string, string> = {}
 ): Promise<T> {
-  const proxyUrl = corsProxy.buildProxyUrl(endpoint); // Use corsProxy instead of corsProxyService
+  const proxyUrl = corsProxy.buildProxyUrl(endpoint);
   
   const headers: Record<string, string> = {
     'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
@@ -127,8 +127,8 @@ export const notionApiRequest = async <T = any>(
     throw new Error('Clé API Notion manquante. Veuillez configurer votre clé API dans les paramètres.');
   }
   
-  // Vérifier le mode mock
-  if (mockMode.isActive) {
+  // Vérifier le mode démo
+  if (operationMode.isDemoMode) {
     return mockNotionResponse(endpoint, method, body) as T;
   }
   
@@ -141,11 +141,16 @@ export const notionApiRequest = async <T = any>(
       // Nettoyer les erreurs précédentes
       clearStoredNotionErrors();
       
+      // Notifier le système d'opération d'une connexion réussie
+      operationMode.handleSuccessfulOperation();
+      
       return result;
     } catch (serverlessError) {
       // Si l'erreur est d'authentification, la propager directement
       if (serverlessError.message?.includes('authentification') || 
           serverlessError.message?.includes('401')) {
+        // Notifier le système d'opération d'une erreur d'authentification
+        operationMode.handleConnectionError(serverlessError, 'Erreur d\'authentification Notion');
         throw serverlessError;
       }
       
@@ -160,13 +165,16 @@ export const notionApiRequest = async <T = any>(
     // Nettoyer les erreurs précédentes
     clearStoredNotionErrors();
     
+    // Notifier le système d'opération d'une connexion réussie
+    operationMode.handleSuccessfulOperation();
+    
     return result;
   } catch (clientProxyError) {
     // Si c'est une erreur CORS "Failed to fetch", essayer de trouver un autre proxy
     if (clientProxyError.message?.includes('fetch')) {
       try {
         // Chercher un proxy fonctionnel
-        const newProxy = await corsProxy.findWorkingProxy(token); // Use corsProxy instead of corsProxyService
+        const newProxy = await corsProxy.findWorkingProxy(token);
         
         if (newProxy) {
           // Réessayer avec le nouveau proxy
@@ -179,6 +187,9 @@ export const notionApiRequest = async <T = any>(
     
     // Stocker l'erreur
     storeNotionError(clientProxyError, endpoint);
+    
+    // Notifier le système d'opération d'une erreur de connexion
+    operationMode.handleConnectionError(clientProxyError, 'Erreur de communication avec Notion');
     
     throw clientProxyError;
   }

@@ -1,162 +1,192 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Cloud, Database, AlertCircle, InfoIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useOperationMode } from '@/services/operationMode';
+import { LucideActivity, Database, AlertTriangle, Info } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { 
-  operationMode, 
-  OperationMode, 
-  useOperationMode 
-} from '@/services/operationMode';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
 
 interface OperationModeControlProps {
   onToggle?: (isDemoMode: boolean) => void;
-  className?: string;
   simplified?: boolean;
 }
 
 /**
  * Composant de contrôle du mode de fonctionnement de l'application
- * Version modernisée remplaçant le MockModeToggle
  */
 const OperationModeControl: React.FC<OperationModeControlProps> = ({ 
-  onToggle, 
-  className = '',
-  simplified = false
+  onToggle,
+  simplified = false 
 }) => {
   const { 
-    mode, 
-    isDemoMode, 
-    toggle, 
-    failures, 
-    lastError,
-    switchReason
+    isDemoMode,
+    isRealMode,
+    mode,
+    switchReason,
+    failures,
+    toggle,
+    updateSettings,
+    settings
   } = useOperationMode();
   
-  // La raison du dernier basculement
-  const [reason, setReason] = useState<string | null>(null);
-  
-  // Mettre à jour la raison quand elle change
-  useEffect(() => {
-    setReason(switchReason);
-  }, [switchReason]);
-  
-  const handleToggle = (checked: boolean) => {
-    // checked = true signifie mode démo
-    const newMode = toggle();
-    const isDemoActive = newMode === OperationMode.DEMO;
+  const handleModeToggle = (newState: boolean) => {
+    const isDemoNow = toggle();
     
-    // Nettoyer les caches locaux lors du changement de mode
-    localStorage.removeItem('projects_cache');
-    localStorage.removeItem('audit_cache');
+    toast(isDemoNow ? 'Mode démonstration activé' : 'Mode réel activé', {
+      description: isDemoNow 
+        ? 'L\'application utilise maintenant des données simulées' 
+        : 'L\'application est maintenant connectée à Notion',
+      icon: isDemoNow ? <Database size={16} className="text-blue-500" /> : <Info size={16} className="text-green-500" />
+    });
     
-    // Notifier les composants parents
     if (onToggle) {
-      onToggle(isDemoActive);
+      onToggle(isDemoNow);
     }
-    
-    // Rafraîchir la page après un court délai
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   };
   
-  // Version simplifiée (juste interrupteur + label)
+  // Version simplifiée pour les interfaces moins importantes
   if (simplified) {
     return (
-      <div className={`flex items-center space-x-2 ${className}`}>
-        <Database size={16} className={!isDemoMode ? "text-tmw-teal" : "text-gray-400"} />
-        
-        <Switch 
-          id="operation-mode" 
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="demo-mode"
           checked={isDemoMode}
-          onCheckedChange={handleToggle}
+          onCheckedChange={handleModeToggle}
         />
-        
-        <Label htmlFor="operation-mode" className="flex gap-2 items-center cursor-pointer text-sm">
-          <Cloud size={16} className={isDemoMode ? "text-blue-500" : "text-gray-400"} />
-          {isDemoMode ? "Mode démo" : "Mode réel"}
+        <Label htmlFor="demo-mode" className="text-sm">
+          {isDemoMode ? "Mode démonstration actif" : "Mode réel actif"}
         </Label>
       </div>
     );
   }
   
-  // Version détaillée (avec badge d'état et infobulles)
+  // Version complète avec tous les contrôles
   return (
-    <div className={`flex items-center justify-between gap-2 px-3 py-2 rounded-md border ${className} ${
-      isDemoMode ? "bg-blue-50 border-blue-200" : "bg-emerald-50 border-emerald-200"
-    }`}>
-      <div className="flex items-center gap-2">
-        <div>
-          {isDemoMode ? (
-            <Cloud size={16} className="text-blue-500" />
-          ) : (
-            <Database size={16} className="text-green-600" />
-          )}
-        </div>
-        
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-sm">
-              {isDemoMode ? "Mode démonstration" : "Mode réel"}
-            </span>
-            
-            {failures > 0 && !isDemoMode && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 text-xs">
-                      <AlertCircle size={12} className="mr-1" />
-                      {failures} échec{failures > 1 ? 's' : ''}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">
-                      {failures} tentative{failures > 1 ? 's' : ''} de connexion échouée{failures > 1 ? 's' : ''}
-                      {lastError && <><br/>{lastError.message}</>}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            
-            {reason && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <InfoIcon size={14} className="text-gray-400" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Raison: {reason}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <LucideActivity size={16} className="text-blue-600" />
+          Mode de fonctionnement
+        </CardTitle>
+        <CardDescription>
+          Contrôlez comment l'application interagit avec Notion
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="mode-toggle" className="text-sm font-medium">
+                Mode démonstration
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Utilise des données simulées au lieu de Notion
+              </p>
+            </div>
+            <Switch
+              id="mode-toggle"
+              checked={isDemoMode}
+              onCheckedChange={handleModeToggle}
+            />
           </div>
           
-          <p className="text-xs text-gray-600">
-            {isDemoMode 
-              ? "Utilisation de données fictives" 
-              : "Connexion directe à Notion"}
-          </p>
+          {switchReason && isDemoMode && (
+            <div className="bg-amber-50 p-3 rounded-md text-xs text-amber-700 border border-amber-200 mt-2">
+              <div className="flex gap-2 items-start">
+                <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Raison du basculement:</p>
+                  <p>{switchReason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <Separator className="my-3" />
+          
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              Paramètres
+            </Label>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="auto-switch" className="text-xs text-muted-foreground">
+                  Bascule automatique en mode démo
+                </Label>
+                <Switch
+                  id="auto-switch"
+                  checked={settings.autoSwitch}
+                  onCheckedChange={(checked) => {
+                    updateSettings({ autoSwitch: checked });
+                    toast.info(
+                      checked 
+                        ? 'Bascule automatique activée' 
+                        : 'Bascule automatique désactivée'
+                    );
+                  }}
+                  size="sm"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Label htmlFor="persist-mode" className="text-xs text-muted-foreground">
+                  Conserver le mode entre les sessions
+                </Label>
+                <Switch
+                  id="persist-mode"
+                  checked={settings.persistMode}
+                  onCheckedChange={(checked) => {
+                    updateSettings({ persistMode: checked });
+                  }}
+                  size="sm"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Label htmlFor="show-notifs" className="text-xs text-muted-foreground">
+                  Afficher les notifications
+                </Label>
+                <Switch
+                  id="show-notifs"
+                  checked={settings.showNotifications}
+                  onCheckedChange={(checked) => {
+                    updateSettings({ showNotifications: checked });
+                  }}
+                  size="sm"
+                />
+              </div>
+            </div>
+            
+            <div className="text-xs">
+              <Label htmlFor="switch-threshold" className="text-muted-foreground">
+                Seuil de basculement (erreurs consécutives)
+              </Label>
+              <Select
+                value={settings.switchThreshold.toString()}
+                onValueChange={(value) => {
+                  updateSettings({ switchThreshold: parseInt(value) });
+                }}
+              >
+                <SelectTrigger id="switch-threshold" className="h-8 mt-1">
+                  <SelectValue placeholder="Seuil" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 erreur</SelectItem>
+                  <SelectItem value="2">2 erreurs</SelectItem>
+                  <SelectItem value="3">3 erreurs</SelectItem>
+                  <SelectItem value="5">5 erreurs</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      <Switch 
-        id="operation-mode-switch" 
-        checked={isDemoMode}
-        onCheckedChange={handleToggle}
-        className="data-[state=checked]:bg-blue-500"
-      />
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

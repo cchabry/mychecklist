@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useOperationMode } from '@/services/operationMode';
-import { OperationMode } from '@/services/operationMode';
+import { OperationMode } from '@/services/operationMode/types';
 
 interface NotionConnectionStatusProps {
   onConfigClick?: () => void;
@@ -32,7 +32,8 @@ const NotionConnectionStatus: React.FC<NotionConnectionStatusProps> = ({
     switchReason, 
     failures, 
     lastError,
-    enableRealMode
+    enableRealMode,
+    updateSettings
   } = useOperationMode();
   
   // Déterminer si une configuration Notion est disponible

@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
 import { useNotionError } from './useNotionError';
-import { isMockActive } from '@/lib/notionProxy/mock/utils';
+import { operationMode } from '@/services/operationMode';
 import { mockUtils } from '@/lib/notionProxy/mock/utils';
 
 interface RequestOptions<T, R> {
@@ -39,14 +39,14 @@ export function useNotionAPI<T = unknown>() {
     clearError();
     
     try {
-      // Vérifier si nous sommes en mode mock et si une réponse mock est fournie
-      if (isMockActive() && mockResponse !== undefined) {
+      // Vérifier si nous sommes en mode démo et si une réponse mock est fournie
+      if (operationMode.isDemoMode && mockResponse !== undefined) {
         // Simuler un délai pour l'expérience utilisateur
         await mockUtils.applySimulatedDelay();
         
         // Simuler une erreur si nécessaire
         if (mockUtils.shouldSimulateError()) {
-          throw new Error('Erreur simulée en mode mock');
+          throw new Error('Erreur simulée en mode démo');
         }
         
         if (onSuccess) {
@@ -61,6 +61,9 @@ export function useNotionAPI<T = unknown>() {
       
       // Exécuter la requête réelle
       const result = await requestFn();
+      
+      // Notifier le système d'opération d'une connexion réussie
+      operationMode.handleSuccessfulOperation();
       
       // Afficher un toast de succès si demandé
       if (successMessage) {
@@ -78,6 +81,9 @@ export function useNotionAPI<T = unknown>() {
     } catch (err) {
       // Convertir l'erreur en objet Error
       const error = err instanceof Error ? err : new Error(String(err));
+      
+      // Notifier le système d'opération d'une erreur
+      operationMode.handleConnectionError(error, errorContext || 'Erreur API');
       
       // Afficher l'erreur via useNotionError
       showError(error, errorContext);

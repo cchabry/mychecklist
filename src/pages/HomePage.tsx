@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 
 const HomePage = () => {
@@ -13,14 +13,14 @@ const HomePage = () => {
   
   const handleDiagnosticComplete = (success: boolean) => {
     if (success) {
-      // Si le diagnostic réussit et on était en mode mock, proposer de désactiver
-      if (notionApi.mockMode.isActive()) {
+      // Si le diagnostic réussit et on était en mode démo, proposer de désactiver
+      if (operationMode.isDemoMode) {
         toast.success('Diagnostic réussi', {
           description: 'Notion fonctionne correctement. Voulez-vous désactiver le mode démonstration ?',
           action: {
             label: 'Désactiver',
             onClick: () => {
-              notionApi.mockMode.forceReset();
+              operationMode.enableRealMode();
               window.location.reload();
             }
           }
