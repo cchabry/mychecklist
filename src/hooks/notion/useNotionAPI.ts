@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
 import { useNotionError } from './useNotionError';
 import { isMockActive } from '@/lib/notionProxy/mock/utils';
-import { mockModeUtils } from '@/lib/notionProxy/mock/utils';
+import { mockUtils } from '@/lib/notionProxy/mock/utils';
 
 interface RequestOptions<T, R> {
   onSuccess?: (data: R) => void;
@@ -42,10 +42,10 @@ export function useNotionAPI<T = unknown>() {
       // Vérifier si nous sommes en mode mock et si une réponse mock est fournie
       if (isMockActive() && mockResponse !== undefined) {
         // Simuler un délai pour l'expérience utilisateur
-        await mockModeUtils.applySimulatedDelay();
+        await mockUtils.applySimulatedDelay();
         
         // Simuler une erreur si nécessaire
-        if (mockModeUtils.shouldSimulateError()) {
+        if (mockUtils.shouldSimulateError()) {
           throw new Error('Erreur simulée en mode mock');
         }
         
