@@ -43,13 +43,14 @@ const HomePage = () => {
         <OperationModeSettingsButton label="Mode opérationnel" className="shadow-lg" />
         
         <Button
-          component={Link}
-          to="/config"
           variant="outline"
           className="shadow-lg"
+          asChild
         >
-          <Activity size={16} className="mr-2" />
-          Configuration
+          <Link to="/config">
+            <Activity size={16} className="mr-2" />
+            Configuration
+          </Link>
         </Button>
         
         <NotionDiagnosticReport 
