@@ -5,6 +5,7 @@ import { OperationMode } from '@/services/operationMode/types';
 
 /**
  * Hook pour écouter les changements du mode opérationnel
+ * @deprecated Utiliser useOperationMode importé depuis '@/services/operationMode' à la place
  */
 export function useOperationModeListener() {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());

@@ -5,7 +5,7 @@ import { useNotionConfig } from './useNotionConfig';
 import { useNotionConnectionStatus } from './useNotionConnectionStatus';
 import { useNotionErrorHandling } from './useNotionErrorHandling';
 import { operationMode } from '@/services/operationMode';
-import { useOperationModeListener } from '@/hooks/useOperationModeListener';
+import { useOperationMode } from '@/services/operationMode';
 
 /**
  * Hook principal pour l'intégration Notion
@@ -17,7 +17,7 @@ export const useNotionIntegration = () => {
   const notionConfig = useNotionConfig();
   const connectionStatus = useNotionConnectionStatus();
   const errorHandling = useNotionErrorHandling();
-  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationModeListener();
+  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
   
   // Mettre à jour les détails d'erreur si une erreur est détectée
   useEffect(() => {

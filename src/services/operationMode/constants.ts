@@ -2,19 +2,7 @@
 import { OperationModeSettings } from './types';
 
 /**
- * Paramètres par défaut du service de mode opérationnel
- */
-export const DEFAULT_SETTINGS: OperationModeSettings = {
-  maxConsecutiveFailures: 3,
-  autoSwitchOnFailure: true,
-  persistentModeStorage: true,
-  notificationDuration: 5000,
-  simulatedNetworkDelay: 500,
-  errorSimulationRate: 0
-};
-
-/**
- * Clés de stockage local pour le mode opérationnel
+ * Clés pour le stockage local
  */
 export const STORAGE_KEYS = {
   MODE: 'operation_mode',
@@ -23,10 +11,24 @@ export const STORAGE_KEYS = {
 };
 
 /**
- * Messages standards utilisés par le service
+ * Paramètres par défaut
  */
-export const MESSAGES = {
-  MANUAL_ACTIVATION: 'Mode démo activé manuellement',
-  CONNECTION_ERROR: 'Erreur de connexion à Notion',
-  AUTO_SWITCH: (failures: number) => `Basculement automatique après ${failures} échecs consécutifs`
+export const DEFAULT_SETTINGS: OperationModeSettings = {
+  // Nombre maximum d'échecs consécutifs avant basculement automatique
+  maxConsecutiveFailures: 3,
+  
+  // Activer le basculement automatique en cas d'échecs répétés
+  autoSwitchOnFailure: true,
+  
+  // Stocker le mode dans localStorage pour persistance
+  persistentModeStorage: true,
+  
+  // Durée d'affichage des notifications (ms)
+  notificationDuration: 5000,
+  
+  // Délai simulé pour les opérations en mode démo (ms)
+  simulatedNetworkDelay: 500,
+  
+  // Taux de simulation d'erreurs en mode démo (%)
+  errorSimulationRate: 0
 };

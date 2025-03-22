@@ -1,18 +1,12 @@
 
-// Re-export depuis operationModeService.ts
+/**
+ * Point d'entrée principal pour le système operationMode
+ * Exporte le service et les hooks associés
+ */
+
 export { operationMode } from './operationModeService';
+export { useOperationMode } from './hooks/useOperationMode';
+export type { OperationMode, OperationModeSettings, SwitchReason } from './types';
 
-// Re-export depuis useOperationMode.ts
-export { useOperationMode } from './useOperationMode';
-
-// Re-export depuis utils.ts
+// Réexporter les utilitaires
 export { operationModeUtils } from './utils';
-
-// Re-export depuis notifications.ts
-export { operationModeNotifications } from './notifications';
-
-// Re-export des constantes
-export { DEFAULT_SETTINGS } from './constants';
-
-// Re-export des types
-export * from './types';
