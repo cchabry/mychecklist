@@ -1,206 +1,326 @@
 
 /**
- * Service de cache local utilisant le localStorage
+ * Service de cache de base
+ * Fournit les fonctionnalités essentielles pour stocker et récupérer des données en cache
+ */
+
+import { CacheEntry, CacheOptions } from './types';
+
+// Configuration par défaut du cache
+const DEFAULT_CACHE_OPTIONS: CacheOptions = {
+  defaultTTL: 5 * 60 * 1000, // 5 minutes par défaut
+  cleanupInterval: 10 * 60 * 1000, // Nettoyage toutes les 10 minutes
+  keyPrefix: 'app-cache:',
+  debug: false
+};
+
+/**
+ * Classe principale du service de cache
  */
 export class Cache {
+  private storage: Map<string, CacheEntry<any>>;
+  private options: CacheOptions;
+  private cleanupTimer: number | null = null;
+
+  /**
+   * Crée une nouvelle instance du cache
+   */
+  constructor(options: Partial<CacheOptions> = {}) {
+    this.storage = new Map<string, CacheEntry<any>>();
+    this.options = { ...DEFAULT_CACHE_OPTIONS, ...options };
+    
+    // Démarrer le nettoyage automatique si configuré
+    if (this.options.cleanupInterval > 0) {
+      this.startCleanupTimer();
+    }
+    
+    this.log('Cache initialisé', this.options);
+  }
+
+  /**
+   * Stocke une valeur dans le cache
+   * @param key Clé d'identification
+   * @param value Valeur à stocker
+   * @param ttl Durée de vie en ms (0 = pas d'expiration)
+   * @returns La clé utilisée
+   */
+  set<T>(key: string, value: T, ttl?: number): string {
+    const fullKey = this.getFullKey(key);
+    const timestamp = Date.now();
+    const expiry = ttl === 0 ? null : 
+                  ttl ? timestamp + ttl : 
+                  this.options.defaultTTL ? timestamp + this.options.defaultTTL : 
+                  null;
+    
+    this.storage.set(fullKey, {
+      data: value,
+      expiry,
+      timestamp
+    });
+    
+    this.log(`Valeur mise en cache: ${key}`, { ttl, expiry });
+    
+    return key;
+  }
+
   /**
    * Récupère une valeur du cache
-   * @param key Clé du cache
-   * @returns La valeur stockée ou null si inexistante ou expirée
+   * @param key Clé d'identification
+   * @returns La valeur ou null si absente/expirée
    */
   get<T>(key: string): T | null {
-    try {
-      const item = localStorage.getItem(key);
-      if (!item) return null;
-      
-      const parsedItem = JSON.parse(item);
-      
-      // Vérifier si l'entrée a expiré
-      if (parsedItem.expiry && parsedItem.expiry < Date.now()) {
-        // Supprimer l'entrée expirée
-        this.remove(key);
-        return null;
-      }
-      
-      return parsedItem.data;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération depuis le cache (${key}):`, error);
+    const fullKey = this.getFullKey(key);
+    const entry = this.storage.get(fullKey);
+    
+    // Aucune entrée trouvée
+    if (!entry) {
+      this.log(`Cache miss: ${key} (non trouvé)`);
       return null;
     }
-  }
-  
-  /**
-   * Enregistre une valeur dans le cache
-   * @param key Clé du cache
-   * @param data Données à stocker
-   * @param ttl Durée de vie en millisecondes (0 = pas d'expiration)
-   */
-  set(key: string, data: any, ttl: number = 0): void {
-    try {
-      const item = {
-        data,
-        expiry: ttl > 0 ? Date.now() + ttl : null,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem(key, JSON.stringify(item));
-    } catch (error) {
-      console.error(`Erreur lors de l'enregistrement dans le cache (${key}):`, error);
+    
+    // Vérifier l'expiration
+    if (entry.expiry !== null && entry.expiry < Date.now()) {
+      this.log(`Cache miss: ${key} (expiré)`, { 
+        expiry: new Date(entry.expiry).toISOString(),
+        now: new Date().toISOString()
+      });
+      this.storage.delete(fullKey);
+      return null;
     }
+    
+    this.log(`Cache hit: ${key}`);
+    return entry.data;
   }
-  
+
   /**
    * Supprime une entrée du cache
-   * @param key Clé du cache à supprimer
+   * @param key Clé à supprimer
+   * @returns true si supprimé, false sinon
    */
-  remove(key: string): void {
-    try {
-      localStorage.removeItem(key);
-    } catch (error) {
-      console.error(`Erreur lors de la suppression du cache (${key}):`, error);
-    }
+  delete(key: string): boolean {
+    const fullKey = this.getFullKey(key);
+    const result = this.storage.delete(fullKey);
+    this.log(`Entrée supprimée: ${key}`, { success: result });
+    return result;
   }
-  
+
   /**
-   * Supprime toutes les entrées du cache correspondant à un préfixe
-   * @param prefix Préfixe des clés à supprimer
-   * @returns Nombre d'entrées supprimées
+   * Récupère une valeur avec possibilité de recharger si absente/expirée
+   * @param key Clé d'identification
+   * @param fetcher Fonction pour récupérer les données si absentes
+   * @param ttl Durée de vie en ms
+   * @returns La valeur du cache ou nouvellement récupérée
    */
-  removeByPrefix(prefix: string): number {
+  async getOrFetch<T>(key: string, fetcher: () => Promise<T>, ttl?: number): Promise<T> {
+    // Tenter de récupérer depuis le cache
+    const cachedValue = this.get<T>(key);
+    
+    // Si trouvé, retourner directement
+    if (cachedValue !== null) {
+      return cachedValue;
+    }
+    
+    // Sinon, exécuter le fetcher et mettre en cache
     try {
-      const keys = Object.keys(localStorage);
-      const keysToRemove = keys.filter(key => key.startsWith(prefix));
-      
-      keysToRemove.forEach(key => {
-        this.remove(key);
-      });
-      
-      console.log(`${keysToRemove.length} entrées de cache supprimées avec le préfixe '${prefix}'`);
-      return keysToRemove.length;
+      const freshValue = await fetcher();
+      this.set(key, freshValue, ttl);
+      return freshValue;
     } catch (error) {
-      console.error(`Erreur lors de la suppression du cache par préfixe (${prefix}):`, error);
-      return 0;
+      this.log(`Erreur lors du chargement des données pour: ${key}`, error);
+      throw error;
     }
   }
-  
-  /**
-   * Nettoie les entrées expirées du cache
-   * @returns Nombre d'entrées nettoyées
-   */
-  cleanExpired(): number {
-    try {
-      const keys = Object.keys(localStorage);
-      let expiredCount = 0;
-      
-      keys.forEach(key => {
-        try {
-          const item = localStorage.getItem(key);
-          if (!item) return;
-          
-          const parsedItem = JSON.parse(item);
-          if (parsedItem.expiry && parsedItem.expiry < Date.now()) {
-            this.remove(key);
-            expiredCount++;
-          }
-        } catch (e) {
-          // Si une entrée ne peut pas être analysée, on la laisse
-        }
-      });
-      
-      if (expiredCount > 0) {
-        console.log(`${expiredCount} entrées de cache expirées nettoyées`);
-      }
-      
-      return expiredCount;
-    } catch (error) {
-      console.error('Erreur lors du nettoyage des entrées expirées:', error);
-      return 0;
-    }
-  }
-  
-  /**
-   * Récupère toutes les entrées du cache
-   * @returns Tableau d'objets contenant les clés et valeurs du cache
-   */
-  getAll(): Array<{key: string, data: any, expiry: number | null, timestamp: number}> {
-    try {
-      const keys = Object.keys(localStorage);
-      const items = [];
-      
-      for (const key of keys) {
-        try {
-          const item = localStorage.getItem(key);
-          if (!item) continue;
-          
-          const parsedItem = JSON.parse(item);
-          items.push({
-            key,
-            ...parsedItem
-          });
-        } catch (e) {
-          // Ignorer les entrées qui ne peuvent pas être analysées
-        }
-      }
-      
-      return items;
-    } catch (error) {
-      console.error('Erreur lors de la récupération de toutes les entrées du cache:', error);
-      return [];
-    }
-  }
-  
+
   /**
    * Vérifie si une clé existe dans le cache et n'est pas expirée
    * @param key Clé à vérifier
-   * @returns true si la clé existe et n'est pas expirée
+   * @returns true si présent et valide
    */
   has(key: string): boolean {
-    return this.get(key) !== null;
-  }
-  
-  /**
-   * Récupère l'heure d'expiration d'une entrée du cache
-   * @param key Clé du cache
-   * @returns Timestamp d'expiration ou null si pas d'expiration ou clé inexistante
-   */
-  getExpiry(key: string): number | null {
-    try {
-      const item = localStorage.getItem(key);
-      if (!item) return null;
-      
-      const parsedItem = JSON.parse(item);
-      return parsedItem.expiry;
-    } catch (error) {
-      return null;
-    }
-  }
-  
-  /**
-   * Prolonge la durée de vie d'une entrée du cache
-   * @param key Clé du cache
-   * @param additionalTime Temps supplémentaire en millisecondes
-   * @returns true si l'opération a réussi
-   */
-  extendTTL(key: string, additionalTime: number): boolean {
-    try {
-      const item = localStorage.getItem(key);
-      if (!item) return false;
-      
-      const parsedItem = JSON.parse(item);
-      
-      // Si l'entrée n'a pas d'expiration, on ne peut pas l'étendre
-      if (!parsedItem.expiry) return false;
-      
-      parsedItem.expiry += additionalTime;
-      localStorage.setItem(key, JSON.stringify(parsedItem));
-      
-      return true;
-    } catch (error) {
-      console.error(`Erreur lors de l'extension du TTL (${key}):`, error);
+    const fullKey = this.getFullKey(key);
+    const entry = this.storage.get(fullKey);
+    
+    if (!entry) {
       return false;
     }
+    
+    // Vérifier l'expiration
+    if (entry.expiry !== null && entry.expiry < Date.now()) {
+      this.storage.delete(fullKey);
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Vide entièrement le cache
+   * @returns Le nombre d'entrées supprimées
+   */
+  clear(): number {
+    const count = this.storage.size;
+    this.storage.clear();
+    this.log(`Cache entièrement vidé (${count} entrées)`);
+    return count;
+  }
+
+  /**
+   * Supprime toutes les entrées expirées du cache
+   * @returns Le nombre d'entrées supprimées
+   */
+  cleanup(): number {
+    const now = Date.now();
+    let count = 0;
+    
+    // Parcourir toutes les entrées
+    for (const [key, entry] of this.storage.entries()) {
+      if (entry.expiry !== null && entry.expiry < now) {
+        this.storage.delete(key);
+        count++;
+      }
+    }
+    
+    if (count > 0) {
+      this.log(`Nettoyage du cache: ${count} entrées supprimées`);
+    }
+    
+    return count;
+  }
+
+  /**
+   * Récupère toutes les entrées correspondant à un préfixe
+   * @param prefix Préfixe à rechercher
+   * @returns Liste de paires [clé, valeur]
+   */
+  getByPrefix<T>(prefix: string): [string, T][] {
+    const fullPrefix = this.getFullKey(prefix);
+    const result: [string, T][] = [];
+    const now = Date.now();
+    
+    for (const [key, entry] of this.storage.entries()) {
+      // Vérifier le préfixe
+      if (!key.startsWith(fullPrefix)) {
+        continue;
+      }
+      
+      // Vérifier l'expiration
+      if (entry.expiry !== null && entry.expiry < now) {
+        this.storage.delete(key);
+        continue;
+      }
+      
+      // Ajouter au résultat (en supprimant le préfixe global)
+      const originalKey = this.getOriginalKey(key);
+      result.push([originalKey, entry.data]);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Supprime toutes les entrées correspondant à un préfixe
+   * @param prefix Préfixe à rechercher
+   * @returns Le nombre d'entrées supprimées
+   */
+  deleteByPrefix(prefix: string): number {
+    const fullPrefix = this.getFullKey(prefix);
+    let count = 0;
+    
+    for (const key of this.storage.keys()) {
+      if (key.startsWith(fullPrefix)) {
+        this.storage.delete(key);
+        count++;
+      }
+    }
+    
+    this.log(`Préfixe supprimé: ${prefix} (${count} entrées)`);
+    return count;
+  }
+
+  /**
+   * Démarre le timer de nettoyage automatique
+   */
+  private startCleanupTimer(): void {
+    if (this.cleanupTimer !== null) {
+      clearInterval(this.cleanupTimer);
+    }
+    
+    this.cleanupTimer = window.setInterval(() => {
+      this.cleanup();
+    }, this.options.cleanupInterval);
+    
+    this.log('Timer de nettoyage démarré', {
+      interval: this.options.cleanupInterval
+    });
+  }
+
+  /**
+   * Arrête le timer de nettoyage automatique
+   */
+  stopCleanupTimer(): void {
+    if (this.cleanupTimer !== null) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+      this.log('Timer de nettoyage arrêté');
+    }
+  }
+
+  /**
+   * Obtient des statistiques sur le cache
+   */
+  getStats(): Record<string, any> {
+    const now = Date.now();
+    let expiredCount = 0;
+    let validCount = 0;
+    let noExpiryCount = 0;
+    
+    for (const entry of this.storage.values()) {
+      if (entry.expiry === null) {
+        noExpiryCount++;
+      } else if (entry.expiry < now) {
+        expiredCount++;
+      } else {
+        validCount++;
+      }
+    }
+    
+    return {
+      total: this.storage.size,
+      valid: validCount,
+      expired: expiredCount,
+      noExpiry: noExpiryCount,
+      options: this.options
+    };
+  }
+
+  /**
+   * Génère une clé complète avec le préfixe
+   */
+  private getFullKey(key: string): string {
+    return `${this.options.keyPrefix}${key}`;
+  }
+
+  /**
+   * Récupère la clé originale sans le préfixe
+   */
+  private getOriginalKey(fullKey: string): string {
+    return fullKey.substring(this.options.keyPrefix.length);
+  }
+
+  /**
+   * Affiche un message de log si le mode debug est activé
+   */
+  private log(message: string, data?: any): void {
+    if (!this.options.debug) {
+      return;
+    }
+    
+    console.log(`🗃️ [Cache] ${message}`, data || '');
   }
 }
 
-// Créer et exporter une instance unique du service de cache
-export const cacheService = new Cache();
+// Exporter une instance par défaut
+export const cacheService = new Cache({
+  debug: process.env.NODE_ENV === 'development'
+});
+

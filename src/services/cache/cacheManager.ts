@@ -1,201 +1,238 @@
 
-import { cacheService } from './cache';
-import { CacheOptions, CacheFetchOptions } from './types';
-
 /**
  * Gestionnaire de cache avancé
- * Fournit des fonctionnalités supplémentaires comme le stale-while-revalidate
+ * Construit sur le service de cache de base et offre des fonctionnalités avancées
  */
-class CacheManager {
-  private options: CacheOptions;
-  private cleanupTimer: number | null = null;
+
+import { Cache } from './cache';
+import { CacheFetchOptions, CacheOptions } from './types';
+
+/**
+ * Classe du gestionnaire de cache avancé
+ */
+export class CacheManager {
+  private cache: Cache;
+  private pendingFetches: Map<string, Promise<any>>;
   
   constructor(options?: Partial<CacheOptions>) {
-    // Options par défaut
-    this.options = {
-      defaultTTL: 5 * 60 * 1000, // 5 minutes
-      cleanupInterval: 15 * 60 * 1000, // 15 minutes
-      keyPrefix: 'app_cache_',
-      debug: false,
-      ...options
-    };
-    
-    // Démarrer le nettoyage automatique si activé
-    if (this.options.cleanupInterval > 0) {
-      this.startCleanupTimer();
-    }
+    this.cache = new Cache(options);
+    this.pendingFetches = new Map();
   }
   
   /**
-   * Démarre le timer de nettoyage automatique
+   * Récupère une valeur du cache ou l'obtient via le fetcher
+   * Supporte la stratégie stale-while-revalidate et les callbacks
    */
-  private startCleanupTimer(): void {
-    if (typeof window !== 'undefined') {
-      this.cleanupTimer = window.setInterval(() => {
-        this.cleanup();
-      }, this.options.cleanupInterval);
-    }
-  }
-  
-  /**
-   * Arrête le timer de nettoyage automatique
-   */
-  public stopCleanupTimer(): void {
-    if (this.cleanupTimer !== null) {
-      clearInterval(this.cleanupTimer);
-      this.cleanupTimer = null;
-    }
-  }
-  
-  /**
-   * Nettoie les entrées expirées du cache
-   */
-  public cleanup(): number {
-    const count = cacheService.cleanExpired();
-    if (this.options.debug && count > 0) {
-      console.log(`[CacheManager] Nettoyage automatique: ${count} entrées supprimées`);
-    }
-    return count;
-  }
-  
-  /**
-   * Construit une clé de cache avec le préfixe global
-   */
-  private getKey(key: string): string {
-    return `${this.options.keyPrefix}${key}`;
-  }
-  
-  /**
-   * Récupère une valeur du cache ou exécute la fonction fetcher si nécessaire
-   */
-  public async fetch<T>(
+  async fetch<T>(
     key: string,
     options: CacheFetchOptions<T>
   ): Promise<T> {
-    const cacheKey = this.getKey(key);
+    const {
+      fetcher,
+      ttl,
+      skipCache = false,
+      staleWhileRevalidate = false,
+      onSuccess,
+      onError,
+      onLoading
+    } = options;
     
-    // Indiquer le chargement
-    if (options.onLoading) {
-      options.onLoading(true);
+    // Signaler le début du chargement
+    if (onLoading) {
+      onLoading(true);
     }
     
     try {
-      // Vérifier si les données sont dans le cache
-      const cachedData = cacheService.get<T>(cacheKey);
+      // Vérifier s'il faut ignorer le cache
+      if (skipCache) {
+        // Exécuter le fetcher directement
+        const freshData = await this.executeFetcher(key, fetcher);
+        
+        // Mettre en cache le résultat
+        this.cache.set(key, freshData, ttl);
+        
+        // Appeler le callback de succès
+        if (onSuccess) {
+          onSuccess(freshData, false);
+        }
+        
+        // Signaler la fin du chargement
+        if (onLoading) {
+          onLoading(false);
+        }
+        
+        return freshData;
+      }
       
-      // Si les données sont dans le cache et non expirées (ou staleWhileRevalidate est activé)
+      // Vérifier si des données en cache sont disponibles
+      const cachedData = this.cache.get<T>(key);
+      
+      // Si des données sont en cache
       if (cachedData !== null) {
-        if (this.options.debug) {
-          console.log(`[CacheManager] Cache hit: ${key}`);
+        // Si stale-while-revalidate est activé, rafraîchir en arrière-plan
+        if (staleWhileRevalidate) {
+          // Rafraîchir en arrière-plan
+          this.refreshInBackground(key, fetcher, ttl, onSuccess);
         }
         
-        // Notifier le succès avec les données du cache
-        if (options.onSuccess) {
-          options.onSuccess(cachedData, true);
+        // Appeler le callback de succès avec les données du cache
+        if (onSuccess) {
+          onSuccess(cachedData, true);
         }
         
-        // Si staleWhileRevalidate est activé, rafraîchir les données en arrière-plan
-        if (options.staleWhileRevalidate && cacheService.getExpiry(cacheKey) !== null) {
-          this.refreshInBackground(cacheKey, options);
+        // Signaler la fin du chargement
+        if (onLoading) {
+          onLoading(false);
         }
         
         return cachedData;
       }
       
-      // Si les données ne sont pas dans le cache ou sont expirées
-      if (this.options.debug) {
-        console.log(`[CacheManager] Cache miss: ${key}`);
+      // Aucune donnée en cache, exécuter le fetcher
+      const freshData = await this.executeFetcher(key, fetcher);
+      
+      // Mettre en cache le résultat
+      this.cache.set(key, freshData, ttl);
+      
+      // Appeler le callback de succès
+      if (onSuccess) {
+        onSuccess(freshData, false);
       }
       
-      // Récupérer les données via la fonction fetcher
-      const data = await options.fetcher();
-      
-      // Stocker les données dans le cache
-      const ttl = options.ttl !== undefined ? options.ttl : this.options.defaultTTL;
-      cacheService.set(cacheKey, data, ttl);
-      
-      // Notifier le succès avec les nouvelles données
-      if (options.onSuccess) {
-        options.onSuccess(data, false);
-      }
-      
-      return data;
+      return freshData;
     } catch (error) {
-      // Gérer l'erreur
-      if (this.options.debug) {
-        console.error(`[CacheManager] Error fetching ${key}:`, error);
-      }
-      
-      // Notifier l'erreur
-      if (options.onError) {
-        options.onError(error instanceof Error ? error : new Error(String(error)));
+      // Appeler le callback d'erreur
+      if (onError) {
+        onError(error instanceof Error ? error : new Error(String(error)));
       }
       
       throw error;
     } finally {
-      // Indiquer la fin du chargement
-      if (options.onLoading) {
-        options.onLoading(false);
+      // Signaler la fin du chargement dans tous les cas
+      if (onLoading) {
+        onLoading(false);
       }
     }
   }
   
   /**
-   * Rafraîchit les données en arrière-plan
+   * Exécute un fetcher avec déduplication des requêtes simultanées
    */
-  private async refreshInBackground<T>(
-    cacheKey: string,
-    options: CacheFetchOptions<T>
-  ): Promise<void> {
-    if (this.options.debug) {
-      console.log(`[CacheManager] Refreshing in background: ${cacheKey}`);
+  private async executeFetcher<T>(
+    key: string,
+    fetcher: () => Promise<T>
+  ): Promise<T> {
+    // Vérifier si une requête est déjà en cours pour cette clé
+    const pendingFetch = this.pendingFetches.get(key);
+    
+    if (pendingFetch) {
+      // Réutiliser la promesse existante
+      return pendingFetch as Promise<T>;
     }
     
+    // Créer une nouvelle promesse
+    const fetchPromise = fetcher();
+    
+    // Enregistrer la promesse en cours
+    this.pendingFetches.set(key, fetchPromise);
+    
     try {
-      // Récupérer les données via la fonction fetcher
-      const data = await options.fetcher();
+      // Attendre le résultat
+      const result = await fetchPromise;
+      return result;
+    } finally {
+      // Supprimer la promesse en cours
+      this.pendingFetches.delete(key);
+    }
+  }
+  
+  /**
+   * Rafraîchit les données en cache en arrière-plan
+   */
+  private async refreshInBackground<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    ttl?: number,
+    onSuccess?: (data: T, fromCache: boolean) => void
+  ): Promise<void> {
+    try {
+      // Exécuter le fetcher
+      const freshData = await fetcher();
       
-      // Stocker les données dans le cache
-      const ttl = options.ttl !== undefined ? options.ttl : this.options.defaultTTL;
-      cacheService.set(cacheKey, data, ttl);
+      // Mettre à jour le cache
+      this.cache.set(key, freshData, ttl);
       
-      if (this.options.debug) {
-        console.log(`[CacheManager] Background refresh completed: ${cacheKey}`);
+      // Appeler le callback si nécessaire
+      if (onSuccess) {
+        onSuccess(freshData, false);
       }
     } catch (error) {
-      if (this.options.debug) {
-        console.error(`[CacheManager] Background refresh failed: ${cacheKey}`, error);
-      }
-      // Ne pas propager l'erreur car c'est un rafraîchissement en arrière-plan
+      // Ignorer les erreurs en arrière-plan, elles seront gérées
+      // lors de la prochaine requête explicite
+      console.warn(`[CacheManager] Erreur lors du rafraîchissement en arrière-plan pour ${key}:`, error);
     }
   }
   
   /**
-   * Invalide une entrée du cache
+   * Définit une valeur dans le cache
    */
-  public invalidate(key: string): void {
-    cacheService.remove(this.getKey(key));
-    if (this.options.debug) {
-      console.log(`[CacheManager] Cache invalidated: ${key}`);
-    }
+  set<T>(key: string, value: T, ttl?: number): void {
+    this.cache.set(key, value, ttl);
   }
   
   /**
-   * Invalide toutes les entrées du cache ayant un certain préfixe
+   * Récupère une valeur du cache
    */
-  public invalidateByPrefix(prefix: string): number {
-    const count = cacheService.removeByPrefix(this.getKey(prefix));
-    if (this.options.debug) {
-      console.log(`[CacheManager] Cache invalidated by prefix: ${prefix} (${count} entries)`);
-    }
-    return count;
+  get<T>(key: string): T | null {
+    return this.cache.get<T>(key);
+  }
+  
+  /**
+   * Vérifie si une clé existe dans le cache
+   */
+  has(key: string): boolean {
+    return this.cache.has(key);
+  }
+  
+  /**
+   * Supprime une entrée du cache
+   */
+  invalidate(key: string): boolean {
+    return this.cache.delete(key);
+  }
+  
+  /**
+   * Supprime toutes les entrées correspondant à un préfixe
+   */
+  invalidateByPrefix(prefix: string): number {
+    return this.cache.deleteByPrefix(prefix);
+  }
+  
+  /**
+   * Vide entièrement le cache
+   */
+  clear(): number {
+    return this.cache.clear();
+  }
+  
+  /**
+   * Obtient des statistiques sur le cache
+   */
+  getStats(): Record<string, any> {
+    return this.cache.getStats();
+  }
+  
+  /**
+   * Supprime toutes les entrées expirées du cache
+   */
+  cleanup(): number {
+    return this.cache.cleanup();
   }
 }
 
-// Exporter une instance par défaut du gestionnaire de cache
+// Exporter une instance par défaut
 export const cacheManager = new CacheManager({
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.NODE_ENV === 'development',
+  keyPrefix: 'app-cache:v1:'
 });
 
-// Exporter la classe pour permettre la création d'instances personnalisées
-export { CacheManager };

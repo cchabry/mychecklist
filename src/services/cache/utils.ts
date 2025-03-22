@@ -1,139 +1,116 @@
 
-import { cacheService } from './cache';
-
 /**
  * Utilitaires pour le système de cache
  */
-export const cacheUtils = {
-  /**
-   * Génère une clé de cache unique basée sur un préfixe et des paramètres
-   * @param prefix Préfixe de la clé
-   * @param params Paramètres à inclure dans la clé
-   * @returns Clé de cache unique
-   */
-  generateKey(prefix: string, params: Record<string, any> = {}): string {
-    const paramString = Object.entries(params)
-      .filter(([_, value]) => value !== undefined && value !== null)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => {
-        const valueStr = typeof value === 'object' 
-          ? JSON.stringify(value)
-          : String(value);
-        return `${key}:${valueStr}`;
-      })
-      .join('_');
-    
-    return paramString ? `${prefix}_${paramString}` : prefix;
-  },
-  
-  /**
-   * Crée un cache namespaced
-   * @param namespace Espace de noms pour les clés de cache
-   * @returns Objet avec des méthodes pour manipuler le cache namespaced
-   */
-  createNamespace(namespace: string) {
-    const prefix = `${namespace}:`;
-    
-    return {
-      /**
-       * Récupère une valeur du cache namespaced
-       */
-      get<T>(key: string): T | null {
-        return cacheService.get<T>(`${prefix}${key}`);
-      },
-      
-      /**
-       * Enregistre une valeur dans le cache namespaced
-       */
-      set<T>(key: string, data: T, ttl: number = 0): void {
-        cacheService.set(`${prefix}${key}`, data, ttl);
-      },
-      
-      /**
-       * Supprime une entrée du cache namespaced
-       */
-      remove(key: string): void {
-        cacheService.remove(`${prefix}${key}`);
-      },
-      
-      /**
-       * Supprime toutes les entrées du cache namespaced
-       */
-      clear(): number {
-        return cacheService.removeByPrefix(prefix);
-      },
-      
-      /**
-       * Vérifie si une clé existe dans le cache namespaced
-       */
-      has(key: string): boolean {
-        return cacheService.has(`${prefix}${key}`);
-      }
-    };
-  }
-};
 
 /**
- * Crée un cache dédié à une entité spécifique
+ * Génère une clé de cache basée sur les paramètres
+ * @param baseKey Clé de base
+ * @param params Paramètres à inclure dans la clé
+ * @returns Une clé unique incluant les paramètres
  */
-export function createEntityCache<T>(entityName: string) {
-  const namespace = `entity:${entityName}`;
-  const cache = cacheUtils.createNamespace(namespace);
+export function generateCacheKey(baseKey: string, params?: Record<string, any>): string {
+  if (!params || Object.keys(params).length === 0) {
+    return baseKey;
+  }
   
-  return {
-    /**
-     * Récupère une entité par ID
-     */
-    getById(id: string): T | null {
-      return cache.get<T>(id);
-    },
-    
-    /**
-     * Récupère une liste d'entités
-     */
-    getList(listKey: string = 'list'): T[] | null {
-      return cache.get<T[]>(listKey);
-    },
-    
-    /**
-     * Enregistre une entité
-     */
-    setById(id: string, entity: T, ttl: number = 0): void {
-      cache.set(id, entity, ttl);
-    },
-    
-    /**
-     * Enregistre une liste d'entités
-     */
-    setList(entities: T[], listKey: string = 'list', ttl: number = 0): void {
-      cache.set(listKey, entities, ttl);
-    },
-    
-    /**
-     * Supprime une entité
-     */
-    removeById(id: string): void {
-      cache.remove(id);
-    },
-    
-    /**
-     * Supprime la liste d'entités
-     */
-    removeList(listKey: string = 'list'): void {
-      cache.remove(listKey);
-    },
-    
-    /**
-     * Invalide tout le cache de cette entité
-     */
-    invalidateAll(): number {
-      return cache.clear();
-    }
-  };
+  // Transformer les paramètres en chaîne triée et réduite pour être déterministe
+  const paramsString = Object.entries(params)
+    .filter(([_, value]) => value !== undefined && value !== null)
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    .map(([key, value]) => {
+      // Pour les objets et tableaux, utiliser JSON.stringify
+      const valueStr = typeof value === 'object' 
+        ? JSON.stringify(value)
+        : String(value);
+      
+      return `${key}:${valueStr}`;
+    })
+    .join('&');
+  
+  return `${baseKey}:${paramsString}`;
 }
 
-// Créer des caches spécifiques pour les entités principales
-export const projectsCache = createEntityCache<any>('projects');
-export const auditsCache = createEntityCache<any>('audits');
-export const pagesCache = createEntityCache<any>('pages');
-export const checklistsCache = createEntityCache<any>('checklists');
+/**
+ * Analyse la durée fournie sous forme de chaîne et la convertit en millisecondes
+ * Exemples: '5m', '1h', '1d'
+ * @param duration Durée sous forme de chaîne
+ * @param defaultValue Valeur par défaut si la durée est invalide
+ * @returns Durée en millisecondes
+ */
+export function parseDuration(duration: string | number, defaultValue: number = 0): number {
+  // Si c'est déjà un nombre, le retourner directement
+  if (typeof duration === 'number') {
+    return duration;
+  }
+  
+  // Vérifier si la chaîne est valide
+  if (!duration || typeof duration !== 'string') {
+    return defaultValue;
+  }
+  
+  // Analyser la chaîne
+  const match = duration.match(/^(\d+)([smhd])$/);
+  
+  if (!match) {
+    return defaultValue;
+  }
+  
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  
+  // Convertir en millisecondes selon l'unité
+  switch (unit) {
+    case 's': return value * 1000; // secondes
+    case 'm': return value * 60 * 1000; // minutes
+    case 'h': return value * 60 * 60 * 1000; // heures
+    case 'd': return value * 24 * 60 * 60 * 1000; // jours
+    default: return defaultValue;
+  }
+}
+
+/**
+ * Calcule la durée restante avant l'expiration d'une entrée de cache
+ * @param expiry Timestamp d'expiration
+ * @returns Durée restante en millisecondes ou null si pas d'expiration
+ */
+export function getRemainingTime(expiry: number | null): number | null {
+  if (expiry === null) {
+    return null;
+  }
+  
+  const now = Date.now();
+  const remaining = expiry - now;
+  
+  return remaining > 0 ? remaining : 0;
+}
+
+/**
+ * Formate une durée en millisecondes en format lisible
+ * @param ms Durée en millisecondes
+ * @returns Chaîne formatée (ex: "5m 30s")
+ */
+export function formatDuration(ms: number | null): string {
+  if (ms === null) {
+    return 'Permanent';
+  }
+  
+  if (ms <= 0) {
+    return 'Expiré';
+  }
+  
+  const seconds = Math.floor((ms / 1000) % 60);
+  const minutes = Math.floor((ms / (1000 * 60)) % 60);
+  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  
+  const parts = [];
+  
+  if (days > 0) parts.push(`${days}j`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  
+  return parts.join(' ');
+}
+
