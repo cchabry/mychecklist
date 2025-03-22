@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { operationMode, OperationMode } from '@/services/operationMode';
+import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 
 /**
@@ -8,19 +8,19 @@ import { toast } from 'sonner';
  * vers le mode démo en cas d'erreur, avec une notification claire pour l'utilisateur
  */
 export function useNotionAutoFallback() {
-  const [currentMode, setCurrentMode] = useState<OperationMode>(operationMode.getMode());
+  const [currentMode, setCurrentMode] = useState(operationMode.getMode());
   const [lastReason, setLastReason] = useState<string | null>(operationMode.getSwitchReason());
   const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
 
   // S'abonner aux changements de mode
   useEffect(() => {
-    const unsubscribe = operationMode.subscribe((newMode: OperationMode, reason) => {
+    const unsubscribe = operationMode.subscribe((newMode, reason) => {
       setCurrentMode(newMode);
       setLastReason(operationMode.getSwitchReason());
       setFailures(operationMode.getConsecutiveFailures());
       
       // Afficher une notification détaillée lors du basculement automatique
-      if (newMode === OperationMode.DEMO && operationMode.getSwitchReason()?.includes('Échec de connexion')) {
+      if (newMode === 'demo' && operationMode.getSwitchReason()?.includes('Échec de connexion')) {
         toast.warning('Passage automatique en mode démonstration', {
           description: 'Des problèmes de connexion à Notion ont été détectés. L\'application utilise maintenant des données fictives.',
           duration: 5000,
