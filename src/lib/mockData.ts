@@ -37,7 +37,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Haute",
     requirementLevel: "Obligatoire",
     scope: "Toutes pages",
-    consigne: "Images with alternative text"
+    consigne: "Images with alternative text",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-2",
@@ -53,7 +54,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Haute",
     requirementLevel: "Obligatoire",
     scope: "Toutes pages",
-    consigne: "Keyboard navigation"
+    consigne: "Keyboard navigation",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-3",
@@ -69,7 +71,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Haute",
     requirementLevel: "Obligatoire",
     scope: "Toutes pages",
-    consigne: "Sufficient color contrast"
+    consigne: "Sufficient color contrast",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-4",
@@ -84,7 +87,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Page load time"
+    consigne: "Page load time",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-5",
@@ -99,7 +103,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Optimized images"
+    consigne: "Optimized images",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-6",
@@ -114,7 +119,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Proper heading structure"
+    consigne: "Proper heading structure",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-7",
@@ -129,7 +135,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Meta descriptions"
+    consigne: "Meta descriptions",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-8",
@@ -144,7 +151,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Haute",
     requirementLevel: "Obligatoire",
     scope: "Toutes pages",
-    consigne: "Mobile-friendly design"
+    consigne: "Mobile-friendly design",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-9",
@@ -159,7 +167,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Haute",
     requirementLevel: "Obligatoire",
     scope: "Toutes pages",
-    consigne: "HTTPS implementation"
+    consigne: "HTTPS implementation",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-10",
@@ -174,7 +183,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Clear navigation"
+    consigne: "Clear navigation",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-11",
@@ -189,7 +199,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Form validation"
+    consigne: "Form validation",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-12",
@@ -204,7 +215,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Content Security Policy"
+    consigne: "Content Security Policy",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-13",
@@ -219,7 +231,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Semantic HTML"
+    consigne: "Semantic HTML",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-14",
@@ -234,7 +247,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "No broken links"
+    consigne: "No broken links",
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: "item-15",
@@ -249,7 +263,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     priority: "Moyenne",
     requirementLevel: "Recommandé",
     scope: "Toutes pages",
-    consigne: "Browser compatibility"
+    consigne: "Browser compatibility",
+    status: ComplianceStatus.NotEvaluated
   }
 ];
 

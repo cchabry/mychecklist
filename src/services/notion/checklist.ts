@@ -1,5 +1,5 @@
 
-import { ChecklistItem } from '@/lib/types';
+import { ChecklistItem, ComplianceStatus } from '@/lib/types';
 import { notionClient, NotionAPIListResponse, NotionAPIPage } from './client';
 import { cacheService } from '../cache';
 
@@ -115,7 +115,8 @@ export const checklistService = {
           profile: profil.join(', '), // Duplicate needed for type compatibility
           criteria: criteria,
           requirementLevel: requirementLevel,
-          scope: scope
+          scope: scope,
+          status: ComplianceStatus.NotEvaluated // Add default status
         };
       });
       
@@ -227,7 +228,8 @@ export const checklistService = {
         profile: profil.join(', '), // Duplicate needed for type compatibility
         criteria: criteria,
         requirementLevel: requirementLevel,
-        scope: scope
+        scope: scope,
+        status: ComplianceStatus.NotEvaluated // Add default status
       };
       
       // Sauvegarder dans le cache
