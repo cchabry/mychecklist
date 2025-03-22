@@ -1,4 +1,20 @@
 
-import { cacheService, Cache } from './cache';
+/**
+ * Point d'entrée central pour le système de cache
+ */
 
-export { cacheService, Cache };
+// Exporter le service de cache de base
+export { cacheService } from './cache';
+
+// Exporter le gestionnaire de cache avancé
+export { cacheManager, CacheManager } from './cacheManager';
+
+// Exporter les types
+export type { 
+  CacheEntry, 
+  CacheOptions, 
+  CacheFetchOptions 
+} from './types';
+
+// Exporter les utilitaires
+export * from './utils';

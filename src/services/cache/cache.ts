@@ -39,7 +39,8 @@ export class Cache {
     try {
       const item = {
         data,
-        expiry: ttl > 0 ? Date.now() + ttl : null
+        expiry: ttl > 0 ? Date.now() + ttl : null,
+        timestamp: Date.now()
       };
       
       localStorage.setItem(key, JSON.stringify(item));
@@ -63,8 +64,9 @@ export class Cache {
   /**
    * Supprime toutes les entrées du cache correspondant à un préfixe
    * @param prefix Préfixe des clés à supprimer
+   * @returns Nombre d'entrées supprimées
    */
-  removeByPrefix(prefix: string): void {
+  removeByPrefix(prefix: string): number {
     try {
       const keys = Object.keys(localStorage);
       const keysToRemove = keys.filter(key => key.startsWith(prefix));
@@ -74,15 +76,18 @@ export class Cache {
       });
       
       console.log(`${keysToRemove.length} entrées de cache supprimées avec le préfixe '${prefix}'`);
+      return keysToRemove.length;
     } catch (error) {
       console.error(`Erreur lors de la suppression du cache par préfixe (${prefix}):`, error);
+      return 0;
     }
   }
   
   /**
    * Nettoie les entrées expirées du cache
+   * @returns Nombre d'entrées nettoyées
    */
-  cleanExpired(): void {
+  cleanExpired(): number {
     try {
       const keys = Object.keys(localStorage);
       let expiredCount = 0;
@@ -105,8 +110,94 @@ export class Cache {
       if (expiredCount > 0) {
         console.log(`${expiredCount} entrées de cache expirées nettoyées`);
       }
+      
+      return expiredCount;
     } catch (error) {
       console.error('Erreur lors du nettoyage des entrées expirées:', error);
+      return 0;
+    }
+  }
+  
+  /**
+   * Récupère toutes les entrées du cache
+   * @returns Tableau d'objets contenant les clés et valeurs du cache
+   */
+  getAll(): Array<{key: string, data: any, expiry: number | null, timestamp: number}> {
+    try {
+      const keys = Object.keys(localStorage);
+      const items = [];
+      
+      for (const key of keys) {
+        try {
+          const item = localStorage.getItem(key);
+          if (!item) continue;
+          
+          const parsedItem = JSON.parse(item);
+          items.push({
+            key,
+            ...parsedItem
+          });
+        } catch (e) {
+          // Ignorer les entrées qui ne peuvent pas être analysées
+        }
+      }
+      
+      return items;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de toutes les entrées du cache:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Vérifie si une clé existe dans le cache et n'est pas expirée
+   * @param key Clé à vérifier
+   * @returns true si la clé existe et n'est pas expirée
+   */
+  has(key: string): boolean {
+    return this.get(key) !== null;
+  }
+  
+  /**
+   * Récupère l'heure d'expiration d'une entrée du cache
+   * @param key Clé du cache
+   * @returns Timestamp d'expiration ou null si pas d'expiration ou clé inexistante
+   */
+  getExpiry(key: string): number | null {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return null;
+      
+      const parsedItem = JSON.parse(item);
+      return parsedItem.expiry;
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  /**
+   * Prolonge la durée de vie d'une entrée du cache
+   * @param key Clé du cache
+   * @param additionalTime Temps supplémentaire en millisecondes
+   * @returns true si l'opération a réussi
+   */
+  extendTTL(key: string, additionalTime: number): boolean {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return false;
+      
+      const parsedItem = JSON.parse(item);
+      
+      // Si l'entrée n'a pas d'expiration, on ne peut pas l'étendre
+      if (!parsedItem.expiry) return false;
+      
+      parsedItem.expiry += additionalTime;
+      localStorage.setItem(key, JSON.stringify(parsedItem));
+      
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de l'extension du TTL (${key}):`, error);
+      return false;
     }
   }
 }
