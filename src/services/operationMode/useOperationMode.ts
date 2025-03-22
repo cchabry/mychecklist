@@ -1,26 +1,20 @@
 
 import { useState, useEffect } from 'react';
-import { OperationMode, SwitchReason } from './types';
 import { operationMode } from './operationModeService';
+import { OperationMode, OperationModeSettings } from './types';
 
 /**
- * Hook React pour utiliser le service operationMode
- * Fournit des fonctions et états réactifs pour interagir avec le service
+ * Hook React pour accéder au système de gestion des modes opérationnels
+ * Fournit une interface réactive pour interagir avec operationMode
  */
 export function useOperationMode() {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
-  const [switchReason, setSwitchReason] = useState<SwitchReason | null>(
-    operationMode.getSwitchReason()
-  );
-  const [failures, setFailures] = useState<number>(
-    operationMode.getConsecutiveFailures()
-  );
-  const [lastError, setLastError] = useState<Error | null>(
-    operationMode.getLastError()
-  );
-  const [settings, setSettings] = useState(operationMode.getSettings());
+  const [switchReason, setSwitchReason] = useState<string | null>(operationMode.getSwitchReason());
+  const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
+  const [lastError, setLastError] = useState<Error | null>(operationMode.getLastError());
+  const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
 
-  // S'abonner aux changements de mode
+  // S'abonner aux changements du mode opérationnel
   useEffect(() => {
     const unsubscribe = operationMode.subscribe((newMode, reason) => {
       setMode(newMode);
@@ -29,37 +23,63 @@ export function useOperationMode() {
       setLastError(operationMode.getLastError());
       setSettings(operationMode.getSettings());
     });
-    
+
     return unsubscribe;
   }, []);
 
-  // Valeurs dérivées
-  const isDemoMode = mode === OperationMode.DEMO;
-  const isRealMode = mode === OperationMode.REAL;
+  /**
+   * Active le mode démonstration
+   */
+  const enableDemoMode = (reason?: string) => {
+    operationMode.enableDemoMode(reason);
+  };
+
+  /**
+   * Active le mode réel
+   */
+  const enableRealMode = () => {
+    operationMode.enableRealMode();
+  };
+
+  /**
+   * Bascule entre les modes réel et démo
+   */
+  const toggle = () => {
+    operationMode.toggle();
+  };
+
+  /**
+   * Met à jour les paramètres
+   */
+  const updateSettings = (newSettings: Partial<OperationModeSettings>) => {
+    operationMode.updateSettings(newSettings);
+    setSettings(operationMode.getSettings());
+  };
+
+  /**
+   * Réinitialise complètement le service
+   */
+  const reset = () => {
+    operationMode.reset();
+  };
 
   return {
-    // États
+    // État
     mode,
     switchReason,
     failures,
     lastError,
     settings,
     
-    // Valeurs dérivées
-    isDemoMode,
-    isRealMode,
+    // Propriétés calculées
+    isDemoMode: operationMode.isDemoMode(),
+    isRealMode: operationMode.isRealMode(),
     
     // Actions
-    enableDemoMode: operationMode.enableDemoMode.bind(operationMode),
-    enableRealMode: operationMode.enableRealMode.bind(operationMode),
-    toggle: operationMode.toggle.bind(operationMode),
-    
-    // Configuration
-    updateSettings: operationMode.updateSettings.bind(operationMode),
-    
-    // Utilitaires
-    reset: operationMode.reset.bind(operationMode),
-    handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode),
-    handleConnectionError: operationMode.handleConnectionError.bind(operationMode)
+    enableDemoMode,
+    enableRealMode,
+    toggle,
+    updateSettings,
+    reset
   };
 }

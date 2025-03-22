@@ -1,5 +1,9 @@
 
-// Exporter les éléments principaux du module
+// Re-export depuis operationModeService.ts
 export { operationMode } from './operationModeService';
+
+// Re-export depuis useOperationMode.ts
 export { useOperationMode } from './useOperationMode';
-export type { OperationMode, SwitchReason, OperationModeSettings } from './types';
+
+// Re-export des types
+export * from './types';

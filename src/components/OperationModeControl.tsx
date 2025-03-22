@@ -27,24 +27,24 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
     mode,
     switchReason,
     failures,
+    settings,
     toggle,
-    updateSettings,
-    settings
+    updateSettings
   } = useOperationMode();
   
-  const handleModeToggle = (newState: boolean) => {
-    toggle(); // La fonction toggle ne retourne pas directement un boolean mais modifie l'état interne
-    const isDemoNow = isDemoMode; // Après l'appel à toggle(), isDemoMode reflète le nouvel état
+  const handleModeToggle = () => {
+    toggle(); // La fonction toggle modifie l'état interne
     
-    toast(isDemoNow ? 'Mode démonstration activé' : 'Mode réel activé', {
-      description: isDemoNow 
+    // Après l'appel à toggle(), isDemoMode reflète le nouvel état
+    toast(isDemoMode ? 'Mode démonstration activé' : 'Mode réel activé', {
+      description: isDemoMode 
         ? 'L\'application utilise maintenant des données simulées' 
         : 'L\'application est maintenant connectée à Notion',
-      icon: isDemoNow ? <Database size={16} className="text-blue-500" /> : <Info size={16} className="text-green-500" />
+      icon: isDemoMode ? <Database size={16} className="text-blue-500" /> : <Info size={16} className="text-green-500" />
     });
     
     if (onToggle) {
-      onToggle(isDemoNow);
+      onToggle(isDemoMode);
     }
   };
   
