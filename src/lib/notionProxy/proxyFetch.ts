@@ -1,7 +1,7 @@
 
 import { mockNotionResponse } from './mockData';
 import { NOTION_API_VERSION, REQUEST_TIMEOUT_MS, MAX_RETRY_ATTEMPTS } from './config';
-import { corsProxyService } from './corsProxyService';
+import { corsProxy } from '@/services/corsProxy'; // Changed import to use the new path
 import { mockMode } from './mockMode';
 import { storeNotionError, clearStoredNotionErrors, extractNotionErrorMessage } from './errorHandling';
 
@@ -69,7 +69,7 @@ async function tryClientProxy<T>(
   body?: any, 
   customHeaders: Record<string, string> = {}
 ): Promise<T> {
-  const proxyUrl = corsProxyService.buildProxyUrl(endpoint);
+  const proxyUrl = corsProxy.buildProxyUrl(endpoint); // Use corsProxy instead of corsProxyService
   
   const headers: Record<string, string> = {
     'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
@@ -166,7 +166,7 @@ export const notionApiRequest = async <T = any>(
     if (clientProxyError.message?.includes('fetch')) {
       try {
         // Chercher un proxy fonctionnel
-        const newProxy = await corsProxyService.findWorkingProxy(token);
+        const newProxy = await corsProxy.findWorkingProxy(token); // Use corsProxy instead of corsProxyService
         
         if (newProxy) {
           // Réessayer avec le nouveau proxy

@@ -10,7 +10,7 @@ import { useOperationMode } from '@/services/operationMode';
  */
 export function useNotionApi<T = any>() {
   const notionAPI = useNotionAPI<T>();
-  const { handleConnectionError, handleSuccessfulOperation, isDemoMode } = useOperationMode();
+  const operationMode = useOperationMode();
   
   // Version améliorée de makeRequest qui gère automatiquement les erreurs avec operationMode
   const makeRequest = async <R = T>(
@@ -21,15 +21,25 @@ export function useNotionApi<T = any>() {
       const result = await apiFunction();
       
       // Signaler l'opération réussie au système operationMode
-      handleSuccessfulOperation();
+      if (typeof operationMode.handleSuccessfulOperation === 'function') {
+        operationMode.handleSuccessfulOperation();
+      } else {
+        // Fallback if the method doesn't exist
+        operationMode.enableRealMode();
+      }
       
       return result;
     } catch (error) {
       // Signaler l'erreur au système operationMode
-      handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)),
-        errorContext
-      );
+      if (typeof operationMode.handleConnectionError === 'function') {
+        operationMode.handleConnectionError(
+          error instanceof Error ? error : new Error(String(error)),
+          errorContext
+        );
+      } else {
+        // Fallback if the method doesn't exist
+        operationMode.enableDemoMode(errorContext);
+      }
       
       // Relancer l'erreur pour la gestion en aval
       throw error;
@@ -39,6 +49,6 @@ export function useNotionApi<T = any>() {
   return {
     ...notionAPI,
     makeRequest,
-    isDemoMode
+    isDemoMode: operationMode.isDemoMode
   };
 }

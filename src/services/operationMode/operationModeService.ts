@@ -1,272 +1,237 @@
 
-import { toast } from 'sonner';
-import { OperationMode, OperationModeSettings, OperationModeState } from './types';
+import { OperationMode, OperationModeState, OperationModeSettings, defaultSettings } from './types';
 
-// Clé de stockage localStorage
-const MODE_STORAGE_KEY = 'app_operation_mode';
+// Seuil d'erreurs consécutives avant de basculer en mode démo
+const MAX_CONSECUTIVE_FAILURES = 3;
 
-// Configuration par défaut
-const DEFAULT_SETTINGS: OperationModeSettings = {
-  autoSwitch: true,
-  notifyOnSwitch: true,
-  persistMode: true
-};
+// Clé de stockage localstorage
+const STORAGE_KEY = 'operation_mode';
+const SETTINGS_KEY = 'operation_mode_settings';
 
 /**
- * Service de gestion du mode de fonctionnement de l'application
+ * Service de gestion du mode d'opération (réel ou démo)
  */
 class OperationModeService {
+  // État interne
   private state: OperationModeState = {
-    mode: OperationMode.REAL,
-    switchReason: null,
-    consecutiveFailures: 0,
-    lastError: null
+    mode: OperationMode.Real,
+    switchReason: '',
+    lastError: null,
+    failures: 0
   };
   
-  private settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
-  private listeners: Set<Function> = new Set();
+  // Paramètres configurables
+  private settings: OperationModeSettings = { ...defaultSettings };
+  
+  // Abonnés aux changements
+  private listeners: Set<(mode: OperationMode) => void> = new Set();
   
   constructor() {
-    this.loadFromStorage();
+    this.loadState();
+    this.loadSettings();
   }
   
   /**
    * Obtient le mode actuel
    */
-  getMode(): OperationMode {
+  get mode(): OperationMode {
     return this.state.mode;
   }
   
   /**
-   * Vérifie si on est en mode démonstration
+   * Vérifie si le mode démo est actif
    */
-  isDemoMode(): boolean {
-    return this.state.mode === OperationMode.DEMO;
+  get isDemoMode(): boolean {
+    return this.state.mode === OperationMode.Demo;
   }
   
   /**
-   * Vérifie si on est en mode réel
+   * Vérifie si le mode réel est actif
    */
-  isRealMode(): boolean {
-    return this.state.mode === OperationMode.REAL;
+  get isRealMode(): boolean {
+    return this.state.mode === OperationMode.Real;
   }
   
   /**
-   * Vérifie si on est en mode transition
+   * Raison du basculement de mode
    */
-  isTransitioning(): boolean {
-    return this.state.mode === OperationMode.TRANSITIONING;
-  }
-  
-  /**
-   * Active manuellement le mode démonstration
-   */
-  enableDemoMode(reason: string = 'Activation manuelle'): void {
-    this.switchToMode(OperationMode.DEMO, reason);
-  }
-  
-  /**
-   * Active manuellement le mode réel
-   */
-  enableRealMode(): boolean {
-    if (this.state.lastError && this.state.consecutiveFailures > 0) {
-      toast.warning('Échecs précédents détectés', {
-        description: 'Des problèmes de connexion ont été détectés précédemment'
-      });
-    }
-    
-    this.switchToMode(OperationMode.REAL, 'Activation manuelle');
-    return true;
-  }
-  
-  /**
-   * Obtient les paramètres actuels
-   */
-  getSettings(): OperationModeSettings {
-    return { ...this.settings };
-  }
-  
-  /**
-   * Met à jour les paramètres
-   */
-  updateSettings(newSettings: Partial<OperationModeSettings>): void {
-    this.settings = { ...this.settings, ...newSettings };
-    this.saveToStorage();
-  }
-  
-  /**
-   * Réinitialise les paramètres aux valeurs par défaut
-   */
-  resetSettings(): void {
-    this.settings = { ...DEFAULT_SETTINGS };
-    this.saveToStorage();
-  }
-  
-  /**
-   * Gère les erreurs de connexion Notion
-   * Peut basculer automatiquement en mode démo selon les paramètres
-   */
-  handleConnectionError(error: Error, context: string = 'Opération Notion'): void {
-    this.state.lastError = error;
-    this.state.consecutiveFailures++;
-    
-    console.warn(`🚨 Erreur de connexion Notion (${this.state.consecutiveFailures} échecs)`, error);
-    
-    // Si le mode automatique est activé et qu'on est en mode réel
-    if (this.settings.autoSwitch && this.isRealMode() && this.state.consecutiveFailures >= 2) {
-      const reason = `Échec de connexion: ${error.message || 'Erreur non spécifiée'}`;
-      this.switchToMode(OperationMode.DEMO, reason);
-    }
-    
-    // Notifier les écouteurs du changement d'état
-    this.notifyListeners();
-  }
-  
-  /**
-   * Réinitialise le compteur d'échecs suite à une opération réussie
-   */
-  handleSuccessfulOperation(): void {
-    if (this.state.consecutiveFailures > 0) {
-      this.state.consecutiveFailures = 0;
-      this.state.lastError = null;
-      console.log('✅ Réinitialisation du compteur d\'échecs suite à une opération réussie');
-      
-      // Notifier les écouteurs du changement d'état
-      this.notifyListeners();
-    }
-  }
-  
-  /**
-   * Enregistre un écouteur pour les changements de mode
-   */
-  subscribe(listener: Function): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-  
-  /**
-   * Obtient la raison du dernier changement de mode
-   */
-  getSwitchReason(): string | null {
+  get switchReason(): string {
     return this.state.switchReason;
   }
   
   /**
-   * Obtient la dernière erreur enregistrée
+   * Dernière erreur rencontrée
    */
-  getLastError(): Error | null {
+  get lastError(): Error {
     return this.state.lastError;
   }
   
   /**
-   * Obtient le nombre d'échecs consécutifs
+   * Nombre d'échecs consécutifs
    */
-  getConsecutiveFailures(): number {
-    return this.state.consecutiveFailures;
+  get failures(): number {
+    return this.state.failures;
   }
   
   /**
-   * Bascule entre les modes réel et démo
+   * Active le mode démonstration
    */
-  toggle(): OperationMode {
-    const newMode = this.isRealMode() ? OperationMode.DEMO : OperationMode.REAL;
-    this.switchToMode(newMode, 'Basculement manuel');
-    return this.state.mode;
-  }
-  
-  /**
-   * Effectue le changement de mode proprement dit
-   */
-  private switchToMode(newMode: OperationMode, reason: string): void {
-    // Ne rien faire si on est déjà dans ce mode
-    if (this.state.mode === newMode) return;
+  enableDemoMode = (reason: string = 'Activation manuelle'): void => {
+    if (this.state.mode === OperationMode.Demo) return;
     
-    const previousMode = this.state.mode;
-    this.state.mode = newMode;
+    console.log(`Basculement en mode démonstration. Raison: ${reason}`);
+    
+    this.state.mode = OperationMode.Demo;
     this.state.switchReason = reason;
     
-    console.log(`🔄 Changement de mode: ${previousMode} -> ${newMode} (${reason})`);
-    
-    // Notification si activée
-    if (this.settings.notifyOnSwitch) {
-      if (newMode === OperationMode.DEMO) {
-        toast.info('Mode démonstration activé', {
-          description: reason,
-          duration: 4000
-        });
-      } else if (newMode === OperationMode.REAL) {
-        toast.success('Mode réel activé', {
-          description: 'Connexion directe à Notion',
-          duration: 3000
-        });
-      }
-    }
-    
-    // Persister si activé
-    if (this.settings.persistMode) {
-      this.saveToStorage();
-    }
-    
-    // Notifier les écouteurs
+    this.saveState();
     this.notifyListeners();
-  }
+  };
   
   /**
-   * Charge la configuration depuis localStorage
+   * Active le mode réel
    */
-  private loadFromStorage(): void {
+  enableRealMode = (): void => {
+    if (this.state.mode === OperationMode.Real) return;
+    
+    console.log('Basculement en mode réel');
+    
+    this.state.mode = OperationMode.Real;
+    this.state.switchReason = '';
+    this.state.failures = 0;
+    
+    this.saveState();
+    this.notifyListeners();
+  };
+  
+  /**
+   * Bascule entre les modes
+   */
+  toggle = (): void => {
+    if (this.state.mode === OperationMode.Real) {
+      this.enableDemoMode('Activation manuelle');
+    } else {
+      this.enableRealMode();
+    }
+  };
+  
+  /**
+   * Gère un cas d'erreur de connexion
+   */
+  handleConnectionError = (error: Error, context: string): void => {
+    console.warn(`Erreur de connexion (${context}):`, error);
+    
+    this.state.lastError = error;
+    this.state.failures++;
+    
+    // Si la bascule automatique est activée et qu'on a atteint le seuil d'échecs
+    if (this.settings.autoFallbackEnabled && 
+        this.state.failures >= MAX_CONSECUTIVE_FAILURES &&
+        this.state.mode === OperationMode.Real) {
+      this.enableDemoMode(`Erreurs répétées (${context})`);
+    } else {
+      // Sinon juste sauvegarder l'état pour suivre les échecs
+      this.saveState();
+    }
+  };
+  
+  /**
+   * Gère un cas d'opération réussie
+   */
+  handleSuccessfulOperation = (): void => {
+    if (this.state.failures > 0) {
+      this.state.failures = 0;
+      this.saveState();
+    }
+  };
+  
+  /**
+   * Mettre à jour les paramètres
+   */
+  updateSettings = (settings: Partial<OperationModeSettings>): void => {
+    this.settings = { ...this.settings, ...settings };
+    this.saveSettings();
+  };
+  
+  /**
+   * S'abonner aux changements de mode
+   */
+  subscribe = (listener: (mode: OperationMode) => void): () => void => {
+    this.listeners.add(listener);
+    
+    // Appeler immédiatement avec l'état actuel
+    listener(this.state.mode);
+    
+    // Renvoyer une fonction de désabonnement
+    return () => this.listeners.delete(listener);
+  };
+  
+  /**
+   * Charger l'état depuis le stockage local
+   */
+  private loadState(): void {
     try {
-      const storedData = localStorage.getItem(MODE_STORAGE_KEY);
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        
-        // Restaurer le mode
-        if (data.mode && Object.values(OperationMode).includes(data.mode)) {
-          this.state.mode = data.mode;
-        }
-        
-        // Restaurer les paramètres
-        if (data.settings) {
-          this.settings = { ...DEFAULT_SETTINGS, ...data.settings };
-        }
-        
-        console.log(`🔄 Mode chargé depuis localStorage: ${this.state.mode}`);
+      const storedState = localStorage.getItem(STORAGE_KEY);
+      if (storedState) {
+        const parsedState = JSON.parse(storedState);
+        this.state = { ...this.state, ...parsedState };
+        console.log('Mode d\'opération chargé:', this.state.mode);
       }
     } catch (e) {
-      console.error('Erreur lors du chargement du mode depuis localStorage', e);
+      console.warn('Erreur lors du chargement du mode d\'opération:', e);
     }
   }
   
   /**
-   * Sauvegarde la configuration dans localStorage
+   * Sauvegarder l'état dans le stockage local
    */
-  private saveToStorage(): void {
+  private saveState(): void {
     try {
-      const dataToStore = {
-        mode: this.state.mode,
-        settings: this.settings
-      };
-      
-      localStorage.setItem(MODE_STORAGE_KEY, JSON.stringify(dataToStore));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
     } catch (e) {
-      console.error('Erreur lors de la sauvegarde du mode dans localStorage', e);
+      console.warn('Erreur lors de la sauvegarde du mode d\'opération:', e);
     }
   }
   
   /**
-   * Notifie tous les écouteurs d'un changement de mode
+   * Charger les paramètres depuis le stockage local
+   */
+  private loadSettings(): void {
+    try {
+      const storedSettings = localStorage.getItem(SETTINGS_KEY);
+      if (storedSettings) {
+        const parsedSettings = JSON.parse(storedSettings);
+        this.settings = { ...this.settings, ...parsedSettings };
+      }
+    } catch (e) {
+      console.warn('Erreur lors du chargement des paramètres du mode d\'opération:', e);
+    }
+  }
+  
+  /**
+   * Sauvegarder les paramètres dans le stockage local
+   */
+  private saveSettings(): void {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+    } catch (e) {
+      console.warn('Erreur lors de la sauvegarde des paramètres du mode d\'opération:', e);
+    }
+  }
+  
+  /**
+   * Notifier tous les abonnés d'un changement de mode
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => {
+    for (const listener of this.listeners) {
       try {
         listener(this.state.mode);
       } catch (e) {
-        console.error('Erreur dans un écouteur de mode', e);
+        console.error('Erreur dans un écouteur du mode d\'opération:', e);
       }
-    });
+    }
   }
 }
 
-// Créer et exporter l'instance unique du service
+// Créer et exporter l'instance singleton du service
 export const operationModeService = new OperationModeService();
-

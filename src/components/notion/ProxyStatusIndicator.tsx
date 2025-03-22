@@ -21,7 +21,7 @@ const ProxyStatusIndicator: React.FC = () => {
     serverlessProxy: 'Vérification...'
   });
   const { isTestingProxy, findWorkingProxy, testProxy } = useCorsProxy();
-  const { handleConnectionError, handleSuccessfulOperation } = useOperationMode();
+  const operationMode = useOperationMode();
   
   // État indiquant si les deux proxies sont en échec
   const bothProxiesFailed = proxyStatus.clientProxy === 'Non disponible' && 
@@ -50,21 +50,37 @@ const ProxyStatusIndicator: React.FC = () => {
       
       // Signaler une erreur de connectivité si les deux proxies échouent
       if (!clientProxyWorks && !serverlessProxyResult.success) {
-        handleConnectionError(
-          new Error("Aucun proxy n'est disponible"), 
-          "Vérification des proxies"
-        );
+        // Use operationMode.handleConnectionError if it exists, otherwise use a safer approach
+        if (typeof operationMode.handleConnectionError === 'function') {
+          operationMode.handleConnectionError(
+            new Error("Aucun proxy n'est disponible"), 
+            "Vérification des proxies"
+          );
+        } else {
+          // Fallback if the method doesn't exist
+          operationMode.enableDemoMode("Aucun proxy n'est disponible");
+        }
       } else {
         // Sinon, indiquer une opération réussie
-        handleSuccessfulOperation();
+        if (typeof operationMode.handleSuccessfulOperation === 'function') {
+          operationMode.handleSuccessfulOperation();
+        } else {
+          // Fallback if the method doesn't exist
+          operationMode.enableRealMode();
+        }
       }
     } catch (error) {
       console.error("Erreur lors de la vérification des proxies:", error);
       // Signaler l'erreur au système de mode opérationnel
-      handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)),
-        "Vérification des proxies"
-      );
+      if (typeof operationMode.handleConnectionError === 'function') {
+        operationMode.handleConnectionError(
+          error instanceof Error ? error : new Error(String(error)),
+          "Vérification des proxies"
+        );
+      } else {
+        // Fallback if the method doesn't exist
+        operationMode.enableDemoMode("Erreur de vérification des proxies");
+      }
     }
   };
   

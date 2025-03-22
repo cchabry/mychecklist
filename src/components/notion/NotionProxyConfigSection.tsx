@@ -4,14 +4,14 @@ import { Wifi, Globe, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 import { PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';
-import { corsProxyService } from '@/lib/notionProxy/corsProxyService';
+import { corsProxy } from '@/services/corsProxy'; // Updated import path
 import { toast } from 'sonner';
 import MockModeControl from './MockModeControl';
 import ProxyStatusIndicator from './ProxyStatusIndicator';
 
 const NotionProxyConfigSection: React.FC = () => {
   const [selectedProxy, setSelectedProxyState] = React.useState<string>(() => {
-    const proxy = corsProxyService.getSelectedProxy();
+    const proxy = corsProxy.getCurrentProxy(); // Use corsProxy instead of corsProxyService
     return proxy ? proxy.url : PUBLIC_CORS_PROXIES[0];
   });
   const [testing, setTesting] = React.useState<string | null>(null);
@@ -34,7 +34,7 @@ const NotionProxyConfigSection: React.FC = () => {
       const isWorking = response.status !== 0 && response.status !== 404;
       
       if (isWorking) {
-        corsProxyService.setSelectedProxy(proxyUrl);
+        corsProxy.setSelectedProxy(proxyUrl); // Use corsProxy instead
         setSelectedProxyState(proxyUrl);
         toast.success('Proxy testé avec succès', {
           description: `Le proxy ${proxyUrl} fonctionne et a été sélectionné`
@@ -57,7 +57,7 @@ const NotionProxyConfigSection: React.FC = () => {
     setTesting('auto');
     try {
       // Ajout du token de test comme argument
-      const bestProxy = await corsProxyService.findWorkingProxy("test_token");
+      const bestProxy = await corsProxy.findWorkingProxy("test_token"); // Use corsProxy instead
       
       if (bestProxy) {
         setSelectedProxyState(bestProxy.url);
@@ -79,9 +79,9 @@ const NotionProxyConfigSection: React.FC = () => {
 
   // Reset all proxy settings
   const resetProxy = () => {
-    corsProxyService.resetProxyCache();
+    corsProxy.resetProxyCache(); // Use corsProxy instead
     const defaultProxy = PUBLIC_CORS_PROXIES[0];
-    corsProxyService.setSelectedProxy(defaultProxy);
+    corsProxy.setSelectedProxy(defaultProxy); // Use corsProxy instead
     setSelectedProxyState(defaultProxy);
     toast.success('Proxy réinitialisé', {
       description: `Les paramètres du proxy ont été réinitialisés à ${defaultProxy}`
