@@ -3,8 +3,14 @@
  * Point d'entrée pour le module de gestion d'erreurs Notion
  */
 
-// Exporter le service principal
+// Exporter le service principal de gestion d'erreur
 export { notionErrorService } from './errorService';
+
+// Exporter le service de file d'attente de retry
+export { notionRetryQueue } from './retryQueue';
+
+// Exporter l'utilitaire de retry automatique
+export { autoRetryHandler } from './autoRetry';
 
 // Exporter les types
 export type { 
@@ -23,5 +29,7 @@ export {
 // Exporter les utilitaires
 export { notionErrorUtils } from './utils';
 
-// Exporter un hook pour accéder au service
+// Exporter les hooks
 export { useNotionErrorService } from './useNotionErrorService';
+export { useNotionRetryQueue } from './useRetryQueue';
+export { useAutoRetry } from './useAutoRetry';
