@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { cacheManager } from '@/services/cache/cacheManager';
+import { cacheManager } from '@/services/cache/managers/defaultManager';
 import { CacheFetchOptions } from '@/services/cache/types';
 
 /**
