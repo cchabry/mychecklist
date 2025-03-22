@@ -1,3 +1,4 @@
+
 import { getNotionClient, testNotionConnection } from './notionClient';
 import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
@@ -87,7 +88,9 @@ export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
                   properties.progress?.number || 0,
         itemsCount: properties.ItemsCount?.number || 
                     properties.itemsCount?.number ||
-                    properties.Nombre?.number || 15
+                    properties.Nombre?.number || 15,
+        pagesCount: properties.PagesCount?.number || 
+                   properties.pagesCount?.number || 0
       };
     });
     
@@ -198,7 +201,9 @@ export const getProjectById = async (id: string): Promise<ProjectData | null> =>
                 properties.progress?.number || 0,
       itemsCount: properties.ItemsCount?.number || 
                   properties.itemsCount?.number ||
-                  properties.Nombre?.number || 15
+                  properties.Nombre?.number || 15,
+      pagesCount: properties.PagesCount?.number || 
+                 properties.pagesCount?.number || 0
     };
     
     return project;
@@ -234,7 +239,8 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         progress: 0,
-        itemsCount: 15
+        itemsCount: 15,
+        pagesCount: 0
       };
       
       // Ajouter le nouveau projet aux projets simulés pour une meilleure expérience
@@ -279,7 +285,8 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         progress: 0,
-        itemsCount: 15
+        itemsCount: 15,
+        pagesCount: 0
       };
       
       // Ajouter aux projets mock pour cohérence
@@ -324,7 +331,8 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       "Description": { rich_text: [{ text: { content: 'Projet créé via l\'application' } }] },
       "Status": { select: { name: 'Non démarré' } },
       "Progress": { number: 0 },
-      "ItemsCount": { number: 15 }
+      "ItemsCount": { number: 15 },
+      "PagesCount": { number: 0 }
     };
     
     // Ajouter des propriétés alternatives avec différentes casses
@@ -371,7 +379,8 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       createdAt: response.created_time,
       updatedAt: response.last_edited_time,
       progress: 0,
-      itemsCount: 15
+      itemsCount: 15,
+      pagesCount: 0
     };
     
     // Forcer une actualisation des données

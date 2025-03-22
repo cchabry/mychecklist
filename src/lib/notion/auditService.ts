@@ -51,15 +51,12 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
         console.log('Relation items count:', prop.relation.length);
         return prop.relation.map((relation: any) => {
           // Adapt to new item format
-          return {
+          const item: AuditItem = {
             id: relation.id,
-            title: relation.title || '', // Consigne
+            title: relation.title || '', 
             description: relation.description || '',
             category: relation.category || 'Accessibilité',
             subcategory: relation.subcategory || '',
-            subsubcategory: relation.subsubcategory || '',
-            details: relation.details || '', // Résumé
-            metaRefs: relation.metaRefs || '',
             criteria: relation.criteria || '',
             profile: relation.profile || '',
             phase: relation.phase || '',
@@ -67,11 +64,15 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             priority: relation.priority || '',
             requirementLevel: relation.requirementLevel || '',
             scope: relation.scope || '',
+            consigne: relation.title || '',
             status: relation.status || ComplianceStatus.NotEvaluated,
             comment: relation.comment || '',
             pageResults: [],
-            actions: []  // Ajout du tableau d'actions vide par défaut
-          } as AuditItem;
+            actions: [], 
+            metaRefs: relation.metaRefs || '',
+            details: relation.details || ''
+          };
+          return item;
         });
       }
       return [];

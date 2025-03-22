@@ -28,8 +28,8 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
   
   // Afficher la hiérarchie des catégories si disponible
   const displayCategory = () => {
-    if (item.subsubcategory) {
-      return `${item.category} > ${item.subcategory} > ${item.subsubcategory}`;
+    if (item.details) {
+      return `${item.category} > ${item.subcategory} > ${item.details}`;
     } else if (item.subcategory) {
       return `${item.category} > ${item.subcategory}`;
     }

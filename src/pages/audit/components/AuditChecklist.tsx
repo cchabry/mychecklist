@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Audit, AuditItem, SamplePage } from '@/lib/types';
+import { Audit, AuditItem, SamplePage, ComplianceStatus, ImportanceLevel } from '@/lib/types';
 import CategoryTabs from './CategoryTabs';
 import { enrichItemsWithDetails } from '../utils/itemDetailsUtils';
 import ExigenceChecklist from './ExigenceChecklist';
@@ -22,28 +22,30 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   useEffect(() => {
     if (audit && audit.items) {
       // Enrichir les items avec des détails et des exigences de projet
-      const enrichedAudit = {
-        ...audit,
-        items: enrichItemsWithDetails(audit.items).map(item => ({
-          ...item,
-          // Ajouter des données d'exigence de projet (à remplacer par des données réelles)
-          importance: item.importance || getDefaultImportance(item.id),
-          projectRequirement: item.projectRequirement || getDefaultProjectRequirement(item.id),
-          projectComment: item.projectComment || getDefaultProjectComment(item.id)
-        }))
-      };
+      const enrichedItems = enrichItemsWithDetails(audit.items).map(item => ({
+        ...item,
+        // S'assurer que status est défini pour chaque item
+        status: item.status || ComplianceStatus.NotEvaluated,
+        // Ajouter des données d'exigence de projet (à remplacer par des données réelles)
+        importance: item.importance || getDefaultImportance(item.id),
+        projectRequirement: item.projectRequirement || getDefaultProjectRequirement(item.id),
+        projectComment: item.projectComment || getDefaultProjectComment(item.id)
+      }));
       
       // Charger les pages de l'échantillon
       const pages = getPagesByProjectId(audit.projectId);
       setSamplePages(pages);
       
       // Calculer le score global de l'audit
-      const score = calculateAuditScore(enrichedAudit.items);
+      const score = calculateAuditScore(enrichedItems);
       
-      onUpdateAudit({
-        ...enrichedAudit,
+      const enrichedAudit: Audit = {
+        ...audit,
+        items: enrichedItems,
         score
-      });
+      };
+      
+      onUpdateAudit(enrichedAudit);
       
       setChecklistReady(true);
     }
@@ -84,17 +86,17 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
   };
 
   // Fonctions pour générer des données de démo sur les exigences du projet
-  const getDefaultImportance = (itemId: string): string => {
+  const getDefaultImportance = (itemId: string): ImportanceLevel => {
     // Exemple de logique pour attribuer une importance basée sur l'ID
     const importances = [
-      "Majeur",
-      "Important",
-      "Moyen",
-      "Mineur",
-      "N/A"
+      ImportanceLevel.Majeur,
+      ImportanceLevel.Important,
+      ImportanceLevel.Moyen,
+      ImportanceLevel.Mineur,
+      ImportanceLevel.NA
     ];
     const itemNumber = parseInt(itemId.split('-')[1] || '1');
-    return importances[itemNumber % importances.length] || "Moyen";
+    return importances[itemNumber % importances.length] || ImportanceLevel.Moyen;
   };
 
   const getDefaultProjectRequirement = (itemId: string): string => {
@@ -154,7 +156,7 @@ const AuditChecklist: React.FC<AuditChecklistProps> = ({ audit, onUpdateAudit })
                 key={item.id}
                 item={item}
                 samplePages={samplePages}
-                importance={item.importance || getDefaultImportance(item.id)}
+                importance={item.importance || ImportanceLevel.Moyen}
                 onItemChange={handleItemChange}
               />
             ))}

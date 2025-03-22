@@ -1,3 +1,4 @@
+
 import { Project } from '@/lib/types';
 import { notionClient, NotionAPIListResponse, NotionAPIPage } from './client';
 import { cacheService } from '../cache';
@@ -63,7 +64,9 @@ export const projectsService = {
                     properties.progress?.number || 0,
           itemsCount: properties.ItemsCount?.number || 
                       properties.itemsCount?.number ||
-                      properties.Nombre?.number || 15
+                      properties.Nombre?.number || 15,
+          pagesCount: properties.PagesCount?.number || 
+                     properties.pagesCount?.number || 0
         };
       });
       
@@ -126,7 +129,9 @@ export const projectsService = {
                   properties.progress?.number || 0,
         itemsCount: properties.ItemsCount?.number || 
                     properties.itemsCount?.number ||
-                    properties.Nombre?.number || 15
+                    properties.Nombre?.number || 15,
+        pagesCount: properties.PagesCount?.number || 
+                   properties.pagesCount?.number || 0
       };
       
       // Sauvegarder dans le cache
@@ -160,7 +165,8 @@ export const projectsService = {
         "Name": { title: [{ text: { content: data.name } }] },
         "URL": { url: data.url },
         "Progress": { number: 0 },
-        "ItemsCount": { number: 15 }
+        "ItemsCount": { number: 15 },
+        "PagesCount": { number: 0 }
       };
       
       // Ajouter la description si fournie
@@ -230,6 +236,10 @@ export const projectsService = {
       
       if (data.itemsCount !== undefined) {
         properties["ItemsCount"] = { number: data.itemsCount };
+      }
+      
+      if (data.pagesCount !== undefined) {
+        properties["PagesCount"] = { number: data.pagesCount };
       }
       
       const response = await notionClient.patch(`/pages/${id}`, {

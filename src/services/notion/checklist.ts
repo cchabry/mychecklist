@@ -89,6 +89,15 @@ export const checklistService = {
         const priority = properties.Priority?.select?.name || 
                         properties.priority?.select?.name || 
                         properties.Priorite?.select?.name || 'Moyenne';
+
+        const criteria = properties.Criteria?.select?.name ||
+                         properties.criteria?.select?.name || '';
+
+        const requirementLevel = properties.RequirementLevel?.select?.name ||
+                             properties.requirementLevel?.select?.name || '';
+
+        const scope = properties.Scope?.select?.name ||
+                      properties.scope?.select?.name || '';
         
         // Créer l'item de checklist avec les propriétés requises
         return {
@@ -102,7 +111,11 @@ export const checklistService = {
           profil: profil.join(', '), // Join array to string for compatibility
           phase: phase.join(', '), // Join array to string for compatibility
           effort: effort,
-          priority: priority
+          priority: priority,
+          profile: profil.join(', '), // Duplicate needed for type compatibility
+          criteria: criteria,
+          requirementLevel: requirementLevel,
+          scope: scope
         };
       });
       
@@ -188,6 +201,15 @@ export const checklistService = {
       const priority = properties.Priority?.select?.name || 
                       properties.priority?.select?.name || 
                       properties.Priorite?.select?.name || 'Moyenne';
+
+      const criteria = properties.Criteria?.select?.name ||
+                      properties.criteria?.select?.name || '';
+
+      const requirementLevel = properties.RequirementLevel?.select?.name ||
+                          properties.requirementLevel?.select?.name || '';
+
+      const scope = properties.Scope?.select?.name ||
+                   properties.scope?.select?.name || '';
       
       // Créer l'item de checklist avec les propriétés requises
       const item: ChecklistItem = {
@@ -201,7 +223,11 @@ export const checklistService = {
         profil: profil.join(', '), // Join array to string for compatibility
         phase: phase.join(', '), // Join array to string for compatibility
         effort: effort,
-        priority: priority
+        priority: priority,
+        profile: profil.join(', '), // Duplicate needed for type compatibility
+        criteria: criteria,
+        requirementLevel: requirementLevel,
+        scope: scope
       };
       
       // Sauvegarder dans le cache

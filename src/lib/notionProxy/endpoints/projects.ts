@@ -1,3 +1,4 @@
+
 import { notionApiRequest } from '../proxyFetch';
 import { mockMode } from '../mockMode';
 import { MOCK_PROJECTS } from '../../mockData';
@@ -49,7 +50,9 @@ export const getProjects = async () => {
                 properties.progress?.number || 0,
       itemsCount: properties.ItemsCount?.number || 
                   properties.itemsCount?.number ||
-                  properties.Nombre?.number || 15
+                  properties.Nombre?.number || 15,
+      pagesCount: properties.PagesCount?.number || 
+                 properties.pagesCount?.number || 0
     };
   });
 };
@@ -126,7 +129,9 @@ export const getProject = async (id: string) => {
                 properties.progress?.number || 0,
       itemsCount: properties.ItemsCount?.number || 
                   properties.itemsCount?.number ||
-                  properties.Nombre?.number || 15
+                  properties.Nombre?.number || 15,
+      pagesCount: properties.PagesCount?.number || 
+                 properties.pagesCount?.number || 0
     };
   } catch (error) {
     console.error(`❌ getProject - Erreur lors de la récupération du projet ID: "${cleanedId}"`, error);
@@ -158,7 +163,8 @@ export const createProject = async (data: { name: string; url: string }) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       progress: 0,
-      itemsCount: 15
+      itemsCount: 15,
+      pagesCount: 0
     };
     
     // Ajouter aux projets mock pour cohérence
@@ -181,7 +187,8 @@ export const createProject = async (data: { name: string; url: string }) => {
     "Description": { rich_text: [{ text: { content: 'Projet créé via l\'application' } }] },
     "Status": { select: { name: 'Non démarré' } },
     "Progress": { number: 0 },
-    "ItemsCount": { number: 15 }
+    "ItemsCount": { number: 15 },
+    "PagesCount": { number: 0 }
   };
   
   const response = await notionApiRequest(
@@ -203,7 +210,8 @@ export const createProject = async (data: { name: string; url: string }) => {
     createdAt: response.created_time,
     updatedAt: response.last_edited_time,
     progress: 0,
-    itemsCount: 15
+    itemsCount: 15,
+    pagesCount: 0
   };
 };
 
@@ -267,7 +275,8 @@ export const getAudit = async (id: string) => {
       updatedAt: new Date().toISOString(),
       score: 65,
       items: [],
-      projectId: 'project-1234'
+      projectId: 'project-1234',
+      version: '1.0'
     };
   }
 
@@ -301,6 +310,8 @@ export const getAudit = async (id: string) => {
     updatedAt: response.last_edited_time,
     score: properties.Score?.number || 
             properties.score?.number || 0,
-    items: []
+    items: [],
+    version: properties.Version?.rich_text?.[0]?.plain_text || 
+             properties.version?.rich_text?.[0]?.plain_text || '1.0'
   };
 };
