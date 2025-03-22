@@ -1,4 +1,3 @@
-
 /**
  * Implémentation principale de la classe Cache
  */
@@ -66,7 +65,7 @@ export class Cache {
    */
   get<T>(key: string): T | null {
     const fullKey = this.getFullKey(key);
-    const entry = this.storage.get(fullKey);
+    const entry = this.storage.get<T>(fullKey);
     
     // Aucune entrée trouvée
     if (!entry) {
@@ -85,7 +84,7 @@ export class Cache {
     }
     
     this.log(`Cache hit: ${key}`);
-    return entry.data;
+    return entry.data as T;
   }
 
   /**
@@ -115,7 +114,7 @@ export class Cache {
    * @returns La valeur du cache ou nouvellement récupérée
    */
   async getOrFetch<T>(key: string, fetcher: () => Promise<T>, ttl?: number): Promise<T> {
-    return fetchFromCacheOrSource(this, key, fetcher, ttl, this.log.bind(this));
+    return fetchFromCacheOrSource<T>(this, key, fetcher, ttl, this.log.bind(this));
   }
 
   /**
