@@ -1,9 +1,10 @@
 
-// Export des hooks liés à Notion
+// Export des hooks Notion
+export * from './useNotionAPI';
 export * from './useNotionConfigUI';
 export * from './useNotionConnection';
 export * from './useNotionDiagnostic';
+export * from './useNotionError';
 export * from './useNotionErrorState';
 export * from './useNotionStorage';
-export * from './useNotionError';
-export * from './useNotionAPI';
+export * from '../useChecklistAndExigences';
