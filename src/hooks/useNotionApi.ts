@@ -1,6 +1,6 @@
 
 import { useNotionAPI } from './notion/useNotionAPI';
-import { useOperationMode } from '@/services/operationMode';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Version améliorée du hook useNotionApi qui intègre la gestion automatique 
@@ -10,7 +10,6 @@ import { useOperationMode } from '@/services/operationMode';
  */
 export function useNotionApi<T = any>() {
   const notionAPI = useNotionAPI<T>();
-  const operationMode = useOperationMode();
   
   // Version améliorée de makeRequest qui gère automatiquement les erreurs avec operationMode
   const makeRequest = async <R = T>(
@@ -39,6 +38,6 @@ export function useNotionApi<T = any>() {
   return {
     ...notionAPI,
     makeRequest,
-    isDemoMode: operationMode.isDemoMode
+    isDemoMode: operationMode.isDemoMode()
   };
 }

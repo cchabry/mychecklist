@@ -1,4 +1,3 @@
-
 /**
  * Utilitaires pour travailler avec le mode mock
  */
@@ -15,7 +14,7 @@ import { operationMode } from '@/services/operationMode';
 export function isMockActive(): boolean {
   // Utiliser en priorité le nouveau système
   if (typeof operationMode !== 'undefined') {
-    return operationMode.isDemoMode;
+    return operationMode.isDemoMode();
   }
   
   // Fallback sur l'ancien système
@@ -102,7 +101,7 @@ export function shouldSimulateError(): boolean {
 export function temporarilyForceReal(): boolean {
   // Utiliser en priorité le nouveau système
   if (typeof operationMode !== 'undefined') {
-    const wasMock = operationMode.isDemoMode;
+    const wasMock = operationMode.isDemoMode();
     if (wasMock) {
       operationMode.enableRealMode();
     }
@@ -144,7 +143,7 @@ export function restoreAfterForceReal(wasMock: boolean): void {
 export function isTemporarilyForcedReal(wasMock: boolean): boolean {
   // Utiliser en priorité le nouveau système
   if (typeof operationMode !== 'undefined') {
-    return wasMock && !operationMode.isDemoMode;
+    return wasMock && !operationMode.isDemoMode();
   }
   
   // Fallback sur l'ancien système

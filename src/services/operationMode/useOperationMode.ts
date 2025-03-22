@@ -18,6 +18,7 @@ export function useOperationMode() {
   const [lastError, setLastError] = useState<Error | null>(
     operationMode.getLastError()
   );
+  const [settings, setSettings] = useState(operationMode.getSettings());
 
   // S'abonner aux changements de mode
   useEffect(() => {
@@ -26,6 +27,7 @@ export function useOperationMode() {
       setSwitchReason(reason);
       setFailures(operationMode.getConsecutiveFailures());
       setLastError(operationMode.getLastError());
+      setSettings(operationMode.getSettings());
     });
     
     return unsubscribe;
@@ -41,6 +43,7 @@ export function useOperationMode() {
     switchReason,
     failures,
     lastError,
+    settings,
     
     // Valeurs dérivées
     isDemoMode,
@@ -55,6 +58,8 @@ export function useOperationMode() {
     updateSettings: operationMode.updateSettings.bind(operationMode),
     
     // Utilitaires
-    reset: operationMode.reset.bind(operationMode)
+    reset: operationMode.reset.bind(operationMode),
+    handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode),
+    handleConnectionError: operationMode.handleConnectionError.bind(operationMode)
   };
 }

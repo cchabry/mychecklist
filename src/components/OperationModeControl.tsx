@@ -121,9 +121,9 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                 </Label>
                 <Switch
                   id="auto-switch"
-                  checked={settings.autoSwitch}
+                  checked={settings.autoSwitchOnFailure}
                   onCheckedChange={(checked) => {
-                    updateSettings({ autoSwitch: checked });
+                    updateSettings({ autoSwitchOnFailure: checked });
                     toast.info(
                       checked 
                         ? 'Bascule automatique activée' 
@@ -140,9 +140,9 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                 </Label>
                 <Switch
                   id="persist-mode"
-                  checked={settings.persistMode}
+                  checked={settings.persistentModeStorage}
                   onCheckedChange={(checked) => {
-                    updateSettings({ persistMode: checked });
+                    updateSettings({ persistentModeStorage: checked });
                   }}
                   className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
                 />
@@ -154,9 +154,9 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                 </Label>
                 <Switch
                   id="show-notifs"
-                  checked={settings.showNotifications}
+                  checked={true}
                   onCheckedChange={(checked) => {
-                    updateSettings({ showNotifications: checked });
+                    // Garde pour plus tard lorsque nous ajouterons cette option
                   }}
                   className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
                 />
@@ -168,9 +168,9 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                 Seuil de basculement (erreurs consécutives)
               </Label>
               <Select
-                value={settings.switchThreshold.toString()}
+                value={settings.maxConsecutiveFailures.toString()}
                 onValueChange={(value) => {
-                  updateSettings({ switchThreshold: parseInt(value) });
+                  updateSettings({ maxConsecutiveFailures: parseInt(value) });
                 }}
               >
                 <SelectTrigger id="switch-threshold" className="h-8 mt-1">

@@ -1,7 +1,6 @@
-
 import { CorsProxy, CorsProxyState, ProxyTestResult } from './types';
 import { availableProxies, getEnabledProxies } from './proxyList';
-import { operationModeService } from '@/services/operationMode/operationModeService';
+import { operationMode } from '@/services/operationMode';
 
 // Clé de stockage localStorage
 const PROXY_STORAGE_KEY = 'cors_proxy_state';
@@ -204,7 +203,7 @@ class CorsProxyService {
         this.notifyListeners();
         
         // Signal au système d'opération que la connexion fonctionne
-        operationModeService.handleSuccessfulOperation();
+        operationMode.handleSuccessfulOperation();
         
         return proxy;
       }
@@ -213,7 +212,7 @@ class CorsProxyService {
     console.error('Aucun proxy CORS fonctionnel trouvé.');
     
     // Signal au système d'opération qu'aucun proxy ne fonctionne
-    operationModeService.handleConnectionError(
+    operationMode.handleConnectionError(
       new Error('Aucun proxy CORS fonctionnel trouvé.'),
       'Recherche de proxy CORS'
     );

@@ -1,4 +1,3 @@
-
 import { mockMode as originalMockMode } from './mock';
 import { operationMode } from '@/services/operationMode';
 
@@ -12,9 +11,9 @@ const compatibilityMockMode = {
   /**
    * @deprecated Utilisez operationMode.isDemoMode à la place
    */
-  isActive() {
+  isActive: function() {
     console.warn('mockMode.isActive() est déprécié. Utilisez operationMode.isDemoMode à la place');
-    return operationMode.isDemoMode;
+    return operationMode.isDemoMode();
   },
   
   /**
@@ -39,7 +38,7 @@ const compatibilityMockMode = {
   toggle(): boolean {
     console.warn('mockMode.toggle est déprécié. Utilisez operationMode.toggle() à la place');
     operationMode.toggle();
-    return operationMode.isDemoMode;
+    return operationMode.isDemoMode();
   },
   
   /**
@@ -55,7 +54,7 @@ const compatibilityMockMode = {
    */
   temporarilyForceReal(): boolean {
     console.warn('mockMode.temporarilyForceReal est déprécié');
-    const wasMock = operationMode.isDemoMode;
+    const wasMock = operationMode.isDemoMode();
     if (wasMock) {
       operationMode.enableRealMode();
     }
@@ -76,7 +75,7 @@ const compatibilityMockMode = {
    * @deprecated Utilisez mockUtils.isTemporarilyForcedReal à la place
    */
   isTemporarilyForcedReal(wasMock: boolean): boolean {
-    return wasMock && !operationMode.isDemoMode;
+    return wasMock && !operationMode.isDemoMode();
   },
   
   /**
