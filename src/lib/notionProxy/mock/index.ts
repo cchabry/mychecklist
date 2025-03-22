@@ -3,7 +3,7 @@
  * Module de gestion du mode mock
  */
 
-import { mockState, MockConfig } from './state';
+import { mockState } from './state';
 import { getMockData } from './data';
 
 // Valeurs de configuration
@@ -15,8 +15,11 @@ let _getErrorRate = () => mockState.getConfig().errorRate;
 export const mockMode = {
   /**
    * Vérifie si le mode mock est actif
+   * @returns {boolean} true si le mode mock est actif, false sinon
    */
-  isActive: () => mockState.isActive(),
+  isActive: function() {
+    return mockState.isActive();
+  },
   
   /**
    * Active le mode mock
@@ -101,4 +104,4 @@ export const mockMode = {
 };
 
 // Interface publique
-export { MockConfig };
+export type { MockConfig } from './state';

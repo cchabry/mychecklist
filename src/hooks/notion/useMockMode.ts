@@ -37,6 +37,7 @@ export function useMockMode() {
   return {
     isMockMode,
     toggleMockMode: () => {
+      // Use the toggle method that returns the new state
       const newState = notionApi.mockMode.toggle();
       setIsMockMode(newState);
       return newState;

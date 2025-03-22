@@ -1,55 +1,38 @@
 
 /**
- * Types pour le système de mode opérationnel
+ * Types pour le service de mode opérationnel
  */
 
-/**
- * Types de mode de fonctionnement de l'application
- */
+// Énumération des modes opérationnels
 export enum OperationMode {
-  /**
-   * Mode réel - connexion directe à l'API Notion
-   */
   REAL = 'real',
-  
-  /**
-   * Mode démo - utilise des données fictives
-   */
   DEMO = 'demo',
-  
-  /**
-   * Mode transitoire - en cours de tentative de connexion
-   */
   TRANSITIONING = 'transitioning'
 }
 
-/**
- * Paramètres de configuration du mode opérationnel
- */
-export interface OperationModeSettings {
-  autoSwitch: boolean;     // Basculement automatique vers le mode démo en cas d'erreur
-  notifyOnSwitch: boolean; // Notification lors du basculement automatique
-  persistMode: boolean;    // Mémoriser le mode entre les sessions
-  autoFallbackEnabled: boolean; // Pour la compatibilité avec le code existant
-}
-
-/**
- * État du mode opérationnel
- */
+// État du mode opérationnel
 export interface OperationModeState {
   mode: OperationMode;
   switchReason: string | null;
   consecutiveFailures: number;
   lastError: Error | null;
-  failures: number; // Pour la compatibilité avec le code existant
+  failures: number; // Nombre total d'échecs
 }
 
-/**
- * Paramètres par défaut du mode opérationnel
- */
+// Paramètres du mode opérationnel
+export interface OperationModeSettings {
+  autoSwitch: boolean;          // Bascule automatique en mode démo en cas d'échec
+  autoFallbackEnabled: boolean; // Synonyme de autoSwitch pour compatibilité
+  persistMode: boolean;         // Conserver le mode entre les sessions
+  switchThreshold: number;      // Nombre d'échecs consécutifs avant bascule
+  showNotifications: boolean;   // Afficher des notifications lors des changements de mode
+}
+
+// Paramètres par défaut
 export const defaultSettings: OperationModeSettings = {
   autoSwitch: true,
-  notifyOnSwitch: true,
+  autoFallbackEnabled: true,
   persistMode: true,
-  autoFallbackEnabled: true
+  switchThreshold: 2,
+  showNotifications: true
 };

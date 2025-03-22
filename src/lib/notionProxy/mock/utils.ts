@@ -4,6 +4,7 @@
  */
 
 import { mockMode } from '../mockMode';
+import { mockUtils } from './data';
 
 /**
  * Version sécurisée de la vérification du mode mock
@@ -14,9 +15,14 @@ export function isMockActive(): boolean {
     // Try as a function first (legacy)
     return mockMode.isActive();
   } catch (e) {
-    // If it fails, try as a property (new version)
-    // @ts-ignore - we're handling the property vs function case
-    return mockMode.isActive;
+    try {
+      // If it fails, try as a property (in case it's implemented that way)
+      // @ts-ignore - we're handling the property vs function case
+      return mockMode.isActive;
+    } catch (err) {
+      console.warn('Erreur lors de la vérification du mode mock:', err);
+      return false;
+    }
   }
 }
 
@@ -46,3 +52,20 @@ export function enableMock(): void {
     console.warn('Erreur lors de l\'activation du mode mock:', e);
   }
 }
+
+/**
+ * Exporte les utilitaires du mode mock pour une utilisation facile
+ */
+export const mockModeUtils = {
+  // Vérification du mode
+  isMockActive,
+  temporarilyDisableMock,
+  enableMock,
+  
+  // Utilitaires supplémentaires
+  applySimulatedDelay: mockUtils.applySimulatedDelay,
+  shouldSimulateError: mockUtils.shouldSimulateError,
+  temporarilyForceReal: mockUtils.temporarilyForceReal,
+  restoreAfterForceReal: mockUtils.restoreAfterForceReal,
+  isTemporarilyForcedReal: mockUtils.isTemporarilyForcedReal
+};
