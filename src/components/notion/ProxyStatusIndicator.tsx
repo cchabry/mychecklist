@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, Server, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { corsProxyService } from '@/lib/notionProxy/corsProxyService';
-import { operationMode } from '@/services/operationMode';
+import { useCorsProxy } from '@/services/corsProxy';
+import { useOperationMode } from '@/services/operationMode';
 import { 
   Tooltip,
   TooltipContent,
@@ -20,7 +20,8 @@ const ProxyStatusIndicator: React.FC = () => {
     clientProxy: 'Vérification...',
     serverlessProxy: 'Vérification...'
   });
-  const [isChecking, setIsChecking] = useState(false);
+  const { isTestingProxy, findWorkingProxy, testProxy } = useCorsProxy();
+  const { handleConnectionError, handleSuccessfulOperation } = useOperationMode();
   
   // État indiquant si les deux proxies sont en échec
   const bothProxiesFailed = proxyStatus.clientProxy === 'Non disponible' && 
@@ -28,42 +29,42 @@ const ProxyStatusIndicator: React.FC = () => {
   
   // Vérifier le statut des proxies
   const checkProxyStatus = async () => {
-    setIsChecking(true);
-    
     try {
       // Vérifier le proxy CORS côté client
-      const clientProxyWorks = await corsProxyService.findWorkingProxy("test_token");
+      const clientProxyWorks = await findWorkingProxy("test_token");
       
       // Vérifier le proxy serverless
-      const serverlessProxyWorks = await corsProxyService.testServerlessProxy("test_token");
+      const serverlessProxyResult = await testProxy({ 
+        url: '/api/notion-proxy', 
+        name: 'Serverless Proxy',
+        enabled: true
+      }, "test_token");
       
       // Mettre à jour le statut
       const newStatus = {
         clientProxy: clientProxyWorks ? 'Fonctionnel' : 'Non disponible',
-        serverlessProxy: serverlessProxyWorks ? 'Fonctionnel' : 'Non disponible'
+        serverlessProxy: serverlessProxyResult.success ? 'Fonctionnel' : 'Non disponible'
       };
       
       setProxyStatus(newStatus);
       
-      // Signaler une erreur de connectivité au système operationMode si les deux proxies échouent
-      if (!clientProxyWorks && !serverlessProxyWorks) {
-        operationMode.handleConnectionError(
+      // Signaler une erreur de connectivité si les deux proxies échouent
+      if (!clientProxyWorks && !serverlessProxyResult.success) {
+        handleConnectionError(
           new Error("Aucun proxy n'est disponible"), 
           "Vérification des proxies"
         );
       } else {
         // Sinon, indiquer une opération réussie
-        operationMode.handleSuccessfulOperation();
+        handleSuccessfulOperation();
       }
     } catch (error) {
       console.error("Erreur lors de la vérification des proxies:", error);
       // Signaler l'erreur au système de mode opérationnel
-      operationMode.handleConnectionError(
+      handleConnectionError(
         error instanceof Error ? error : new Error(String(error)),
         "Vérification des proxies"
       );
-    } finally {
-      setIsChecking(false);
     }
   };
   
@@ -132,9 +133,9 @@ const ProxyStatusIndicator: React.FC = () => {
         variant={bothProxiesFailed ? "secondary" : "outline"}
         className="w-full text-xs h-7" 
         onClick={checkProxyStatus}
-        disabled={isChecking}
+        disabled={isTestingProxy}
       >
-        {isChecking ? 'Vérification...' : 'Vérifier les proxies'}
+        {isTestingProxy ? 'Vérification...' : 'Vérifier les proxies'}
       </Button>
     </div>
   );
