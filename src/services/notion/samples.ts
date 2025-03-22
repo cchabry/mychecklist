@@ -1,6 +1,6 @@
 
 import { SamplePage } from '@/lib/types';
-import { notionClient } from './client';
+import { notionClient, NotionAPIListResponse } from './client';
 import { cacheService } from '../cache';
 
 // Clés de cache pour les pages d'échantillon
@@ -40,7 +40,7 @@ export const samplesService = {
       // Pour l'instant, nous simulerons avec une requête filtrée sur la base de projets
       // Cette partie sera à remplacer par la vraie implémentation une fois la DB créée
       
-      const response = await notionClient.post(`/databases/${dbId}/query`, {
+      const response = await notionClient.post<NotionAPIListResponse>(`/databases/${dbId}/query`, {
         filter: {
           property: "ProjectId",
           rich_text: {

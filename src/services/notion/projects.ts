@@ -1,6 +1,5 @@
-
 import { Project } from '@/lib/types';
-import { notionClient } from './client';
+import { notionClient, NotionAPIListResponse, NotionAPIPage } from './client';
 import { cacheService } from '../cache';
 
 // Clé de cache pour les projets
@@ -37,7 +36,7 @@ export const projectsService = {
       }
       
       // Faire la requête à l'API Notion
-      const response = await notionClient.post(`/databases/${dbId}/query`, {});
+      const response = await notionClient.post<NotionAPIListResponse>(`/databases/${dbId}/query`, {});
       
       if (!response.success) {
         throw new Error(response.error?.message || 'Échec de la récupération des projets');
@@ -100,7 +99,7 @@ export const projectsService = {
     
     try {
       // Faire la requête à l'API Notion
-      const response = await notionClient.get(`/pages/${cleanId}`);
+      const response = await notionClient.get<NotionAPIPage>(`/pages/${cleanId}`);
       
       if (!response.success) {
         console.error('Erreur Notion lors de la récupération du projet:', response.error);
@@ -285,4 +284,3 @@ export const projectsService = {
 
 // Pour la compatibilité avec le code existant
 export type NotionProject = Project;
-

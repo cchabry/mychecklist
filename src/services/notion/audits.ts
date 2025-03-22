@@ -1,6 +1,6 @@
 
 import { Audit, ComplianceStatus, AuditItem } from '@/lib/types';
-import { notionClient } from './client';
+import { notionClient, NotionAPIListResponse, NotionAPIPage } from './client';
 import { cacheService } from '../cache';
 
 // Clés de cache pour les audits
@@ -38,7 +38,7 @@ export const auditsService = {
       // Pour l'instant, nous simulerons avec une requête filtrée sur la base de projets
       // Cette partie sera à remplacer par la vraie implémentation une fois la DB d'audits créée
       
-      const response = await notionClient.post(`/databases/${dbId}/query`, {
+      const response = await notionClient.post<NotionAPIListResponse>(`/databases/${dbId}/query`, {
         filter: {
           property: "ProjectId",
           rich_text: {
@@ -102,7 +102,7 @@ export const auditsService = {
     
     try {
       // Récupérer les données de base de l'audit
-      const response = await notionClient.get(`/pages/${auditId}`);
+      const response = await notionClient.get<NotionAPIPage>(`/pages/${auditId}`);
       
       if (!response.success) {
         console.error('Erreur Notion lors de la récupération de l\'audit:', response.error);
@@ -167,7 +167,7 @@ export const auditsService = {
         "Version": { rich_text: [{ text: { content: auditData.version || '1.0' } }] }
       };
       
-      const response = await notionClient.post('/pages', {
+      const response = await notionClient.post<NotionAPIPage>('/pages', {
         parent: { database_id: dbId },
         properties
       });

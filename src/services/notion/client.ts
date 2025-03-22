@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 // Types de base pour l'API Notion
@@ -15,6 +16,22 @@ export interface NotionAPIResponse<T> {
     code?: string;
     details?: any;
   };
+}
+
+// Interface pour les réponses de l'API Notion qui contiennent des résultats
+export interface NotionAPIListResponse {
+  results: any[];
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
+// Interface pour les objets Page de Notion
+export interface NotionAPIPage {
+  id: string;
+  properties: Record<string, any>;
+  created_time: string;
+  last_edited_time: string;
+  [key: string]: any;
 }
 
 // État de connexion Notion
