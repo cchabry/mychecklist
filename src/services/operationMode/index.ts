@@ -7,9 +7,7 @@ import { OperationMode, OperationModeSettings, OperationModeState } from './type
 export const operationMode = operationModeService;
 
 // Exporter tous les modules et types
-export {
-  useOperationMode,
-  OperationMode,
-  OperationModeSettings,
-  OperationModeState
-};
+export { useOperationMode };
+export { OperationMode };
+export type { OperationModeSettings, OperationModeState };
+
