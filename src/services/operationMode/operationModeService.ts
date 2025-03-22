@@ -2,6 +2,7 @@
 import { OperationMode, OperationModeSettings, SwitchReason } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { operationModeStorage } from './storage';
+import { operationModeNotifications } from './notifications';
 
 // Interface pour les abonnés au changement de mode
 type OperationModeSubscriber = (mode: OperationMode, reason: SwitchReason | null) => void;
@@ -62,7 +63,9 @@ class OperationModeService {
    * Définit le mode d'opération et notifie les abonnés
    */
   private setMode(newMode: OperationMode, reason: SwitchReason | null = null): void {
-    if (this.mode !== newMode) {
+    const previousMode = this.mode;
+    
+    if (previousMode !== newMode) {
       this.mode = newMode;
       this.switchReason = reason;
       
@@ -73,6 +76,9 @@ class OperationModeService {
       
       this.saveModeToStorage();
       this.notifySubscribers();
+      
+      // Afficher une notification si le mode a changé
+      operationModeNotifications.showModeChangeNotification(newMode, reason);
       
       console.log(`Mode opérationnel changé: ${newMode}${reason ? ` (${reason})` : ''}`);
     }
@@ -87,10 +93,11 @@ class OperationModeService {
       this.mode === OperationMode.REAL && 
       this.consecutiveFailures >= this.settings.maxConsecutiveFailures
     ) {
-      this.setMode(
-        OperationMode.DEMO, 
-        `Basculement automatique après ${this.consecutiveFailures} échecs consécutifs`
-      );
+      const reason = `Basculement automatique après ${this.consecutiveFailures} échecs consécutifs`;
+      this.setMode(OperationMode.DEMO, reason);
+      
+      // Notification spécifique pour le basculement automatique
+      operationModeNotifications.showAutoSwitchNotification(this.consecutiveFailures);
     }
   }
   
@@ -153,14 +160,14 @@ class OperationModeService {
   /**
    * Indique si le mode démo est actif
    */
-  public isDemoMode(): boolean {
+  public get isDemoMode(): boolean {
     return this.mode === OperationMode.DEMO;
   }
   
   /**
    * Indique si le mode réel est actif
    */
-  public isRealMode(): boolean {
+  public get isRealMode(): boolean {
     return this.mode === OperationMode.REAL;
   }
   
@@ -187,7 +194,11 @@ class OperationModeService {
     this.consecutiveFailures++;
     this.lastError = error;
     
-    console.warn(`Erreur de connexion (${context || 'inconnu'}):`, error.message);
+    const contextStr = context || 'inconnu';
+    console.warn(`Erreur de connexion (${contextStr}):`, error.message);
+    
+    // Notification d'erreur
+    operationModeNotifications.showConnectionErrorNotification(error, contextStr);
     
     // Vérifier si on doit basculer automatiquement
     this.checkAutoSwitch();

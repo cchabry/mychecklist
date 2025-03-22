@@ -27,56 +27,6 @@ export function useOperationMode() {
     return unsubscribe;
   }, []);
 
-  /**
-   * Active le mode démonstration
-   */
-  const enableDemoMode = (reason?: string) => {
-    operationMode.enableDemoMode(reason);
-  };
-
-  /**
-   * Active le mode réel
-   */
-  const enableRealMode = () => {
-    operationMode.enableRealMode();
-  };
-
-  /**
-   * Bascule entre les modes réel et démo
-   */
-  const toggle = () => {
-    operationMode.toggle();
-  };
-
-  /**
-   * Signale une erreur de connexion
-   */
-  const handleConnectionError = (error: Error, context?: string) => {
-    operationMode.handleConnectionError(error, context);
-  };
-
-  /**
-   * Signale une opération réussie
-   */
-  const handleSuccessfulOperation = () => {
-    operationMode.handleSuccessfulOperation();
-  };
-
-  /**
-   * Met à jour les paramètres
-   */
-  const updateSettings = (newSettings: Partial<OperationModeSettings>) => {
-    operationMode.updateSettings(newSettings);
-    setSettings(operationMode.getSettings());
-  };
-
-  /**
-   * Réinitialise complètement le service
-   */
-  const reset = () => {
-    operationMode.reset();
-  };
-
   return {
     // État
     mode,
@@ -86,16 +36,16 @@ export function useOperationMode() {
     settings,
     
     // Propriétés calculées
-    isDemoMode: operationMode.isDemoMode(),
-    isRealMode: operationMode.isRealMode(),
+    isDemoMode: operationMode.isDemoMode,
+    isRealMode: operationMode.isRealMode,
     
     // Actions
-    enableDemoMode,
-    enableRealMode,
-    toggle,
-    handleConnectionError,
-    handleSuccessfulOperation,
-    updateSettings,
-    reset
+    enableDemoMode: operationMode.enableDemoMode.bind(operationMode),
+    enableRealMode: operationMode.enableRealMode.bind(operationMode),
+    toggle: operationMode.toggle.bind(operationMode),
+    handleConnectionError: operationMode.handleConnectionError.bind(operationMode),
+    handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode),
+    updateSettings: operationMode.updateSettings.bind(operationMode),
+    reset: operationMode.reset.bind(operationMode)
   };
 }

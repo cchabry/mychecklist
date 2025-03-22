@@ -1,4 +1,6 @@
-import { mockMode as originalMockMode } from './mock';
+
+import { mockUtils } from './mock/utils';
+import { mockModeAdapter } from './mockModeAdapter';
 import { operationMode } from '@/services/operationMode';
 
 /**
@@ -6,14 +8,12 @@ import { operationMode } from '@/services/operationMode';
  * @deprecated Utilisez operationMode à la place
  */
 const compatibilityMockMode = {
-  ...originalMockMode,
-  
   /**
    * @deprecated Utilisez operationMode.isDemoMode à la place
    */
   isActive: function() {
     console.warn('mockMode.isActive() est déprécié. Utilisez operationMode.isDemoMode à la place');
-    return operationMode.isDemoMode();
+    return operationMode.isDemoMode;
   },
   
   /**
@@ -38,7 +38,7 @@ const compatibilityMockMode = {
   toggle(): boolean {
     console.warn('mockMode.toggle est déprécié. Utilisez operationMode.toggle() à la place');
     operationMode.toggle();
-    return operationMode.isDemoMode();
+    return operationMode.isDemoMode;
   },
   
   /**
@@ -46,7 +46,7 @@ const compatibilityMockMode = {
    */
   forceReset(): void {
     console.warn('mockMode.forceReset est déprécié');
-    operationMode.enableRealMode();
+    operationMode.reset();
   },
   
   /**
@@ -54,11 +54,7 @@ const compatibilityMockMode = {
    */
   temporarilyForceReal(): boolean {
     console.warn('mockMode.temporarilyForceReal est déprécié');
-    const wasMock = operationMode.isDemoMode();
-    if (wasMock) {
-      operationMode.enableRealMode();
-    }
-    return wasMock;
+    return mockUtils.temporarilyForceReal();
   },
   
   /**
@@ -66,27 +62,30 @@ const compatibilityMockMode = {
    */
   restoreAfterForceReal(wasMock: boolean): void {
     console.warn('mockMode.restoreAfterForceReal est déprécié');
-    if (wasMock) {
-      operationMode.enableDemoMode('Restoration après force real');
-    }
+    mockUtils.restoreAfterForceReal(wasMock);
   },
   
   /**
    * @deprecated Utilisez mockUtils.isTemporarilyForcedReal à la place
    */
   isTemporarilyForcedReal(wasMock: boolean): boolean {
-    return wasMock && !operationMode.isDemoMode();
+    return wasMock && !operationMode.isDemoMode;
   },
+  
+  // Fonctions de configuration du mode mock (déléguées à l'adaptateur)
+  getDelay: mockModeAdapter.getDelay,
+  setDelay: mockModeAdapter.setDelay,
+  getScenario: mockModeAdapter.getScenario,
+  setScenario: mockModeAdapter.setScenario,
+  getErrorRate: mockModeAdapter.getErrorRate,
+  setErrorRate: mockModeAdapter.setErrorRate,
   
   /**
    * @deprecated Utilisez mockUtils.applySimulatedDelay à la place
    */
   applySimulatedDelay: async (): Promise<void> => {
     console.warn('mockMode.applySimulatedDelay est déprécié');
-    const delay = originalMockMode.getDelay();
-    if (delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+    await mockUtils.applySimulatedDelay();
   },
   
   /**
@@ -94,8 +93,7 @@ const compatibilityMockMode = {
    */
   shouldSimulateError: (): boolean => {
     console.warn('mockMode.shouldSimulateError est déprécié');
-    const errorRate = originalMockMode.getErrorRate();
-    return Math.random() * 100 < errorRate;
+    return mockUtils.shouldSimulateError();
   }
 };
 

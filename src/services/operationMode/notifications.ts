@@ -1,76 +1,67 @@
 
 import { toast } from 'sonner';
-import { operationMode } from './operationModeService';
-import { Database, AlertTriangle, Info } from 'lucide-react';
+import { Activity, Database, AlertTriangle } from 'lucide-react';
+import { OperationMode } from './types';
 import React from 'react';
 
 /**
- * Utilitaire de notifications pour le système operationMode
+ * Utilitaires pour gérer les notifications du mode opérationnel
  */
 export const operationModeNotifications = {
   /**
-   * Affiche une notification de passage en mode démo
+   * Affiche une notification lors du changement de mode
    */
-  notifyDemoMode: (reason?: string) => {
-    toast.info('Mode démonstration activé', {
-      description: reason || 'L\'application utilise maintenant des données simulées',
-      icon: React.createElement(Database, { size: 16, className: "text-blue-500" }),
-      duration: 5000
-    });
+  showModeChangeNotification: (newMode: OperationMode, reason: string | null): void => {
+    if (newMode === OperationMode.DEMO) {
+      toast.info('Mode démonstration activé', {
+        description: reason || 'Utilisation de données simulées',
+        icon: React.createElement(Database, { size: 16, className: 'text-blue-500' }),
+        duration: 4000,
+      });
+    } else {
+      toast.success('Mode réel activé', {
+        description: 'Connexion aux données Notion',
+        icon: React.createElement(Activity, { size: 16, className: 'text-green-500' }),
+        duration: 4000,
+      });
+    }
   },
 
   /**
-   * Affiche une notification de passage en mode réel
+   * Affiche une notification lors d'une erreur de connexion
    */
-  notifyRealMode: () => {
-    toast.success('Mode réel activé', {
-      description: 'L\'application se connecte maintenant à Notion',
-      icon: React.createElement(Info, { size: 16, className: "text-green-500" }),
-      duration: 5000
-    });
-  },
-
-  /**
-   * Affiche une notification d'erreur avec action de basculement
-   */
-  notifyConnectionError: (error: Error, context?: string) => {
-    toast.error(context || 'Erreur de connexion', {
-      description: error.message,
+  showConnectionErrorNotification: (error: Error, context: string): void => {
+    toast.error('Problème de connexion', {
+      description: `Erreur lors de ${context}: ${error.message}`,
+      icon: React.createElement(AlertTriangle, { size: 16, className: 'text-red-500' }),
       duration: 8000,
       action: {
-        label: 'Passer en mode démo',
+        label: 'Passer en démo',
         onClick: () => {
-          operationMode.enableDemoMode('Activation manuelle suite à une erreur');
-          toast.info('Mode démonstration activé');
-        }
-      }
-    });
-  },
-
-  /**
-   * Affiche une notification de basculement automatique
-   */
-  notifyAutoSwitch: (failures: number) => {
-    toast.warning('Passage automatique en mode démonstration', {
-      description: `Après ${failures} échecs de connexion, l'application utilise maintenant des données simulées.`,
-      duration: 8000,
-      action: {
-        label: 'Réessayer en mode réel',
-        onClick: () => {
-          operationMode.enableRealMode();
-          toast.info('Tentative de reconnexion à Notion...');
+          // Import direct pour éviter les dépendances circulaires
+          const { operationMode } = require('./operationModeService');
+          operationMode.enableDemoMode(`Erreur dans ${context}`);
         }
       }
     });
   },
   
   /**
-   * Affiche une notification pour les paramètres mis à jour
+   * Affiche une notification pour les actions automatiques du système
    */
-  notifySettingsUpdated: (settingName: string, enabled: boolean) => {
-    toast.info(`Paramètre mis à jour: ${settingName}`, {
-      description: enabled ? 'Paramètre activé' : 'Paramètre désactivé',
-      duration: 3000
+  showAutoSwitchNotification: (failures: number): void => {
+    toast.warning('Passage automatique en mode démonstration', {
+      description: `Après ${failures} échecs consécutifs de connexion à Notion`,
+      icon: React.createElement(AlertTriangle, { size: 16, className: 'text-amber-500' }),
+      duration: 6000,
+      action: {
+        label: 'Réessayer',
+        onClick: () => {
+          // Import direct pour éviter les dépendances circulaires
+          const { operationMode } = require('./operationModeService');
+          operationMode.enableRealMode();
+        }
+      }
     });
   }
 };

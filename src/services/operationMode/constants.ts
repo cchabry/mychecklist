@@ -8,7 +8,9 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   maxConsecutiveFailures: 3,
   autoSwitchOnFailure: true,
   persistentModeStorage: true,
-  notificationDuration: 5000
+  notificationDuration: 5000,
+  simulatedNetworkDelay: 500,
+  errorSimulationRate: 0
 };
 
 /**
@@ -16,5 +18,15 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
  */
 export const STORAGE_KEYS = {
   MODE: 'operation_mode',
-  REASON: 'operation_mode_reason'
+  REASON: 'operation_mode_reason',
+  SETTINGS: 'operation_mode_settings'
+};
+
+/**
+ * Messages standards utilisés par le service
+ */
+export const MESSAGES = {
+  MANUAL_ACTIVATION: 'Mode démo activé manuellement',
+  CONNECTION_ERROR: 'Erreur de connexion à Notion',
+  AUTO_SWITCH: (failures: number) => `Basculement automatique après ${failures} échecs consécutifs`
 };
