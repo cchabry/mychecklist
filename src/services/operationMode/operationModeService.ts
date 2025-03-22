@@ -1,35 +1,9 @@
-import { toast } from 'sonner';
-import React from 'react';
 
-/**
- * Types de mode de fonctionnement de l'application
- */
-export enum OperationMode {
-  /**
-   * Mode réel - connexion directe à l'API Notion
-   */
-  REAL = 'real',
-  
-  /**
-   * Mode démo - utilise des données fictives
-   */
-  DEMO = 'demo',
-  
-  /**
-   * Mode transitoire - en cours de tentative de connexion
-   */
-  TRANSITIONING = 'transitioning'
-}
+import { toast } from 'sonner';
+import { OperationMode, OperationModeSettings, OperationModeState } from './types';
 
 // Clé de stockage localStorage
 const MODE_STORAGE_KEY = 'app_operation_mode';
-
-// Paramètres
-interface OperationModeSettings {
-  autoSwitch: boolean;     // Basculement automatique vers le mode démo en cas d'erreur
-  notifyOnSwitch: boolean; // Notification lors du basculement automatique
-  persistMode: boolean;    // Mémoriser le mode entre les sessions
-}
 
 // Configuration par défaut
 const DEFAULT_SETTINGS: OperationModeSettings = {
@@ -42,11 +16,14 @@ const DEFAULT_SETTINGS: OperationModeSettings = {
  * Service de gestion du mode de fonctionnement de l'application
  */
 class OperationModeService {
-  private mode: OperationMode = OperationMode.REAL;
+  private state: OperationModeState = {
+    mode: OperationMode.REAL,
+    switchReason: null,
+    consecutiveFailures: 0,
+    lastError: null
+  };
+  
   private settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
-  private switchReason: string | null = null;
-  private consecutiveFailures: number = 0;
-  private lastError: Error | null = null;
   private listeners: Set<Function> = new Set();
   
   constructor() {
@@ -57,28 +34,28 @@ class OperationModeService {
    * Obtient le mode actuel
    */
   getMode(): OperationMode {
-    return this.mode;
+    return this.state.mode;
   }
   
   /**
    * Vérifie si on est en mode démonstration
    */
   isDemoMode(): boolean {
-    return this.mode === OperationMode.DEMO;
+    return this.state.mode === OperationMode.DEMO;
   }
   
   /**
    * Vérifie si on est en mode réel
    */
   isRealMode(): boolean {
-    return this.mode === OperationMode.REAL;
+    return this.state.mode === OperationMode.REAL;
   }
   
   /**
    * Vérifie si on est en mode transition
    */
   isTransitioning(): boolean {
-    return this.mode === OperationMode.TRANSITIONING;
+    return this.state.mode === OperationMode.TRANSITIONING;
   }
   
   /**
@@ -92,7 +69,7 @@ class OperationModeService {
    * Active manuellement le mode réel
    */
   enableRealMode(): boolean {
-    if (this.lastError && this.consecutiveFailures > 0) {
+    if (this.state.lastError && this.state.consecutiveFailures > 0) {
       toast.warning('Échecs précédents détectés', {
         description: 'Des problèmes de connexion ont été détectés précédemment'
       });
@@ -130,26 +107,32 @@ class OperationModeService {
    * Peut basculer automatiquement en mode démo selon les paramètres
    */
   handleConnectionError(error: Error, context: string = 'Opération Notion'): void {
-    this.lastError = error;
-    this.consecutiveFailures++;
+    this.state.lastError = error;
+    this.state.consecutiveFailures++;
     
-    console.warn(`🚨 Erreur de connexion Notion (${this.consecutiveFailures} échecs)`, error);
+    console.warn(`🚨 Erreur de connexion Notion (${this.state.consecutiveFailures} échecs)`, error);
     
     // Si le mode automatique est activé et qu'on est en mode réel
-    if (this.settings.autoSwitch && this.isRealMode() && this.consecutiveFailures >= 2) {
+    if (this.settings.autoSwitch && this.isRealMode() && this.state.consecutiveFailures >= 2) {
       const reason = `Échec de connexion: ${error.message || 'Erreur non spécifiée'}`;
       this.switchToMode(OperationMode.DEMO, reason);
     }
+    
+    // Notifier les écouteurs du changement d'état
+    this.notifyListeners();
   }
   
   /**
    * Réinitialise le compteur d'échecs suite à une opération réussie
    */
   handleSuccessfulOperation(): void {
-    if (this.consecutiveFailures > 0) {
-      this.consecutiveFailures = 0;
-      this.lastError = null;
+    if (this.state.consecutiveFailures > 0) {
+      this.state.consecutiveFailures = 0;
+      this.state.lastError = null;
       console.log('✅ Réinitialisation du compteur d\'échecs suite à une opération réussie');
+      
+      // Notifier les écouteurs du changement d'état
+      this.notifyListeners();
     }
   }
   
@@ -165,21 +148,21 @@ class OperationModeService {
    * Obtient la raison du dernier changement de mode
    */
   getSwitchReason(): string | null {
-    return this.switchReason;
+    return this.state.switchReason;
   }
   
   /**
    * Obtient la dernière erreur enregistrée
    */
   getLastError(): Error | null {
-    return this.lastError;
+    return this.state.lastError;
   }
   
   /**
    * Obtient le nombre d'échecs consécutifs
    */
   getConsecutiveFailures(): number {
-    return this.consecutiveFailures;
+    return this.state.consecutiveFailures;
   }
   
   /**
@@ -188,7 +171,7 @@ class OperationModeService {
   toggle(): OperationMode {
     const newMode = this.isRealMode() ? OperationMode.DEMO : OperationMode.REAL;
     this.switchToMode(newMode, 'Basculement manuel');
-    return this.mode;
+    return this.state.mode;
   }
   
   /**
@@ -196,11 +179,11 @@ class OperationModeService {
    */
   private switchToMode(newMode: OperationMode, reason: string): void {
     // Ne rien faire si on est déjà dans ce mode
-    if (this.mode === newMode) return;
+    if (this.state.mode === newMode) return;
     
-    const previousMode = this.mode;
-    this.mode = newMode;
-    this.switchReason = reason;
+    const previousMode = this.state.mode;
+    this.state.mode = newMode;
+    this.state.switchReason = reason;
     
     console.log(`🔄 Changement de mode: ${previousMode} -> ${newMode} (${reason})`);
     
@@ -239,7 +222,7 @@ class OperationModeService {
         
         // Restaurer le mode
         if (data.mode && Object.values(OperationMode).includes(data.mode)) {
-          this.mode = data.mode;
+          this.state.mode = data.mode;
         }
         
         // Restaurer les paramètres
@@ -247,7 +230,7 @@ class OperationModeService {
           this.settings = { ...DEFAULT_SETTINGS, ...data.settings };
         }
         
-        console.log(`🔄 Mode chargé depuis localStorage: ${this.mode}`);
+        console.log(`🔄 Mode chargé depuis localStorage: ${this.state.mode}`);
       }
     } catch (e) {
       console.error('Erreur lors du chargement du mode depuis localStorage', e);
@@ -260,7 +243,7 @@ class OperationModeService {
   private saveToStorage(): void {
     try {
       const dataToStore = {
-        mode: this.mode,
+        mode: this.state.mode,
         settings: this.settings
       };
       
@@ -276,7 +259,7 @@ class OperationModeService {
   private notifyListeners(): void {
     this.listeners.forEach(listener => {
       try {
-        listener(this.mode);
+        listener(this.state.mode);
       } catch (e) {
         console.error('Erreur dans un écouteur de mode', e);
       }
@@ -285,33 +268,5 @@ class OperationModeService {
 }
 
 // Créer et exporter l'instance unique du service
-export const operationMode = new OperationModeService();
+export const operationModeService = new OperationModeService();
 
-// Exporter une fonction utilitaire pour les composants React
-export function useOperationMode() {
-  const [mode, setMode] = React.useState<OperationMode>(operationMode.getMode());
-  
-  React.useEffect(() => {
-    // S'abonner aux changements
-    const unsubscribe = operationMode.subscribe((newMode: OperationMode) => {
-      setMode(newMode);
-    });
-    
-    // Se désabonner au démontage
-    return unsubscribe;
-  }, []);
-  
-  return {
-    mode,
-    isDemoMode: operationMode.isDemoMode(),
-    isRealMode: operationMode.isRealMode(),
-    enableDemoMode: operationMode.enableDemoMode.bind(operationMode),
-    enableRealMode: operationMode.enableRealMode.bind(operationMode),
-    toggle: operationMode.toggle.bind(operationMode),
-    settings: operationMode.getSettings(),
-    updateSettings: operationMode.updateSettings.bind(operationMode),
-    switchReason: operationMode.getSwitchReason(),
-    lastError: operationMode.getLastError(),
-    failures: operationMode.getConsecutiveFailures()
-  };
-}
