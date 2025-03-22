@@ -1,11 +1,10 @@
-
 /**
  * Gestionnaire de cache avancé
  * Construit sur le service de cache de base et offre des fonctionnalités avancées
  */
 
-import { Cache } from './cache';
-import { CacheFetchOptions, CacheOptions } from './types';
+import { Cache } from './core/baseCache';
+import { CacheFetchOptions, CacheOptions } from './types/cacheEntry';
 
 /**
  * Classe du gestionnaire de cache avancé
@@ -235,4 +234,3 @@ export const cacheManager = new CacheManager({
   debug: process.env.NODE_ENV === 'development',
   keyPrefix: 'app-cache:v1:'
 });
-

@@ -4,7 +4,7 @@
  */
 
 // Exporter le service de cache de base
-export { cacheService } from './cache';
+export { cacheService, Cache } from './cache';
 
 // Exporter le gestionnaire de cache avancé
 export { cacheManager, CacheManager } from './cacheManager';
