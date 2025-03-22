@@ -1,3 +1,4 @@
+
 export interface ChecklistItem {
   id: string;
   title: string;
@@ -19,6 +20,9 @@ export interface ChecklistItem {
   projectRequirement?: string;
   projectComment?: string;
   actions?: CorrectiveAction[];
+  comment?: string;
+  reference?: string;
+  profil?: string;
 }
 
 export interface Project {
@@ -30,6 +34,8 @@ export interface Project {
   progress: number;
   itemsCount: number;
   pagesCount: number;
+  description?: string;
+  status?: string;
 }
 
 export interface Audit {
@@ -44,12 +50,27 @@ export interface Audit {
   version: string;
 }
 
+// Alias pour la compatibilité avec le code existant
+export type AuditItem = ChecklistItem;
+export type ProjectRequirement = Exigence;
+export type Evaluation = any; // À définir plus précisément selon l'usage
+
 export enum ComplianceStatus {
   Compliant = "Compliant",
   NonCompliant = "NonCompliant",
   PartiallyCompliant = "PartiallyCompliant",
-  NotEvaluated = "NotEvaluated"
+  NotEvaluated = "NotEvaluated",
+  NotApplicable = "NotApplicable"
 }
+
+// Valeurs numériques pour les statuts de conformité (pour les calculs de score)
+export const COMPLIANCE_VALUES = {
+  [ComplianceStatus.Compliant]: 1,
+  [ComplianceStatus.PartiallyCompliant]: 0.5,
+  [ComplianceStatus.NonCompliant]: 0,
+  [ComplianceStatus.NotEvaluated]: 0,
+  [ComplianceStatus.NotApplicable]: 0
+};
 
 export enum ImportanceLevel {
   Majeur = "Majeur",
@@ -77,14 +98,16 @@ export interface SamplePage {
 export enum ActionPriority {
   High = "High",
   Medium = "Medium",
-  Low = "Low"
+  Low = "Low",
+  Critical = "Critical"
 }
 
 export enum ActionStatus {
   Open = "Open",
   InProgress = "In Progress",
   Done = "Done",
-  Blocked = "Blocked"
+  Blocked = "Blocked",
+  ToDo = "To Do"
 }
 
 export interface CorrectiveAction {

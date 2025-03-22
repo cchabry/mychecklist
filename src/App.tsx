@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -11,6 +12,7 @@ import ProjectAudit from '@/pages/audit/ProjectAudit';
 import NewAuditPage from '@/pages/audit/NewAuditPage';
 import NotFound from '@/pages/NotFound';
 import ErrorPage from '@/pages/ErrorPage';
+import ConfigureExigences from '@/pages/project/ConfigureExigences';
 
 // Provider pour les services Notion
 import { NotionServiceProvider } from '@/contexts/NotionServiceContext';

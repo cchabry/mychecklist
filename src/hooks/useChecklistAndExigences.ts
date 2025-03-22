@@ -102,7 +102,8 @@ export const useChecklistAndExigences = (projectId: string | undefined) => {
       
       if (existingExigence) {
         // Mettre à jour l'exigence existante
-        const updated = await exigencesService.updateExigence(existingExigence.id, {
+        const updated = await exigencesService.saveExigence({
+          ...existingExigence,
           importance,
           comment
         });
@@ -116,7 +117,8 @@ export const useChecklistAndExigences = (projectId: string | undefined) => {
         }
       } else {
         // Créer une nouvelle exigence
-        const newExigence = await exigencesService.createExigence({
+        const newExigence = await exigencesService.saveExigence({
+          id: 'new',
           projectId,
           itemId,
           importance,

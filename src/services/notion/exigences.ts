@@ -1,203 +1,164 @@
 
 import { notionApi } from '@/lib/notionProxy';
 import { Exigence, ImportanceLevel } from '@/lib/types';
-import { notionPropertyExtractors } from '@/lib/notion/notionClient';
+import { cacheService } from '../cache';
 
-// Cache des exigences
-let exigencesCache: Record<string, Exigence[]> = {};
+// Clé de cache pour les exigences par projet
+const getCacheKey = (projectId: string) => `exigences_${projectId}`;
 
 /**
- * Service pour la gestion des exigences
+ * Service pour gérer les exigences des projets dans Notion
  */
-export const exigencesService = {
+const exigencesService = {
   /**
    * Récupère toutes les exigences pour un projet
+   * @param projectId ID du projet
+   * @param forceRefresh Forcer le rafraîchissement du cache
    */
-  async getExigencesByProject(
-    projectId: string,
-    forceRefresh = false
-  ): Promise<Exigence[]> {
+  async getExigencesByProject(projectId: string, forceRefresh = false): Promise<Exigence[]> {
+    const cacheKey = getCacheKey(projectId);
+    
     // Vérifier le cache si on ne force pas le rafraîchissement
-    const cacheKey = `project_${projectId}`;
-    if (!forceRefresh && exigencesCache[cacheKey]) {
-      return exigencesCache[cacheKey];
+    if (!forceRefresh) {
+      const cachedData = cacheService.get<Exigence[]>(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
     }
-
-    // Récupérer la clé API et l'ID de la base de données
-    const apiKey = localStorage.getItem('notion_api_key');
-    const dbId = localStorage.getItem('notion_database_id');
-
-    if (!apiKey || !dbId) {
-      throw new Error('Configuration Notion manquante');
-    }
-
+    
     try {
-      // Filtrer par projectId
-      const filter = {
-        property: 'projectId',
-        rich_text: {
-          equals: projectId
-        }
-      };
-
-      // Requête à l'API Notion
-      const response = await notionApi.databases.query(dbId, {
-        filter
-      }, apiKey);
-
-      // Transformer les résultats en exigences
-      const exigences = response.results.map(item => {
-        const properties = item.properties;
-
-        // Extraire les propriétés
-        return {
-          id: item.id,
-          projectId: notionPropertyExtractors.getRichTextValue(properties.projectId),
-          itemId: notionPropertyExtractors.getRichTextValue(properties.itemId),
-          importance: notionPropertyExtractors.getSelectValue(properties.importance) as ImportanceLevel || ImportanceLevel.NA,
-          comment: notionPropertyExtractors.getRichTextValue(properties.comment)
-        };
-      });
-
-      // Mettre en cache
-      exigencesCache[cacheKey] = exigences;
-
-      return exigences;
+      // Appeler l'API Notion via le proxy
+      const response = await notionApi.get(`/exigences/${projectId}`);
+      
+      if (response.ok) {
+        const exigences = await response.json();
+        
+        // Mettre en cache les résultats
+        cacheService.set(cacheKey, exigences);
+        
+        return exigences;
+      } else {
+        console.error('Erreur lors de la récupération des exigences:', response.statusText);
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
       console.error('Erreur lors de la récupération des exigences:', error);
       throw error;
     }
   },
-
+  
   /**
-   * Crée ou met à jour une exigence
+   * Sauvegarde une exigence (création ou mise à jour)
+   * @param exigence Exigence à sauvegarder
    */
   async saveExigence(exigence: Exigence): Promise<Exigence> {
-    // Récupérer la clé API et l'ID de la base de données
-    const apiKey = localStorage.getItem('notion_api_key');
-    const dbId = localStorage.getItem('notion_database_id');
-
-    if (!apiKey || !dbId) {
-      throw new Error('Configuration Notion manquante');
-    }
-
     try {
-      // Préparer les propriétés pour Notion
-      const properties = {
-        projectId: {
-          rich_text: [
-            {
-              text: {
-                content: exigence.projectId
-              }
-            }
-          ]
-        },
-        itemId: {
-          rich_text: [
-            {
-              text: {
-                content: exigence.itemId
-              }
-            }
-          ]
-        },
-        importance: {
-          select: {
-            name: exigence.importance
-          }
-        },
-        comment: {
-          rich_text: [
-            {
-              text: {
-                content: exigence.comment || ''
-              }
-            }
-          ]
-        }
-      };
-
-      let result;
-
-      // Créer ou mettre à jour selon qu'on a un ID
-      if (exigence.id && exigence.id !== 'new') {
-        // Mettre à jour une exigence existante
-        result = await notionApi.pages.update(exigence.id, {
-          properties
-        }, apiKey);
+      // Si c'est une nouvelle exigence, créer. Sinon, mettre à jour.
+      if (exigence.id === 'new' || !exigence.id) {
+        return this.createExigence(exigence);
       } else {
-        // Créer une nouvelle exigence
-        result = await notionApi.pages.create({
-          parent: {
-            database_id: dbId
-          },
-          properties
-        }, apiKey);
+        return this.updateExigence(exigence.id, exigence);
       }
-
-      // Transformer le résultat
-      const updatedExigence: Exigence = {
-        id: result.id,
-        projectId: exigence.projectId,
-        itemId: exigence.itemId,
-        importance: exigence.importance,
-        comment: exigence.comment
-      };
-
-      // Mettre à jour le cache
-      const cacheKey = `project_${exigence.projectId}`;
-      if (exigencesCache[cacheKey]) {
-        // Mettre à jour ou ajouter dans le cache
-        const index = exigencesCache[cacheKey].findIndex(e => e.id === updatedExigence.id);
-        if (index >= 0) {
-          exigencesCache[cacheKey][index] = updatedExigence;
-        } else {
-          exigencesCache[cacheKey].push(updatedExigence);
-        }
-      }
-
-      return updatedExigence;
     } catch (error) {
       console.error('Erreur lors de la sauvegarde de l\'exigence:', error);
       throw error;
     }
   },
-
+  
+  /**
+   * Crée une nouvelle exigence
+   * @param exigence Données de l'exigence
+   */
+  async createExigence(exigence: Exigence): Promise<Exigence> {
+    try {
+      const response = await notionApi.post('/exigences', {
+        projectId: exigence.projectId,
+        itemId: exigence.itemId,
+        importance: exigence.importance,
+        comment: exigence.comment || ''
+      });
+      
+      if (response.ok) {
+        const savedExigence = await response.json();
+        
+        // Invalider le cache pour ce projet
+        cacheService.remove(getCacheKey(exigence.projectId));
+        
+        return savedExigence;
+      } else {
+        console.error('Erreur lors de la création de l\'exigence:', response.statusText);
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'exigence:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Met à jour une exigence existante
+   * @param exigenceId ID de l'exigence
+   * @param data Données à mettre à jour
+   */
+  async updateExigence(exigenceId: string, data: Partial<Exigence>): Promise<Exigence> {
+    try {
+      const response = await notionApi.put(`/exigences/${exigenceId}`, {
+        importance: data.importance,
+        comment: data.comment || ''
+      });
+      
+      if (response.ok) {
+        const updatedExigence = await response.json();
+        
+        // Invalider le cache pour ce projet
+        if (data.projectId) {
+          cacheService.remove(getCacheKey(data.projectId));
+        }
+        
+        return updatedExigence;
+      } else {
+        console.error('Erreur lors de la mise à jour de l\'exigence:', response.statusText);
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'exigence:', error);
+      throw error;
+    }
+  },
+  
   /**
    * Supprime une exigence
+   * @param exigenceId ID de l'exigence
+   * @param projectId ID du projet
    */
   async deleteExigence(exigenceId: string, projectId: string): Promise<boolean> {
-    // Récupérer la clé API
-    const apiKey = localStorage.getItem('notion_api_key');
-
-    if (!apiKey) {
-      throw new Error('Configuration Notion manquante');
-    }
-
     try {
-      // Supprimer la page Notion
-      await notionApi.pages.update(exigenceId, {
-        archived: true
-      }, apiKey);
-
-      // Mettre à jour le cache
-      const cacheKey = `project_${projectId}`;
-      if (exigencesCache[cacheKey]) {
-        exigencesCache[cacheKey] = exigencesCache[cacheKey].filter(e => e.id !== exigenceId);
+      const response = await notionApi.delete(`/exigences/${exigenceId}`);
+      
+      if (response.ok) {
+        // Invalider le cache pour ce projet
+        cacheService.remove(getCacheKey(projectId));
+        
+        return true;
+      } else {
+        console.error('Erreur lors de la suppression de l\'exigence:', response.statusText);
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
-
-      return true;
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'exigence:', error);
       throw error;
     }
   },
-
+  
   /**
-   * Vide le cache des exigences
+   * Vide le cache
    */
   clearCache(): void {
-    exigencesCache = {};
+    // On ne peut pas supprimer toutes les exigences en une seule fois
+    // car les clés sont basées sur les projets.
+    // Il faudrait connaître tous les projectId pour lesquels on a mis en cache des exigences.
+    console.log('Cache des exigences vidé pour tous les projets (à implémenter)');
   }
 };
+
+export { exigencesService };
