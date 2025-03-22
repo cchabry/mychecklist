@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import HomeIndex from './HomeIndex';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Settings } from 'lucide-react';
 import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { operationMode } from '@/services/operationMode';
@@ -43,6 +43,7 @@ const HomePage = () => {
           className="shadow-lg"
           variant={operationMode.isDemoMode ? "outline" : "default"}
         >
+          <Settings size={16} className="mr-2" />
           {operationMode.isDemoMode ? 'Mode démo actif' : 'Mode réel actif'}
         </Button>
         

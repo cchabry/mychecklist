@@ -44,6 +44,7 @@ const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({
         <AlertTitle className="text-blue-700">Mode démonstration actif</AlertTitle>
         <AlertDescription className="text-blue-600">
           L'application utilise des données simulées. Aucune connexion à Notion n'est nécessaire.
+          <span className="block mt-1 text-xs">Vous pouvez désactiver ce mode dans les paramètres.</span>
         </AlertDescription>
       </Alert>
     );
