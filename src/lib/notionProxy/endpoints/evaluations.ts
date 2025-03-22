@@ -1,5 +1,5 @@
 
-import { Evaluation, ComplianceLevel } from '@/lib/types';
+import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
 import { notionApiRequest } from '../proxyFetch';
@@ -18,13 +18,12 @@ export async function getEvaluations(): Promise<Evaluation[]> {
     const response = await notionApiRequest<{ results: any[] }>('/databases/evaluations/query', 'POST', {});
     
     // Mapper les résultats de Notion vers notre format d'évaluation
-    // Note: Cette implémentation devra être complétée avec le mapping réel des données Notion
     return response.results.map(item => ({
       id: item.id,
       auditId: item.properties.auditId?.rich_text?.[0]?.text?.content || '',
       pageId: item.properties.pageId?.rich_text?.[0]?.text?.content || '',
       exigenceId: item.properties.exigenceId?.rich_text?.[0]?.text?.content || '',
-      score: item.properties.score?.select?.name as ComplianceLevel || ComplianceLevel.NON_APPLICABLE,
+      score: item.properties.score?.select?.name as ComplianceStatus || ComplianceStatus.NotEvaluated,
       comment: item.properties.comment?.rich_text?.[0]?.text?.content || '',
       attachments: item.properties.attachments?.files?.map(file => file.name) || [],
       createdAt: new Date(item.created_time).toISOString(),
@@ -60,7 +59,7 @@ export async function getEvaluation(id: string): Promise<Evaluation | null> {
       auditId: response.properties.auditId?.rich_text?.[0]?.text?.content || '',
       pageId: response.properties.pageId?.rich_text?.[0]?.text?.content || '',
       exigenceId: response.properties.exigenceId?.rich_text?.[0]?.text?.content || '',
-      score: response.properties.score?.select?.name as ComplianceLevel || ComplianceLevel.NON_APPLICABLE,
+      score: response.properties.score?.select?.name as ComplianceStatus || ComplianceStatus.NotEvaluated,
       comment: response.properties.comment?.rich_text?.[0]?.text?.content || '',
       attachments: response.properties.attachments?.files?.map(file => file.name) || [],
       createdAt: new Date(response.created_time).toISOString(),
@@ -98,7 +97,7 @@ export async function getEvaluationsByAuditId(auditId: string): Promise<Evaluati
       auditId: item.properties.auditId?.rich_text?.[0]?.text?.content || '',
       pageId: item.properties.pageId?.rich_text?.[0]?.text?.content || '',
       exigenceId: item.properties.exigenceId?.rich_text?.[0]?.text?.content || '',
-      score: item.properties.score?.select?.name as ComplianceLevel || ComplianceLevel.NON_APPLICABLE,
+      score: item.properties.score?.select?.name as ComplianceStatus || ComplianceStatus.NotEvaluated,
       comment: item.properties.comment?.rich_text?.[0]?.text?.content || '',
       attachments: item.properties.attachments?.files?.map(file => file.name) || [],
       createdAt: new Date(item.created_time).toISOString(),
@@ -126,6 +125,8 @@ export async function createEvaluation(data: Partial<Evaluation>): Promise<Evalu
   
   // Implémentation réelle avec l'API Notion
   try {
+    const now = new Date().toISOString();
+    
     const response = await notionApiRequest('/pages', 'POST', {
       parent: { database_id: process.env.NOTION_EVALUATIONS_DATABASE_ID },
       properties: {
@@ -140,7 +141,7 @@ export async function createEvaluation(data: Partial<Evaluation>): Promise<Evalu
         },
         score: {
           select: {
-            name: data.score || ComplianceLevel.NON_APPLICABLE
+            name: data.score || ComplianceStatus.NotEvaluated
           }
         },
         comment: {
@@ -155,11 +156,11 @@ export async function createEvaluation(data: Partial<Evaluation>): Promise<Evalu
       auditId: data.auditId,
       pageId: data.pageId,
       exigenceId: data.exigenceId,
-      score: data.score || ComplianceLevel.NON_APPLICABLE,
+      score: data.score || ComplianceStatus.NotEvaluated,
       comment: data.comment || '',
       attachments: data.attachments || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
     };
   } catch (error) {
     console.error('Erreur lors de la création de l\'évaluation:', error);
@@ -253,4 +254,3 @@ export async function deleteEvaluation(id: string): Promise<boolean> {
     return false;
   }
 }
-

@@ -54,7 +54,6 @@ export interface Audit {
 // Alias pour la compatibilité avec le code existant
 export type AuditItem = ChecklistItem;
 export type ProjectRequirement = Exigence;
-export type Evaluation = any; // À définir plus précisément selon l'usage
 
 export enum ComplianceStatus {
   Compliant = "Compliant",
@@ -63,6 +62,9 @@ export enum ComplianceStatus {
   NotEvaluated = "NotEvaluated",
   NotApplicable = "NotApplicable"
 }
+
+// Ajout de l'alias ComplianceLevel pour compatibilité
+export type ComplianceLevel = ComplianceStatus;
 
 // Valeurs numériques pour les statuts de conformité (pour les calculs de score)
 export const COMPLIANCE_VALUES = {
@@ -111,10 +113,24 @@ export enum ActionStatus {
   ToDo = "To Do"
 }
 
+// Structure d'évaluation pour le suivi des audits
+export interface Evaluation {
+  id: string;
+  auditId: string;
+  pageId: string;
+  exigenceId: string;
+  score: ComplianceStatus;
+  comment: string;
+  attachments: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Structure d'action corrective
 export interface CorrectiveAction {
   id: string;
   evaluationId: string;
-  pageId: string;
+  pageId: string; // Ajout du champ pageId manquant
   targetScore: ComplianceStatus;
   priority: ActionPriority;
   dueDate: string;

@@ -1,5 +1,5 @@
 
-import { CorrectiveAction, ActionPriority, ActionStatus } from '@/lib/types';
+import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { BaseService } from './baseService';
 import { notionApi } from '@/lib/notionProxy';
 import { QueryFilters } from './types';
@@ -55,13 +55,14 @@ export class ActionsService extends BaseService<CorrectiveAction> {
     
     return await notionApi.createAction({
       evaluationId: data.evaluationId,
-      targetScore: data.targetScore || '',
-      priority: data.priority || ActionPriority.MEDIUM,
+      pageId: data.pageId || '',
+      targetScore: data.targetScore || ComplianceStatus.NotEvaluated,
+      priority: data.priority || ActionPriority.Medium,
       dueDate: data.dueDate || '',
       responsible: data.responsible || '',
       comment: data.comment || '',
-      status: data.status || ActionStatus.TODO,
-      progress: data.progress || 0
+      status: data.status || ActionStatus.ToDo,
+      progress: data.progress || []
     });
   }
   
@@ -93,7 +94,7 @@ export class ActionsService extends BaseService<CorrectiveAction> {
   async getByEvaluationId(evaluationId: string): Promise<CorrectiveAction[]> {
     // Vérifier d'abord le cache
     const cacheKey = `${this.entityName}:evaluation:${evaluationId}`;
-    const cached = await this.entityCache.get(cacheKey);
+    const cached = await this.entityCache.getById(cacheKey);
     
     if (cached) {
       return cached;
@@ -103,7 +104,7 @@ export class ActionsService extends BaseService<CorrectiveAction> {
       const actions = await notionApi.getActionsByEvaluationId(evaluationId);
       
       // Mettre en cache pour les requêtes futures
-      await this.entityCache.set(cacheKey, actions, this.cacheTTL);
+      await this.entityCache.setById(cacheKey, actions, this.cacheTTL);
       
       return actions;
     } catch (error) {
@@ -116,7 +117,7 @@ export class ActionsService extends BaseService<CorrectiveAction> {
    * Récupère les actions correctives dont le délai d'échéance approche
    */
   async getUpcomingActions(daysThreshold: number = 7): Promise<CorrectiveAction[]> {
-    const allActions = await this.getAll(undefined, { status: ActionStatus.IN_PROGRESS });
+    const allActions = await this.getAll(undefined, { status: ActionStatus.InProgress });
     const today = new Date();
     const thresholdDate = new Date();
     thresholdDate.setDate(today.getDate() + daysThreshold);
@@ -133,7 +134,7 @@ export class ActionsService extends BaseService<CorrectiveAction> {
    * Récupère les actions correctives en retard
    */
   async getOverdueActions(): Promise<CorrectiveAction[]> {
-    const allActions = await this.getAll(undefined, { status: ActionStatus.IN_PROGRESS });
+    const allActions = await this.getAll(undefined, { status: ActionStatus.InProgress });
     const today = new Date();
     
     return allActions.filter(action => {
@@ -148,7 +149,15 @@ export class ActionsService extends BaseService<CorrectiveAction> {
    * Met à jour le statut d'une action corrective
    */
   async updateStatus(id: string, status: ActionStatus, progress: number = 0): Promise<CorrectiveAction> {
-    return this.update(id, { status, progress });
+    const action = await this.getById(id);
+    if (!action) {
+      throw new Error(`Action corrective #${id} non trouvée`);
+    }
+    
+    // Transformer le nombre en tableau de progrès vide si nécessaire
+    const progressArray = Array.isArray(action.progress) ? action.progress : [];
+    
+    return this.update(id, { status, progress: progressArray });
   }
   
   /**

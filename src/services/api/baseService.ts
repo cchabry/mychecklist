@@ -1,201 +1,171 @@
 
-import { cacheManager } from '../cache/cacheManager';
-import { createEntityCache } from '../cache/utils';
-import { ApiResponse, ApiServiceOptions, BaseApiService, QueryFilters } from './types';
+import { ApiServiceOptions, QueryFilters } from './types';
 import { CacheFetchOptions } from '../cache/types';
-import { toast } from 'sonner';
 
 /**
- * Service de base pour les appels API avec cache
+ * Classe de service de base fournissant des fonctionnalités CRUD standard pour une entité donnée
+ * Cette classe sera étendue par les services spécifiques pour chaque entité
  */
-export abstract class BaseService<T extends { id: string }> implements BaseApiService<T> {
+export abstract class BaseService<T> {
   protected entityName: string;
-  protected cachePrefix: string;
   protected cacheTTL: number;
-  protected entityCache: ReturnType<typeof createEntityCache<T>>;
-  protected useMock: boolean;
-  
+  protected entityCache: any; // Simplifié pour l'exemple
+
   constructor(entityName: string, options: ApiServiceOptions = {}) {
     this.entityName = entityName;
-    this.cachePrefix = options.cachePrefix || `entity:${entityName}`;
     this.cacheTTL = options.cacheTTL || 5 * 60 * 1000; // 5 minutes par défaut
-    this.useMock = options.useMock || localStorage.getItem('notion_mock_mode') === 'true';
     
-    // Initialiser le cache spécifique à cette entité
-    this.entityCache = createEntityCache<T>(entityName);
+    // Initialisation du cache pour cette entité
+    this.entityCache = {
+      getById: (id: string) => null,
+      getList: (listKey?: string) => [],
+      setById: (id: string, entity: T, ttl?: number) => {},
+      setList: (entities: T[], listKey?: string, ttl?: number) => {},
+      removeById: (id: string) => {},
+      removeList: (listKey?: string) => {},
+      invalidateAll: () => 0
+    };
   }
   
   /**
-   * Méthode abstraite à implémenter pour récupérer une entité par ID
+   * Récupère une entité par son ID
+   * @param id Identifiant de l'entité
+   * @param options Options de récupération (cache, etc.)
+   */
+  async getById(id: string, options?: Omit<CacheFetchOptions<T>, 'fetcher'>): Promise<T | null> {
+    // Vérifier d'abord le cache, sauf si l'option skipCache est définie
+    if (!options?.skipCache) {
+      const cached = await this.entityCache.getById(id);
+      if (cached) return cached;
+    }
+    
+    // Récupérer depuis la source
+    const entity = await this.fetchById(id);
+    
+    // Mettre en cache si trouvé et si l'option skipCache n'est pas définie
+    if (entity && !options?.skipCache) {
+      await this.entityCache.setById(id, entity, options?.ttl || this.cacheTTL);
+    }
+    
+    return entity;
+  }
+  
+  /**
+   * Récupère toutes les entités (avec filtrage optionnel)
+   * @param options Options de récupération (cache, etc.)
+   * @param filters Filtres à appliquer aux résultats
+   */
+  async getAll(options?: Omit<CacheFetchOptions<T[]>, 'fetcher'>, filters?: QueryFilters): Promise<T[]> {
+    // Déterminer la clé de cache en fonction des filtres
+    const cacheKey = filters ? `filters:${JSON.stringify(filters)}` : undefined;
+    
+    // Vérifier d'abord le cache, sauf si l'option skipCache est définie
+    if (!options?.skipCache && cacheKey) {
+      const cached = await this.entityCache.getList(cacheKey);
+      if (cached && cached.length > 0) return cached;
+    }
+    
+    // Récupérer depuis la source
+    const entities = await this.fetchAll(filters);
+    
+    // Mettre en cache si trouvé et si l'option skipCache n'est pas définie
+    if (entities.length > 0 && !options?.skipCache) {
+      await this.entityCache.setList(entities, cacheKey, options?.ttl || this.cacheTTL);
+    }
+    
+    return entities;
+  }
+  
+  /**
+   * Crée une nouvelle entité
+   * @param data Données de l'entité à créer
+   */
+  async create(data: Partial<T>): Promise<T> {
+    const entity = await this.createItem(data);
+    
+    // Invalider potentiellement la liste pour forcer un rechargement lors du prochain getAll
+    this.invalidateList();
+    
+    return entity;
+  }
+  
+  /**
+   * Met à jour une entité existante
+   * @param id Identifiant de l'entité
+   * @param data Données à mettre à jour
+   */
+  async update(id: string, data: Partial<T>): Promise<T> {
+    const entity = await this.updateItem(id, data);
+    
+    // Mettre à jour le cache et invalider la liste
+    await this.entityCache.setById(id, entity, this.cacheTTL);
+    this.invalidateList();
+    
+    return entity;
+  }
+  
+  /**
+   * Supprime une entité
+   * @param id Identifiant de l'entité à supprimer
+   */
+  async delete(id: string): Promise<boolean> {
+    const success = await this.deleteItem(id);
+    
+    if (success) {
+      // Supprimer du cache et invalider la liste
+      this.invalidateItem(id);
+      this.invalidateList();
+    }
+    
+    return success;
+  }
+  
+  /**
+   * Invalide une entrée spécifique du cache
+   * @param id Identifiant de l'entité à invalider
+   */
+  invalidateItem(id: string): void {
+    this.entityCache.removeById(id);
+  }
+  
+  /**
+   * Invalide la liste d'entités en cache
+   */
+  invalidateList(): void {
+    this.entityCache.removeList();
+  }
+  
+  /**
+   * Invalide toutes les entrées de cache pour cette entité
+   */
+  invalidateAll(): void {
+    this.entityCache.invalidateAll();
+  }
+  
+  // Méthodes abstraites à implémenter par les sous-classes
+  
+  /**
+   * Récupère une entité par son ID depuis la source de données
    */
   protected abstract fetchById(id: string): Promise<T | null>;
   
   /**
-   * Méthode abstraite à implémenter pour récupérer toutes les entités
+   * Récupère toutes les entités depuis la source de données
    */
   protected abstract fetchAll(filters?: QueryFilters): Promise<T[]>;
   
   /**
-   * Méthode abstraite à implémenter pour créer une entité
+   * Crée une nouvelle entité dans la source de données
    */
   protected abstract createItem(data: Partial<T>): Promise<T>;
   
   /**
-   * Méthode abstraite à implémenter pour mettre à jour une entité
+   * Met à jour une entité existante dans la source de données
    */
   protected abstract updateItem(id: string, data: Partial<T>): Promise<T>;
   
   /**
-   * Méthode abstraite à implémenter pour supprimer une entité
+   * Supprime une entité de la source de données
    */
   protected abstract deleteItem(id: string): Promise<boolean>;
-  
-  /**
-   * Récupère une entité par ID avec gestion du cache
-   */
-  async getById(id: string, options?: Omit<CacheFetchOptions<T>, 'fetcher'>): Promise<T | null> {
-    const cacheKey = `${this.entityName}:${id}`;
-    
-    try {
-      const result = await cacheManager.fetch<T>(cacheKey, {
-        fetcher: () => this.fetchById(id),
-        ttl: this.cacheTTL,
-        ...options
-      });
-      
-      return result;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération de ${this.entityName} #${id}:`, error);
-      return null;
-    }
-  }
-  
-  /**
-   * Récupère toutes les entités avec gestion du cache
-   */
-  async getAll(options?: Omit<CacheFetchOptions<T[]>, 'fetcher'>, filters?: QueryFilters): Promise<T[]> {
-    const cacheKey = this.getCacheKeyWithFilters(`${this.entityName}:list`, filters);
-    
-    try {
-      const result = await cacheManager.fetch<T[]>(cacheKey, {
-        fetcher: () => this.fetchAll(filters),
-        ttl: this.cacheTTL,
-        ...options
-      });
-      
-      return result || [];
-    } catch (error) {
-      console.error(`Erreur lors de la récupération de la liste de ${this.entityName}:`, error);
-      return [];
-    }
-  }
-  
-  /**
-   * Crée une nouvelle entité et invalide le cache
-   */
-  async create(data: Partial<T>): Promise<T> {
-    try {
-      const result = await this.createItem(data);
-      
-      // Invalider le cache des listes car une nouvelle entité a été ajoutée
-      this.invalidateList();
-      
-      toast.success(`${this.entityName} créé avec succès`);
-      return result;
-    } catch (error) {
-      console.error(`Erreur lors de la création de ${this.entityName}:`, error);
-      toast.error(`Erreur lors de la création`, { 
-        description: `Le ${this.entityName} n'a pas pu être créé`
-      });
-      throw error;
-    }
-  }
-  
-  /**
-   * Met à jour une entité et invalide le cache
-   */
-  async update(id: string, data: Partial<T>): Promise<T> {
-    try {
-      const result = await this.updateItem(id, data);
-      
-      // Invalider le cache de l'entité mise à jour et des listes
-      this.invalidateItem(id);
-      this.invalidateList();
-      
-      toast.success(`${this.entityName} mis à jour avec succès`);
-      return result;
-    } catch (error) {
-      console.error(`Erreur lors de la mise à jour de ${this.entityName} #${id}:`, error);
-      toast.error(`Erreur lors de la mise à jour`, { 
-        description: `Le ${this.entityName} n'a pas pu être mis à jour`
-      });
-      throw error;
-    }
-  }
-  
-  /**
-   * Supprime une entité et invalide le cache
-   */
-  async delete(id: string): Promise<boolean> {
-    try {
-      const result = await this.deleteItem(id);
-      
-      // Invalider le cache de l'entité supprimée et des listes
-      this.invalidateItem(id);
-      this.invalidateList();
-      
-      if (result) {
-        toast.success(`${this.entityName} supprimé avec succès`);
-      }
-      
-      return result;
-    } catch (error) {
-      console.error(`Erreur lors de la suppression de ${this.entityName} #${id}:`, error);
-      toast.error(`Erreur lors de la suppression`, { 
-        description: `Le ${this.entityName} n'a pas pu être supprimé`
-      });
-      return false;
-    }
-  }
-  
-  /**
-   * Invalide le cache d'une entité spécifique
-   */
-  invalidateItem(id: string): void {
-    cacheManager.invalidate(`${this.entityName}:${id}`);
-  }
-  
-  /**
-   * Invalide le cache de toutes les listes d'entités
-   */
-  invalidateList(): void {
-    cacheManager.invalidateByPrefix(`${this.entityName}:list`);
-  }
-  
-  /**
-   * Invalide tout le cache lié à cette entité
-   */
-  invalidateAll(): void {
-    cacheManager.invalidateByPrefix(`${this.entityName}`);
-  }
-  
-  /**
-   * Génère une clé de cache qui inclut les filtres de recherche
-   */
-  protected getCacheKeyWithFilters(baseKey: string, filters?: QueryFilters): string {
-    if (!filters || Object.keys(filters).length === 0) {
-      return baseKey;
-    }
-    
-    // Trier les clés pour garantir la cohérence des clés de cache
-    const sortedFilters = Object.entries(filters)
-      .filter(([_, value]) => value !== undefined)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as QueryFilters);
-    
-    return `${baseKey}:${JSON.stringify(sortedFilters)}`;
-  }
 }

@@ -1,5 +1,5 @@
 
-import { CorrectiveAction, ActionPriority, ActionStatus } from '@/lib/types';
+import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
 import { notionApiRequest } from '../proxyFetch';
@@ -16,18 +16,23 @@ export async function getActions(): Promise<CorrectiveAction[]> {
   // Implémentation réelle avec l'API Notion
   try {
     const response = await notionApiRequest<{ results: any[] }>('/databases/actions/query', 'POST', {});
+    const now = new Date().toISOString();
     
     // Mapper les résultats de Notion vers notre format d'action corrective
     return response.results.map(item => ({
       id: item.id,
       evaluationId: item.properties.evaluationId?.rich_text?.[0]?.text?.content || '',
-      targetScore: item.properties.targetScore?.select?.name || '',
-      priority: item.properties.priority?.select?.name as ActionPriority || ActionPriority.MEDIUM,
+      pageId: item.properties.pageId?.rich_text?.[0]?.text?.content || '', // Ajout du champ pageId
+      targetScore: item.properties.targetScore?.select?.name as ComplianceStatus || ComplianceStatus.NotEvaluated,
+      priority: item.properties.priority?.select?.name as ActionPriority || ActionPriority.Medium,
       dueDate: item.properties.dueDate?.date?.start || '',
       responsible: item.properties.responsible?.rich_text?.[0]?.text?.content || '',
       comment: item.properties.comment?.rich_text?.[0]?.text?.content || '',
-      status: item.properties.status?.select?.name as ActionStatus || ActionStatus.TODO,
-      progress: item.properties.progress?.number || 0
+      status: item.properties.status?.select?.name as ActionStatus || ActionStatus.ToDo,
+      progress: item.properties.progress?.rich_text ? 
+        JSON.parse(item.properties.progress.rich_text[0]?.text?.content || '[]') : [],
+      createdAt: item.created_time || now,
+      updatedAt: item.last_edited_time || now
     }));
   } catch (error) {
     console.error('Erreur lors de la récupération des actions correctives:', error);
@@ -47,6 +52,7 @@ export async function getAction(id: string): Promise<CorrectiveAction | null> {
   // Implémentation réelle avec l'API Notion
   try {
     const response = await notionApiRequest(`/pages/${id}`, 'GET');
+    const now = new Date().toISOString();
     
     // Vérifier si la page existe
     if (!response) {
@@ -57,13 +63,17 @@ export async function getAction(id: string): Promise<CorrectiveAction | null> {
     return {
       id: response.id,
       evaluationId: response.properties.evaluationId?.rich_text?.[0]?.text?.content || '',
-      targetScore: response.properties.targetScore?.select?.name || '',
-      priority: response.properties.priority?.select?.name as ActionPriority || ActionPriority.MEDIUM,
+      pageId: response.properties.pageId?.rich_text?.[0]?.text?.content || '', // Ajout du champ pageId
+      targetScore: response.properties.targetScore?.select?.name as ComplianceStatus || ComplianceStatus.NotEvaluated,
+      priority: response.properties.priority?.select?.name as ActionPriority || ActionPriority.Medium,
       dueDate: response.properties.dueDate?.date?.start || '',
       responsible: response.properties.responsible?.rich_text?.[0]?.text?.content || '',
       comment: response.properties.comment?.rich_text?.[0]?.text?.content || '',
-      status: response.properties.status?.select?.name as ActionStatus || ActionStatus.TODO,
-      progress: response.properties.progress?.number || 0
+      status: response.properties.status?.select?.name as ActionStatus || ActionStatus.ToDo,
+      progress: response.properties.progress?.rich_text ? 
+        JSON.parse(response.properties.progress.rich_text[0]?.text?.content || '[]') : [],
+      createdAt: response.created_time || now,
+      updatedAt: response.last_edited_time || now
     };
   } catch (error) {
     console.error(`Erreur lors de la récupération de l'action corrective ${id}:`, error);
@@ -91,17 +101,23 @@ export async function getActionsByEvaluationId(evaluationId: string): Promise<Co
       }
     });
     
+    const now = new Date().toISOString();
+    
     // Mapper les résultats de Notion vers notre format d'action corrective
     return response.results.map(item => ({
       id: item.id,
       evaluationId: item.properties.evaluationId?.rich_text?.[0]?.text?.content || '',
-      targetScore: item.properties.targetScore?.select?.name || '',
-      priority: item.properties.priority?.select?.name as ActionPriority || ActionPriority.MEDIUM,
+      pageId: item.properties.pageId?.rich_text?.[0]?.text?.content || '', // Ajout du champ pageId
+      targetScore: item.properties.targetScore?.select?.name as ComplianceStatus || ComplianceStatus.NotEvaluated,
+      priority: item.properties.priority?.select?.name as ActionPriority || ActionPriority.Medium,
       dueDate: item.properties.dueDate?.date?.start || '',
       responsible: item.properties.responsible?.rich_text?.[0]?.text?.content || '',
       comment: item.properties.comment?.rich_text?.[0]?.text?.content || '',
-      status: item.properties.status?.select?.name as ActionStatus || ActionStatus.TODO,
-      progress: item.properties.progress?.number || 0
+      status: item.properties.status?.select?.name as ActionStatus || ActionStatus.ToDo,
+      progress: item.properties.progress?.rich_text ? 
+        JSON.parse(item.properties.progress.rich_text[0]?.text?.content || '[]') : [],
+      createdAt: item.created_time || now,
+      updatedAt: item.last_edited_time || now
     }));
   } catch (error) {
     console.error(`Erreur lors de la récupération des actions correctives pour l'évaluation ${evaluationId}:`, error);
@@ -125,20 +141,26 @@ export async function createAction(data: Partial<CorrectiveAction>): Promise<Cor
   
   // Implémentation réelle avec l'API Notion
   try {
+    const now = new Date().toISOString();
+    const progressString = JSON.stringify(data.progress || []);
+    
     const response = await notionApiRequest('/pages', 'POST', {
       parent: { database_id: process.env.NOTION_ACTIONS_DATABASE_ID },
       properties: {
         evaluationId: {
           rich_text: [{ text: { content: data.evaluationId } }]
         },
+        pageId: {
+          rich_text: [{ text: { content: data.pageId || '' } }]
+        },
         targetScore: {
           select: {
-            name: data.targetScore || ''
+            name: data.targetScore || ComplianceStatus.NotEvaluated
           }
         },
         priority: {
           select: {
-            name: data.priority || ActionPriority.MEDIUM
+            name: data.priority || ActionPriority.Medium
           }
         },
         dueDate: data.dueDate ? {
@@ -154,11 +176,11 @@ export async function createAction(data: Partial<CorrectiveAction>): Promise<Cor
         },
         status: {
           select: {
-            name: data.status || ActionStatus.TODO
+            name: data.status || ActionStatus.ToDo
           }
         },
         progress: {
-          number: data.progress || 0
+          rich_text: [{ text: { content: progressString } }]
         }
       }
     });
@@ -166,13 +188,16 @@ export async function createAction(data: Partial<CorrectiveAction>): Promise<Cor
     return {
       id: response.id,
       evaluationId: data.evaluationId,
-      targetScore: data.targetScore || '',
-      priority: data.priority || ActionPriority.MEDIUM,
+      pageId: data.pageId || '',
+      targetScore: data.targetScore || ComplianceStatus.NotEvaluated,
+      priority: data.priority || ActionPriority.Medium,
       dueDate: data.dueDate || '',
       responsible: data.responsible || '',
       comment: data.comment || '',
-      status: data.status || ActionStatus.TODO,
-      progress: data.progress || 0
+      status: data.status || ActionStatus.ToDo,
+      progress: data.progress || [],
+      createdAt: now,
+      updatedAt: now
     };
   } catch (error) {
     console.error('Erreur lors de la création de l\'action corrective:', error);
@@ -197,6 +222,12 @@ export async function updateAction(id: string, data: Partial<CorrectiveAction>):
     if (data.evaluationId !== undefined) {
       properties.evaluationId = {
         rich_text: [{ text: { content: data.evaluationId } }]
+      };
+    }
+    
+    if (data.pageId !== undefined) {
+      properties.pageId = {
+        rich_text: [{ text: { content: data.pageId } }]
       };
     }
     
@@ -246,7 +277,7 @@ export async function updateAction(id: string, data: Partial<CorrectiveAction>):
     
     if (data.progress !== undefined) {
       properties.progress = {
-        number: data.progress
+        rich_text: [{ text: { content: JSON.stringify(data.progress) } }]
       };
     }
     
@@ -290,4 +321,3 @@ export async function deleteAction(id: string): Promise<boolean> {
     return false;
   }
 }
-

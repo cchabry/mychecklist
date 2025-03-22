@@ -1,167 +1,165 @@
 
 /**
+ * Données mock pour les tests et développement
+ */
+
+import { 
+  Audit, 
+  Project, 
+  ChecklistItem, 
+  Exigence, 
+  SamplePage, 
+  Evaluation, 
+  CorrectiveAction,
+  ActionStatus,
+  ActionPriority,
+  ComplianceStatus
+} from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
+
+// Audit mock data
+const mockAudits: Audit[] = [];
+const mockProjects: Project[] = [];
+const mockChecklistItems: ChecklistItem[] = [];
+const mockExigences: Exigence[] = [];
+const mockSamplePages: SamplePage[] = [];
+const mockEvaluations: Evaluation[] = [];
+const mockActions: CorrectiveAction[] = [];
+
+/**
  * Générateur de réponses mock pour l'API Notion
  */
-
-import { mockMode } from '../mockMode';
-
-/**
- * Génère une réponse simulée pour une requête Notion
- */
-export function getMockData(endpoint: string, method: string, body: any, scenario: string = 'standard') {
-  // Simuler un délai aléatoire
-  const delay = mockMode.getDelay();
-  
-  // Simuler des erreurs aléatoires selon le taux configuré
-  const errorRate = mockMode.getErrorRate();
-  if (Math.random() * 100 < errorRate) {
-    throw new Error(`Erreur simulée (${scenario}, taux: ${errorRate}%)`);
-  }
-  
-  // Construire une réponse de base
-  const response = {
-    id: `mock-id-${Date.now()}`,
-    created_time: new Date().toISOString(),
-    last_edited_time: new Date().toISOString(),
-  };
-  
-  // Réponses spécifiques selon le endpoint et la méthode
-  if (endpoint.includes('/v1/users/me')) {
+export const mockData = {
+  // Autres méthodes mock
+  getMockData: (endpoint: string, method: string, body: any, scenario: string = 'standard') => {
+    // Simuler une réponse de base
     return {
-      ...response,
-      name: 'Utilisateur Test',
-      avatar_url: null,
-      type: 'person',
-      person: {},
+      id: `mock-id-${Date.now()}`,
+      created_time: new Date().toISOString(),
+      last_edited_time: new Date().toISOString(),
+      object: 'mock',
+      mock: true,
+      message: 'Réponse simulée'
     };
-  }
-  
-  if (endpoint.includes('/v1/databases')) {
-    if (method === 'GET') {
-      return {
-        ...response,
-        title: [{ plain_text: 'Base de données de test', type: 'text' }],
-        properties: {
-          Name: { id: 'title', type: 'title', title: {} },
-          Status: { id: 'status', type: 'select', select: { options: [] } },
-          Date: { id: 'date', type: 'date', date: {} },
-        },
-      };
-    }
-    
-    if (method === 'POST' && endpoint.includes('/query')) {
-      return {
-        ...response,
-        results: Array(10).fill(null).map((_, i) => ({
-          id: `mock-page-${i}`,
-          created_time: new Date().toISOString(),
-          last_edited_time: new Date().toISOString(),
-          parent: { database_id: body.database_id || 'mock-db' },
-          properties: {
-            Name: { 
-              id: 'title', 
-              type: 'title', 
-              title: [{ plain_text: `Page de test ${i+1}`, type: 'text' }] 
-            },
-            Status: { 
-              id: 'status', 
-              type: 'select', 
-              select: { name: i % 3 === 0 ? 'Complété' : 'En cours' } 
-            },
-          }
-        })),
-        has_more: false,
-        next_cursor: null,
-      };
-    }
-  }
-  
-  if (endpoint.includes('/v1/pages')) {
-    if (method === 'GET') {
-      return {
-        ...response,
-        parent: { database_id: 'mock-db' },
-        properties: {
-          Name: { 
-            id: 'title', 
-            type: 'title', 
-            title: [{ plain_text: 'Page détaillée', type: 'text' }] 
-          },
-          Description: {
-            id: 'desc',
-            type: 'rich_text',
-            rich_text: [{ plain_text: 'Description mock', type: 'text' }]
-          }
-        }
-      };
-    }
-    
-    if (method === 'POST' || method === 'PATCH') {
-      return {
-        ...response,
-        object: 'page',
-        url: 'https://www.notion.so/mock-page'
-      };
-    }
-  }
-  
-  // Réponse par défaut
-  return {
-    ...response,
-    object: 'mock',
-    mock: true,
-    message: 'Réponse simulée'
-  };
-}
+  },
 
-/**
- * Fonctions utilitaires pour le mode mock
- */
-export const mockUtils = {
-  /**
-   * Applique un délai simulé pour les opérations mock
-   */
-  applySimulatedDelay: async (): Promise<void> => {
-    const delay = mockMode.getDelay();
-    if (delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+  // Projects
+  getProjects: () => mockProjects,
+  getProject: (id: string) => mockProjects.find(p => p.id === id) || null,
+  createProject: (data: Partial<Project>) => {
+    const newProject: Project = {
+      id: uuidv4(),
+      name: data.name || 'Nouveau projet',
+      url: data.url || 'https://example.com',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: 0,
+      itemsCount: 0,
+      pagesCount: 0,
+      ...data
+    };
+    mockProjects.push(newProject);
+    return newProject;
   },
-  
-  /**
-   * Détermine si une erreur doit être simulée
-   */
-  shouldSimulateError: (): boolean => {
-    const errorRate = mockMode.getErrorRate();
-    return Math.random() * 100 < errorRate;
+  updateProject: (id: string, data: Partial<Project>) => {
+    const projectIndex = mockProjects.findIndex(p => p.id === id);
+    if (projectIndex === -1) return null;
+    
+    mockProjects[projectIndex] = {
+      ...mockProjects[projectIndex],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return mockProjects[projectIndex];
   },
-  
-  /**
-   * Désactive temporairement le mode mock pour une opération
-   * particulière, tout en conservant l'état pour le restaurer ensuite
-   */
-  temporarilyForceReal: (): boolean => {
-    const wasMock = mockMode.isActive();
-    if (wasMock) {
-      mockMode.deactivate();
-    }
-    return wasMock;
+  deleteProject: (id: string) => {
+    const projectIndex = mockProjects.findIndex(p => p.id === id);
+    if (projectIndex === -1) return false;
+    
+    mockProjects.splice(projectIndex, 1);
+    return true;
   },
-  
-  /**
-   * Restaure le mode mock si nécessaire
-   */
-  restoreAfterForceReal: (wasMock: boolean): void => {
-    if (wasMock) {
-      mockMode.activate();
-    }
+
+  // Evaluations
+  getEvaluations: () => mockEvaluations,
+  getEvaluation: (id: string) => mockEvaluations.find(e => e.id === id) || null,
+  createEvaluation: (data: Partial<Evaluation>) => {
+    const now = new Date().toISOString();
+    const newEvaluation: Evaluation = {
+      id: uuidv4(),
+      auditId: data.auditId || '',
+      pageId: data.pageId || '',
+      exigenceId: data.exigenceId || '',
+      score: data.score || ComplianceStatus.NotEvaluated,
+      comment: data.comment || '',
+      attachments: data.attachments || [],
+      createdAt: now,
+      updatedAt: now
+    };
+    mockEvaluations.push(newEvaluation);
+    return newEvaluation;
   },
-  
-  /**
-   * Vérifie si le mode mock est temporairement forcé en mode réel
-   */
-  isTemporarilyForcedReal: (wasMock: boolean): boolean => {
-    return wasMock && !mockMode.isActive();
+  updateEvaluation: (id: string, data: Partial<Evaluation>) => {
+    const evalIndex = mockEvaluations.findIndex(e => e.id === id);
+    if (evalIndex === -1) return null;
+    
+    mockEvaluations[evalIndex] = {
+      ...mockEvaluations[evalIndex],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return mockEvaluations[evalIndex];
+  },
+  deleteEvaluation: (id: string) => {
+    const evalIndex = mockEvaluations.findIndex(e => e.id === id);
+    if (evalIndex === -1) return false;
+    
+    mockEvaluations.splice(evalIndex, 1);
+    return true;
+  },
+
+  // Actions correctives
+  getActions: () => mockActions,
+  getAction: (id: string) => mockActions.find(a => a.id === id) || null,
+  createAction: (data: Partial<CorrectiveAction>) => {
+    const now = new Date().toISOString();
+    const newAction: CorrectiveAction = {
+      id: uuidv4(),
+      evaluationId: data.evaluationId || '',
+      pageId: data.pageId || '', // Ajout de pageId manquant
+      targetScore: data.targetScore || ComplianceStatus.Compliant,
+      priority: data.priority || ActionPriority.Medium,
+      dueDate: data.dueDate || '',
+      responsible: data.responsible || '',
+      comment: data.comment || '',
+      status: data.status || ActionStatus.ToDo,
+      progress: data.progress || [], // Correction: doit être un tableau vide par défaut
+      createdAt: now,
+      updatedAt: now
+    };
+    mockActions.push(newAction);
+    return newAction;
+  },
+  updateAction: (id: string, data: Partial<CorrectiveAction>) => {
+    const actionIndex = mockActions.findIndex(a => a.id === id);
+    if (actionIndex === -1) return null;
+    
+    mockActions[actionIndex] = {
+      ...mockActions[actionIndex],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return mockActions[actionIndex];
+  },
+  deleteAction: (id: string) => {
+    const actionIndex = mockActions.findIndex(a => a.id === id);
+    if (actionIndex === -1) return false;
+    
+    mockActions.splice(actionIndex, 1);
+    return true;
   }
 };
 
@@ -169,5 +167,5 @@ export const mockUtils = {
  * Fonction pour générer une réponse mock pour une requête Notion
  */
 export function mockNotionResponse(endpoint: string, method = 'GET', body: any) {
-  return getMockData(endpoint, method, body, mockMode.getScenario());
+  return mockData.getMockData(endpoint, method, body);
 }

@@ -1,5 +1,5 @@
 
-import { Evaluation, ComplianceLevel } from '@/lib/types';
+import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { BaseService } from './baseService';
 import { notionApi } from '@/lib/notionProxy';
 import { QueryFilters } from './types';
@@ -65,7 +65,7 @@ export class EvaluationsService extends BaseService<Evaluation> {
       auditId: data.auditId,
       pageId: data.pageId,
       exigenceId: data.exigenceId,
-      score: data.score || ComplianceLevel.NON_APPLICABLE,
+      score: data.score || ComplianceStatus.NotEvaluated,
       comment: data.comment || '',
       attachments: data.attachments || []
     });
@@ -99,7 +99,7 @@ export class EvaluationsService extends BaseService<Evaluation> {
   async getByAuditId(auditId: string): Promise<Evaluation[]> {
     // Vérifier d'abord le cache
     const cacheKey = `${this.entityName}:audit:${auditId}`;
-    const cached = await this.entityCache.get(cacheKey);
+    const cached = await this.entityCache.getById(cacheKey);
     
     if (cached) {
       return cached;
@@ -109,7 +109,7 @@ export class EvaluationsService extends BaseService<Evaluation> {
       const evaluations = await notionApi.getEvaluationsByAuditId(auditId);
       
       // Mettre en cache pour les requêtes futures
-      await this.entityCache.set(cacheKey, evaluations, this.cacheTTL);
+      await this.entityCache.setById(cacheKey, evaluations, this.cacheTTL);
       
       return evaluations;
     } catch (error) {
@@ -151,7 +151,7 @@ export class EvaluationsService extends BaseService<Evaluation> {
     auditId: string,
     pageId: string,
     exigenceId: string,
-    score: ComplianceLevel,
+    score: ComplianceStatus,
     comment: string = '',
     attachments: string[] = []
   ): Promise<Evaluation> {
