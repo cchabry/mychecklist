@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Database, Loader2, AlertTriangle, CheckCircle, XCircle, Copy } from 'lu
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
+import { isMockActive, temporarilyDisableMock, enableMock } from '@/lib/notionProxy/mock/utils';
 
 interface NotionDatabaseStructureCheckProps {
   onSuccess?: () => void;
@@ -28,7 +28,6 @@ const NotionDatabaseStructureCheck: React.FC<NotionDatabaseStructureCheckProps> 
     setDatabaseStructure(null);
     setRecommendations([]);
 
-    // Récupérer les valeurs nécessaires
     const apiKey = localStorage.getItem('notion_api_key');
     const dbId = localStorage.getItem('notion_database_id');
 
@@ -38,16 +37,14 @@ const NotionDatabaseStructureCheck: React.FC<NotionDatabaseStructureCheckProps> 
       return;
     }
 
-    // Désactiver le mode mock temporairement
-    const wasMockMode = notionApi.mockMode.isActive();
+    const wasMockMode = isMockActive();
     if (wasMockMode) {
       console.log('🔍 Désactivation temporaire du mode mock pour l\'analyse de structure');
       localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-      notionApi.mockMode.forceReset();
+      temporarilyDisableMock();
     }
 
     try {
-      // Vérifier d'abord l'authentification
       try {
         await notionApi.users.me(apiKey);
         console.log('✅ Authentification vérifiée');
@@ -57,24 +54,20 @@ const NotionDatabaseStructureCheck: React.FC<NotionDatabaseStructureCheckProps> 
         return;
       }
 
-      // Tenter de récupérer la structure de la base de données
       try {
         const dbInfo = await notionApi.databases.retrieve(dbId, apiKey);
         
         if (dbInfo && dbInfo.properties) {
           console.log('✅ Structure de la base récupérée:', dbInfo);
           
-          // Extraire les informations pertinentes
           setDatabaseStructure({
             id: dbInfo.id,
             title: dbInfo.title?.[0]?.plain_text || 'Base sans titre',
             properties: dbInfo.properties
           });
           
-          // Analyser la structure et générer des recommandations
           const propertyRecommendations: string[] = [];
           
-          // Vérifier les propriétés essentielles
           const hasTitle = Object.entries(dbInfo.properties).some(
             ([name, prop]) => (prop as any).type === 'title'
           );
@@ -83,7 +76,6 @@ const NotionDatabaseStructureCheck: React.FC<NotionDatabaseStructureCheckProps> 
             propertyRecommendations.push('Aucune propriété de type "title" trouvée. Ajoutez une propriété "Name" ou "Titre" de type "Title".');
           }
           
-          // Vérifier Status
           const hasStatus = Object.entries(dbInfo.properties).some(
             ([name, prop]) => (
               (name === 'Status' || name === 'Statut') && 
@@ -95,7 +87,6 @@ const NotionDatabaseStructureCheck: React.FC<NotionDatabaseStructureCheckProps> 
             propertyRecommendations.push('Aucune propriété "Status" ou "Statut" de type "Select" trouvée. Cela peut causer des erreurs lors de la création.');
           }
           
-          // Vérifier les autres propriétés utiles
           const hasTitleWithCorrectName = Object.entries(dbInfo.properties).some(
             ([name, prop]) => (
               (name === 'Name' || name === 'Nom' || name === 'Titre' || name === 'Title') && 
@@ -134,10 +125,9 @@ const NotionDatabaseStructureCheck: React.FC<NotionDatabaseStructureCheckProps> 
     } finally {
       setIsChecking(false);
       
-      // Restaurer le mode mock si nécessaire
       if (wasMockMode) {
         console.log('🔍 Restauration du mode mock après l\'analyse');
-        notionApi.mockMode.activate();
+        enableMock();
       }
     }
   };

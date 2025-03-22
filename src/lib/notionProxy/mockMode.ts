@@ -17,6 +17,12 @@ const compatibilityMockMode = {
     return operationMode.isDemoMode;
   },
   
+  // Make sure this is a function that can be called with parentheses
+  isActive() {
+    console.warn('mockMode.isActive() est déprécié. Utilisez operationMode.isDemoMode à la place');
+    return operationMode.isDemoMode;
+  },
+  
   /**
    * @deprecated Utilisez operationMode.enableDemoMode() à la place
    */
@@ -40,6 +46,14 @@ const compatibilityMockMode = {
     console.warn('mockMode.toggle est déprécié. Utilisez operationMode.toggle() à la place');
     operationMode.toggle();
     return operationMode.isDemoMode;
+  },
+  
+  /**
+   * Force reset the mock mode
+   */
+  forceReset(): void {
+    console.warn('mockMode.forceReset est déprécié');
+    operationMode.enableRealMode();
   }
 };
 

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { notionApi } from '@/lib/notionProxy';
 import { clearStoredNotionErrors } from '@/lib/notionProxy/errorHandling';
 import { toast } from 'sonner';
+import { isMockActive, temporarilyDisableMock } from '@/lib/notionProxy/mock/utils';
 
 export interface NotionConnectionStatus {
   isConnected: boolean;
@@ -21,7 +22,7 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
     isConnected: false,
     isLoading: true,
     error: null,
-    isMockMode: notionApi.mockMode.isActive()
+    isMockMode: isMockActive()
   });
 
   /**
@@ -43,7 +44,7 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
     
     try {
       // Vérifie si le mode mock est activé
-      if (notionApi.mockMode.isActive()) {
+      if (isMockActive()) {
         setStatus(prev => ({ 
           ...prev, 
           isConnected: false, 
@@ -88,7 +89,7 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
    */
   const resetAndTest = useCallback(async (): Promise<void> => {
     // Réinitialiser le mode mock
-    notionApi.mockMode.forceReset();
+    temporarilyDisableMock();
     
     // Effacer les erreurs stockées
     clearStoredNotionErrors();
@@ -110,7 +111,7 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
       // Mettre à jour status.isMockMode périodiquement
       setStatus(prev => ({
         ...prev,
-        isMockMode: notionApi.mockMode.isActive()
+        isMockMode: isMockActive()
       }));
       
       // Ne tester la connexion que si la configuration est présente
@@ -131,7 +132,7 @@ export function useNotionConnection(apiKey: string, hasConfig: boolean) {
     const interval = setInterval(() => {
       setStatus(prev => ({
         ...prev,
-        isMockMode: notionApi.mockMode.isActive()
+        isMockMode: isMockActive()
       }));
     }, 1000);
     

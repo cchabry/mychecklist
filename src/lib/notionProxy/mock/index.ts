@@ -1,195 +1,104 @@
 
-import { mockState, MockConfig } from './state';
-import { mockStorage } from './storage';
-import { mockUtils } from './utils';
-import { mockExporter } from './exporter';
-
 /**
- * Utilitaire pour gérer le mode mock de l'API Notion
+ * Module de gestion du mode mock
  */
+
+import { mockState, MockConfig } from './state';
+import { getMockData } from './data';
+
+// Valeurs de configuration
+let _getDelay = () => mockState.getConfig().delay;
+let _getScenario = () => mockState.getConfig().scenario;
+let _getErrorRate = () => mockState.getConfig().errorRate;
+
+// Raccourcis pour éviter des appels répétés
 export const mockMode = {
   /**
    * Vérifie si le mode mock est actif
    */
-  isActive(): boolean {
-    return mockState.isActive();
-  },
+  isActive: () => mockState.isActive(),
   
   /**
    * Active le mode mock
    */
-  activate(): void {
-    console.log('✅ Mode mock activé');
-    mockState.setActive(true);
-    mockStorage.saveToStorage();
-  },
+  activate: () => mockState.setActive(true),
   
   /**
    * Désactive le mode mock
    */
-  deactivate(): void {
-    // Ne pas désactiver si le mode est permanent
-    if (mockState.isPermanent()) {
-      console.log('⚠️ Impossible de désactiver le mode mock permanent');
-      return;
-    }
-    
-    console.log('✅ Mode mock désactivé');
+  deactivate: () => mockState.setActive(false),
+  
+  /**
+   * Bascule l'état du mode mock
+   * @returns {boolean} Nouvel état (true = activé, false = désactivé)
+   */
+  toggle: () => {
+    const newState = !mockState.isActive();
+    mockState.setActive(newState);
+    return newState;
+  },
+  
+  /**
+   * Force la réinitialisation du mode mock
+   */
+  forceReset: () => {
     mockState.setActive(false);
-    mockStorage.saveToStorage();
-  },
-  
-  /**
-   * Bascule entre mode mock actif et inactif
-   */
-  toggle(): boolean {
-    if (mockState.isActive()) {
-      this.deactivate();
-    } else {
-      this.activate();
-    }
-    return mockState.isActive();
-  },
-  
-  /**
-   * Force temporairement le mode réel pour une opération
-   */
-  temporarilyForceReal(): void {
-    mockState.setTemporarilyForceReal(true);
-    console.log('🔄 Mode réel forcé temporairement');
-  },
-  
-  /**
-   * Vérifie si le mode est temporairement forcé en réel
-   */
-  isTemporarilyForcedReal(): boolean {
-    return mockState.isTemporarilyForcedReal();
-  },
-  
-  /**
-   * Restaure l'état original après un forçage temporaire
-   */
-  restoreState(): void {
-    mockState.setTemporarilyForceReal(false);
-    console.log(`🔄 État mock restauré (${mockState.getOriginalState() ? 'activé' : 'désactivé'})`);
-  },
-  
-  /**
-   * Alternative à restoreState pour plus de clarté dans certains cas
-   */
-  restoreAfterForceReal(): void {
-    this.restoreState();
-  },
-  
-  /**
-   * Définit le mode mock comme permanent (ne peut être désactivé que manuellement)
-   */
-  setPermanent(): void {
-    mockState.setPermanent(true);
-    mockState.setActive(true);
-    mockStorage.saveToStorage();
-    console.log('🔒 Mode mock défini comme permanent');
+    mockState.resetConfig();
   },
   
   /**
    * Vérifie si le mode mock est permanent
    */
-  isPermanent(): boolean {
-    return mockState.isPermanent();
-  },
+  isPermanent: () => mockState.isPermanent(),
   
   /**
-   * Réinitialise le mode mock (utile pour les tests)
+   * Définit si le mode mock est permanent
    */
-  reset(): void {
-    mockState.setActive(false);
-    mockState.setTemporarilyForceReal(false);
-    mockState.setPermanent(false);
-    mockStorage.clearStorage();
-  },
-
+  setPermanent: (permanent: boolean) => mockState.setPermanent(permanent),
+  
   /**
-   * Force une réinitialisation complète (y compris paramètres avancés)
+   * Récupère le délai de simulation
    */
-  forceReset(): void {
-    this.reset();
-    mockState.resetConfig();
-    console.log('🔄 Réinitialisation complète du mode mock');
-  },
-
+  getDelay: () => _getDelay(),
+  
   /**
-   * Obtient le scénario de mock actuel
+   * Définit le délai de simulation
    */
-  getScenario(): string {
-    return mockState.getConfig().scenario;
-  },
-
-  /**
-   * Définit le scénario de mock
-   */
-  setScenario(scenario: string): void {
-    mockState.updateConfig({ scenario });
-    mockStorage.saveToStorage();
-    console.log(`✅ Scénario mock défini: ${scenario}`);
-  },
-
-  /**
-   * Obtient le délai simulé
-   */
-  getDelay(): number {
-    return mockState.getConfig().delay;
-  },
-
-  /**
-   * Définit le délai simulé
-   */
-  setDelay(delay: number): void {
+  setDelay: (delay: number) => {
     mockState.updateConfig({ delay });
-    mockStorage.saveToStorage();
-    console.log(`✅ Délai mock défini: ${delay}ms`);
   },
-
-  /**
-   * Obtient le taux d'erreur simulé
-   */
-  getErrorRate(): number {
-    return mockState.getConfig().errorRate;
-  },
-
-  /**
-   * Définit le taux d'erreur simulé
-   */
-  setErrorRate(rate: number): void {
-    const validRate = Math.max(0, Math.min(100, rate));
-    mockState.updateConfig({ errorRate: validRate });
-    mockStorage.saveToStorage();
-    console.log(`✅ Taux d'erreur mock défini: ${validRate}%`);
-  },
-
-  /**
-   * Applique un délai simulé (utile pour tester les états de chargement)
-   */
-  applySimulatedDelay: mockUtils.applySimulatedDelay,
-
-  /**
-   * Détermine si une erreur doit être simulée en fonction du taux d'erreur
-   */
-  shouldSimulateError: mockUtils.shouldSimulateError,
-
-  /**
-   * Exporte les données de mock au format CSV
-   */
-  exportMockDataCSV: mockExporter.exportMockDataCSV,
   
   /**
-   * Télécharge les données de mock au format CSV
+   * Récupère le scénario actif
    */
-  downloadMockDataCSV: mockExporter.downloadMockDataCSV
+  getScenario: () => _getScenario(),
+  
+  /**
+   * Définit le scénario actif
+   */
+  setScenario: (scenario: string) => {
+    mockState.updateConfig({ scenario });
+  },
+  
+  /**
+   * Récupère le taux d'erreur
+   */
+  getErrorRate: () => _getErrorRate(),
+  
+  /**
+   * Définit le taux d'erreur
+   */
+  setErrorRate: (errorRate: number) => {
+    mockState.updateConfig({ errorRate });
+  },
+  
+  /**
+   * Génère une réponse simulée pour une requête Notion
+   */
+  getMockResponse: (endpoint: string, method: string, body: any) => {
+    return getMockData(endpoint, method, body, _getScenario());
+  }
 };
 
-// Initialiser à partir du localStorage si on est dans un environnement navigateur
-if (typeof window !== 'undefined') {
-  mockStorage.loadFromStorage();
-}
-
-export default mockMode;
+// Interface publique
+export { MockConfig };

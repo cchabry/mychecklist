@@ -9,6 +9,7 @@ import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 import NotionSolutionsSection from './NotionSolutionsSection';
+import { isMockActive, temporarilyDisableMock, enableMock } from '@/lib/notionProxy/mock/utils';
 
 interface NotionCreatePageTestProps {
   onSuccess?: () => void;
@@ -52,11 +53,11 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
     console.log('📝 Début du test de création de page Notion');
     
     // Force real mode for this test
-    const wasMockMode = notionApi.mockMode.isActive();
+    const wasMockMode = isMockActive();
     if (wasMockMode) {
       console.log('🔄 Désactivation temporaire du mode mock pour le test');
       localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-      notionApi.mockMode.forceReset();
+      temporarilyDisableMock();
     }
 
     try {
@@ -176,7 +177,7 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onSuccess, 
       // Restore mock mode if it was active
       if (wasMockMode) {
         console.log('🔄 Restauration du mode mock après le test');
-        notionApi.mockMode.activate();
+        enableMock();
       }
     }
   };

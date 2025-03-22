@@ -1,37 +1,48 @@
 
-import { mockState } from './state';
+/**
+ * Utilitaires pour travailler avec le mode mock
+ */
+
+import { mockMode } from '../mockMode';
 
 /**
- * Utilitaires pour le fonctionnement du mode mock
+ * Version sécurisée de la vérification du mode mock
+ * Fonctionne que isActive soit une propriété ou une fonction
  */
-export const mockUtils = {
-  /**
-   * Applique un délai simulé (utile pour tester les états de chargement)
-   */
-  async applySimulatedDelay(): Promise<void> {
-    const config = mockState.getConfig();
-    if (mockState.isActive() && config.delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, config.delay));
-    }
-  },
-  
-  /**
-   * Détermine si une erreur doit être simulée en fonction du taux d'erreur
-   */
-  shouldSimulateError(): boolean {
-    const config = mockState.getConfig();
-    if (!mockState.isActive() || config.errorRate <= 0) {
-      return false;
-    }
-    return Math.random() * 100 < config.errorRate;
-  },
-  
-  /**
-   * Crée une erreur simulée
-   */
-  createSimulatedError(message: string): Error {
-    const error = new Error(message);
-    error.name = 'MockedError';
-    return error;
+export function isMockActive(): boolean {
+  try {
+    // Try as a function first (legacy)
+    return mockMode.isActive();
+  } catch (e) {
+    // If it fails, try as a property (new version)
+    // @ts-ignore - we're handling the property vs function case
+    return mockMode.isActive;
   }
-};
+}
+
+/**
+ * Désactive temporairement le mode mock pour les appels d'API
+ */
+export function temporarilyDisableMock(): void {
+  try {
+    if (typeof mockMode.forceReset === 'function') {
+      mockMode.forceReset();
+    } else {
+      mockMode.deactivate();
+    }
+  } catch (e) {
+    // Fallback
+    console.warn('Erreur lors de la désactivation du mode mock:', e);
+  }
+}
+
+/**
+ * Active le mode mock
+ */
+export function enableMock(): void {
+  try {
+    mockMode.activate();
+  } catch (e) {
+    console.warn('Erreur lors de l\'activation du mode mock:', e);
+  }
+}
