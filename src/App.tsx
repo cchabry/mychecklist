@@ -49,7 +49,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
           
           {/* Exigences */}
-          <Route path="/project/:projectId/exigences" element={<React.Suspense fallback={<div>Loading...</div>}><ConfigureExigences /></React.Suspense>} />
+          <Route path="/project/:projectId/exigences" element={<ConfigureExigences />} />
         </Routes>
       </Router>
     </NotionServiceProvider>

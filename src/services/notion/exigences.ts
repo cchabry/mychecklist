@@ -28,18 +28,16 @@ const exigencesService = {
     
     try {
       // Appeler l'API Notion via le proxy
-      const response = await notionApi.get(`/exigences/${projectId}`);
+      const response = await notionApi.request(`/exigences/${projectId}`);
       
-      if (response.ok) {
-        const exigences = await response.json();
-        
+      if (response) {
         // Mettre en cache les résultats
-        cacheService.set(cacheKey, exigences);
+        cacheService.set(cacheKey, response);
         
-        return exigences;
+        return response;
       } else {
-        console.error('Erreur lors de la récupération des exigences:', response.statusText);
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        console.error('Erreur lors de la récupération des exigences');
+        throw new Error('Erreur lors de la récupération des exigences');
       }
     } catch (error) {
       console.error('Erreur lors de la récupération des exigences:', error);
@@ -71,23 +69,21 @@ const exigencesService = {
    */
   async createExigence(exigence: Exigence): Promise<Exigence> {
     try {
-      const response = await notionApi.post('/exigences', {
+      const response = await notionApi.request('/exigences', 'POST', {
         projectId: exigence.projectId,
         itemId: exigence.itemId,
         importance: exigence.importance,
         comment: exigence.comment || ''
       });
       
-      if (response.ok) {
-        const savedExigence = await response.json();
-        
+      if (response) {
         // Invalider le cache pour ce projet
         cacheService.remove(getCacheKey(exigence.projectId));
         
-        return savedExigence;
+        return response;
       } else {
-        console.error('Erreur lors de la création de l\'exigence:', response.statusText);
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        console.error('Erreur lors de la création de l\'exigence');
+        throw new Error('Erreur lors de la création de l\'exigence');
       }
     } catch (error) {
       console.error('Erreur lors de la création de l\'exigence:', error);
@@ -102,23 +98,21 @@ const exigencesService = {
    */
   async updateExigence(exigenceId: string, data: Partial<Exigence>): Promise<Exigence> {
     try {
-      const response = await notionApi.put(`/exigences/${exigenceId}`, {
+      const response = await notionApi.request(`/exigences/${exigenceId}`, 'PUT', {
         importance: data.importance,
         comment: data.comment || ''
       });
       
-      if (response.ok) {
-        const updatedExigence = await response.json();
-        
+      if (response) {
         // Invalider le cache pour ce projet
         if (data.projectId) {
           cacheService.remove(getCacheKey(data.projectId));
         }
         
-        return updatedExigence;
+        return response;
       } else {
-        console.error('Erreur lors de la mise à jour de l\'exigence:', response.statusText);
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        console.error('Erreur lors de la mise à jour de l\'exigence');
+        throw new Error('Erreur lors de la mise à jour de l\'exigence');
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'exigence:', error);
@@ -133,16 +127,16 @@ const exigencesService = {
    */
   async deleteExigence(exigenceId: string, projectId: string): Promise<boolean> {
     try {
-      const response = await notionApi.delete(`/exigences/${exigenceId}`);
+      const response = await notionApi.request(`/exigences/${exigenceId}`, 'DELETE');
       
-      if (response.ok) {
+      if (response) {
         // Invalider le cache pour ce projet
         cacheService.remove(getCacheKey(projectId));
         
         return true;
       } else {
-        console.error('Erreur lors de la suppression de l\'exigence:', response.statusText);
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        console.error('Erreur lors de la suppression de l\'exigence');
+        throw new Error('Erreur lors de la suppression de l\'exigence');
       }
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'exigence:', error);

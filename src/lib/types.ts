@@ -23,6 +23,8 @@ export interface ChecklistItem {
   comment?: string;
   reference?: string;
   profil?: string;
+  // Propriétés utilisées dans différentes parties du code mais non définies précédemment
+  details?: string; // Pour remplacer les références à subsubcategory et autres détails
 }
 
 export interface Project {

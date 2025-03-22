@@ -6,3 +6,4 @@ export { default as CreateDatabasesPage } from './CreateDatabases';
 export { default as AuditPage } from './audit';
 export { default as DiagnosticsPage } from './Diagnostics';
 export { default as SamplePagesPage } from './SamplePages';
+export { default as ConfigureExigences } from './project/ConfigureExigences';
