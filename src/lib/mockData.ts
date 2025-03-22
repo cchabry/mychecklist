@@ -36,7 +36,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Faible",
     priority: "Haute",
     requirementLevel: "Obligatoire",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Images with alternative text"
   },
   {
     id: "item-2",
@@ -51,7 +52,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Moyen",
     priority: "Haute",
     requirementLevel: "Obligatoire",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Keyboard navigation"
   },
   {
     id: "item-3",
@@ -66,7 +68,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Faible",
     priority: "Haute",
     requirementLevel: "Obligatoire",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Sufficient color contrast"
   },
   {
     id: "item-4",
@@ -80,7 +83,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Élevé",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Page load time"
   },
   {
     id: "item-5",
@@ -94,7 +98,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Moyen",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Optimized images"
   },
   {
     id: "item-6",
@@ -108,7 +113,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Faible",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Proper heading structure"
   },
   {
     id: "item-7",
@@ -122,7 +128,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Moyen",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Meta descriptions"
   },
   {
     id: "item-8",
@@ -136,7 +143,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Élevé",
     priority: "Haute",
     requirementLevel: "Obligatoire",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Mobile-friendly design"
   },
   {
     id: "item-9",
@@ -150,7 +158,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Faible",
     priority: "Haute",
     requirementLevel: "Obligatoire",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "HTTPS implementation"
   },
   {
     id: "item-10",
@@ -164,7 +173,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Moyen",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Clear navigation"
   },
   {
     id: "item-11",
@@ -178,7 +188,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Faible",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Form validation"
   },
   {
     id: "item-12",
@@ -192,7 +203,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Moyen",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Content Security Policy"
   },
   {
     id: "item-13",
@@ -206,7 +218,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Faible",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Semantic HTML"
   },
   {
     id: "item-14",
@@ -220,7 +233,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Moyen",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "No broken links"
   },
   {
     id: "item-15",
@@ -234,7 +248,8 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     effort: "Élevé",
     priority: "Moyenne",
     requirementLevel: "Recommandé",
-    scope: "Toutes pages"
+    scope: "Toutes pages",
+    consigne: "Browser compatibility"
   }
 ];
 
@@ -635,4 +650,3 @@ export const getMockActionProgress = (actionId: string): ActionProgress[] => {
   
   return progressEntries;
 };
-
