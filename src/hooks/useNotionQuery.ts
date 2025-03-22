@@ -1,8 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { notionService } from '@/services/notion';
-import { ConnectionStatus } from '@/services/notion/client';
+import { notionService, ConnectionStatus } from '@/services/notion/client';
 
 interface QueryOptions<T> {
   onSuccess?: (data: T) => void;

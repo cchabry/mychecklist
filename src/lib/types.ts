@@ -1,3 +1,4 @@
+
 // Types pour l'application d'audit qualité
 
 export interface ChecklistItem {
@@ -16,6 +17,10 @@ export interface ChecklistItem {
   priority?: string;
   requirementLevel?: string;
   scope?: string;
+  // Champs additionnels mappés depuis Notion
+  consigne: string;
+  reference?: string;
+  profil?: string;
 }
 
 export interface Project {
@@ -58,6 +63,15 @@ export enum ActionStatus {
   ToDo = "todo",
   InProgress = "in-progress",
   Done = "done"
+}
+
+// Nouvelle interface pour les exigences
+export interface Exigence {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
 }
 
 // Nouvelle structure: Page d'échantillon

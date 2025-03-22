@@ -55,33 +55,54 @@ export const checklistService = {
           return [];
         };
         
+        // Extraire les valeurs depuis les propriétés Notion
+        const consigne = properties.Consigne?.title?.[0]?.plain_text || 
+                          properties.consigne?.title?.[0]?.plain_text || 
+                          properties.Title?.title?.[0]?.plain_text || 
+                          properties.title?.title?.[0]?.plain_text || '';
+                          
+        const description = properties.Description?.rich_text?.[0]?.plain_text || 
+                           properties.description?.rich_text?.[0]?.plain_text || '';
+                           
+        const category = properties.Category?.select?.name || 
+                        properties.category?.select?.name || 
+                        properties.Categorie?.select?.name || '';
+                        
+        const subcategory = properties.Subcategory?.select?.name || 
+                           properties.subcategory?.select?.name || 
+                           properties.SousCategorie?.select?.name || '';
+                           
+        const reference = extractMultiValues(properties.Reference?.multi_select || 
+                                           properties.reference?.multi_select || 
+                                           properties.References?.multi_select);
+                                           
+        const profil = extractMultiValues(properties.Profil?.multi_select || 
+                                        properties.profil?.multi_select || 
+                                        properties.Profiles?.multi_select);
+                                        
+        const phase = extractMultiValues(properties.Phase?.multi_select || 
+                                       properties.phase?.multi_select);
+                                       
+        const effort = properties.Effort?.select?.name || 
+                      properties.effort?.select?.name || 'Moyen';
+                      
+        const priority = properties.Priority?.select?.name || 
+                        properties.priority?.select?.name || 
+                        properties.Priorite?.select?.name || 'Moyenne';
+        
+        // Créer l'item de checklist avec les propriétés requises
         return {
           id: page.id,
-          consigne: properties.Consigne?.title?.[0]?.plain_text || 
-                    properties.consigne?.title?.[0]?.plain_text || 
-                    properties.Title?.title?.[0]?.plain_text || 
-                    properties.title?.title?.[0]?.plain_text || '',
-          description: properties.Description?.rich_text?.[0]?.plain_text || 
-                       properties.description?.rich_text?.[0]?.plain_text || '',
-          category: properties.Category?.select?.name || 
-                    properties.category?.select?.name || 
-                    properties.Categorie?.select?.name || '',
-          subcategory: properties.Subcategory?.select?.name || 
-                       properties.subcategory?.select?.name || 
-                       properties.SousCategorie?.select?.name || '',
-          reference: extractMultiValues(properties.Reference?.multi_select || 
-                                       properties.reference?.multi_select || 
-                                       properties.References?.multi_select),
-          profil: extractMultiValues(properties.Profil?.multi_select || 
-                                    properties.profil?.multi_select || 
-                                    properties.Profiles?.multi_select),
-          phase: extractMultiValues(properties.Phase?.multi_select || 
-                                   properties.phase?.multi_select),
-          effort: properties.Effort?.select?.name || 
-                  properties.effort?.select?.name || 'Moyen',
-          priority: properties.Priority?.select?.name || 
-                    properties.priority?.select?.name || 
-                    properties.Priorite?.select?.name || 'Moyenne'
+          title: consigne, // Map consigne to title for compatibility
+          description: description,
+          category: category,
+          subcategory: subcategory,
+          consigne: consigne,
+          reference: reference.join(', '), // Join array to string for compatibility
+          profil: profil.join(', '), // Join array to string for compatibility
+          phase: phase.join(', '), // Join array to string for compatibility
+          effort: effort,
+          priority: priority
         };
       });
       
@@ -133,33 +154,54 @@ export const checklistService = {
         return [];
       };
       
+      // Extraire les valeurs depuis les propriétés Notion
+      const consigne = properties.Consigne?.title?.[0]?.plain_text || 
+                      properties.consigne?.title?.[0]?.plain_text || 
+                      properties.Title?.title?.[0]?.plain_text || 
+                      properties.title?.title?.[0]?.plain_text || '';
+                        
+      const description = properties.Description?.rich_text?.[0]?.plain_text || 
+                         properties.description?.rich_text?.[0]?.plain_text || '';
+                         
+      const category = properties.Category?.select?.name || 
+                      properties.category?.select?.name || 
+                      properties.Categorie?.select?.name || '';
+                      
+      const subcategory = properties.Subcategory?.select?.name || 
+                         properties.subcategory?.select?.name || 
+                         properties.SousCategorie?.select?.name || '';
+                         
+      const reference = extractMultiValues(properties.Reference?.multi_select || 
+                                         properties.reference?.multi_select || 
+                                         properties.References?.multi_select);
+                                         
+      const profil = extractMultiValues(properties.Profil?.multi_select || 
+                                      properties.profil?.multi_select || 
+                                      properties.Profiles?.multi_select);
+                                      
+      const phase = extractMultiValues(properties.Phase?.multi_select || 
+                                     properties.phase?.multi_select);
+                                     
+      const effort = properties.Effort?.select?.name || 
+                    properties.effort?.select?.name || 'Moyen';
+                    
+      const priority = properties.Priority?.select?.name || 
+                      properties.priority?.select?.name || 
+                      properties.Priorite?.select?.name || 'Moyenne';
+      
+      // Créer l'item de checklist avec les propriétés requises
       const item: ChecklistItem = {
         id: data.id,
-        consigne: properties.Consigne?.title?.[0]?.plain_text || 
-                  properties.consigne?.title?.[0]?.plain_text || 
-                  properties.Title?.title?.[0]?.plain_text || 
-                  properties.title?.title?.[0]?.plain_text || '',
-        description: properties.Description?.rich_text?.[0]?.plain_text || 
-                     properties.description?.rich_text?.[0]?.plain_text || '',
-        category: properties.Category?.select?.name || 
-                  properties.category?.select?.name || 
-                  properties.Categorie?.select?.name || '',
-        subcategory: properties.Subcategory?.select?.name || 
-                     properties.subcategory?.select?.name || 
-                     properties.SousCategorie?.select?.name || '',
-        reference: extractMultiValues(properties.Reference?.multi_select || 
-                                     properties.reference?.multi_select || 
-                                     properties.References?.multi_select),
-        profil: extractMultiValues(properties.Profil?.multi_select || 
-                                  properties.profil?.multi_select || 
-                                  properties.Profiles?.multi_select),
-        phase: extractMultiValues(properties.Phase?.multi_select || 
-                                 properties.phase?.multi_select),
-        effort: properties.Effort?.select?.name || 
-                properties.effort?.select?.name || 'Moyen',
-        priority: properties.Priority?.select?.name || 
-                  properties.priority?.select?.name || 
-                  properties.Priorite?.select?.name || 'Moyenne'
+        title: consigne, // Map consigne to title for compatibility
+        description: description,
+        category: category,
+        subcategory: subcategory,
+        consigne: consigne,
+        reference: reference.join(', '), // Join array to string for compatibility
+        profil: profil.join(', '), // Join array to string for compatibility
+        phase: phase.join(', '), // Join array to string for compatibility
+        effort: effort,
+        priority: priority
       };
       
       // Sauvegarder dans le cache

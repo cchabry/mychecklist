@@ -2,14 +2,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChecklistItem, Exigence, ImportanceLevel } from '@/lib/types';
 import { checklistService, exigencesService } from '@/services/notion';
-import { useNotionApi } from './useNotionApi';
+import { useNotionRequest } from './useNotionRequest';
+import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 
 /**
  * Hook pour gérer la checklist et les exigences d'un projet
  */
 export const useChecklistAndExigences = (projectId: string | undefined) => {
-  const { isConfigured, mockMode } = useNotionApi();
+  const { executeRequest } = useNotionRequest();
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [exigences, setExigences] = useState<Exigence[]>([]);
   const [loading, setLoading] = useState(false);
@@ -177,10 +178,14 @@ export const useChecklistAndExigences = (projectId: string | undefined) => {
   
   // Charger les données au montage du composant
   useEffect(() => {
-    if (isConfigured || mockMode.isActive()) {
+    // Vérifier si l'API est configurée ou si on est en mode mock
+    const isConfigured = localStorage.getItem('notion_api_key') !== null;
+    const isMockMode = localStorage.getItem('notion_mock_mode') === 'true';
+    
+    if (isConfigured || isMockMode) {
       loadData();
     }
-  }, [isConfigured, loadData, mockMode]);
+  }, [loadData]);
   
   return {
     checklistItems,

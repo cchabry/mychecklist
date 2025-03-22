@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { notionService, ConnectionStatus, NotionAPIResponse } from '@/services/notion';
+import { notionService, ConnectionStatus, NotionAPIResponse } from '@/services/notion/client';
 
 // Types pour le context
 interface NotionServiceContextType {
