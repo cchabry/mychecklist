@@ -1,4 +1,3 @@
-
 import { Project } from '@/lib/types';
 import { BaseService } from './baseService';
 import { notionApi } from '@/lib/notionProxy';
@@ -55,9 +54,7 @@ export class ProjectsService extends BaseService<Project> {
     
     return await notionApi.createProject({
       name: data.name,
-      url: data.url || '',
-      description: data.description || '',
-      ...data
+      url: data.url || ''
     });
   }
   
@@ -72,9 +69,8 @@ export class ProjectsService extends BaseService<Project> {
     }
     
     return await notionApi.updateProject(id, {
-      ...existingProject,
-      ...data,
-      id // S'assurer que l'ID reste inchangé
+      name: data.name || existingProject.name,
+      url: data.url || existingProject.url
     });
   }
   

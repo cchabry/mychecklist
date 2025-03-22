@@ -4,6 +4,10 @@ import * as users from './endpoints/users';
 import * as databases from './endpoints/databases';
 import * as pages from './endpoints/pages';
 import * as projects from './endpoints/projects';
+import * as audits from './endpoints/audits';
+import * as exigences from './endpoints/exigences';
+import * as checklist from './endpoints/checklist';
+import * as samplePages from './endpoints/samplePages';
 import { mockMode } from './mockMode';
 import { operationMode } from '@/services/operationMode';
 
@@ -28,7 +32,35 @@ export const notionApi = {
   getProject: projects.getProject,
   createProject: projects.createProject,
   updateProject: projects.updateProject,
-  getAudit: projects.getAudit
+  deleteProject: projects.deleteProject,
+  
+  // Méthodes pour les audits
+  getAudits: audits.getAudits,
+  getAudit: audits.getAudit,
+  createAudit: audits.createAudit,
+  updateAudit: audits.updateAudit,
+  deleteAudit: audits.deleteAudit,
+  
+  // Méthodes pour les exigences
+  getExigences: exigences.getExigences,
+  getExigence: exigences.getExigence,
+  createExigence: exigences.createExigence,
+  updateExigence: exigences.updateExigence,
+  deleteExigence: exigences.deleteExigence,
+  
+  // Méthodes pour les items de checklist
+  getChecklistItems: checklist.getChecklistItems,
+  getChecklistItem: checklist.getChecklistItem,
+  createChecklistItem: checklist.createChecklistItem,
+  updateChecklistItem: checklist.updateChecklistItem,
+  deleteChecklistItem: checklist.deleteChecklistItem,
+  
+  // Méthodes pour les pages d'échantillon
+  getSamplePages: samplePages.getSamplePages,
+  getSamplePage: samplePages.getSamplePage,
+  createSamplePage: samplePages.createSamplePage,
+  updateSamplePage: samplePages.updateSamplePage,
+  deleteSamplePage: samplePages.deleteSamplePage
 };
 
 // Réexporter la fonction principale pour la rétrocompatibilité

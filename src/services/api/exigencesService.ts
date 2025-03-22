@@ -1,5 +1,4 @@
-
-import { Exigence } from '@/lib/types';
+import { Exigence, ImportanceLevel } from '@/lib/types';
 import { BaseService } from './baseService';
 import { notionApi } from '@/lib/notionProxy';
 import { QueryFilters } from './types';
@@ -60,7 +59,7 @@ export class ExigencesService extends BaseService<Exigence> {
     return await notionApi.createExigence({
       projectId: data.projectId,
       itemId: data.itemId,
-      importance: data.importance || 'N/A',
+      importance: data.importance || ImportanceLevel.NA,
       comment: data.comment || '',
       ...data
     });
@@ -108,7 +107,7 @@ export class ExigencesService extends BaseService<Exigence> {
   /**
    * Met à jour ou crée une exigence pour un projet et un item
    */
-  async setExigence(projectId: string, itemId: string, importance: string, comment: string = ''): Promise<Exigence> {
+  async setExigence(projectId: string, itemId: string, importance: ImportanceLevel, comment: string = ''): Promise<Exigence> {
     const existing = await this.getByProjectAndItem(projectId, itemId);
     
     if (existing) {

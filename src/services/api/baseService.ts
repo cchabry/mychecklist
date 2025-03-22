@@ -2,6 +2,7 @@
 import { cacheManager } from '../cache/cacheManager';
 import { createEntityCache } from '../cache/utils';
 import { ApiResponse, ApiServiceOptions, BaseApiService, QueryFilters } from './types';
+import { CacheFetchOptions } from '../cache/types';
 import { toast } from 'sonner';
 
 /**

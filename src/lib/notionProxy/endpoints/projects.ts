@@ -1,4 +1,3 @@
-
 import { notionApiRequest } from '../proxyFetch';
 import { mockMode } from '../mockMode';
 import { MOCK_PROJECTS } from '../../mockData';
@@ -314,4 +313,44 @@ export const getAudit = async (id: string) => {
     version: properties.Version?.rich_text?.[0]?.plain_text || 
              properties.version?.rich_text?.[0]?.plain_text || '1.0'
   };
+};
+
+/**
+ * Supprime un projet
+ */
+export const deleteProject = async (id: string): Promise<boolean> => {
+  // Si nous sommes en mode mock, simuler une suppression
+  if (mockMode.isActive()) {
+    console.log('Deleting mock project with ID:', id);
+    const projectIndex = MOCK_PROJECTS.findIndex(project => project.id === id);
+    
+    if (projectIndex !== -1) {
+      MOCK_PROJECTS.splice(projectIndex, 1);
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Sinon, supprimer dans Notion (Notion archive les pages, ne les supprime pas vraiment)
+  const apiKey = localStorage.getItem('notion_api_key');
+  
+  if (!apiKey) {
+    throw new Error('Clé API Notion manquante');
+  }
+
+  try {
+    await notionApiRequest(
+      `/pages/${id}`,
+      'PATCH',
+      {
+        archived: true
+      },
+      apiKey
+    );
+    return true;
+  } catch (error) {
+    console.error(`Erreur lors de la suppression du projet #${id}:`, error);
+    return false;
+  }
 };
