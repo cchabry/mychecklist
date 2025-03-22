@@ -5,6 +5,10 @@ import { CacheFetchOptions } from '@/services/cache/types';
 
 /**
  * Hook React principal pour utiliser le système de cache
+ * @param key - Clé d'identification dans le cache
+ * @param fetcher - Fonction pour récupérer les données si absentes ou expirées
+ * @param ttl - Durée de vie en ms ou options avancées
+ * @returns Objet avec données, état, et fonctions de contrôle
  */
 export function useCache<T>(
   key: string,
@@ -64,14 +68,28 @@ export function useCache<T>(
       
       return result;
     } catch (e) {
-      // L'erreur est déjà gérée par les callbacks
+      const fetchError = e instanceof Error ? e : new Error(String(e));
+      setError(fetchError);
       return null;
     }
   }, [key, fetcher, options]);
   
   // Charger les données au montage du composant
   useEffect(() => {
-    fetchData();
+    let isMounted = true;
+    
+    const load = async () => {
+      if (isMounted) {
+        await fetchData();
+      }
+    };
+    
+    load();
+    
+    // Nettoyage lors du démontage
+    return () => {
+      isMounted = false;
+    };
   }, [fetchData]);
   
   return {
@@ -80,6 +98,16 @@ export function useCache<T>(
     error,
     isStale,
     refetch: () => fetchData(true),
-    invalidate: () => cacheManager.invalidate(key)
+    invalidate: () => cacheManager.invalidate(key),
+    // Fonctions supplémentaires
+    setData: (newData: T) => {
+      setData(newData);
+      cacheManager.set(key, newData, options.ttl);
+    },
+    reset: () => {
+      setData(null);
+      setError(null);
+      setIsLoading(false);
+    }
   };
 }

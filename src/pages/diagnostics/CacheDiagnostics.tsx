@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useCache, useStaleWhileRevalidate } from '@/hooks/cache';
-import { cacheManager } from '@/services/cache/cacheManager';
+import { cacheManager } from '@/services/cache/managers/defaultManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -32,7 +32,8 @@ const CacheDiagnostics: React.FC = () => {
     data: normalCacheData, 
     isLoading: normalCacheLoading,
     isStale: normalCacheStale,
-    refetch: normalCacheRefetch
+    refetch: normalCacheRefetch,
+    setData: setNormalCacheData
   } = useCache('test-cache-key', fetchData, 10000);
   
   // Utiliser notre hook useStaleWhileRevalidate
@@ -40,7 +41,8 @@ const CacheDiagnostics: React.FC = () => {
     data: staleData, 
     isLoading: staleLoading,
     isStale: isStaleData,
-    refetch: staleRefetch
+    refetch: staleRefetch,
+    setData: setStaleData
   } = useStaleWhileRevalidate('test-stale-key', fetchData, 5000);
   
   // Incrémenter le compteur et invalider le cache
@@ -49,6 +51,19 @@ const CacheDiagnostics: React.FC = () => {
     cacheManager.invalidate('test-cache-key');
     cacheManager.invalidate('test-stale-key');
     toast.info('Cache invalidé');
+  };
+  
+  // Mettre à jour directement le cache
+  const handleDirectUpdate = () => {
+    const newData = {
+      timestamp: new Date().toISOString(),
+      random: Math.random(),
+      counter: counter,
+      directUpdate: true
+    };
+    
+    setNormalCacheData(newData);
+    toast.success('Données mises à jour directement');
   };
   
   return (
@@ -112,6 +127,14 @@ const CacheDiagnostics: React.FC = () => {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Invalider
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={handleDirectUpdate}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Mise à jour directe
             </Button>
           </CardFooter>
         </Card>
