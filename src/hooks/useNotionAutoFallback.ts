@@ -1,150 +1,82 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { operationMode, OperationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 
-interface UseNotionAutoFallbackOptions {
-  // Nombre maximal de tentatives avant fallback
-  maxRetries?: number;
-  // Intervalle entre les tentatives (ms)
-  retryInterval?: number;
-  // Notification lors du fallback
-  notifyOnFallback?: boolean;
-  // Mode de démarrage forcé (prioritaire sur la détection)
-  forcedStartMode?: OperationMode;
-}
-
 /**
- * Hook pour la gestion automatique du fallback Notion
- * Détecte les erreurs et bascule automatiquement en mode démo si nécessaire
+ * Hook qui surveille les opérations Notion et gère automatiquement le fallback
+ * vers le mode démo en cas d'erreur, avec une notification claire pour l'utilisateur
  */
-export function useNotionAutoFallback(options: UseNotionAutoFallbackOptions = {}) {
-  const {
-    maxRetries = 3,
-    retryInterval = 5000,
-    notifyOnFallback = true,
-    forcedStartMode
-  } = options;
-  
-  const [retryCount, setRetryCount] = useState(0);
-  const [isConnectionTested, setIsConnectionTested] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'untested' | 'success' | 'error'>('untested');
-  
-  /**
-   * Teste la connexion à Notion
-   */
-  const testConnection = useCallback(async (): Promise<boolean> => {
-    // Si un mode de démarrage est forcé, l'utiliser sans test
-    if (forcedStartMode) {
-      if (forcedStartMode === OperationMode.DEMO) {
-        operationMode.enableDemoMode('Mode forcé au démarrage');
-      } else if (forcedStartMode === OperationMode.REAL) {
-        operationMode.enableRealMode();
-      }
-      setConnectionStatus(forcedStartMode === OperationMode.REAL ? 'success' : 'error');
-      setIsConnectionTested(true);
-      return forcedStartMode === OperationMode.REAL;
-    }
-    
-    // Si nous sommes déjà en mode démo, pas besoin de tester
-    if (operationMode.isDemoMode()) {
-      setConnectionStatus('error');
-      setIsConnectionTested(true);
-      return false;
-    }
-    
-    try {
-      // Récupérer la clé API depuis localStorage
-      const apiKey = localStorage.getItem('notion_api_key');
-      if (!apiKey) {
-        throw new Error('Clé API Notion manquante');
-      }
+export function useNotionAutoFallback() {
+  const [currentMode, setCurrentMode] = useState<OperationMode>(operationMode.getMode());
+  const [lastReason, setLastReason] = useState<string | null>(operationMode.getSwitchReason());
+  const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
+
+  // S'abonner aux changements de mode
+  useEffect(() => {
+    const unsubscribe = operationMode.subscribe((newMode: OperationMode) => {
+      setCurrentMode(newMode);
+      setLastReason(operationMode.getSwitchReason());
+      setFailures(operationMode.getConsecutiveFailures());
       
-      // Tester la connexion en faisant une requête à l'API Users
-      // Cette requête devrait être très légère et rapide
-      const userResponse = await fetch('https://api.notion.com/v1/users/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Notion-Version': '2022-06-28'
-        }
-      });
-      
-      if (!userResponse.ok) {
-        throw new Error(`Erreur API Notion: ${userResponse.status}`);
-      }
-      
-      // Connexion réussie !
-      setConnectionStatus('success');
-      setIsConnectionTested(true);
-      operationMode.handleSuccessfulOperation();
-      return true;
-    } catch (error) {
-      // Erreur de connexion
-      setConnectionStatus('error');
-      setIsConnectionTested(true);
-      
-      // Notifier le service de mode
-      operationMode.handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)), 
-        'Test de connexion initial'
-      );
-      
-      // Incrémenter le compteur de tentatives
-      setRetryCount(prev => prev + 1);
-      
-      return false;
-    }
-  }, [forcedStartMode]);
-  
-  /**
-   * Fonction de gestion du fallback automatique
-   */
-  const handleAutoFallback = useCallback(async () => {
-    // Tester la connexion
-    const connected = await testConnection();
-    
-    // Si la connexion échoue et qu'on a atteint le nombre max de tentatives
-    if (!connected && retryCount >= maxRetries) {
-      // Basculer en mode démo
-      operationMode.enableDemoMode('Échecs répétés de connexion');
-      
-      // Notifier l'utilisateur
-      if (notifyOnFallback) {
-        toast.info('Mode démonstration activé automatiquement', {
-          description: 'Impossible de se connecter à Notion après plusieurs tentatives',
-          duration: 5000
+      // Afficher une notification détaillée lors du basculement automatique
+      if (newMode === OperationMode.DEMO && operationMode.getSwitchReason()?.includes('Échec de connexion')) {
+        toast.warning('Passage automatique en mode démonstration', {
+          description: 'Des problèmes de connexion à Notion ont été détectés. L\'application utilise maintenant des données fictives.',
+          duration: 5000,
+          action: {
+            label: 'Réessayer en mode réel',
+            onClick: () => {
+              operationMode.enableRealMode();
+              toast.info('Tentative de reconnexion à Notion...'); 
+            }
+          }
         });
       }
+    });
+    
+    return unsubscribe;
+  }, []);
+
+  /**
+   * Fonction utilitaire pour signaler une erreur Notion et gérer automatiquement le fallback
+   */
+  const reportNotionError = (error: Error | unknown, context: string = 'Opération Notion') => {
+    if (error instanceof Error) {
+      operationMode.handleConnectionError(error, context);
+    } else {
+      operationMode.handleConnectionError(
+        new Error(typeof error === 'string' ? error : 'Erreur inconnue'),
+        context
+      );
     }
-  }, [testConnection, retryCount, maxRetries, notifyOnFallback]);
-  
-  // Tester la connexion au montage du composant
-  useEffect(() => {
-    if (!isConnectionTested) {
-      handleAutoFallback();
+  };
+
+  /**
+   * Fonction utilitaire pour signaler une opération Notion réussie
+   */
+  const reportNotionSuccess = () => {
+    operationMode.handleSuccessfulOperation();
+  };
+
+  /**
+   * Fonction pour tenter de revenir en mode réel
+   */
+  const attemptRealMode = () => {
+    if (operationMode.isDemoMode()) {
+      operationMode.enableRealMode();
+      toast.info('Tentative de reconnexion à Notion...'); 
     }
-  }, [isConnectionTested, handleAutoFallback]);
-  
-  // Planifier des tentatives si nécessaire
-  useEffect(() => {
-    // Si la connexion est en erreur mais qu'on n'a pas atteint le nombre max de tentatives
-    if (connectionStatus === 'error' && retryCount < maxRetries && !operationMode.isDemoMode()) {
-      // Planifier une nouvelle tentative
-      const timer = setTimeout(() => {
-        testConnection();
-      }, retryInterval);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [connectionStatus, retryCount, maxRetries, retryInterval, testConnection]);
-  
+  };
+
   return {
-    isConnectionTested,
-    connectionStatus,
-    retryCount,
-    maxRetries,
-    testConnection,
-    operationMode: operationMode.getMode()
+    isDemoMode: operationMode.isDemoMode(),
+    isRealMode: operationMode.isRealMode(),
+    currentMode,
+    lastReason,
+    failures,
+    reportNotionError,
+    reportNotionSuccess,
+    attemptRealMode
   };
 }
