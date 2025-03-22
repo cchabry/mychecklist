@@ -33,7 +33,8 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
   } = useOperationMode();
   
   const handleModeToggle = (newState: boolean) => {
-    const isDemoNow = toggle();
+    toggle(); // La fonction toggle ne retourne pas directement un boolean mais modifie l'état interne
+    const isDemoNow = isDemoMode; // Après l'appel à toggle(), isDemoMode reflète le nouvel état
     
     toast(isDemoNow ? 'Mode démonstration activé' : 'Mode réel activé', {
       description: isDemoNow 
@@ -129,7 +130,7 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                         : 'Bascule automatique désactivée'
                     );
                   }}
-                  size="sm"
+                  className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
                 />
               </div>
               
@@ -143,7 +144,7 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                   onCheckedChange={(checked) => {
                     updateSettings({ persistMode: checked });
                   }}
-                  size="sm"
+                  className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
                 />
               </div>
               
@@ -157,7 +158,7 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
                   onCheckedChange={(checked) => {
                     updateSettings({ showNotifications: checked });
                   }}
-                  size="sm"
+                  className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
                 />
               </div>
             </div>
