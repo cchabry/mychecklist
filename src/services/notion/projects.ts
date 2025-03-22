@@ -170,7 +170,7 @@ export const projectsService = {
         };
       }
       
-      const response = await notionClient.post('/pages', {
+      const response = await notionClient.post<NotionAPIPage>('/pages', {
         parent: { database_id: dbId },
         properties
       });
