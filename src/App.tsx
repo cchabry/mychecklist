@@ -13,6 +13,7 @@ import NewAuditPage from '@/pages/audit/NewAuditPage';
 import NotFound from '@/pages/NotFound';
 import ErrorPage from '@/pages/ErrorPage';
 import ConfigureExigences from '@/pages/project/ConfigureExigences';
+import ConfigPage from '@/pages/ConfigPage';
 
 // Provider pour les services Notion
 import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
@@ -41,6 +42,9 @@ function App() {
           
           {/* Configuration Notion */}
           <Route path="/notion-config" element={<NotionConfig />} />
+          
+          {/* Configuration du Mode Opérationnel */}
+          <Route path="/config" element={<ConfigPage />} />
           
           {/* Pages d'erreur */}
           <Route path="/error/:errorType" element={<ErrorPage />} />

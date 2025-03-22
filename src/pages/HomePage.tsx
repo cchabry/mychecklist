@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import HomeIndex from './HomeIndex';
 import { Button } from '@/components/ui/button';
-import { Download, Settings } from 'lucide-react';
+import { Download, Settings, Activity } from 'lucide-react';
 import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 import OperationModeControl from '@/components/OperationModeControl';
+import { OperationModeSettingsButton } from '@/components/OperationModeSettings';
+import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   const [showExporter, setShowExporter] = useState(false);
@@ -38,13 +40,16 @@ const HomePage = () => {
   return (
     <>
       <div className="fixed bottom-4 right-4 z-50 flex gap-2">
+        <OperationModeSettingsButton label="Mode opérationnel" className="shadow-lg" />
+        
         <Button
-          onClick={() => setShowModeControl(true)}
+          component={Link}
+          to="/config"
+          variant="outline"
           className="shadow-lg"
-          variant={operationMode.isDemoMode ? "outline" : "default"}
         >
-          <Settings size={16} className="mr-2" />
-          {operationMode.isDemoMode ? 'Mode démo actif' : 'Mode réel actif'}
+          <Activity size={16} className="mr-2" />
+          Configuration
         </Button>
         
         <NotionDiagnosticReport 
