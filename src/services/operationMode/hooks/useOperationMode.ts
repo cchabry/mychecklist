@@ -61,6 +61,14 @@ export function useOperationMode() {
     operationMode.handleSuccessfulOperation();
   }, []);
 
+  // Ajouter la fonction reset
+  const reset = useCallback(() => {
+    operationMode.reset();
+    toast.success('Réinitialisation complète', {
+      description: 'Tous les paramètres du mode opérationnel ont été réinitialisés.'
+    });
+  }, []);
+
   // Retourner tous les états et méthodes
   return {
     // États
@@ -79,6 +87,7 @@ export function useOperationMode() {
     updateSettings,
     handleConnectionError,
     handleSuccessfulOperation,
+    reset,
     
     // Service brut (à utiliser avec précaution)
     operationMode
