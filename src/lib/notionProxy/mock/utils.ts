@@ -5,12 +5,20 @@
 
 import { mockMode } from '../mockMode';
 import { mockState } from './state';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Version sécurisée de la vérification du mode mock
  * Fonctionne que isActive soit une propriété ou une fonction
+ * @deprecated Utilisez operationMode.isDemoMode à la place
  */
 export function isMockActive(): boolean {
+  // Utiliser en priorité le nouveau système
+  if (typeof operationMode !== 'undefined') {
+    return operationMode.isDemoMode;
+  }
+  
+  // Fallback sur l'ancien système
   try {
     // Try as a function first
     return mockMode.isActive();
@@ -28,8 +36,16 @@ export function isMockActive(): boolean {
 
 /**
  * Désactive temporairement le mode mock pour les appels d'API
+ * @deprecated Utilisez operationMode.enableRealMode() à la place
  */
 export function temporarilyDisableMock(): void {
+  // Utiliser en priorité le nouveau système
+  if (typeof operationMode !== 'undefined') {
+    operationMode.enableRealMode();
+    return;
+  }
+  
+  // Fallback sur l'ancien système
   try {
     if (typeof mockMode.forceReset === 'function') {
       mockMode.forceReset();
@@ -44,8 +60,16 @@ export function temporarilyDisableMock(): void {
 
 /**
  * Active le mode mock
+ * @deprecated Utilisez operationMode.enableDemoMode() à la place
  */
 export function enableMock(): void {
+  // Utiliser en priorité le nouveau système
+  if (typeof operationMode !== 'undefined') {
+    operationMode.enableDemoMode('Activation via enableMock()');
+    return;
+  }
+  
+  // Fallback sur l'ancien système
   try {
     mockMode.activate();
   } catch (e) {
@@ -76,6 +100,16 @@ export function shouldSimulateError(): boolean {
  * @returns {boolean} True si le mode mock était actif et a été désactivé
  */
 export function temporarilyForceReal(): boolean {
+  // Utiliser en priorité le nouveau système
+  if (typeof operationMode !== 'undefined') {
+    const wasMock = operationMode.isDemoMode;
+    if (wasMock) {
+      operationMode.enableRealMode();
+    }
+    return wasMock;
+  }
+  
+  // Fallback sur l'ancien système
   const wasMock = isMockActive();
   if (wasMock) {
     temporarilyDisableMock();
@@ -88,6 +122,15 @@ export function temporarilyForceReal(): boolean {
  * @param {boolean} wasMock - Si le mode mock était actif avant
  */
 export function restoreAfterForceReal(wasMock: boolean): void {
+  // Utiliser en priorité le nouveau système
+  if (typeof operationMode !== 'undefined') {
+    if (wasMock) {
+      operationMode.enableDemoMode('Restoration après force real');
+    }
+    return;
+  }
+  
+  // Fallback sur l'ancien système
   if (wasMock) {
     enableMock();
   }
@@ -99,6 +142,12 @@ export function restoreAfterForceReal(wasMock: boolean): void {
  * @returns {boolean} True si on est en mode réel forcé
  */
 export function isTemporarilyForcedReal(wasMock: boolean): boolean {
+  // Utiliser en priorité le nouveau système
+  if (typeof operationMode !== 'undefined') {
+    return wasMock && !operationMode.isDemoMode;
+  }
+  
+  // Fallback sur l'ancien système
   return wasMock && !isMockActive();
 }
 

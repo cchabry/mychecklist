@@ -51,7 +51,7 @@ const compatibilityMockMode = {
   },
   
   /**
-   * @deprecated Utilisez mockModeUtils.temporarilyForceReal à la place
+   * @deprecated Utilisez mockUtils.temporarilyForceReal à la place
    */
   temporarilyForceReal(): boolean {
     console.warn('mockMode.temporarilyForceReal est déprécié');
@@ -63,7 +63,7 @@ const compatibilityMockMode = {
   },
   
   /**
-   * @deprecated Utilisez mockModeUtils.restoreAfterForceReal à la place
+   * @deprecated Utilisez mockUtils.restoreAfterForceReal à la place
    */
   restoreAfterForceReal(wasMock: boolean): void {
     console.warn('mockMode.restoreAfterForceReal est déprécié');
@@ -73,14 +73,14 @@ const compatibilityMockMode = {
   },
   
   /**
-   * @deprecated Utilisez mockModeUtils.isTemporarilyForcedReal à la place
+   * @deprecated Utilisez mockUtils.isTemporarilyForcedReal à la place
    */
   isTemporarilyForcedReal(wasMock: boolean): boolean {
     return wasMock && !operationMode.isDemoMode;
   },
   
   /**
-   * @deprecated Utilisez mockModeUtils.applySimulatedDelay à la place
+   * @deprecated Utilisez mockUtils.applySimulatedDelay à la place
    */
   applySimulatedDelay: async (): Promise<void> => {
     console.warn('mockMode.applySimulatedDelay est déprécié');
@@ -91,7 +91,7 @@ const compatibilityMockMode = {
   },
   
   /**
-   * @deprecated Utilisez mockModeUtils.shouldSimulateError à la place
+   * @deprecated Utilisez mockUtils.shouldSimulateError à la place
    */
   shouldSimulateError: (): boolean => {
     console.warn('mockMode.shouldSimulateError est déprécié');
