@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -21,8 +20,6 @@ import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
  * Configuration de la navigation et des routes
  */
 function App() {
-  console.log('App component rendering...');
-  
   return (
     <NotionServiceProvider>
       <Router>
@@ -48,6 +45,9 @@ function App() {
           
           {/* Page 404 */}
           <Route path="*" element={<NotFound />} />
+          
+          {/* Exigences */}
+          <Route path="/project/:projectId/exigences" element={<React.Suspense fallback={<div>Loading...</div>}><ConfigureExigences /></React.Suspense>} />
         </Routes>
       </Router>
     </NotionServiceProvider>

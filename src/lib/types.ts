@@ -1,80 +1,70 @@
-
-// Types pour l'application d'audit qualité
-
 export interface ChecklistItem {
   id: string;
   title: string;
   description: string;
   category: string;
   subcategory?: string;
-  subsubcategory?: string;
-  details?: string; // Détails supplémentaires à afficher à la demande
   metaRefs?: string;
-  criteria?: string;
-  profile?: string;
-  phase?: string;
-  effort?: string;
-  priority?: string;
-  requirementLevel?: string;
-  scope?: string;
-  // Champs additionnels mappés depuis Notion
+  criteria: string;
+  profile: string;
+  phase: string;
+  effort: string;
+  priority: string;
+  requirementLevel: string;
+  scope: string;
   consigne: string;
-  reference?: string;
-  profil?: string;
+  status?: ComplianceStatus;
+  pageResults?: PageResult[];
+  importance?: ImportanceLevel;
+  projectRequirement?: string;
+  projectComment?: string;
+  actions?: CorrectiveAction[];
 }
 
 export interface Project {
   id: string;
   name: string;
   url: string;
-  description?: string; // Ajout du champ description
-  status?: string;     // Ajout du champ status
   createdAt: string;
   updatedAt: string;
-  progress: number; // Pourcentage de complétion 0-100
+  progress: number;
   itemsCount: number;
-  pagesCount?: number; // Nombre de pages dans l'échantillon
+  pagesCount: number;
+}
+
+export interface Audit {
+  id: string;
+  projectId: string;
+  name: string;
+  items: ChecklistItem[];
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  score: number;
+  version: string;
 }
 
 export enum ComplianceStatus {
-  NonCompliant = "non-compliant",
-  PartiallyCompliant = "partially-compliant",
-  Compliant = "compliant",
-  NotEvaluated = "not-evaluated",
-  NotApplicable = "not-applicable"
+  Compliant = "Compliant",
+  NonCompliant = "NonCompliant",
+  PartiallyCompliant = "PartiallyCompliant",
+  NotEvaluated = "NotEvaluated"
 }
 
 export enum ImportanceLevel {
-  NA = "N/A",
-  Mineur = "Mineur",
-  Moyen = "Moyen",
+  Majeur = "Majeur",
   Important = "Important",
-  Majeur = "Majeur"
+  Moyen = "Moyen",
+  Mineur = "Mineur",
+  NA = "N/A"
 }
 
-export enum ActionPriority {
-  Low = "low",
-  Medium = "medium",
-  High = "high",
-  Critical = "critical"
-}
-
-export enum ActionStatus {
-  ToDo = "todo",
-  InProgress = "in-progress",
-  Done = "done"
-}
-
-// Nouvelle interface pour les exigences
-export interface Exigence {
-  id: string;
-  projectId: string;
-  itemId: string;
-  importance: ImportanceLevel;
+export interface PageResult {
+  pageId: string;
+  status: ComplianceStatus;
   comment?: string;
 }
 
-// Nouvelle structure: Page d'échantillon
 export interface SamplePage {
   id: string;
   projectId: string;
@@ -84,91 +74,49 @@ export interface SamplePage {
   order: number;
 }
 
-// Résultat d'évaluation pour une page spécifique
-export interface PageResult {
-  pageId: string;
-  status: ComplianceStatus;
-  comment?: string;
+export enum ActionPriority {
+  High = "High",
+  Medium = "Medium",
+  Low = "Low"
 }
 
-// Nouvelle structure: Exigence spécifique à un projet
-export interface ProjectRequirement {
-  id: string;
-  projectId: string;
-  itemId: string; // Référence à l'item de checklist
-  importance: ImportanceLevel;
-  comment?: string; // Commentaire expliquant cette exigence
+export enum ActionStatus {
+  Open = "Open",
+  InProgress = "In Progress",
+  Done = "Done",
+  Blocked = "Blocked"
 }
 
-// Suivi d'une action corrective
-export interface ActionProgress {
-  id: string;
-  actionId: string; // Référence à l'action corrective
-  date: string;
-  responsible: string;
-  comment?: string;
-  score: ComplianceStatus;
-  status: ActionStatus;
-}
-
-// Action corrective
 export interface CorrectiveAction {
   id: string;
-  evaluationId: string; // Référence à l'évaluation
-  pageId: string; // Page concernée par l'action
+  evaluationId: string;
+  pageId: string;
   targetScore: ComplianceStatus;
   priority: ActionPriority;
   dueDate: string;
   responsible: string;
-  comment?: string;
+  comment: string;
   status: ActionStatus;
   createdAt: string;
   updatedAt: string;
-  progress?: ActionProgress[]; // Suivi de progression
+  progress: ActionProgress[];
 }
 
-// Évaluation d'un item pour un audit spécifique
-export interface Evaluation {
+export interface ActionProgress {
   id: string;
-  auditId: string;
-  exigenceId: string; // Référence à l'exigence du projet
-  pageId: string; // Référence à la page évaluée
-  status: ComplianceStatus;
-  comment?: string;
-  createdAt: string;
-  updatedAt: string;
-  actions?: CorrectiveAction[]; // Actions correctives associées
+  actionId: string;
+  date: string;
+  responsible: string;
+  comment: string;
+  score: ComplianceStatus;
+  status: ActionStatus;
 }
 
-export interface AuditItem extends ChecklistItem {
-  status: ComplianceStatus; // Overall status
-  comment?: string; // Overall comment
-  pageResults?: PageResult[]; // Results for each sample page
-  // Propriétés spécifiques au projet
-  importance?: ImportanceLevel | string; // Niveau d'importance pour ce projet
-  projectRequirement?: string; // Exigence spécifique au projet
-  projectComment?: string; // Commentaire détaillé sur l'exigence pour ce projet
-  // Nouvelles propriétés
-  actions?: CorrectiveAction[]; // Actions correctives associées
-}
-
-export interface Audit {
+// Type pour les exigences spécifiques à un projet
+export interface Exigence {
   id: string;
   projectId: string;
-  name: string; // Nom spécifique de l'audit (nouvelle propriété)
-  items: AuditItem[];
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
-  score: number; // Score global de conformité
-  version?: string; // Numéro de version (nouvelle propriété)
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
 }
-
-// Valeurs pour le calcul du score
-export const COMPLIANCE_VALUES = {
-  [ComplianceStatus.NonCompliant]: 0,
-  [ComplianceStatus.PartiallyCompliant]: 0.5,
-  [ComplianceStatus.Compliant]: 1,
-  [ComplianceStatus.NotEvaluated]: 0,
-  [ComplianceStatus.NotApplicable]: 0
-};
