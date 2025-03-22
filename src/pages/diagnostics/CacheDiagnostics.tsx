@@ -33,7 +33,7 @@ const CacheDiagnostics: React.FC = () => {
     isLoading: normalCacheLoading,
     isStale: normalCacheStale,
     refetch: normalCacheRefetch
-  } = useCache('test-cache-key', fetchData, { ttl: 10000 });
+  } = useCache('test-cache-key', fetchData, 10000);
   
   // Utiliser notre hook useStaleWhileRevalidate
   const { 
@@ -41,7 +41,7 @@ const CacheDiagnostics: React.FC = () => {
     isLoading: staleLoading,
     isStale: isStaleData,
     refetch: staleRefetch
-  } = useStaleWhileRevalidate('test-stale-key', fetchData, { ttl: 5000 });
+  } = useStaleWhileRevalidate('test-stale-key', fetchData, 5000);
   
   // Incrémenter le compteur et invalider le cache
   const handleIncrement = () => {

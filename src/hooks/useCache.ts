@@ -9,12 +9,17 @@ import { CacheFetchOptions } from '@/services/cache/types';
 export function useCache<T>(
   key: string,
   fetcher: () => Promise<T>,
-  options: Omit<CacheFetchOptions<T>, 'fetcher'> = {}
+  ttl?: number | Omit<CacheFetchOptions<T>, 'fetcher'>
 ) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [isStale, setIsStale] = useState<boolean>(false);
+  
+  // Préparer les options basées sur les paramètres
+  const options: Omit<CacheFetchOptions<T>, 'fetcher'> = typeof ttl === 'number' 
+    ? { ttl } 
+    : ttl || {};
   
   // Fonction pour récupérer les données
   const fetchData = useCallback(async (force: boolean = false) => {
@@ -87,7 +92,7 @@ export function useCachedData<T>(
   fetcher: () => Promise<T>,
   ttl?: number
 ) {
-  return useCache<T>(key, fetcher, { ttl });
+  return useCache<T>(key, fetcher, ttl);
 }
 
 /**
