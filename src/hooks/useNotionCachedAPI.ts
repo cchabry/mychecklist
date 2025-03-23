@@ -1,20 +1,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNotionAPI, NotionAPIOptions } from './useNotionAPI';
+import { useNotionApi } from './useNotionApi';
 import { useCache } from './useCache';
+import { CacheOptions } from '@/services/cache/types';
 
-interface CacheOptions {
-  // Durée de validité du cache en millisecondes
-  ttl?: number;
+interface NotionAPIOptions<T> {
+  // Données à utiliser en mode démonstration
+  demoData?: T;
   
-  // Durée pendant laquelle les données du cache sont considérées fraîches
-  staleTime?: number;
+  // Simuler un délai en mode démonstration (ms)
+  simulatedDelay?: number;
   
-  // Revalider automatiquement en arrière-plan
-  revalidateOnMount?: boolean;
+  // Messages personnalisés
+  messages?: {
+    loading?: string;
+    success?: string;
+    error?: string;
+  };
   
-  // Préfixe pour la clé de cache
-  keyPrefix?: string;
+  // Contexte pour les rapports d'erreur
+  errorContext?: string;
 }
 
 /**
@@ -34,7 +39,7 @@ export function useNotionCachedAPI<T>(
     ...apiOptions
   } = options;
   
-  const { executeOperation, isLoading: isOperationLoading, error: operationError } = useNotionAPI();
+  const { executeOperation, isLoading: isOperationLoading, error: operationError } = useNotionApi();
   const cacheManager = useCache();
   
   const [data, setData] = useState<T | null>(null);
@@ -54,14 +59,19 @@ export function useNotionCachedAPI<T>(
       
       const result = await executeOperation<T>(
         () => apiFn(),
-        apiOptions
+        {
+          ...apiOptions,
+          demoData: apiOptions.demoData
+        }
       );
       
       // Stocker dans le cache
-      cacheManager.setData(fullCacheKey, {
+      const cacheData = {
         data: result,
         timestamp: Date.now()
-      }, ttl);
+      };
+      
+      cacheManager.set(fullCacheKey, cacheData, ttl);
       
       setData(result);
       setIsStale(false);
@@ -92,16 +102,15 @@ export function useNotionCachedAPI<T>(
   // Effet initial pour charger les données
   useEffect(() => {
     // Vérifier si nous avons des données en cache
-    const cachedEntry = cacheManager.data && typeof cacheManager.data === 'object' && cacheManager.data[fullCacheKey] 
-      ? cacheManager.data[fullCacheKey] as { data: T, timestamp: number }
-      : null;
+    const cachedEntry = cacheManager.get(fullCacheKey);
     
-    if (cachedEntry) {
+    if (cachedEntry && typeof cachedEntry === 'object' && cachedEntry !== null && 'data' in cachedEntry && 'timestamp' in cachedEntry) {
       // Vérifier si les données sont périmées
-      const isDataStale = Date.now() - cachedEntry.timestamp > staleTime;
+      const entry = cachedEntry as { data: T, timestamp: number };
+      const isDataStale = Date.now() - entry.timestamp > staleTime;
       
       // Définir les données du cache
-      setData(cachedEntry.data);
+      setData(entry.data);
       setIsStale(isDataStale);
       setIsLoading(false);
       
