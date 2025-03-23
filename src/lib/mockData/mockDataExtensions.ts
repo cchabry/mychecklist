@@ -44,7 +44,7 @@ if (!existingMockData.updateEvaluation) {
 }
 
 if (!existingMockData.deleteEvaluation) {
-  existingMockData.deleteEvaluation = (id) => {
+  existingMockData.deleteEvaluation = (id: string) => {
     const index = existingMockData.evaluations.findIndex(e => e.id === id);
     if (index >= 0) {
       existingMockData.evaluations.splice(index, 1);
@@ -81,7 +81,7 @@ if (!existingMockData.updateAction) {
 }
 
 if (!existingMockData.deleteAction) {
-  existingMockData.deleteAction = (id) => {
+  existingMockData.deleteAction = (id: string) => {
     const index = existingMockData.actions.findIndex(a => a.id === id);
     if (index >= 0) {
       existingMockData.actions.splice(index, 1);

@@ -241,9 +241,7 @@ export async function deleteEvaluation(id: string): Promise<boolean> {
   // Implémentation réelle avec l'API Notion
   try {
     // Notion n'a pas de vraie suppression, donc on "archive" la page
-    await notionApiRequest(`/pages/${id}`, 'PATCH', {
-      archived: true
-    });
+    await notionApiRequest(`/pages/${id}`, 'PATCH', { archived: true });
     
     return true;
   } catch (error) {
