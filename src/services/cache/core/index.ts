@@ -9,8 +9,8 @@ export { CacheManager } from './cacheManager';
 // Export cache base implementations
 export { Cache, hasExpired } from './baseCache';
 
-// Export types
-export { ICacheManager, CacheManagerOptions } from './types/managerTypes';
+// Export types - using 'export type' for type-only exports
+export type { ICacheManager, CacheManagerOptions } from './types/managerTypes';
 
 // Export operations
 export { executeFetcher, refreshInBackground } from './operations/fetchOperations';
