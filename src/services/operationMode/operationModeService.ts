@@ -1,16 +1,19 @@
 
-import { OperationMode, OperationModeSettings, SwitchReason } from './types';
+import { 
+  OperationMode, 
+  OperationModeSettings, 
+  SwitchReason, 
+  OperationModeSubscriber,
+  IOperationModeService
+} from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { operationModeStorage } from './storage';
 import { operationModeNotifications } from './notifications';
 
-// Interface pour les abonnés au changement de mode
-type OperationModeSubscriber = (mode: OperationMode, reason: SwitchReason | null) => void;
-
 /**
  * Service central pour la gestion du mode opérationnel de l'application
  */
-class OperationModeService {
+class OperationModeService implements IOperationModeService {
   private mode: OperationMode = OperationMode.REAL;
   private switchReason: SwitchReason | null = null;
   private settings: OperationModeSettings = DEFAULT_SETTINGS;

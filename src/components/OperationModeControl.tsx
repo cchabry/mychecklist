@@ -5,21 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOperationMode } from '@/services/operationMode';
-import { LucideActivity, Database, AlertTriangle, Info } from 'lucide-react';
+import { LucideActivity, Database, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface OperationModeControlProps {
   onToggle?: (isDemoMode: boolean) => void;
   simplified?: boolean;
+  showFailures?: boolean;
+  showSettings?: boolean;
+  className?: string;
 }
 
 /**
  * Composant de contrôle du mode de fonctionnement de l'application
+ * Permet de basculer entre le mode réel et le mode démo, et de configurer les paramètres
  */
 const OperationModeControl: React.FC<OperationModeControlProps> = ({ 
   onToggle,
-  simplified = false 
+  simplified = false,
+  showFailures = true,
+  showSettings = true,
+  className = ''
 }) => {
   const { 
     isDemoMode,
@@ -29,7 +38,9 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
     failures,
     settings,
     toggle,
-    updateSettings
+    enableRealMode,
+    updateSettings,
+    reset
   } = useOperationMode();
   
   const handleModeToggle = () => {
@@ -47,11 +58,31 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
       onToggle(isDemoMode);
     }
   };
+
+  const handleReturnToRealMode = () => {
+    if (isDemoMode) {
+      enableRealMode();
+      toast.success('Mode réel activé', {
+        description: 'L\'application est maintenant connectée à Notion'
+      });
+      
+      if (onToggle) {
+        onToggle(false);
+      }
+    }
+  };
+
+  const handleReset = () => {
+    reset();
+    toast.success('Réinitialisation effectuée', {
+      description: 'Les paramètres et compteurs d\'erreurs ont été réinitialisés'
+    });
+  };
   
   // Version simplifiée pour les interfaces moins importantes
   if (simplified) {
     return (
-      <div className="flex items-center space-x-2">
+      <div className={`flex items-center space-x-2 ${className}`}>
         <Switch
           id="demo-mode"
           checked={isDemoMode}
@@ -66,7 +97,7 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
   
   // Version complète avec tous les contrôles
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <LucideActivity size={16} className="text-blue-600" />
@@ -95,96 +126,128 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
             />
           </div>
           
-          {switchReason && isDemoMode && (
-            <div className="bg-amber-50 p-3 rounded-md text-xs text-amber-700 border border-amber-200 mt-2">
-              <div className="flex gap-2 items-start">
-                <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          {/* État actuel */}
+          <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs font-medium text-slate-700">Mode actuel:</span>
+              <Badge variant="outline" className={`
+                ${isRealMode 
+                  ? 'bg-green-50 text-green-700 border-green-200' 
+                  : 'bg-blue-50 text-blue-700 border-blue-200'}
+              `}>
+                {isRealMode ? 'Notion actif' : 'Démonstration'}
+              </Badge>
+            </div>
+            
+            {switchReason && isDemoMode && (
+              <div className="text-xs text-amber-700 flex gap-1 items-start mt-2">
+                <AlertTriangle size={12} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <span>{switchReason}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Affichage des échecs si demandé */}
+          {showFailures && failures > 0 && (
+            <div className="bg-amber-50 p-3 rounded-md text-xs text-amber-700 border border-amber-200">
+              <div className="flex gap-1 items-start">
+                <AlertTriangle size={12} className="text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">Raison du basculement:</p>
-                  <p>{switchReason}</p>
+                  <p className="font-medium">Échecs de connexion:</p>
+                  <p>{failures} erreur{failures > 1 ? 's' : ''} consécutive{failures > 1 ? 's' : ''}</p>
                 </div>
               </div>
             </div>
           )}
           
-          <Separator className="my-3" />
-          
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">
-              Paramètres
-            </Label>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="auto-switch" className="text-xs text-muted-foreground">
-                  Bascule automatique en mode démo
+          {showSettings && (
+            <>
+              <Separator className="my-2" />
+              
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-slate-700">
+                  Paramètres
                 </Label>
-                <Switch
-                  id="auto-switch"
-                  checked={settings.autoSwitchOnFailure}
-                  onCheckedChange={(checked) => {
-                    updateSettings({ autoSwitchOnFailure: checked });
-                    toast.info(
-                      checked 
-                        ? 'Bascule automatique activée' 
-                        : 'Bascule automatique désactivée'
-                    );
-                  }}
-                  className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
-                />
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-switch" className="text-xs text-slate-600">
+                      Bascule automatique en mode démo
+                    </Label>
+                    <Switch
+                      id="auto-switch"
+                      checked={settings.autoSwitchOnFailure}
+                      onCheckedChange={(checked) => {
+                        updateSettings({ autoSwitchOnFailure: checked });
+                      }}
+                      className="h-4 w-7"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="persist-mode" className="text-xs text-slate-600">
+                      Conserver le mode entre les sessions
+                    </Label>
+                    <Switch
+                      id="persist-mode"
+                      checked={settings.persistentModeStorage}
+                      onCheckedChange={(checked) => {
+                        updateSettings({ persistentModeStorage: checked });
+                      }}
+                      className="h-4 w-7"
+                    />
+                  </div>
+                  
+                  {settings.autoSwitchOnFailure && (
+                    <div className="text-xs">
+                      <Label htmlFor="switch-threshold" className="text-slate-600">
+                        Seuil de basculement (erreurs consécutives)
+                      </Label>
+                      <Select
+                        value={settings.maxConsecutiveFailures.toString()}
+                        onValueChange={(value) => {
+                          updateSettings({ maxConsecutiveFailures: parseInt(value) });
+                        }}
+                      >
+                        <SelectTrigger id="switch-threshold" className="h-7 mt-1">
+                          <SelectValue placeholder="Seuil" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 erreur</SelectItem>
+                          <SelectItem value="2">2 erreurs</SelectItem>
+                          <SelectItem value="3">3 erreurs</SelectItem>
+                          <SelectItem value="5">5 erreurs</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <div className="flex items-center justify-between">
-                <Label htmlFor="persist-mode" className="text-xs text-muted-foreground">
-                  Conserver le mode entre les sessions
-                </Label>
-                <Switch
-                  id="persist-mode"
-                  checked={settings.persistentModeStorage}
-                  onCheckedChange={(checked) => {
-                    updateSettings({ persistentModeStorage: checked });
-                  }}
-                  className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
-                />
+              <div className="flex flex-wrap gap-2 mt-3">
+                {isDemoMode && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleReturnToRealMode}
+                    className="text-xs h-7"
+                  >
+                    <RefreshCw size={12} className="mr-1" />
+                    Revenir au mode réel
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleReset}
+                  className="text-xs h-7 ml-auto"
+                >
+                  Réinitialiser
+                </Button>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <Label htmlFor="show-notifs" className="text-xs text-muted-foreground">
-                  Afficher les notifications
-                </Label>
-                <Switch
-                  id="show-notifs"
-                  checked={true}
-                  onCheckedChange={(checked) => {
-                    // Garde pour plus tard lorsque nous ajouterons cette option
-                  }}
-                  className="h-4 w-7" // Alternative à la prop "size" qui n'existe pas
-                />
-              </div>
-            </div>
-            
-            <div className="text-xs">
-              <Label htmlFor="switch-threshold" className="text-muted-foreground">
-                Seuil de basculement (erreurs consécutives)
-              </Label>
-              <Select
-                value={settings.maxConsecutiveFailures.toString()}
-                onValueChange={(value) => {
-                  updateSettings({ maxConsecutiveFailures: parseInt(value) });
-                }}
-              >
-                <SelectTrigger id="switch-threshold" className="h-8 mt-1">
-                  <SelectValue placeholder="Seuil" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 erreur</SelectItem>
-                  <SelectItem value="2">2 erreurs</SelectItem>
-                  <SelectItem value="3">3 erreurs</SelectItem>
-                  <SelectItem value="5">5 erreurs</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

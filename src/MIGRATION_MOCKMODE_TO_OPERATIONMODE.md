@@ -20,7 +20,7 @@ Le système `operationMode` offre plusieurs avantages:
 ```diff
 - import { mockMode } from '@/lib/notionProxy/mockMode';
 - import { notionApi } from '@/lib/notionProxy';
-+ import { operationMode } from '@/services/operationMode';
++ import { operationMode, useOperationMode } from '@/services/operationMode';
 ```
 
 ### 2. Vérifications de mode
@@ -52,7 +52,33 @@ Le système `operationMode` offre plusieurs avantages:
 + const isDemoNow = operationMode.isDemoMode;
 ```
 
-### 4. Dans les composants React 
+### 4. Fonctions utilitaires avancées
+
+```diff
+// Forcer temporairement le mode réel
+- const wasMock = mockMode.temporarilyForceReal();
++ const wasMock = operationModeUtils.temporarilyForceReal();
+
+// Restaurer après un forçage temporaire
+- mockMode.restoreAfterForceReal(wasMock);
++ operationModeUtils.restoreAfterForceReal(wasMock);
+
+// Vérifier si on est en mode forcé
+- const isForcedReal = mockMode.isTemporarilyForcedReal(wasMock);
++ const isForcedReal = operationModeUtils.isTemporarilyForcedReal(wasMock);
+
+// Simuler un délai réseau
+- await mockMode.applySimulatedDelay(1000);
++ await operationModeUtils.applySimulatedDelay(1000);
+
+// Simuler une erreur
+- if (mockMode.shouldSimulateError(10)) {
++ if (operationModeUtils.shouldSimulateError(10)) {
+  throw new Error("Erreur simulée");
+}
+```
+
+### 5. Dans les composants React 
 
 ```diff
 - import { useMockMode } from '@/hooks/notion/useMockMode';
@@ -73,7 +99,7 @@ function MonComposant() {
 }
 ```
 
-### 5. Composants UI
+### 6. Composants UI
 
 ```diff
 - import MockModeControl from '@/components/notion/MockModeControl';
@@ -94,7 +120,7 @@ function App() {
 }
 ```
 
-### 6. Gestion des erreurs
+### 7. Gestion des erreurs
 
 Le nouveau système offre une meilleure gestion des erreurs:
 
@@ -104,6 +130,12 @@ operationMode.handleConnectionError(error, 'Contexte de l\'erreur');
 
 // Signaler une opération réussie
 operationMode.handleSuccessfulOperation();
+
+// Avec le hook
+const { handleConnectionError, handleSuccessfulOperation } = useOperationMode();
+
+// Ou avec un hook utilitaire
+const { reportNotionError, reportNotionSuccess } = useNotionAutoFallback();
 ```
 
 ## Mode de compatibilité temporaire
@@ -111,13 +143,6 @@ operationMode.handleSuccessfulOperation();
 Un module de compatibilité (`mockMode.ts`) est temporairement maintenu pour faciliter la transition, mais il sera supprimé dans une future version. Ce module redirige toutes les méthodes obsolètes vers leurs équivalents modernes.
 
 **Ces appels afficheront des avertissements dans la console et des notifications toast pour vous rappeler de migrer votre code.**
-
-## Hooks de compatibilité
-
-Les hooks suivants sont dépréciés et afficheront des avertissements:
-
-- `useMockMode` → utiliser `useOperationMode` à la place
-- `useOperationModeListener` → utiliser `useOperationMode` à la place
 
 ## Support
 

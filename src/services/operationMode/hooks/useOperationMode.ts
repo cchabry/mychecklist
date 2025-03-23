@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { operationMode } from '../operationModeService';
-import { OperationMode, OperationModeSettings } from '../types';
+import { OperationMode, OperationModeSettings, OperationModeHook } from '../types';
 
 /**
  * Hook React pour accéder au système de gestion des modes opérationnels
  * Fournit une interface réactive pour interagir avec operationMode
  */
-export function useOperationMode() {
+export function useOperationMode(): OperationModeHook {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
   const [switchReason, setSwitchReason] = useState<string | null>(operationMode.getSwitchReason());
   const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());

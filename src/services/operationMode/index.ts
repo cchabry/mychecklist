@@ -4,9 +4,23 @@
  * Exporte le service et les hooks associés
  */
 
+// Exporter le service
 export { operationMode } from './operationModeService';
+
+// Exporter le hook principal
 export { useOperationMode } from './hooks/useOperationMode';
-export type { OperationMode, OperationModeSettings, SwitchReason } from './types';
+
+// Exporter les types
+export type { 
+  OperationMode, 
+  OperationModeSettings, 
+  SwitchReason,
+  IOperationModeService,
+  OperationModeHook 
+} from './types';
 
 // Réexporter les utilitaires
 export { operationModeUtils } from './utils';
+
+// Exporter les constantes pour les personnes qui en ont besoin
+export { DEFAULT_SETTINGS } from './constants';
