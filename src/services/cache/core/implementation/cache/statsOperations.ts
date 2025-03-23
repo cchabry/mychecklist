@@ -3,7 +3,7 @@
  * Operations pour obtenir des statistiques sur le cache
  */
 
-import { CacheOptions } from '../../types/cacheEntry';
+import { CacheOptions } from '../../../types/cacheEntry';
 import { CacheStorage } from '../CacheStorage';
 
 /**

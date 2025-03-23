@@ -3,9 +3,9 @@
  * Implémentation principale de la classe Cache
  */
 
-import { CacheEntry, CacheOptions, DEFAULT_CACHE_OPTIONS } from '../../types/cacheEntry';
-import { getFullKey, getOriginalKey } from '../../utils/keyUtils';
-import { logCacheEvent } from '../../utils/logger';
+import { CacheEntry, CacheOptions, DEFAULT_CACHE_OPTIONS } from '../../../types/cacheEntry';
+import { getFullKey, getOriginalKey } from '../../../utils/keyUtils';
+import { logCacheEvent } from '../../../utils/logger';
 import { hasExpired } from '../expiryUtils';
 import { CacheStorage } from '../CacheStorage';
 import { fetchFromCacheOrSource } from '../fetchUtils';
