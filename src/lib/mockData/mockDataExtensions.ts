@@ -1,90 +1,98 @@
 
 import { mockData as existingMockData } from '@/lib/mockData/index';
-import { ComplianceStatus, ImportanceLevel } from '@/lib/types';
+import { ComplianceStatus, ImportanceLevel, Exigence } from '@/lib/types';
+
+// First, let's extend the type of existingMockData
+type MockDataWithGenerateExigence = typeof existingMockData & {
+  generateMockExigence?: (projectId: string, itemId: string) => Exigence;
+};
+
+// Cast existingMockData to the extended type
+const typedMockData = existingMockData as MockDataWithGenerateExigence;
 
 // Add missing properties to mockData if they don't exist
-if (!existingMockData.exigences) {
-  existingMockData.exigences = [];
+if (!typedMockData.exigences) {
+  typedMockData.exigences = [];
 }
 
-if (!existingMockData.evaluations) {
-  existingMockData.evaluations = [];
+if (!typedMockData.evaluations) {
+  typedMockData.evaluations = [];
 }
 
-if (!existingMockData.actions) {
-  existingMockData.actions = [];
+if (!typedMockData.actions) {
+  typedMockData.actions = [];
 }
 
 // Add utility methods if they don't exist
-if (!existingMockData.getEvaluations) {
-  existingMockData.getEvaluations = () => existingMockData.evaluations || [];
+if (!typedMockData.getEvaluations) {
+  typedMockData.getEvaluations = () => typedMockData.evaluations || [];
 }
 
-if (!existingMockData.getEvaluation) {
-  existingMockData.getEvaluation = (id) => existingMockData.evaluations.find(e => e.id === id) || null;
+if (!typedMockData.getEvaluation) {
+  typedMockData.getEvaluation = (id) => typedMockData.evaluations.find(e => e.id === id) || null;
 }
 
-if (!existingMockData.createEvaluation) {
-  existingMockData.createEvaluation = (data) => {
+if (!typedMockData.createEvaluation) {
+  typedMockData.createEvaluation = (data) => {
     const newEval = { ...data, id: `eval_${Date.now()}` };
-    existingMockData.evaluations.push(newEval);
+    typedMockData.evaluations.push(newEval);
     return newEval;
   };
 }
 
-if (!existingMockData.updateEvaluation) {
-  existingMockData.updateEvaluation = (id, data) => {
-    const index = existingMockData.evaluations.findIndex(e => e.id === id);
+if (!typedMockData.updateEvaluation) {
+  typedMockData.updateEvaluation = (id, data) => {
+    const index = typedMockData.evaluations.findIndex(e => e.id === id);
     if (index >= 0) {
-      existingMockData.evaluations[index] = { ...existingMockData.evaluations[index], ...data };
-      return existingMockData.evaluations[index];
+      typedMockData.evaluations[index] = { ...typedMockData.evaluations[index], ...data };
+      return typedMockData.evaluations[index];
     }
     return { ...data, id };
   };
 }
 
-if (!existingMockData.deleteEvaluation) {
-  existingMockData.deleteEvaluation = () => {
+if (!typedMockData.deleteEvaluation) {
+  typedMockData.deleteEvaluation = () => {
     return true;
   };
 }
 
-if (!existingMockData.getActions) {
-  existingMockData.getActions = () => existingMockData.actions || [];
+if (!typedMockData.getActions) {
+  typedMockData.getActions = () => typedMockData.actions || [];
 }
 
-if (!existingMockData.getAction) {
-  existingMockData.getAction = (id) => existingMockData.actions.find(a => a.id === id) || null;
+if (!typedMockData.getAction) {
+  typedMockData.getAction = (id) => typedMockData.actions.find(a => a.id === id) || null;
 }
 
-if (!existingMockData.createAction) {
-  existingMockData.createAction = (data) => {
+if (!typedMockData.createAction) {
+  typedMockData.createAction = (data) => {
     const newAction = { ...data, id: `action_${Date.now()}` };
-    existingMockData.actions.push(newAction);
+    typedMockData.actions.push(newAction);
     return newAction;
   };
 }
 
-if (!existingMockData.updateAction) {
-  existingMockData.updateAction = (id, data) => {
-    const index = existingMockData.actions.findIndex(a => a.id === id);
+if (!typedMockData.updateAction) {
+  typedMockData.updateAction = (id, data) => {
+    const index = typedMockData.actions.findIndex(a => a.id === id);
     if (index >= 0) {
-      existingMockData.actions[index] = { ...existingMockData.actions[index], ...data };
-      return existingMockData.actions[index];
+      typedMockData.actions[index] = { ...typedMockData.actions[index], ...data };
+      return typedMockData.actions[index];
     }
     return { ...data, id };
   };
 }
 
-if (!existingMockData.deleteAction) {
-  existingMockData.deleteAction = () => {
+if (!typedMockData.deleteAction) {
+  typedMockData.deleteAction = () => {
     return true;
   };
 }
 
 // Add the generateMockExigence function if it doesn't exist
-if (!existingMockData.generateMockExigence) {
-  existingMockData.generateMockExigence = function(projectId: string, itemId: string) {
+if (!typedMockData.generateMockExigence) {
+  typedMockData.generateMockExigence = function(projectId: string, itemId: string) {
     return {
       id: `exigence_${Date.now()}`,
       projectId,
@@ -97,7 +105,7 @@ if (!existingMockData.generateMockExigence) {
 
 // Create a new object with all the properties from existingMockData
 const mockDataExtensions = {
-  ...existingMockData
+  ...typedMockData
 };
 
 export { mockDataExtensions };
