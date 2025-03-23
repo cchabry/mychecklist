@@ -1,16 +1,34 @@
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { Cache } from '@/services/cache/cache';
 import { cacheService } from '@/services/cache/cache';
 
-// Contexte pour le service de cache
-export const CacheContext = createContext(cacheService);
+interface CacheContextType {
+  cache: Cache;
+}
 
-// Provider pour le service de cache
-export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const CacheContext = createContext<CacheContextType>({
+  cache: cacheService
+});
+
+export interface CacheProviderProps {
+  children: ReactNode;
+  cache?: Cache;
+}
+
+export const CacheProvider: React.FC<CacheProviderProps> = ({ 
+  children, 
+  cache = cacheService 
+}) => {
   return (
-    <CacheContext.Provider value={cacheService}>
+    <CacheContext.Provider value={{ cache }}>
       {children}
     </CacheContext.Provider>
   );
 };
 
+export const useCache = () => {
+  return useContext(CacheContext).cache;
+};
+
+export default CacheContext;

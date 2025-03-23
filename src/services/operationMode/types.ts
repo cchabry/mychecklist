@@ -1,94 +1,130 @@
 
 /**
- * Types pour le système operationMode
+ * Types pour le service operationMode
  */
 
-// Modes d'opération disponibles
-export enum OperationMode {
-  REAL = 'real',
-  DEMO = 'demo'
-}
-
-// Raison d'un changement de mode
-export type SwitchReason = string;
-
-// Configuration du service operationMode
+/**
+ * Paramètres du mode opérationnel
+ */
 export interface OperationModeSettings {
-  // Nombre maximum d'échecs consécutifs avant basculement automatique
-  maxConsecutiveFailures: number;
+  /**
+   * Afficher les indicateurs de mode opérationnel dans l'UI
+   */
+  showIndicators: boolean;
   
-  // Activer le basculement automatique en cas d'échecs répétés
-  autoSwitchOnFailure: boolean;
+  /**
+   * Afficher les détails du mode opérationnel
+   */
+  showDetails: boolean;
   
-  // Stocker le mode dans localStorage pour persistance
-  persistentModeStorage: boolean;
+  /**
+   * Afficher les notifications lors des changements de mode
+   */
+  showNotifications: boolean;
   
-  // Durée d'affichage des notifications (ms)
-  notificationDuration: number;
+  /**
+   * Basculer automatiquement en mode démo en cas d'erreur
+   */
+  autoSwitchOnError: boolean;
   
-  // Délai simulé pour les opérations en mode démo (ms)
-  simulatedNetworkDelay: number;
+  /**
+   * Tentatives maximales avant de basculer en mode démo
+   */
+  maxRetryAttempts: number;
   
-  // Taux de simulation d'erreurs en mode démo (%)
-  errorSimulationRate: number;
+  /**
+   * Seuil d'erreurs consécutives avant de basculer en mode démo
+   */
+  errorThreshold: number;
+  
+  /**
+   * Durée (en ms) entre les tentatives de reconnexion au mode réel
+   */
+  reconnectInterval: number;
+  
+  /**
+   * Utiliser le cache en mode réel
+   * Si false, les données seront toujours rechargées depuis l'API
+   */
+  useCacheInRealMode?: boolean;
 }
 
-// Interface pour les abonnés au service de mode opérationnel
-export interface OperationModeSubscriber {
-  (mode: OperationMode, reason: SwitchReason | null): void;
-}
-
-// Interface exposée par le hook useOperationMode
-export interface OperationModeHook {
-  // État
-  mode: OperationMode;
-  switchReason: SwitchReason | null;
-  failures: number;
-  lastError: Error | null;
-  settings: OperationModeSettings;
-  
-  // Raccourcis d'état
+/**
+ * État du mode opérationnel
+ */
+export interface OperationModeState {
+  /**
+   * Indique si le mode démo est actif
+   */
   isDemoMode: boolean;
-  isRealMode: boolean;
   
-  // Actions
-  enableDemoMode: (reason?: SwitchReason) => void;
-  enableRealMode: () => void;
-  toggle: () => void;
-  updateSettings: (settings: Partial<OperationModeSettings>) => void;
-  reset: () => void;
+  /**
+   * Raison pour laquelle le mode démo est activé (le cas échéant)
+   */
+  demoModeReason?: string;
   
-  // Gestion des erreurs
-  handleConnectionError: (error: Error, context?: string) => void;
-  handleSuccessfulOperation: () => void;
+  /**
+   * Horodatage de l'activation du mode démo
+   */
+  demoModeActivatedAt?: number;
+  
+  /**
+   * Nombre d'erreurs consécutives
+   */
+  consecutiveErrors: number;
+  
+  /**
+   * Nombre de tentatives échouées
+   */
+  failedAttempts: number;
+  
+  /**
+   * Dernières erreurs rencontrées
+   */
+  lastErrors: OperationModeError[];
 }
 
-// Interface du service operationMode public
-export interface IOperationModeService {
-  // État actuel
-  getMode(): OperationMode;
-  getSwitchReason(): SwitchReason | null;
-  getSettings(): OperationModeSettings;
-  getConsecutiveFailures(): number;
-  getLastError(): Error | null;
+/**
+ * Structure d'une erreur enregistrée
+ */
+export interface OperationModeError {
+  /**
+   * Message d'erreur
+   */
+  message: string;
   
-  // Propriétés calculées
-  readonly isDemoMode: boolean;
-  readonly isRealMode: boolean;
+  /**
+   * Contexte de l'erreur
+   */
+  context?: string;
   
-  // Abonnement aux changements
-  subscribe(subscriber: OperationModeSubscriber): () => void;
+  /**
+   * Horodatage de l'erreur
+   */
+  timestamp: number;
+}
+
+/**
+ * Options pour l'activation du mode démo
+ */
+export interface EnableDemoModeOptions {
+  /**
+   * Raison de l'activation du mode démo
+   */
+  reason?: string;
   
-  // Actions
-  enableDemoMode(reason?: SwitchReason): void;
-  enableRealMode(): void;
-  toggle(): void;
-  reset(): void;
+  /**
+   * Afficher une notification à l'utilisateur
+   */
+  notify?: boolean;
   
-  // Gestion des erreurs
-  handleConnectionError(error: Error, context?: string): void;
-  handleSuccessfulOperation(): void;
+  /**
+   * Tentatives échouées à incrémenter
+   */
+  incrementFailedAttempts?: boolean;
   
-  // Configuration
-  updateSettings(partialSettings: Partial<OperationModeSettings>): void;
+  /**
+   * Erreurs consécutives à incrémenter
+   */
+  incrementConsecutiveErrors?: boolean;
 }

@@ -8,7 +8,7 @@ import { operationMode } from '@/services/operationMode';
  * Options pour useNotionCachedData, combinant les options de l'API Notion
  * et les options de mise en cache
  */
-interface NotionCachedDataOptions<T> extends Omit<NotionAPIOptions<T>, 'onSuccess' | 'onError'> {
+interface NotionCachedDataOptions<T> extends Omit<NotionAPIOptions, 'onSuccess' | 'onError'> {
   // Options de cache
   ttl?: number;
   staleTime?: number;
@@ -73,8 +73,6 @@ export function useNotionCachedData<T = any>(
       const result = await execute<T>(endpoint, method, body, undefined, {
         ...notionOptions,
         // Ces handlers sont gérés par ce hook
-        onSuccess: undefined,
-        onError: undefined
       });
       
       // Sauvegarder dans le cache

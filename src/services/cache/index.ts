@@ -19,5 +19,8 @@ export type {
 // Exporter les utilitaires
 export * from './utils';
 
-// Exporter les hooks de cache (optionnel, ils sont aussi disponibles via hooks/cache)
-export { useCache, useCachedData, useStaleWhileRevalidate } from '../hooks/cache';
+// Exporter les hooks de cache (optionnel)
+// Note: les hooks sont désormais importés directement depuis leurs emplacements
+export { useCache } from '@/hooks/cache/useCache';
+export { useCachedData } from '@/hooks/cache/useCachedData';
+export { useStaleWhileRevalidate } from '@/hooks/cache/useStaleWhileRevalidate';

@@ -16,7 +16,9 @@ export function shouldUseCache(): boolean {
   }
   
   // En mode réel, suivre la configuration
-  return operationMode.getSettings().useCacheInRealMode ?? true;
+  // Vérifier d'abord si la propriété existe, sinon utiliser true par défaut
+  const settings = operationMode.getSettings();
+  return settings.useCacheInRealMode !== undefined ? settings.useCacheInRealMode : true;
 }
 
 /**
