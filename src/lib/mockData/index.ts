@@ -1,4 +1,5 @@
-import { Project, Audit, Page, Exigence, Checklist, Evaluation, CorrectiveAction } from '../lib/types';
+
+import { Project, Audit, Page, Exigence, Checklist, Evaluation, CorrectiveAction } from '@/lib/types';
 
 // Mock data pour les projets
 export const mockProjects: Project[] = [

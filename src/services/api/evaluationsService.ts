@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { mockEvaluations } from '@/lib/mockData';
-import { BaseService as baseService } from './baseService';
+import { baseService } from './baseService';
 import { QueryFilters } from './types';
 
 const initialEvaluations = mockEvaluations || [];
@@ -62,7 +62,7 @@ class EvaluationsService {
       auditId: data.auditId || '',
       pageId: data.pageId || '',
       exigenceId: data.exigenceId || '',
-      score: data.score as ComplianceStatus || 'Non évalué' as ComplianceStatus,
+      score: data.score || 'Non évalué',
       comment: data.comment || '',
       attachments: data.attachments || [],
       createdAt: new Date().toISOString(),

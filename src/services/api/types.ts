@@ -1,45 +1,42 @@
 
-import { CacheFetchOptions } from '../cache/types';
-
 /**
- * Interface de base pour les services d'API
+ * Types pour les services API
  */
-export interface BaseApiService<T> {
-  // Méthodes CRUD
-  getById(id: string, options?: Omit<CacheFetchOptions<T>, 'fetcher'>): Promise<T | null>;
-  getAll(options?: Omit<CacheFetchOptions<T[]>, 'fetcher'>): Promise<T[]>;
-  create(data: Partial<T>): Promise<T>;
-  update(id: string, data: Partial<T>): Promise<T>;
-  delete(id: string): Promise<boolean>;
-  
-  // Méthodes de cache
-  invalidateItem(id: string): void;
-  invalidateList(): void;
-  invalidateAll(): void;
-}
 
 /**
- * Options pour configurer un service d'API
- */
-export interface ApiServiceOptions {
-  cacheTTL?: number;
-  cachePrefix?: string;
-  useMock?: boolean;
-}
-
-/**
- * Structure d'une réponse d'API généralisée
- */
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  timestamp: number;
-}
-
-/**
- * Interface pour les filtres de recherche
+ * Filtres pour les requêtes
  */
 export interface QueryFilters {
-  [key: string]: string | number | boolean | string[] | undefined;
+  [key: string]: any;
+}
+
+/**
+ * Options pour les requêtes
+ */
+export interface ApiRequestOptions {
+  headers?: Record<string, string>;
+  params?: Record<string, string>;
+  body?: any;
+  signal?: AbortSignal;
+}
+
+/**
+ * Pagination des résultats
+ */
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+/**
+ * Résultat paginé
+ */
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

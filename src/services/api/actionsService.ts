@@ -1,8 +1,8 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { CorrectiveAction, ActionStatus, ActionPriority, ComplianceStatus } from '@/lib/types';
+import { CorrectiveAction, ComplianceStatus, ActionPriority, ActionStatus } from '@/lib/types';
 import { mockActions } from '@/lib/mockData';
-import { BaseService as baseService } from './baseService';
+import { baseService } from './baseService';
 import { QueryFilters } from './types';
 
 const initialActions = mockActions || [];
@@ -41,7 +41,7 @@ class ActionsService {
   }
 
   /**
-   * Récupère les actions pour une évaluation spécifique
+   * Récupère les actions pour une évaluation
    */
   async getByEvaluationId(evaluationId: string): Promise<CorrectiveAction[]> {
     try {
@@ -60,16 +60,14 @@ class ActionsService {
     const newAction: CorrectiveAction = {
       id: uuidv4(),
       evaluationId: data.evaluationId || '',
-      pageId: data.pageId || '',
-      targetScore: data.targetScore as ComplianceStatus || 'Conforme',
-      priority: data.priority as ActionPriority || 'Moyenne',
-      dueDate: data.dueDate || '',
-      responsible: data.responsible || '',
+      targetScore: data.targetScore || 'Conforme',
+      priority: data.priority || 'Moyenne',
+      dueDate: data.dueDate,
+      responsible: data.responsible,
       comment: data.comment || '',
-      status: data.status as ActionStatus || 'A faire',
+      status: data.status || 'A faire',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      progress: []
+      updatedAt: new Date().toISOString()
     };
 
     try {

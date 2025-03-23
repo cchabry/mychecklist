@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useErrorCategorization } from './useErrorCategorization';
 import { useOperationQueue } from './useOperationQueue';
@@ -23,16 +24,19 @@ interface ExecuteOptions extends RetryOptions {
   queueOnFailure?: boolean;
 }
 
+// Type pour les stratégies de récupération pour chaque type d'erreur
+type RecoveryStrategy = {
+  retry: boolean;
+  maxRetries: number;
+  strategy: RetryStrategy;
+  shouldQueue: boolean;
+  delayMultiplier: number;
+}
+
 // Stratégies de récupération pour chaque type d'erreur
 type RecoveryStrategyMap = {
-  [key: string]: {
-    retry: boolean;
-    maxRetries: number;
-    strategy: RetryStrategy;
-    shouldQueue: boolean;
-    delayMultiplier: number;
-  }
-};
+  [key: string]: RecoveryStrategy;
+}
 
 /**
  * Hook pour gérer la logique de retry avec catégorisation des erreurs
@@ -40,91 +44,91 @@ type RecoveryStrategyMap = {
 export function useOperationRetry() {
   const [currentOperation, setCurrentOperation] = useState<RetryableOperation<any> | null>(null);
   const { categorizeApiError, isRetryableError, getUserFriendlyMessage } = useErrorCategorization();
-  const { addOperation: enqueue } = useOperationQueue();
+  const { addOperation } = useOperationQueue();
   
   // Stratégies de récupération par type d'erreur
   const recoveryStrategies: RecoveryStrategyMap = {
     connection: {
       retry: true,
       maxRetries: 5,
-      strategy: 'exponential' as RetryStrategy,
+      strategy: 'exponential',
       shouldQueue: true,
       delayMultiplier: 1.5,
     },
     timeout: {
       retry: true,
       maxRetries: 3,
-      strategy: 'linear' as RetryStrategy,
+      strategy: 'linear',
       shouldQueue: true,
       delayMultiplier: 2,
     },
     rate_limit: {
       retry: true,
       maxRetries: 3,
-      strategy: 'exponential' as RetryStrategy,
+      strategy: 'exponential',
       shouldQueue: true,
       delayMultiplier: 3,
     },
     server: {
       retry: true,
       maxRetries: 2,
-      strategy: 'linear' as RetryStrategy,
+      strategy: 'linear',
       shouldQueue: true,
       delayMultiplier: 1.5,
     },
     authentication: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate' as RetryStrategy,
+      strategy: 'immediate',
       shouldQueue: false,
       delayMultiplier: 1,
     },
     authorization: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate' as RetryStrategy,
+      strategy: 'immediate',
       shouldQueue: false,
       delayMultiplier: 1,
     },
     validation: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate' as RetryStrategy,
+      strategy: 'immediate',
       shouldQueue: false,
       delayMultiplier: 1,
     },
     not_found: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate' as RetryStrategy,
+      strategy: 'immediate',
       shouldQueue: false,
       delayMultiplier: 1,
     },
     conflict: {
       retry: true,
       maxRetries: 2,
-      strategy: 'fixed' as RetryStrategy,
+      strategy: 'fixed',
       shouldQueue: true,
       delayMultiplier: 1,
     },
     parse: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate' as RetryStrategy,
+      strategy: 'immediate',
       shouldQueue: false,
       delayMultiplier: 1,
     },
     business: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate' as RetryStrategy,
+      strategy: 'immediate',
       shouldQueue: false,
       delayMultiplier: 1,
     },
     unknown: {
       retry: true,
       maxRetries: 1,
-      strategy: 'fixed' as RetryStrategy,
+      strategy: 'fixed',
       shouldQueue: true,
       delayMultiplier: 1,
     }
@@ -144,7 +148,7 @@ export function useOperationRetry() {
       backoffFactor: defaultOptions.backoffFactor || 2,
       useJitter: defaultOptions.useJitter !== false,
     };
-  }, [categorizeApiError, recoveryStrategies]);
+  }, [categorizeApiError]);
   
   /**
    * Exécute une opération avec gestion des erreurs et retry adaptatif
@@ -199,8 +203,9 @@ export function useOperationRetry() {
         const strategy = recoveryStrategies[errorDetails.type] || recoveryStrategies.unknown;
         
         // Mettre à jour l'opération en cours
+        const operationId = Math.random().toString(36).substring(2, 9);
         setCurrentOperation({
-          id: Math.random().toString(36).substring(2, 9),
+          id: operationId,
           operation,
           attempt,
           maxAttempts: maxRetries,
@@ -248,7 +253,7 @@ export function useOperationRetry() {
         } else {
           // Si on ne réessaie pas, ajouter à la file d'attente si demandé
           if (queueOnFailure && strategy.shouldQueue) {
-            const operationId = enqueue(
+            addOperation(
               operation,
               context,
               {
@@ -268,7 +273,7 @@ export function useOperationRetry() {
             });
           }
           
-          // R��initialiser l'opération en cours
+          // Réinitialiser l'opération en cours
           setCurrentOperation(null);
           
           throw error;
@@ -281,8 +286,7 @@ export function useOperationRetry() {
     categorizeApiError,
     getRetryOptionsForError,
     getUserFriendlyMessage,
-    enqueue,
-    recoveryStrategies
+    addOperation
   ]);
   
   return {

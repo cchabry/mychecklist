@@ -1,164 +1,195 @@
 
-import { ApiServiceOptions, QueryFilters } from './types';
-import { CacheFetchOptions } from '../cache/types';
-import { EntityCache } from '../cache/utils/entityCache';
+import { operationMode } from '@/services/operationMode';
+import { QueryFilters } from './types';
 
 /**
- * Classe de service de base fournissant des fonctionnalités CRUD standard pour une entité donnée
- * Cette classe sera étendue par les services spécifiques pour chaque entité
+ * Service de base pour les opérations CRUD
  */
-export abstract class BaseService<T> {
-  protected entityName: string;
-  protected cacheTTL: number;
-  protected entityCache: EntityCache<T>;
-
-  constructor(entityName: string, options: ApiServiceOptions = {}) {
-    this.entityName = entityName;
-    this.cacheTTL = options.cacheTTL || 5 * 60 * 1000; // 5 minutes par défaut
+export const baseService = {
+  /**
+   * Récupère toutes les entités d'un type
+   */
+  async getAll<T>(entityType: string, filters?: QueryFilters): Promise<T[]> {
+    // En mode démo, utiliser des données fictives
+    if (operationMode.isDemoMode) {
+      // Récupérer les données mockées pour ce type d'entité
+      const mockModule = await import('@/lib/mockData');
+      const mockData = mockModule[`mock${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`] || [];
+      
+      // Appliquer les filtres si nécessaire
+      if (filters) {
+        return mockData.filter((item: any) => {
+          // Logique de filtrage
+          for (const key in filters) {
+            if (item[key] !== filters[key]) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
+      
+      return mockData;
+    }
     
-    // Initialisation du cache pour cette entité
-    this.entityCache = new EntityCache<T>(entityName, this.cacheTTL);
-  }
+    // En mode réel, appeler l'API
+    try {
+      const response = await fetch(`/api/${entityType}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors de la récupération des ${entityType}: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des ${entityType}:`, error);
+      throw error;
+    }
+  },
   
   /**
    * Récupère une entité par son ID
-   * @param id Identifiant de l'entité
-   * @param options Options de récupération (cache, etc.)
    */
-  async getById(id: string, options?: Omit<CacheFetchOptions<T>, 'fetcher'>): Promise<T | null> {
-    // Vérifier d'abord le cache, sauf si l'option skipCache est définie
-    if (!options?.skipCache) {
-      const cached = this.entityCache.getById(id);
-      if (cached) return cached;
+  async getById<T>(entityType: string, id: string): Promise<T | null> {
+    // En mode démo, utiliser des données fictives
+    if (operationMode.isDemoMode) {
+      // Récupérer les données mockées pour ce type d'entité
+      const mockModule = await import('@/lib/mockData');
+      const mockData = mockModule[`mock${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`] || [];
+      const entity = mockData.find((item: any) => item.id === id);
+      return entity || null;
     }
     
-    // Récupérer depuis la source
-    const entity = await this.fetchById(id);
-    
-    // Mettre en cache si trouvé et si l'option skipCache n'est pas définie
-    if (entity && !options?.skipCache) {
-      this.entityCache.setById(id, entity, options?.ttl || this.cacheTTL);
+    // En mode réel, appeler l'API
+    try {
+      const response = await fetch(`/api/${entityType}/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Erreur lors de la récupération de ${entityType}: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error(`Erreur lors de la récupération de ${entityType}:`, error);
+      throw error;
     }
-    
-    return entity;
-  }
-  
-  /**
-   * Récupère toutes les entités (avec filtrage optionnel)
-   * @param options Options de récupération (cache, etc.)
-   * @param filters Filtres à appliquer aux résultats
-   */
-  async getAll(options?: Omit<CacheFetchOptions<T[]>, 'fetcher'>, filters?: QueryFilters): Promise<T[]> {
-    // Déterminer la clé de cache en fonction des filtres
-    const cacheKey = filters ? `filters:${JSON.stringify(filters)}` : undefined;
-    
-    // Vérifier d'abord le cache, sauf si l'option skipCache est définie
-    if (!options?.skipCache && cacheKey) {
-      const cached = this.entityCache.getList(cacheKey);
-      if (cached && cached.length > 0) return cached;
-    }
-    
-    // Récupérer depuis la source
-    const entities = await this.fetchAll(filters);
-    
-    // Mettre en cache si trouvé et si l'option skipCache n'est pas définie
-    if (entities.length > 0 && !options?.skipCache) {
-      this.entityCache.setList(entities, cacheKey, options?.ttl || this.cacheTTL);
-    }
-    
-    return entities;
-  }
+  },
   
   /**
    * Crée une nouvelle entité
-   * @param data Données de l'entité à créer
    */
-  async create(data: Partial<T>): Promise<T> {
-    const entity = await this.createItem(data);
+  async create<T>(entityType: string, data: T): Promise<T> {
+    // En mode démo, simuler la création
+    if (operationMode.isDemoMode) {
+      return data;
+    }
     
-    // Invalider potentiellement la liste pour forcer un rechargement lors du prochain getAll
-    this.invalidateList();
-    
-    return entity;
-  }
+    // En mode réel, appeler l'API
+    try {
+      const response = await fetch(`/api/${entityType}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors de la création de ${entityType}: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error(`Erreur lors de la création de ${entityType}:`, error);
+      throw error;
+    }
+  },
   
   /**
    * Met à jour une entité existante
-   * @param id Identifiant de l'entité
-   * @param data Données à mettre à jour
    */
-  async update(id: string, data: Partial<T>): Promise<T> {
-    const entity = await this.updateItem(id, data);
+  async update<T>(entityType: string, id: string, data: Partial<T>): Promise<T> {
+    // En mode démo, simuler la mise à jour
+    if (operationMode.isDemoMode) {
+      // Récupérer les données mockées pour ce type d'entité
+      const mockModule = await import('@/lib/mockData');
+      const mockData = mockModule[`mock${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`] || [];
+      const entityIndex = mockData.findIndex((item: any) => item.id === id);
+      
+      if (entityIndex === -1) {
+        throw new Error(`${entityType} non trouvé: ${id}`);
+      }
+      
+      const updatedEntity = {
+        ...mockData[entityIndex],
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+      
+      mockData[entityIndex] = updatedEntity;
+      return updatedEntity as T;
+    }
     
-    // Mettre à jour le cache et invalider la liste
-    this.entityCache.setById(id, entity, this.cacheTTL);
-    this.invalidateList();
-    
-    return entity;
-  }
+    // En mode réel, appeler l'API
+    try {
+      const response = await fetch(`/api/${entityType}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors de la mise à jour de ${entityType}: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de ${entityType}:`, error);
+      throw error;
+    }
+  },
   
   /**
    * Supprime une entité
-   * @param id Identifiant de l'entité à supprimer
    */
-  async delete(id: string): Promise<boolean> {
-    const success = await this.deleteItem(id);
-    
-    if (success) {
-      // Supprimer du cache et invalider la liste
-      this.invalidateItem(id);
-      this.invalidateList();
+  async delete(entityType: string, id: string): Promise<boolean> {
+    // En mode démo, simuler la suppression
+    if (operationMode.isDemoMode) {
+      return true;
     }
     
-    return success;
+    // En mode réel, appeler l'API
+    try {
+      const response = await fetch(`/api/${entityType}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors de la suppression de ${entityType}: ${response.status}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de ${entityType}:`, error);
+      throw error;
+    }
   }
-  
-  /**
-   * Invalide une entrée spécifique du cache
-   * @param id Identifiant de l'entité à invalider
-   */
-  invalidateItem(id: string): void {
-    this.entityCache.removeById(id);
-  }
-  
-  /**
-   * Invalide la liste d'entités en cache
-   */
-  invalidateList(): void {
-    this.entityCache.removeList();
-  }
-  
-  /**
-   * Invalide toutes les entrées de cache pour cette entité
-   */
-  invalidateAll(): void {
-    this.entityCache.invalidateAll();
-  }
-  
-  // Méthodes abstraites à implémenter par les sous-classes
-  
-  /**
-   * Récupère une entité par son ID depuis la source de données
-   */
-  protected abstract fetchById(id: string): Promise<T | null>;
-  
-  /**
-   * Récupère toutes les entités depuis la source de données
-   */
-  protected abstract fetchAll(filters?: QueryFilters): Promise<T[]>;
-  
-  /**
-   * Crée une nouvelle entité dans la source de données
-   */
-  protected abstract createItem(data: Partial<T>): Promise<T>;
-  
-  /**
-   * Met à jour une entité existante dans la source de données
-   */
-  protected abstract updateItem(id: string, data: Partial<T>): Promise<T>;
-  
-  /**
-   * Supprime une entité de la source de données
-   */
-  protected abstract deleteItem(id: string): Promise<boolean>;
-}
+};
