@@ -30,5 +30,5 @@ export { notionErrorUtils } from './utils';
 
 // Exporter les hooks
 export { useNotionErrorService } from './useNotionErrorService';
-export { useRetryQueue } from './useRetryQueue';
+export { useNotionRetryQueue } from './useRetryQueue';
 export { useAutoRetry } from './useAutoRetry';

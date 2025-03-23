@@ -3,26 +3,23 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { NotionErrorsList } from '@/components/notion/error';
-import { useNotionErrorService, NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling';
+import { notionErrorService, NotionErrorType, NotionErrorSeverity, notionErrorUtils } from '@/services/notion/errorHandling';
 import { AlertTriangle, Database, RefreshCw, Router } from 'lucide-react';
 
 const DiagnosticsErrorPage: React.FC = () => {
-  const { handleError, createError } = useNotionErrorService();
+  const { reportError } = useNotionErrorService();
   const [lastAction, setLastAction] = useState<string>('');
   
   // Générer une erreur réseau
   const generateNetworkError = () => {
     const error = new Error('La connexion au serveur Notion a échoué');
-    handleError(error, { 
-      request: '/v1/databases', 
-      method: 'GET'
-    });
+    notionErrorService.reportError(error, 'GET /v1/databases');
     setLastAction('Erreur réseau générée');
   };
   
   // Générer une erreur d'authentification
   const generateAuthError = () => {
-    const error = createError('Token d\'API invalide ou expiré', {
+    const error = notionErrorUtils.createError('Token d\'API invalide ou expiré', {
       type: NotionErrorType.AUTH,
       severity: NotionErrorSeverity.ERROR,
       context: { 
@@ -30,13 +27,13 @@ const DiagnosticsErrorPage: React.FC = () => {
         apiVersion: '2022-02-22'
       }
     });
-    handleError(error);
+    notionErrorService.reportError(error);
     setLastAction('Erreur d\'authentification générée');
   };
   
   // Générer une erreur de limite de taux
   const generateRateLimitError = () => {
-    const error = createError('Limite de requêtes API dépassée', {
+    const error = notionErrorUtils.createError('Limite de requêtes API dépassée', {
       type: NotionErrorType.RATE_LIMIT,
       severity: NotionErrorSeverity.WARNING,
       context: { 
@@ -45,13 +42,13 @@ const DiagnosticsErrorPage: React.FC = () => {
         limit: '3 requêtes par seconde'
       }
     });
-    handleError(error);
+    notionErrorService.reportError(error);
     setLastAction('Erreur de limite de taux générée');
   };
   
   // Générer une erreur de base de données
   const generateDatabaseError = () => {
-    const error = createError('Base de données introuvable', {
+    const error = notionErrorUtils.createError('Base de données introuvable', {
       type: NotionErrorType.DATABASE,
       severity: NotionErrorSeverity.ERROR,
       context: { 
@@ -59,7 +56,7 @@ const DiagnosticsErrorPage: React.FC = () => {
         httpCode: 404
       }
     });
-    handleError(error);
+    notionErrorService.reportError(error);
     setLastAction('Erreur de base de données générée');
   };
   

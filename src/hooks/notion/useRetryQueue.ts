@@ -58,16 +58,21 @@ export function useRetryQueue() {
    */
   const enqueue = <T>(
     operation: () => Promise<T>,
-    context: string = '',
+    context: string | Record<string, any> = '',
     options: {
       maxRetries?: number,
       onSuccess?: (result: T) => void,
       onFailure?: (error: Error) => void
     } = {}
   ): string => {
+    // Convertir le contexte en objet si c'est une chaîne
+    const contextObj = typeof context === 'string' 
+      ? { operation: context } 
+      : context;
+      
     return notionRetryQueue.enqueue(
       operation,
-      { operation: context },
+      contextObj,
       options
     );
   };

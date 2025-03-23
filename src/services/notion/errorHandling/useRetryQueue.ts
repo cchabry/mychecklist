@@ -59,6 +59,9 @@ export function useNotionRetryQueue() {
     processNow,
     
     // Accès au service brut (à utiliser avec précaution)
-    notionRetryQueue
+    service: notionRetryQueue
   };
 }
+
+// Exporter le hook
+export default useNotionRetryQueue;

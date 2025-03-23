@@ -1,94 +1,122 @@
 
-import { notionErrorService } from './errorService';
-import { notionRetryQueue } from './retryQueue';
 import { NotionError, NotionErrorType } from './types';
-import { operationMode } from '@/services/operationMode';
+import { notionRetryQueue } from './retryQueue';
 
 /**
- * Gère automatiquement les erreurs et détermine si une opération échouée
- * doit être mise en file d'attente pour un nouvel essai plus tard
+ * Configuration pour le retry automatique par type d'erreur
  */
-export const autoRetryHandler = {
+interface AutoRetryConfig {
+  enabled: boolean;
+  maxRetries: number;
+  typesToRetry: NotionErrorType[];
+  delayMs: number;
+}
+
+/**
+ * Gestionnaire de retry automatique pour les erreurs Notion
+ */
+class AutoRetryHandler {
+  private config: AutoRetryConfig = {
+    enabled: true,
+    maxRetries: 3,
+    typesToRetry: [
+      NotionErrorType.NETWORK,
+      NotionErrorType.RATE_LIMIT
+    ],
+    delayMs: 2000
+  };
+
   /**
-   * Exécute une opération avec gestion d'erreur automatique et mise en file d'attente
-   * @param operation Fonction asynchrone à exécuter
-   * @param context Contexte de l'opération (pour le diagnostic)
-   * @param maxRetries Nombre maximal d'essais (par défaut: 3)
-   * @returns Le résultat de l'opération ou lance une erreur
+   * Configure le gestionnaire de retry
    */
-  async execute<T>(
-    operation: () => Promise<T>,
-    context: Record<string, any> = {},
-    maxRetries: number = 3
-  ): Promise<T> {
-    try {
-      // Tenter d'exécuter l'opération normalement
-      return await operation();
-    } catch (error) {
-      // Enrichir l'erreur avec le service de gestion d'erreurs
-      const notionError = notionErrorService.reportError(
-        error instanceof Error ? error : new Error(String(error)), 
-        context.operation || 'Opération Notion'
-      );
-      
-      // Déterminer si l'erreur est récupérable
-      if (this.shouldRetry(notionError)) {
-        // Mettre en file d'attente pour un nouvel essai ultérieur
-        const operationId = notionRetryQueue.enqueue(
-          operation,
-          context,
-          {
-            maxRetries,
-            onSuccess: (result) => {
-              console.log(`[AutoRetry] Opération réussie après retry (${operationId})`);
-            },
-            onFailure: (finalError) => {
-              console.error(`[AutoRetry] Échec définitif de l'opération (${operationId})`, finalError);
-              
-              // Si échec définitif, passer en mode démo si pertinent
-              if (finalError.type === NotionErrorType.NETWORK ||
-                  finalError.type === NotionErrorType.AUTH) {
-                operationMode.enableDemoMode(`Échec répété: ${finalError.message}`);
-              }
-            }
-          }
-        );
-        
-        console.log(`[AutoRetry] Opération mise en file d'attente (${operationId})`);
-      }
-      
-      // Relancer l'erreur pour permettre à l'appelant de la gérer
-      throw notionError;
-    }
-  },
-  
-  /**
-   * Détermine si une erreur doit être mise en file d'attente pour un nouvel essai
-   */
-  shouldRetry(error: NotionError): boolean {
-    // Vérifier si l'erreur est récupérable selon ses métadonnées
-    if (error.recoverable === true) {
-      return true;
-    }
-    
-    // Vérifier le type d'erreur spécifique
-    switch (error.type) {
-      // Les erreurs réseau sont généralement temporaires et peuvent être réessayées
-      case NotionErrorType.NETWORK:
-        return true;
-        
-      // Les erreurs de limite d'API peuvent être résolues après un délai
-      case NotionErrorType.RATE_LIMIT:
-        return true;
-        
-      // Les autres types d'erreurs ne sont généralement pas récupérables automatiquement
-      case NotionErrorType.AUTH:
-      case NotionErrorType.PERMISSION:
-      case NotionErrorType.VALIDATION:
-      case NotionErrorType.DATABASE:
-      case NotionErrorType.UNKNOWN:
-      default:
-        return false;
-    }
+  public configure(config: Partial<AutoRetryConfig>): void {
+    this.config = { ...this.config, ...config };
   }
-};
+
+  /**
+   * Tente de récupérer d'une erreur en réessayant l'opération
+   */
+  public handleError<T>(
+    error: NotionError,
+    operation: () => Promise<T>,
+    options: {
+      context?: string;
+      maxRetries?: number;
+      onSuccess?: (result: T) => void;
+      onFailure?: (error: NotionError) => void;
+    } = {}
+  ): Promise<T> {
+    // Vérifier si le retry est activé et si le type d'erreur est éligible
+    if (!this.config.enabled || !this.config.typesToRetry.includes(error.type)) {
+      return Promise.reject(error);
+    }
+
+    // Déterminer le nombre max de tentatives
+    const maxRetries = options.maxRetries ?? this.config.maxRetries;
+
+    // Ajouter l'opération à la file d'attente
+    const operationId = notionRetryQueue.enqueue(
+      operation,
+      { 
+        operation: options.context || 'Opération Notion', 
+        errorType: error.type,
+        originalMessage: error.message
+      },
+      {
+        maxRetries,
+        onSuccess: options.onSuccess,
+        onFailure: options.onFailure
+      }
+    );
+
+    // Retourner une promesse qui sera résolue si l'opération réussit
+    return new Promise((resolve, reject) => {
+      // Stocker les callbacks originaux
+      const originalSuccess = options.onSuccess;
+      const originalFailure = options.onFailure;
+
+      // Remplacer le callback de succès pour résoudre la promesse
+      notionRetryQueue.operations.get(operationId)!.onSuccess = result => {
+        if (originalSuccess) originalSuccess(result);
+        resolve(result);
+      };
+
+      // Remplacer le callback d'échec pour rejeter la promesse
+      notionRetryQueue.operations.get(operationId)!.onFailure = error => {
+        if (originalFailure) originalFailure(error);
+        reject(error);
+      };
+    });
+  }
+
+  /**
+   * Active le retry automatique
+   */
+  public enable(): void {
+    this.config.enabled = true;
+  }
+
+  /**
+   * Désactive le retry automatique
+   */
+  public disable(): void {
+    this.config.enabled = false;
+  }
+
+  /**
+   * Vérifie si le retry automatique est activé
+   */
+  public isEnabled(): boolean {
+    return this.config.enabled;
+  }
+
+  /**
+   * Récupère la configuration actuelle
+   */
+  public getConfig(): AutoRetryConfig {
+    return { ...this.config };
+  }
+}
+
+// Exporter l'instance du gestionnaire
+export const autoRetryHandler = new AutoRetryHandler();

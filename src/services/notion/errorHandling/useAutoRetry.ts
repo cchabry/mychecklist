@@ -1,80 +1,114 @@
 
 import { useState } from 'react';
 import { autoRetryHandler } from './autoRetry';
-import { notionErrorUtils } from './utils';
-import { NotionError } from './types';
+import { NotionError, NotionErrorType } from './types';
 
 /**
- * Hook pour utiliser le gestionnaire d'auto-retry
+ * Hook pour utiliser le service de retry automatique
  */
 export function useAutoRetry() {
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [lastError, setLastError] = useState<NotionError | null>(null);
-
+  const [isEnabled, setIsEnabled] = useState(autoRetryHandler.isEnabled());
+  const [config, setConfig] = useState(autoRetryHandler.getConfig());
+  
   /**
-   * Exécute une opération avec gestion d'erreur automatique et retry
+   * Activer le retry automatique
    */
-  const executeWithRetry = async <T>(
+  const enable = () => {
+    autoRetryHandler.enable();
+    setIsEnabled(true);
+  };
+  
+  /**
+   * Désactiver le retry automatique
+   */
+  const disable = () => {
+    autoRetryHandler.disable();
+    setIsEnabled(false);
+  };
+  
+  /**
+   * Configurer le retry automatique
+   */
+  const configure = (newConfig: Partial<typeof config>) => {
+    autoRetryHandler.configure(newConfig);
+    setConfig(autoRetryHandler.getConfig());
+  };
+  
+  /**
+   * Ajouter un type d'erreur à retrier automatiquement
+   */
+  const addErrorTypeToRetry = (errorType: NotionErrorType) => {
+    if (!config.typesToRetry.includes(errorType)) {
+      const newTypes = [...config.typesToRetry, errorType];
+      configure({ typesToRetry: newTypes });
+    }
+  };
+  
+  /**
+   * Retirer un type d'erreur à retrier automatiquement
+   */
+  const removeErrorTypeToRetry = (errorType: NotionErrorType) => {
+    if (config.typesToRetry.includes(errorType)) {
+      const newTypes = config.typesToRetry.filter(type => type !== errorType);
+      configure({ typesToRetry: newTypes });
+    }
+  };
+  
+  /**
+   * Définir le nombre maximum de tentatives
+   */
+  const setMaxRetries = (maxRetries: number) => {
+    configure({ maxRetries });
+  };
+  
+  /**
+   * Définir le délai entre les tentatives
+   */
+  const setDelayMs = (delayMs: number) => {
+    configure({ delayMs });
+  };
+  
+  /**
+   * Wrapper pour handle l'erreur et retrier automatiquement
+   */
+  const handleError = async <T>(
+    error: NotionError | Error,
     operation: () => Promise<T>,
-    context: string = '',
     options: {
+      context?: string;
       maxRetries?: number;
       onSuccess?: (result: T) => void;
       onFailure?: (error: NotionError) => void;
     } = {}
   ): Promise<T> => {
-    try {
-      setIsRetrying(true);
-      setRetryCount(0);
-      setLastError(null);
-
-      const result = await autoRetryHandler.execute(
-        operation,
-        { operation: context },
-        options.maxRetries
-      );
-
-      if (options.onSuccess) {
-        options.onSuccess(result);
-      }
-
-      return result;
-    } catch (error) {
-      const notionError = notionErrorUtils.createError(
-        error instanceof Error ? error.message : String(error),
-        {
-          cause: error instanceof Error ? error : undefined,
-          context: { operation: context }
-        }
-      );
-
-      setLastError(notionError);
-
-      if (options.onFailure) {
-        options.onFailure(notionError);
-      }
-
-      throw notionError;
-    } finally {
-      setIsRetrying(false);
-    }
+    // Convertir en NotionError si nécessaire
+    const notionError = (error as NotionError).type !== undefined 
+      ? (error as NotionError)
+      : {
+          ...error,
+          type: NotionErrorType.UNKNOWN,
+          name: 'NotionError',
+          message: error.message,
+          recoverable: false,
+          recoveryActions: [],
+          timestamp: new Date(),
+          context: {},
+          severity: null
+        } as NotionError;
+    
+    return autoRetryHandler.handleError(notionError, operation, options);
   };
-
-  /**
-   * Vérifie si une erreur est récupérable
-   */
-  const isErrorRecoverable = (error: Error | null): boolean => {
-    if (!error) return false;
-    return notionErrorUtils.isRecoverable(error);
-  };
-
+  
   return {
-    executeWithRetry,
-    isRetrying,
-    retryCount,
-    lastError,
-    isErrorRecoverable,
-    utils: notionErrorUtils
+    isEnabled,
+    config,
+    enable,
+    disable,
+    configure,
+    addErrorTypeToRetry,
+    removeErrorTypeToRetry,
+    setMaxRetries,
+    setDelayMs,
+    handleError
   };
 }
