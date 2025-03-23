@@ -1,38 +1,51 @@
 
 import { useCallback } from 'react';
-import { toast } from 'sonner';
 import { operationMode } from '@/services/operationMode';
+import { toast } from 'sonner';
 
 /**
- * Hook pour gérer le rapport d'erreurs et la gestion du mode démo
+ * Hook standardisé pour le reporting d'erreurs
+ * Remplace les appels directs aux différents systèmes
  */
-export const useErrorReporter = () => {
-  const reportError = useCallback((error: Error | unknown, context?: string) => {
+export function useErrorReporter() {
+  /**
+   * Signale une erreur au système de gestion des modes opérationnels
+   */
+  const reportError = useCallback((
+    error: unknown, 
+    context: string = 'Opération', 
+    options: { 
+      showToast?: boolean,
+      toastMessage?: string 
+    } = {}
+  ) => {
     // Formater l'erreur
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorContext = context || "Opération inconnue";
+    const formattedError = error instanceof Error 
+      ? error 
+      : new Error(String(error));
     
-    console.error(`Erreur (${errorContext}):`, error);
+    // Signaler au système operationMode
+    operationMode.handleConnectionError(formattedError, context);
     
-    // Afficher une notification toast
-    toast.error(`Erreur: ${errorContext}`, {
-      description: errorMessage,
-      duration: 5000
-    });
+    // Afficher un toast d'erreur si demandé
+    if (options.showToast !== false) {
+      toast.error(options.toastMessage || "Une erreur s'est produite", {
+        description: formattedError.message
+      });
+    }
     
-    // Signaler l'erreur au système operationMode
-    operationMode.handleConnectionError(
-      error instanceof Error ? error : new Error(errorMessage),
-      errorContext
-    );
-    
-    return { message: errorMessage, context: errorContext };
+    return formattedError;
   }, []);
   
+  /**
+   * Signale une opération réussie
+   */
   const reportSuccess = useCallback(() => {
-    // Signaler l'opération réussie au système operationMode
     operationMode.handleSuccessfulOperation();
   }, []);
   
-  return { reportError, reportSuccess };
-};
+  return {
+    reportError,
+    reportSuccess
+  };
+}

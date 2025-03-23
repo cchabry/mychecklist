@@ -33,7 +33,6 @@ const NotionConnectionStatus: React.FC<NotionConnectionStatusProps> = ({
     failures, 
     lastError,
     enableRealMode,
-    updateSettings
   } = useOperationMode();
   
   // Déterminer si une configuration Notion est disponible

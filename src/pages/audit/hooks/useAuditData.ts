@@ -8,7 +8,7 @@ import { useNotion } from '@/contexts/NotionContext';
 import { toast } from 'sonner';
 import { useAuditError } from './useAuditError';
 import { useOperationModeListener } from '@/hooks/useOperationModeListener';
-import { useErrorReporter } from '@/hooks/useErrorReporter';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Hook principal pour gérer les données d'audit
@@ -21,9 +21,6 @@ export const useAuditData = (projectId: string | undefined) => {
   
   // Accéder au contexte Notion
   const { usingNotion } = useNotion();
-  
-  // Utiliser le reporter d'erreur
-  const { reportError, reportSuccess } = useErrorReporter();
   
   // Utiliser le hook de gestion d'erreurs
   const { handleError, error: auditError } = useAuditError();
@@ -51,13 +48,13 @@ export const useAuditData = (projectId: string | undefined) => {
       // Signaler l'erreur au hook d'audit
       handleError(auditError);
       
-      // Signaler également l'erreur au système operationMode via reportError
-      reportError(
+      // Signaler également l'erreur au système operationMode
+      operationMode.handleConnectionError(
         new Error(notionError.error || "Erreur inconnue"), 
         notionError.context || "Chargement des données d'audit"
       );
     }
-  }, [notionError, handleError, reportError]);
+  }, [notionError, handleError]);
   
   // Référence pour suivre si le projet a été chargé
   const projectLoaded = useRef(false);
@@ -94,15 +91,15 @@ export const useAuditData = (projectId: string | undefined) => {
       toast.success("Audit sauvegardé avec succès");
       
       // Signaler l'opération réussie
-      reportSuccess();
+      operationMode.handleSuccessfulOperation();
     } catch (error) {
       console.error("Error saving audit:", error);
       
       // Signaler l'erreur au hook d'audit
       handleError(error, "Sauvegarde de l'audit");
       
-      // Signaler également l'erreur via reportError
-      reportError(error, "Sauvegarde de l'audit");
+      // Signaler également l'erreur via operationMode
+      operationMode.handleConnectionError(error, "Sauvegarde de l'audit");
     }
   };
   

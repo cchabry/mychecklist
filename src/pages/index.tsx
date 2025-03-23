@@ -12,7 +12,7 @@ import { useOperationMode } from '@/services/operationMode';
 
 const HomePage = () => {
   const { openConfig, closeConfig, status, showConfig } = useNotion();
-  const { isDemoMode } = useOperationMode();
+  const { isDemoMode, enableRealMode } = useOperationMode();
   
   return (
     <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
@@ -27,7 +27,7 @@ const HomePage = () => {
             <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-amber-800">Mode démonstration actif</p>
-              <p className="text-sm text-amber-700">
+              <p className="text-xs text-amber-700 mt-1">
                 L'application utilise des données simulées. Les modifications ne seront pas 
                 enregistrées dans Notion.
               </p>
