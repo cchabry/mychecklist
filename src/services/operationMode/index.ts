@@ -19,6 +19,9 @@ export type {
   OperationModeHook 
 } from './types';
 
+// Exporter l'énumération OperationMode directement pour simplifier l'usage
+export { OperationMode } from './types';
+
 // Réexporter les utilitaires
 export { operationModeUtils } from './utils';
 

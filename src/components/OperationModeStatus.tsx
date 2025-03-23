@@ -1,77 +1,89 @@
 
 import React from 'react';
 import { useOperationMode } from '@/services/operationMode';
-import { Check, Info, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Info, Database, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface OperationModeStatusProps {
+  showToggle?: boolean;
+  showLabel?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
-  showLabel?: boolean;
 }
 
 /**
- * Composant qui affiche l'état du mode opérationnel
+ * Indicateur de statut pour le mode opérationnel de l'application
+ * Affiche le mode actuel et permet optionnellement de le changer
  */
 const OperationModeStatus: React.FC<OperationModeStatusProps> = ({
-  className,
-  size = 'md',
-  showLabel = true
+  showToggle = false,
+  showLabel = true,
+  className = '',
+  size = 'md'
 }) => {
-  const { isDemoMode, isRealMode, switchReason } = useOperationMode();
+  const { isDemoMode, toggle, switchReason } = useOperationMode();
   
-  // Déterminer les classes en fonction de la taille
-  const sizeClasses = {
-    sm: 'text-xs py-0.5 px-1.5',
-    md: 'text-sm py-1 px-2',
-    lg: 'text-base py-1.5 px-3'
+  const handleToggle = () => {
+    toggle();
+    
+    toast.info(
+      isDemoMode ? 'Mode démonstration activé' : 'Mode réel activé',
+      {
+        description: isDemoMode 
+          ? 'Utilisation de données simulées' 
+          : 'Connexion à l\'API Notion',
+        duration: 3000
+      }
+    );
   };
   
-  // Déterminer le style en fonction du mode
-  const getModeStyle = () => {
-    if (isRealMode) {
-      return {
-        icon: <Check size={size === 'sm' ? 12 : size === 'md' ? 14 : 16} />,
-        classes: 'bg-green-100 text-green-800 border-green-200'
-      };
-    }
-    if (isDemoMode) {
-      return {
-        icon: <Info size={size === 'sm' ? 12 : size === 'md' ? 14 : 16} />,
-        classes: 'bg-blue-100 text-blue-800 border-blue-200'
-      };
-    }
-    return {
-      icon: <AlertTriangle size={size === 'sm' ? 12 : size === 'md' ? 14 : 16} />,
-      classes: 'bg-amber-100 text-amber-800 border-amber-200'
-    };
-  };
-  
-  const { icon, classes } = getModeStyle();
+  // Déterminer les tailles en fonction du paramètre size
+  const iconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
+  const textSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs';
+  const badgeSize = size === 'sm' ? 'px-1.5 py-0 text-xs' : '';
   
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        'flex items-center gap-1 font-normal border',
-        classes,
-        sizeClasses[size],
-        className
+    <div className={`flex items-center gap-1.5 ${className}`}>
+      {isDemoMode ? (
+        <Badge 
+          variant="outline" 
+          className={`bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1 ${badgeSize}`}
+        >
+          <Database size={iconSize} className="text-blue-500" />
+          {showLabel && <span className={textSize}>Mode démo</span>}
+        </Badge>
+      ) : (
+        <Badge 
+          variant="outline" 
+          className={`bg-green-50 text-green-700 border-green-200 flex items-center gap-1 ${badgeSize}`}
+        >
+          <Info size={iconSize} className="text-green-500" />
+          {showLabel && <span className={textSize}>Mode réel</span>}
+        </Badge>
       )}
-      title={switchReason || undefined}
-    >
-      {icon}
-      {showLabel && (
-        <span>
-          {isRealMode 
-            ? "Mode Notion" 
-            : isDemoMode 
-              ? "Mode Démo" 
-              : "Non configuré"}
+      
+      {switchReason && isDemoMode && (
+        <span 
+          className={`text-amber-600 flex items-center gap-1 ${textSize}`}
+          title={switchReason}
+        >
+          <AlertTriangle size={iconSize} className="text-amber-500" />
         </span>
       )}
-    </Badge>
+      
+      {showToggle && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-6 px-2" 
+          onClick={handleToggle}
+        >
+          Changer
+        </Button>
+      )}
+    </div>
   );
 };
 

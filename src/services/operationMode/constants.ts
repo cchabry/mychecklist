@@ -2,19 +2,10 @@
 import { OperationModeSettings } from './types';
 
 /**
- * Clés pour le stockage local
- */
-export const STORAGE_KEYS = {
-  MODE: 'operation_mode',
-  REASON: 'operation_mode_reason',
-  SETTINGS: 'operation_mode_settings'
-};
-
-/**
- * Paramètres par défaut
+ * Paramètres par défaut pour le système operationMode
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
-  // Nombre maximum d'échecs consécutifs avant basculement automatique
+  // Nombre d'échecs consécutifs avant basculement automatique
   maxConsecutiveFailures: 3,
   
   // Activer le basculement automatique en cas d'échecs répétés
@@ -30,5 +21,5 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   simulatedNetworkDelay: 500,
   
   // Taux de simulation d'erreurs en mode démo (%)
-  errorSimulationRate: 0
+  errorSimulationRate: 10
 };

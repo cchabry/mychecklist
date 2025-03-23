@@ -1,83 +1,70 @@
 
-import { useCallback } from 'react';
-import { operationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 
-export interface ErrorReportOptions {
-  // Afficher un toast d'erreur automatiquement
+interface ErrorReportOptions {
   showToast?: boolean;
-  
-  // Message personnalisé pour le toast
   toastMessage?: string;
-  
-  // Description additionnelle pour le toast
-  toastDescription?: string;
-  
-  // Si l'erreur est critique et nécessite l'attention immédiate de l'utilisateur
   isCritical?: boolean;
-  
-  // Si l'erreur doit être logguée en console
-  logToConsole?: boolean;
 }
 
 /**
- * Hook standardisé pour le reporting d'erreurs
- * Remplace les appels directs aux différents systèmes
+ * Hook qui simplifie la gestion et le reporting des erreurs
+ * avec le système operationMode
  */
 export function useErrorReporter() {
+  const { 
+    handleConnectionError, 
+    handleSuccessfulOperation
+  } = useOperationMode();
+  
   /**
-   * Signale une erreur au système de gestion des modes opérationnels
+   * Signale une erreur au système operationMode et optionnellement
+   * affiche un toast d'erreur
    */
-  const reportError = useCallback((
-    error: unknown, 
-    context: string = 'Opération', 
+  const reportError = (
+    error: Error | unknown,
+    context: string = 'Opération',
     options: ErrorReportOptions = {}
   ) => {
-    // Options par défaut
-    const {
-      showToast = true,
-      toastMessage = "Une erreur s'est produite",
-      toastDescription,
-      isCritical = false,
-      logToConsole = true
+    const { 
+      showToast = true, 
+      toastMessage = 'Une erreur est survenue', 
+      isCritical = false
     } = options;
     
-    // Formater l'erreur
+    // Formatter l'erreur si ce n'est pas déjà une instance d'Error
     const formattedError = error instanceof Error 
       ? error 
-      : new Error(String(error));
+      : new Error(typeof error === 'string' ? error : 'Erreur inconnue');
     
-    // Logguer en console si demandé
-    if (logToConsole) {
-      console.error(`[ErrorReporter] ${context}:`, formattedError);
-    }
-    
-    // Signaler au système operationMode
-    operationMode.handleConnectionError(formattedError, context);
+    // Signaler l'erreur au système operationMode
+    handleConnectionError(formattedError, context);
     
     // Afficher un toast d'erreur si demandé
     if (showToast) {
       toast.error(toastMessage, {
-        description: toastDescription || formattedError.message,
-        duration: isCritical ? 8000 : 5000,
+        description: formattedError.message,
+        duration: isCritical ? 8000 : 5000
       });
     }
     
     return formattedError;
-  }, []);
+  };
   
   /**
-   * Signale une opération réussie
+   * Signale une opération réussie au système operationMode
+   * et optionnellement affiche un toast de succès
    */
-  const reportSuccess = useCallback((message?: string) => {
-    operationMode.handleSuccessfulOperation();
+  const reportSuccess = (message?: string) => {
+    // Signaler l'opération réussie
+    handleSuccessfulOperation();
     
+    // Afficher un toast de succès si un message est fourni
     if (message) {
       toast.success(message);
     }
-    
-    return true;
-  }, []);
+  };
   
   return {
     reportError,
