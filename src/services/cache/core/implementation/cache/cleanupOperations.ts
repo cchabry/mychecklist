@@ -3,7 +3,7 @@
  * Operations de nettoyage du cache
  */
 
-import { hasExpired } from '../expiryUtils';
+import { hasExpired } from './expiryOperations';
 import { CacheStorage } from '../CacheStorage';
 
 /**
