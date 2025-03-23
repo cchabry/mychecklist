@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -110,15 +111,15 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
     
     try {
       // Simuler le délai configuré dans le mock mode
-      await notionApi.mockMode.applySimulatedDelay();
+      await operationModeUtils.applySimulatedDelay();
       
       // Simuler une erreur aléatoire si le taux d'erreur est configuré
-      if (notionApi.mockMode.shouldSimulateError()) {
+      if (operationModeUtils.shouldSimulateError()) {
         throw new Error("Erreur simulée par le mock mode v2");
       }
       
       // Adapter la réponse selon le scénario configuré
-      const scenario = notionApi.mockMode.getScenario();
+      const scenario = operationModeUtils.getScenario('');
       
       if (scenario === 'empty') {
         // Scénario "vide" - projet minimal sans données
@@ -261,7 +262,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
   
   // Fonction pour créer un audit avec un échantillon de base
   const createAuditWithSample = useCallback(async (auditName: string) => {
-    setIsLoading(true);
+    setLoading(true);
     
     try {
       // Délai simulé en mode démo
@@ -304,7 +305,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       
       setLoading(false);
     }
-  }, [projectId, navigation]);
+  }, [projectId, navigate]);
   
   return {
     project,

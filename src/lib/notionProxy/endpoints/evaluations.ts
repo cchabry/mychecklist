@@ -1,4 +1,3 @@
-
 import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
@@ -15,7 +14,7 @@ export async function getEvaluations(): Promise<Evaluation[]> {
   
   // Implémentation réelle avec l'API Notion
   try {
-    const response = await notionApiRequest<{ results: any[] }>('/databases/evaluations/query', 'POST', {});
+    const response = await notionApiRequest('/databases/evaluations/query', 'POST', {});
     
     // Mapper les résultats de Notion vers notre format d'évaluation
     return response.results.map(item => ({

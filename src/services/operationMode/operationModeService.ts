@@ -74,7 +74,12 @@ class OperationModeService implements IOperationModeService {
   // Alias pour la compatibilité avec l'ancien système
   public offModeChange(subscriber: (isDemoMode: boolean) => void): void {
     // Supprimer tous les abonnements qui correspondent à cette fonction
-    this.subscribers = this.subscribers.filter(s => s !== subscriber);
+    this.subscribers = this.subscribers.filter(s => {
+      if (typeof s === 'function') {
+        return s !== subscriber;
+      }
+      return true;
+    });
   }
   
   // Méthodes de changement de mode

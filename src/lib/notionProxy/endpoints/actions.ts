@@ -1,4 +1,3 @@
-
 import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
@@ -15,7 +14,7 @@ export async function getActions(): Promise<CorrectiveAction[]> {
   
   // Implémentation réelle avec l'API Notion
   try {
-    const response = await notionApiRequest<{ results: any[] }>('/databases/actions/query', 'POST', {});
+    const response = await notionApiRequest('/databases/actions/query', 'POST', {});
     const now = new Date().toISOString();
     
     // Mapper les résultats de Notion vers notre format d'action corrective

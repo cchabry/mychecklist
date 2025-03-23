@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Exigence, ImportanceLevel } from '@/lib/types';
 import { handleDemoMode } from './baseService';
-import * as mockData from '@/lib/mockData';
+import { mockData } from '@/lib/mockData/index';
 
 class ExigencesService {
   async getAll(): Promise<Exigence[]> {
@@ -17,7 +17,7 @@ class ExigencesService {
       },
       async () => {
         // Utiliser des données mockées en mode démo
-        return mockData.mockExigences || [];
+        return mockData.exigences || [];
       }
     );
   }
@@ -37,7 +37,7 @@ class ExigencesService {
       },
       async () => {
         // Utiliser des données mockées en mode démo
-        return mockData.mockExigences.find(exigence => exigence.id === id) || null;
+        return mockData.exigences.find(exigence => exigence.id === id) || null;
       }
     );
   }
@@ -91,7 +91,7 @@ class ExigencesService {
       },
       async () => {
         // Mettre à jour une exigence mockée en mode démo
-        const exigence = mockData.mockExigences.find(exigence => exigence.id === id);
+        const exigence = mockData.exigences.find(exigence => exigence.id === id);
         if (!exigence) {
           throw new Error(`Exigence with id ${id} not found`);
         }
@@ -116,7 +116,7 @@ class ExigencesService {
       },
       async () => {
         // Simuler la suppression en mode démo
-        const exigence = mockData.mockExigences.find(exigence => exigence.id === id);
+        const exigence = mockData.exigences.find(exigence => exigence.id === id);
         if (!exigence) {
           throw new Error(`Exigence with id ${id} not found`);
         }

@@ -3,16 +3,15 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChecklistItem, ComplianceStatus } from '@/lib/types';
 import { handleDemoMode } from './baseService';
 import * as mockData from '@/lib/mockData';
-import { QueryFilters } from './types';
 
 class ChecklistService {
-  async getAll(filters?: QueryFilters): Promise<ChecklistItem[]> {
+  async getAll(filters?: any): Promise<ChecklistItem[]> {
     return handleDemoMode<ChecklistItem[]>(
       async () => {
         // Implémentation réelle qui interrogerait l'API
         const response = await fetch('/api/checklist');
         if (!response.ok) {
-          throw new Error('Failed to fetch checklist items');
+          throw new Error('Failed to fetch checklist');
         }
         return response.json();
       },
@@ -60,22 +59,22 @@ class ChecklistService {
         return response.json();
       },
       async () => {
-        // Créer un nouvel item mocké en mode démo
+        // Créer un nouvel élément mockée en mode démo
         const newItem: ChecklistItem = {
           id: `item_${uuidv4()}`,
-          title: data.title || 'New Item',
+          consigne: data.consigne || '',
+          title: data.title || '',
           description: data.description || '',
-          category: data.category || 'Other',
-          subcategory: data.subcategory,
+          category: data.category || '',
+          subcategory: data.subcategory || '',
           reference: data.reference || '',
           profile: data.profile || '',
           phase: data.phase || '',
-          effort: data.effort || 'medium',
-          priority: data.priority || 'medium',
           criteria: data.criteria || '',
           requirementLevel: data.requirementLevel || '',
           scope: data.scope || '',
-          consigne: data.consigne || '',
+          effort: data.effort || '',
+          priority: data.priority || '',
           status: ComplianceStatus.NotEvaluated
         };
         
@@ -101,7 +100,7 @@ class ChecklistService {
         return response.json();
       },
       async () => {
-        // Mettre à jour un item mocké en mode démo
+        // Mettre à jour un élément mocké en mode démo
         const item = mockData.CHECKLIST_ITEMS.find(item => item.id === id);
         if (!item) {
           throw new Error(`Checklist item with id ${id} not found`);
