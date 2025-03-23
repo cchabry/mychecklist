@@ -73,6 +73,32 @@ class NotionRetryQueueService {
   }
   
   /**
+   * Met à jour les callbacks pour une opération existante
+   */
+  public updateCallbacks<T>(
+    id: string,
+    onSuccess?: (result: T) => void,
+    onFailure?: (error: NotionError) => void
+  ): boolean {
+    if (!this.operations.has(id)) {
+      return false;
+    }
+    
+    const operation = this.operations.get(id)!;
+    
+    if (onSuccess) {
+      operation.onSuccess = onSuccess;
+    }
+    
+    if (onFailure) {
+      operation.onFailure = onFailure;
+    }
+    
+    this.operations.set(id, operation);
+    return true;
+  }
+  
+  /**
    * Annule une opération en attente
    */
   public cancel(id: string): boolean {

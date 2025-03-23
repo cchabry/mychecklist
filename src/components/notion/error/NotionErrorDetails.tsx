@@ -1,138 +1,164 @@
 
 import React from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
+import { NotionError, NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Clock, Database, Router, ShieldAlert, X } from 'lucide-react';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
-import { Badge } from '@/components/ui/badge';
-import { useOperationMode } from '@/services/operationMode';
+import { AlertTriangle, Clock, FileText, RefreshCw, X } from 'lucide-react';
 
 interface NotionErrorDetailsProps {
-  error: NotionError | string;
-  context?: string | Record<string, any>;
-  isOpen: boolean;
-  onClose: () => void;
+  error: NotionError;
+  onClose?: () => void;
+  onRetry?: () => void;
 }
 
 const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   error,
-  context,
-  isOpen,
-  onClose
+  onClose,
+  onRetry
 }) => {
-  const operationMode = useOperationMode();
+  // Formatter la date
+  const formattedDate = error.timestamp 
+    ? new Date(error.timestamp).toLocaleString() 
+    : 'Date inconnue';
   
-  // Formatter l'erreur si c'est une chaîne
-  const formattedError = typeof error === 'string'
-    ? { message: error, type: NotionErrorType.UNKNOWN } as NotionError
-    : error;
-  
-  // Déterminer l'icône en fonction du type d'erreur
-  const ErrorIcon = () => {
-    switch (formattedError.type) {
-      case NotionErrorType.NETWORK:
-        return <Router className="h-5 w-5 text-red-500" />;
-      case NotionErrorType.AUTH:
-        return <ShieldAlert className="h-5 w-5 text-amber-500" />;
-      case NotionErrorType.PERMISSION:
-        return <X className="h-5 w-5 text-red-400" />;
-      case NotionErrorType.RATE_LIMIT:
-        return <Clock className="h-5 w-5 text-blue-500" />;
-      case NotionErrorType.DATABASE:
-        return <Database className="h-5 w-5 text-purple-500" />;
+  // Déterminer la couleur selon la sévérité
+  const getSeverityColor = () => {
+    switch (error.severity) {
+      case NotionErrorSeverity.ERROR:
+        return 'text-red-600';
+      case NotionErrorSeverity.WARNING:
+        return 'text-amber-600';
+      case NotionErrorSeverity.INFO:
+        return 'text-blue-600';
       default:
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+        return 'text-slate-600';
     }
   };
   
-  // Activer le mode démo si demandé
-  const handleEnableDemoMode = () => {
-    operationMode.enableDemoMode('Suite à une erreur Notion');
-    onClose();
+  // Obtenir le libellé du type d'erreur
+  const getErrorTypeLabel = () => {
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+        return 'Authentification';
+      case NotionErrorType.NETWORK:
+        return 'Réseau';
+      case NotionErrorType.RATE_LIMIT:
+        return 'Limite d\'API';
+      case NotionErrorType.PERMISSION:
+        return 'Permission';
+      case NotionErrorType.DATABASE:
+        return 'Base de données';
+      case NotionErrorType.VALIDATION:
+        return 'Validation';
+      case NotionErrorType.SERVER:
+        return 'Serveur';
+      default:
+        return 'Inconnue';
+    }
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ErrorIcon />
-            Détails de l'erreur Notion
-          </DialogTitle>
-          <DialogDescription>
-            Informations sur l'erreur et possibles solutions
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium mb-1">Message d'erreur</h3>
-            <p className="text-sm p-3 bg-gray-100 rounded-md">
-              {formattedError.message}
-            </p>
+    <Card className="shadow-md">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center">
+            <AlertTriangle className={`mr-2 h-5 w-5 ${getSeverityColor()}`} />
+            <CardTitle className="text-lg">{error.message}</CardTitle>
           </div>
-          
-          {formattedError.type && (
-            <div className="flex gap-2 items-center">
-              <h3 className="text-sm font-medium">Type:</h3>
-              <Badge variant="outline" className="bg-gray-100">
-                {formattedError.type}
-              </Badge>
-            </div>
-          )}
-          
-          {context && (
-            <div>
-              <h3 className="text-sm font-medium mb-1">Contexte</h3>
-              <p className="text-sm text-muted-foreground">
-                {typeof context === 'string' 
-                  ? context 
-                  : JSON.stringify(context, null, 2)}
-              </p>
-            </div>
-          )}
-          
-          {formattedError.recoveryActions && formattedError.recoveryActions.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium mb-1">Actions recommandées</h3>
-              <ul className="text-sm space-y-1">
-                {formattedError.recoveryActions.map((action, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                    {action}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {onClose && (
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+              <X className="h-4 w-4" />
+            </Button>
           )}
         </div>
-        
-        <DialogFooter className="flex sm:justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-          >
-            Fermer
-          </Button>
+      </CardHeader>
+      
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <div className="text-xs font-medium text-slate-500 mb-1">Type d'erreur</div>
+            <div className="text-sm">{getErrorTypeLabel()}</div>
+          </div>
           
-          <Button 
-            type="button"
-            variant="secondary"
-            onClick={handleEnableDemoMode}
-          >
-            Passer en mode démo
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <div>
+            <div className="text-xs font-medium text-slate-500 mb-1">Récupérable</div>
+            <div className="text-sm">
+              {error.recoverable ? 'Oui' : 'Non'}
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-xs font-medium text-slate-500 mb-1">Date</div>
+            <div className="text-sm flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              {formattedDate}
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-xs font-medium text-slate-500 mb-1">Contexte</div>
+            <div className="text-sm">
+              {error.context && typeof error.context === 'object' 
+                ? Object.keys(error.context).length > 0 
+                  ? 'Voir détails'
+                  : 'Aucun contexte'
+                : error.context || 'Aucun contexte'}
+            </div>
+          </div>
+        </div>
+        
+        {error.stack && (
+          <div className="mt-4">
+            <div className="text-xs font-medium text-slate-500 mb-1">Trace d'erreur</div>
+            <div className="text-xs font-mono bg-slate-50 p-2 rounded border overflow-x-auto max-h-32 overflow-y-auto">
+              {error.stack}
+            </div>
+          </div>
+        )}
+        
+        {error.context && typeof error.context === 'object' && Object.keys(error.context).length > 0 && (
+          <div className="mt-4">
+            <div className="text-xs font-medium text-slate-500 mb-1">Détails du contexte</div>
+            <div className="text-xs font-mono bg-slate-50 p-2 rounded border overflow-x-auto max-h-32 overflow-y-auto">
+              {JSON.stringify(error.context, null, 2)}
+            </div>
+          </div>
+        )}
+      </CardContent>
+      
+      {(onRetry || error.recoveryActions?.length > 0) && (
+        <CardFooter className="border-t pt-4 flex justify-between">
+          {error.recoveryActions?.length > 0 ? (
+            <div className="space-x-2">
+              {error.recoveryActions.map((action, index) => (
+                <Button 
+                  key={index} 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={action.action}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div></div>
+          )}
+          
+          {onRetry && error.recoverable && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRetry}
+              className="ml-auto"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Réessayer
+            </Button>
+          )}
+        </CardFooter>
+      )}
+    </Card>
   );
 };
 

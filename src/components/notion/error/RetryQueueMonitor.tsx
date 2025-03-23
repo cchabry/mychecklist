@@ -1,190 +1,200 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Clock, Play, RefreshCw, Trash2, Loader2 } from 'lucide-react';
-import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Play, RefreshCw, Clock, Ban, ArrowUp, RotateCw } from 'lucide-react';
+import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
 
 const RetryQueueMonitor: React.FC = () => {
   const { 
-    queuedOperations,
-    stats,
-    processNow,
-    processQueue,
-    clearQueue,
+    stats, 
+    queuedOperations, 
+    processQueue, 
+    clearQueue 
   } = useRetryQueue();
   
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // Rafraîchir les informations de la file d'attente
-  const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  useEffect(() => {
-    // Configurer un intervalle de rafraîchissement
-    const interval = setInterval(handleRefresh, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Gérer le traitement immédiat de la file d'attente
+  const [countdown, setCountdown] = useState<number | null>(null);
+  
+  // Gérer le traitement de la file d'attente
   const handleProcessQueue = async () => {
-    if (isProcessing) return;
-    
     setIsProcessing(true);
     try {
       await processQueue();
-    } catch (error) {
-      console.error('Erreur lors du traitement de la file d\'attente:', error);
     } finally {
-      setTimeout(() => setIsProcessing(false), 1000);
+      setIsProcessing(false);
     }
   };
-
-  // Formater le temps relatif (ex: "il y a 2min")
-  const formatRelativeTime = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  
+  // Gérer le compte à rebours pour la prochaine tentative
+  useEffect(() => {
+    if (queuedOperations.length === 0) {
+      setCountdown(null);
+      return;
+    }
     
-    if (seconds < 60) return `il y a ${seconds}s`;
-    if (seconds < 3600) return `il y a ${Math.floor(seconds / 60)}min`;
-    if (seconds < 86400) return `il y a ${Math.floor(seconds / 3600)}h`;
-    return `il y a ${Math.floor(seconds / 86400)}j`;
+    // Trouver la prochaine opération à exécuter
+    const nextOperation = queuedOperations.reduce((earliest, op) => {
+      if (!earliest.nextRetry) return op;
+      if (!op.nextRetry) return earliest;
+      return op.nextRetry < earliest.nextRetry ? op : earliest;
+    });
+    
+    if (!nextOperation.nextRetry) {
+      setCountdown(null);
+      return;
+    }
+    
+    // Calculer le temps restant
+    const updateCountdown = () => {
+      const now = Date.now();
+      const nextRetryTime = new Date(nextOperation.nextRetry).getTime();
+      const remaining = Math.max(0, Math.floor((nextRetryTime - now) / 1000));
+      
+      setCountdown(remaining);
+      
+      // Arrêter le compte à rebours quand il atteint 0
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setCountdown(null);
+      }
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [queuedOperations]);
+  
+  // Formater le temps restant
+  const formatCountdown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Statut de l'opération sous forme de badge
-  const getStatusBadge = (operation: any) => {
-    if (operation.status === 'pending') {
-      return <Badge variant="outline" className="bg-amber-50 text-amber-700">En attente</Badge>;
-    }
-    if (operation.status === 'processing') {
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700">En cours</Badge>;
-    }
-    if (operation.status === 'failed') {
-      return <Badge variant="outline" className="bg-red-50 text-red-700">Échec</Badge>;
-    }
-    return <Badge variant="outline" className="bg-green-50 text-green-700">Succès</Badge>;
-  };
-
+  
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock size={18} className="text-blue-500" />
-              File d'attente de nouvelles tentatives
-            </CardTitle>
+            <CardTitle className="text-lg">File d'attente des opérations</CardTitle>
             <CardDescription>
-              {queuedOperations.length === 0
-                ? "Aucune opération en attente de nouvelle tentative"
-                : `${queuedOperations.length} opération(s) en attente de nouvelle tentative`}
+              {stats.pendingOperations} opération{stats.pendingOperations !== 1 ? 's' : ''} en attente
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          
+          <div className="space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRefresh}
-              className="h-8 px-2"
+              onClick={handleProcessQueue}
+              disabled={isProcessing || stats.pendingOperations === 0}
             >
-              <RefreshCw size={16} />
+              {isProcessing ? (
+                <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Exécuter
             </Button>
-            {queuedOperations.length > 0 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleProcessQueue}
-                  className="h-8 gap-1 text-xs"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <Loader2 size={14} className="animate-spin mr-1" />
-                  ) : (
-                    <Play size={14} />
-                  )}
-                  Exécuter
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearQueue}
-                  className="h-8 px-2 text-xs"
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </>
-            )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearQueue}
+              disabled={stats.pendingOperations === 0}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Vider
+            </Button>
           </div>
         </div>
       </CardHeader>
+      
       <CardContent>
-        {queuedOperations.length === 0 ? (
-          <div className="py-6 text-center text-muted-foreground">
-            <Check className="mx-auto h-12 w-12 text-muted-foreground/30" />
-            <p className="mt-2">Aucune opération en attente</p>
+        {/* Stats de la file d'attente */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-slate-50 p-3 rounded-md border">
+            <div className="text-sm text-slate-500 mb-1">En attente</div>
+            <div className="text-2xl font-bold">{stats.pendingOperations}</div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 pb-2">
-              <div className="p-3 rounded-md bg-slate-50">
-                <div className="text-sm font-medium">Taux de réussite</div>
-                <div className="mt-1 flex items-center gap-2">
-                  <Progress 
-                    value={stats.successRate} 
-                    className="h-2 flex-1"
-                  />
-                  <span className="text-sm tabular-nums">
-                    {Math.round(stats.successRate)}%
-                  </span>
-                </div>
-              </div>
-              <div className="p-3 rounded-md bg-slate-50">
-                <div className="text-sm font-medium">Statistiques</div>
-                <div className="mt-1 grid grid-cols-2 gap-1 text-xs">
-                  <div>Succès: <span className="font-medium">{stats.successful}</span></div>
-                  <div>Échecs: <span className="font-medium">{stats.failed}</span></div>
-                </div>
-              </div>
+          
+          <div className="bg-slate-50 p-3 rounded-md border">
+            <div className="text-sm text-slate-500 mb-1">Réussies</div>
+            <div className="text-2xl font-bold text-green-600">{stats.successful || 0}</div>
+          </div>
+          
+          <div className="bg-slate-50 p-3 rounded-md border">
+            <div className="text-sm text-slate-500 mb-1">Échouées</div>
+            <div className="text-2xl font-bold text-red-600">{stats.failed || 0}</div>
+          </div>
+        </div>
+        
+        {/* Prochaine tentative */}
+        {countdown !== null && countdown > 0 && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-medium">Prochaine tentative</span>
+              <span className="text-sm font-mono bg-slate-100 px-2 py-0.5 rounded">
+                {formatCountdown(countdown)}
+              </span>
             </div>
+            <Progress value={0} className="h-1" />
+          </div>
+        )}
+        
+        {/* Liste des opérations */}
+        {queuedOperations.length > 0 ? (
+          <div className="space-y-2 mt-4">
+            <h4 className="text-sm font-medium">Opérations en file d'attente</h4>
             
-            <div className="space-y-3">
-              {queuedOperations.map((operation) => (
-                <div
-                  key={operation.id}
-                  className="flex items-start justify-between p-3 rounded-md border"
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {queuedOperations.map((op) => (
+                <div 
+                  key={op.id} 
+                  className="text-xs p-3 bg-slate-50 rounded border"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle size={16} className="text-blue-500" />
-                        <span className="text-sm font-medium truncate">
-                          {operation.context || "Opération Notion"}
-                        </span>
-                      </div>
-                      {getStatusBadge(operation)}
-                    </div>
-                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                      <div>
-                        Tentative {operation.attempts}/{operation.maxAttempts}
-                      </div>
-                      <div>
-                        {formatRelativeTime(operation.timestamp)}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium">{op.context}</div>
+                      <div className="text-slate-500 mt-1">
+                        Tentative {op.attempts}/{op.maxAttempts}
                       </div>
                     </div>
                     
-                    {operation.nextRetry && (
-                      <div className="mt-1 text-xs">
-                        Prochaine tentative: {new Date(operation.nextRetry).toLocaleTimeString()}
-                      </div>
-                    )}
+                    <div className="flex items-center">
+                      {op.status === 'pending' ? (
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-sm border border-amber-200 text-[10px]">
+                          En attente
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-sm border border-green-200 text-[10px]">
+                          Succès
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
+                  {op.nextRetry && (
+                    <div className="mt-2 flex items-center text-slate-500">
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>
+                        Prochain essai: {new Date(op.nextRetry).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+            <ArrowUp className="h-8 w-8 mb-2 text-slate-300" />
+            <p className="text-sm">La file d'attente est vide</p>
+            <p className="text-xs">Utilisez le bouton ci-dessus pour traiter les opérations</p>
           </div>
         )}
       </CardContent>

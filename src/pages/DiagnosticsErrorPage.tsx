@@ -3,8 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { NotionErrorsList } from '@/components/notion/error';
-import { notionErrorService, NotionErrorType, NotionErrorSeverity, notionErrorUtils } from '@/services/notion/errorHandling';
+import { 
+  notionErrorService, 
+  NotionErrorType, 
+  NotionErrorSeverity, 
+  notionErrorUtils 
+} from '@/services/notion/errorHandling';
 import { AlertTriangle, Database, RefreshCw, Router } from 'lucide-react';
+import { useNotionErrorService } from '@/services/notion/errorHandling';
 
 const DiagnosticsErrorPage: React.FC = () => {
   const { reportError } = useNotionErrorService();

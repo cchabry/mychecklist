@@ -71,21 +71,23 @@ class AutoRetryHandler {
 
     // Retourner une promesse qui sera résolue si l'opération réussit
     return new Promise((resolve, reject) => {
-      // Stocker les callbacks originaux
-      const originalSuccess = options.onSuccess;
-      const originalFailure = options.onFailure;
-
-      // Remplacer le callback de succès pour résoudre la promesse
-      notionRetryQueue.operations.get(operationId)!.onSuccess = result => {
-        if (originalSuccess) originalSuccess(result);
+      // Définir les callbacks qui seront appelés lors du traitement de la file d'attente
+      const onSuccessCallback = (result: T) => {
+        if (options.onSuccess) options.onSuccess(result);
         resolve(result);
       };
 
-      // Remplacer le callback d'échec pour rejeter la promesse
-      notionRetryQueue.operations.get(operationId)!.onFailure = error => {
-        if (originalFailure) originalFailure(error);
-        reject(error);
+      const onFailureCallback = (err: NotionError) => {
+        if (options.onFailure) options.onFailure(err);
+        reject(err);
       };
+
+      // Mettre à jour les callbacks dans la file d'attente
+      notionRetryQueue.updateCallbacks(
+        operationId, 
+        onSuccessCallback, 
+        onFailureCallback
+      );
     });
   }
 

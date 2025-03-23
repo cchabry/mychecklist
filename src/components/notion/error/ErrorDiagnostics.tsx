@@ -1,80 +1,134 @@
 
 import React from 'react';
-import NotionWriteTestButton from '../NotionWriteTestButton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
 import { Button } from '@/components/ui/button';
-import { Download, RefreshCw } from 'lucide-react';
-import { notionApi } from '@/lib/notionProxy';
+import { AlertTriangle, Database, Router, Clock, XCircle, Shield } from 'lucide-react';
 
 interface ErrorDiagnosticsProps {
-  onTestSuccess: () => void;
+  error: NotionError;
+  onRunDiagnostic?: () => void;
 }
 
-const ErrorDiagnostics: React.FC<ErrorDiagnosticsProps> = ({ onTestSuccess }) => {
-  const handleForceReset = () => {
-    // Force le mode réel et nettoie tous les caches
-    notionApi.mockMode.forceReset();
-    
-    // Notification à l'utilisateur
-    setTimeout(() => {
-      onTestSuccess();
-    }, 300);
+const ErrorDiagnostics: React.FC<ErrorDiagnosticsProps> = ({ 
+  error,
+  onRunDiagnostic 
+}) => {
+  // Déterminer le type d'erreur
+  const getErrorInfo = () => {
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+        return {
+          title: "Problème d'authentification",
+          icon: <XCircle className="h-5 w-5 text-red-500" />,
+          description: "Votre clé API Notion semble être invalide ou expirée",
+          solutions: [
+            "Vérifiez que votre clé API est correctement configurée",
+            "Assurez-vous que votre intégration Notion est active",
+            "Générez une nouvelle clé API si nécessaire"
+          ]
+        };
+      
+      case NotionErrorType.NETWORK:
+        return {
+          title: "Problème de connexion réseau",
+          icon: <Router className="h-5 w-5 text-amber-500" />,
+          description: "Impossible de se connecter à l'API Notion",
+          solutions: [
+            "Vérifiez votre connexion internet",
+            "Assurez-vous que le proxy CORS fonctionne correctement",
+            "Réessayez dans quelques instants"
+          ]
+        };
+        
+      case NotionErrorType.RATE_LIMIT:
+        return {
+          title: "Limite de taux d'API dépassée",
+          icon: <Clock className="h-5 w-5 text-blue-500" />,
+          description: "Vous avez dépassé le nombre de requêtes autorisées",
+          solutions: [
+            "Attendez quelques minutes avant de réessayer",
+            "Réduisez la fréquence de vos requêtes",
+            "Optimisez vos opérations pour utiliser moins d'appels API"
+          ]
+        };
+        
+      case NotionErrorType.PERMISSION:
+        return {
+          title: "Problème de permission",
+          icon: <Shield className="h-5 w-5 text-red-500" />,
+          description: "Vous n'avez pas les permissions nécessaires",
+          solutions: [
+            "Vérifiez que votre intégration a accès aux ressources demandées",
+            "Assurez-vous que les bases de données sont partagées avec l'intégration",
+            "Configurez les capacités appropriées pour votre intégration"
+          ]
+        };
+        
+      case NotionErrorType.DATABASE:
+        return {
+          title: "Problème de base de données",
+          icon: <Database className="h-5 w-5 text-purple-500" />,
+          description: "Problème avec la base de données Notion",
+          solutions: [
+            "Vérifiez que l'ID de base de données est correct",
+            "Assurez-vous que la base de données existe toujours",
+            "Configurez la structure correcte de la base de données"
+          ]
+        };
+        
+      default:
+        return {
+          title: "Erreur Notion",
+          icon: <AlertTriangle className="h-5 w-5 text-slate-500" />,
+          description: "Une erreur s'est produite lors de l'interaction avec Notion",
+          solutions: [
+            "Vérifiez les détails de l'erreur pour plus d'informations",
+            "Consultez la documentation Notion API",
+            "Essayez à nouveau plus tard"
+          ]
+        };
+    }
   };
   
-  const handleCopyDetails = () => {
-    // Collecte des informations de diagnostic
-    const diagnosticInfo = {
-      browserInfo: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      localStorage: {
-        apiKey: localStorage.getItem('notion_api_key') ? 'Présente' : 'Absente',
-        dbId: localStorage.getItem('notion_database_id') ? 'Présent' : 'Absent',
-        mockMode: localStorage.getItem('notion_mock_mode') === 'true' ? 'Actif' : 'Inactif',
-        lastError: localStorage.getItem('notion_last_error')
-      }
-    };
-    
-    // Copie dans le presse-papier
-    navigator.clipboard.writeText(JSON.stringify(diagnosticInfo, null, 2))
-      .then(() => {
-        alert('Informations de diagnostic copiées dans le presse-papier');
-      })
-      .catch(err => {
-        console.error('Erreur lors de la copie des informations de diagnostic', err);
-      });
-  };
+  const errorInfo = getErrorInfo();
   
   return (
-    <div className="mt-4 border-t pt-4 border-gray-200">
-      <h4 className="text-sm font-medium mb-2">Tests de diagnostic :</h4>
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
-          <NotionWriteTestButton onSuccess={onTestSuccess} />
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 text-xs"
-            onClick={handleForceReset}
-          >
-            <RefreshCw size={14} />
-            Réinitialiser
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 text-xs"
-            onClick={handleCopyDetails}
-          >
-            <Download size={14} />
-            Exporter diagnostic
-          </Button>
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center">
+          {errorInfo.icon}
+          <CardTitle className="ml-2 text-lg">{errorInfo.title}</CardTitle>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Ces tests tentent de diagnostiquer et résoudre les problèmes de connexion à Notion.
-        </p>
-      </div>
-    </div>
+        <CardDescription>
+          {errorInfo.description}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-medium mb-2">Solutions possibles :</h4>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+              {errorInfo.solutions.map((solution, index) => (
+                <li key={index}>{solution}</li>
+              ))}
+            </ul>
+          </div>
+          
+          {onRunDiagnostic && (
+            <Button 
+              variant="outline" 
+              onClick={onRunDiagnostic}
+              className="w-full"
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Exécuter un diagnostic
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

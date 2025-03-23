@@ -1,93 +1,94 @@
 
 import React from 'react';
-import { ExternalLink, Database, RefreshCw, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AlertDialogAction } from '@/components/ui/alert-dialog';
-import { notionApi } from '@/lib/notionProxy';
-import { STORAGE_KEYS } from '@/lib/notionProxy/config';
-import { toast } from 'sonner';
+import { RefreshCw, Settings, Database, AlertTriangle } from 'lucide-react';
+import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
 
 interface ErrorActionsProps {
-  onClose: () => void;
+  error: NotionError;
+  onRetry?: () => void;
+  onConfigure?: () => void;
+  onRunDiagnostic?: () => void;
+  isRetrying?: boolean;
 }
 
-const ErrorActions: React.FC<ErrorActionsProps> = ({ onClose }) => {
-  const handleForceRealMode = () => {
-    // Forcer le mode réel de façon plus agressive
-    console.log('🔄 Forçage COMPLET du mode réel et suppression des caches');
-    
-    // Nettoyage approfondi du localStorage pour Notion
-    localStorage.removeItem('notion_last_error');
-    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-    localStorage.setItem('notion_force_real', 'true');
-    
-    // Force real mode et nettoie tous les caches
-    notionApi.mockMode.forceReset();
-    
-    // Notification explicite
-    toast.success('Mode réel forcé', {
-      description: 'Toutes les données en cache ont été supprimées. L\'application utilisera les données réelles de Notion.',
-      duration: 5000,
-    });
-    
-    // Ferme le dialogue
-    onClose();
-    
-    // Recharge la page pour appliquer les changements
-    setTimeout(() => window.location.reload(), 500);
+const ErrorActions: React.FC<ErrorActionsProps> = ({
+  error,
+  onRetry,
+  onConfigure,
+  onRunDiagnostic,
+  isRetrying = false
+}) => {
+  // Déterminer l'action principale en fonction du type d'erreur
+  const getPrimaryAction = () => {
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+      case NotionErrorType.PERMISSION:
+        return {
+          label: "Configurer",
+          icon: <Settings className="h-4 w-4 mr-2" />,
+          action: onConfigure,
+          variant: "default" as const
+        };
+        
+      case NotionErrorType.DATABASE:
+        return {
+          label: "Vérifier la structure",
+          icon: <Database className="h-4 w-4 mr-2" />,
+          action: onRunDiagnostic,
+          variant: "default" as const
+        };
+        
+      case NotionErrorType.NETWORK:
+      case NotionErrorType.RATE_LIMIT:
+      default:
+        return {
+          label: isRetrying ? "Réessai en cours..." : "Réessayer",
+          icon: <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />,
+          action: onRetry,
+          variant: "default" as const,
+          disabled: isRetrying
+        };
+    }
   };
   
-  const handleReportIssue = () => {
-    // Préparer les données de diagnostic
-    const diagnosticData = {
-      version: "1.0.0",
-      browser: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      notionStatus: notionApi.mockMode.isActive() ? "Mode Mock" : "Mode Réel",
-      error: localStorage.getItem('notion_last_error') || "Aucune erreur enregistrée"
-    };
-    
-    // Ouvrir le formulaire de rapport de bug avec les données
-    const encodedData = encodeURIComponent(JSON.stringify(diagnosticData));
-    window.open(`https://github.com/cedcoss-upasana/my-checklist/issues/new?body=${encodedData}`, '_blank');
-  };
+  const primaryAction = getPrimaryAction();
   
   return (
-    <div className="sm:justify-between flex flex-col sm:flex-row gap-2">
-      <div className="flex flex-wrap gap-2">
-        <Button 
-          size="sm" 
+    <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+      <Button
+        variant={primaryAction.variant}
+        onClick={primaryAction.action}
+        disabled={primaryAction.disabled}
+        className="w-full sm:w-auto"
+      >
+        {primaryAction.icon}
+        {primaryAction.label}
+      </Button>
+      
+      {/* Actions secondaires */}
+      {onRunDiagnostic && primaryAction.label !== "Vérifier la structure" && (
+        <Button
           variant="outline"
-          onClick={handleReportIssue}
-          className="gap-1 text-xs"
+          onClick={onRunDiagnostic}
+          className="w-full sm:w-auto"
         >
-          <HelpCircle size={12} />
-          Signaler un bug
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          Diagnostiquer
         </Button>
-        
+      )}
+      
+      {onRetry && primaryAction.label !== "Réessayer" && primaryAction.label !== "Réessai en cours..." && (
         <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleForceRealMode}
-          className="gap-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 border border-green-300"
+          variant="outline"
+          onClick={onRetry}
+          disabled={isRetrying}
+          className="w-full sm:w-auto"
         >
-          <Database size={12} />
-          Forcer mode réel
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
+          {isRetrying ? "Réessai en cours..." : "Réessayer"}
         </Button>
-        
-        <Button
-          size="sm"
-          variant="ghost"
-          className="gap-1 text-xs text-blue-600"
-          asChild
-        >
-          <a href="https://developers.notion.com/docs" target="_blank" rel="noopener noreferrer">
-            <ExternalLink size={12} />
-            Documentation Notion
-          </a>
-        </Button>
-      </div>
-      <AlertDialogAction>Fermer</AlertDialogAction>
+      )}
     </div>
   );
 };
