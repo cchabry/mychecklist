@@ -11,3 +11,6 @@ export * from './useActions';
 // Hooks génériques pour les services
 export * from './useServiceWithCache';
 export * from './useServiceWithRetry';
+export * from './useOperationQueue';
+export * from './useOperationRetry';
+export * from './useErrorCategorization';

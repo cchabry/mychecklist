@@ -1,25 +1,24 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { CorrectiveAction } from '@/lib/types';
-import { mockData } from '@/lib/mockData';
-import { createBaseService } from './baseService';
+import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
+import { mockActions } from '@/lib/mockData';
+import { baseService } from './baseService';
 import { QueryFilters } from './types';
 
-const initialActions = mockData.actions || [];
+const initialActions = mockActions || [];
 
 /**
  * Service pour gérer les actions correctives
  */
 class ActionsService {
   private actions: CorrectiveAction[] = [...initialActions];
-  private baseService = createBaseService<CorrectiveAction>('actions');
 
   /**
    * Récupère toutes les actions correctives
    */
   async getAll(filters?: QueryFilters): Promise<CorrectiveAction[]> {
     try {
-      const result = await this.baseService.getAll(filters);
+      const result = await baseService.getAll<CorrectiveAction>('actions', filters);
       return result;
     } catch (error) {
       console.error('Erreur lors de la récupération des actions:', error);
@@ -32,7 +31,7 @@ class ActionsService {
    */
   async getById(id: string): Promise<CorrectiveAction | null> {
     try {
-      const result = await this.baseService.getById(id);
+      const result = await baseService.getById<CorrectiveAction>('actions', id);
       return result;
     } catch (error) {
       console.error(`Erreur lors de la récupération de l'action ${id}:`, error);
@@ -62,18 +61,18 @@ class ActionsService {
       id: uuidv4(),
       evaluationId: data.evaluationId || '',
       pageId: data.pageId || '',
-      targetScore: data.targetScore || 'Conforme',
-      priority: data.priority || 'Faible',
+      targetScore: data.targetScore as ComplianceStatus || 'Conforme' as ComplianceStatus,
+      priority: data.priority as ActionPriority || 'Faible' as ActionPriority,
       dueDate: data.dueDate || new Date().toISOString(),
       responsible: data.responsible || '',
       comment: data.comment || '',
-      status: data.status || 'À faire',
+      status: data.status as ActionStatus || 'À faire' as ActionStatus,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     try {
-      const result = await this.baseService.create(newAction);
+      const result = await baseService.create<CorrectiveAction>('actions', newAction);
       return result;
     } catch (error) {
       console.error('Erreur lors de la création de l\'action:', error);
@@ -87,7 +86,7 @@ class ActionsService {
    */
   async update(id: string, data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
     try {
-      const result = await this.baseService.update(id, data);
+      const result = await baseService.update<CorrectiveAction>('actions', id, data);
       return result;
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de l'action ${id}:`, error);
@@ -113,7 +112,7 @@ class ActionsService {
    */
   async delete(id: string): Promise<boolean> {
     try {
-      const result = await this.baseService.delete(id);
+      const result = await baseService.delete('actions', id);
       return result;
     } catch (error) {
       console.error(`Erreur lors de la suppression de l'action ${id}:`, error);

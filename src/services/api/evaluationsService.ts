@@ -1,25 +1,24 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { Evaluation } from '@/lib/types';
-import { mockData } from '@/lib/mockData';
-import { createBaseService } from './baseService';
+import { Evaluation, ComplianceStatus } from '@/lib/types';
+import { mockEvaluations } from '@/lib/mockData';
+import { baseService } from './baseService';
 import { QueryFilters } from './types';
 
-const initialEvaluations = mockData.evaluations || [];
+const initialEvaluations = mockEvaluations || [];
 
 /**
  * Service pour gérer les évaluations
  */
 class EvaluationsService {
   private evaluations: Evaluation[] = [...initialEvaluations];
-  private baseService = createBaseService<Evaluation>('evaluations');
 
   /**
    * Récupère toutes les évaluations
    */
   async getAll(filters?: QueryFilters): Promise<Evaluation[]> {
     try {
-      const result = await this.baseService.getAll(filters);
+      const result = await baseService.getAll<Evaluation>('evaluations', filters);
       return result;
     } catch (error) {
       console.error('Erreur lors de la récupération des évaluations:', error);
@@ -32,7 +31,7 @@ class EvaluationsService {
    */
   async getById(id: string): Promise<Evaluation | null> {
     try {
-      const result = await this.baseService.getById(id);
+      const result = await baseService.getById<Evaluation>('evaluations', id);
       return result;
     } catch (error) {
       console.error(`Erreur lors de la récupération de l'évaluation ${id}:`, error);
@@ -63,7 +62,7 @@ class EvaluationsService {
       auditId: data.auditId || '',
       pageId: data.pageId || '',
       exigenceId: data.exigenceId || '',
-      score: data.score || 'Non évalué',
+      score: data.score as ComplianceStatus || 'Non évalué' as ComplianceStatus,
       comment: data.comment || '',
       attachments: data.attachments || [],
       createdAt: new Date().toISOString(),
@@ -71,7 +70,7 @@ class EvaluationsService {
     };
 
     try {
-      const result = await this.baseService.create(newEvaluation);
+      const result = await baseService.create<Evaluation>('evaluations', newEvaluation);
       return result;
     } catch (error) {
       console.error('Erreur lors de la création de l\'évaluation:', error);
@@ -85,7 +84,7 @@ class EvaluationsService {
    */
   async update(id: string, data: Partial<Evaluation>): Promise<Evaluation> {
     try {
-      const result = await this.baseService.update(id, data);
+      const result = await baseService.update<Evaluation>('evaluations', id, data);
       return result;
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de l'évaluation ${id}:`, error);
@@ -111,7 +110,7 @@ class EvaluationsService {
    */
   async delete(id: string): Promise<boolean> {
     try {
-      const result = await this.baseService.delete(id);
+      const result = await baseService.delete('evaluations', id);
       return result;
     } catch (error) {
       console.error(`Erreur lors de la suppression de l'évaluation ${id}:`, error);
