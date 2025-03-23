@@ -85,6 +85,7 @@ class NotionErrorService {
       context: options.context,
       details: options.details,
       retryable: options.retryable || false,
+      name: "NotionError", // Ajout du nom obligatoire
       severity: options.severity || NotionErrorSeverity.ERROR,
       recoverable: options.recoverable || false,
       recoveryActions: options.recoveryActions || [],

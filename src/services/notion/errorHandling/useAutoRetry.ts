@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { autoRetryHandler } from './autoRetry';
-import { NotionError, NotionErrorType, AutoRetryConfig } from './types';
+import { NotionError, NotionErrorType, AutoRetryConfig, NotionErrorSeverity } from './types';
 
 /**
  * Hook pour utiliser le service de retry automatique
@@ -99,7 +99,8 @@ export function useAutoRetry() {
           name: error.name,
           stack: error.stack,
           retryable: false,
-          context: options.context
+          context: options.context,
+          severity: NotionErrorSeverity.ERROR // Ajout de la sévérité obligatoire
         };
     
     try {

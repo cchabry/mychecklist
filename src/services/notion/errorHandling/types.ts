@@ -115,6 +115,9 @@ export interface RetryQueueStats {
   totalOperations: number;
   lastProcessedAt: number | null;
   isProcessing: boolean;
+  successful?: number;    // Ajouté pour compatibilité
+  failed?: number;        // Ajouté pour compatibilité
+  successRate?: number;   // Ajouté pour compatibilité
 }
 
 /**
