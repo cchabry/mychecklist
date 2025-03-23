@@ -1,86 +1,176 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useProjects, useActiveProjects } from '@/hooks/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info, RefreshCw } from "lucide-react";
 import { useOperationModeListener } from '@/hooks/useOperationModeListener';
+import { operationMode } from '@/services/operationMode';
+import { useProjects } from '@/hooks/api';
+import { useAudits } from '@/hooks/api';
 
+/**
+ * Page de diagnostics pour tester le cache API
+ */
 const ApiCacheDiagnostics: React.FC = () => {
-  const { isDemoMode, toggleMode } = useOperationModeListener();
+  const { isDemoMode } = useOperationModeListener();
+  const [skipCache, setSkipCache] = useState(false);
   
-  // Utiliser nos hooks avec cache
+  // Utiliser les hooks avec cache
   const { 
-    data: allProjects, 
-    isLoading: isLoadingAll,
-    refetch: refetchAll
-  } = useProjects();
+    data: projects, 
+    isLoading: isProjectsLoading, 
+    refetch: refetchProjects 
+  } = useProjects(undefined, { 
+    enabled: true,
+    skipCache: skipCache
+  });
   
   const { 
-    data: activeProjects, 
-    isLoading: isLoadingActive,
-    refetch: refetchActive
-  } = useActiveProjects();
+    data: audits, 
+    isLoading: isAuditsLoading, 
+    refetch: refetchAudits 
+  } = useAudits(undefined, { 
+    enabled: true,
+    skipCache: skipCache
+  });
+  
+  const handleToggleMode = () => {
+    if (isDemoMode) {
+      operationMode.enableRealMode();
+    } else {
+      operationMode.enableDemoMode();
+    }
+  };
+  
+  const handleToggleSkipCache = () => {
+    setSkipCache(!skipCache);
+  };
   
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Diagnostics d'API avec Cache</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => refetchAll()} disabled={isLoadingAll}>
-                {isLoadingAll ? 'Chargement...' : 'Recharger tous les projets'}
-              </Button>
-              <Button onClick={() => refetchActive()} disabled={isLoadingActive}>
-                {isLoadingActive ? 'Chargement...' : 'Recharger projets actifs'}
-              </Button>
-            </div>
-
-            <div className="p-4 bg-slate-50 rounded-md">
-              <h3 className="font-semibold mb-2">Mode opérationnel</h3>
-              <p><span className="font-medium">Mode démo:</span> {isDemoMode ? 'Activé' : 'Désactivé'}</p>
-              <Button variant="outline" size="sm" className="mt-2" onClick={toggleMode}>
-                {isDemoMode ? 'Passer en mode réel' : 'Passer en mode démo'}
-              </Button>
-            </div>
-
-            {allProjects && (
-              <div className="p-4 bg-blue-50 rounded-md">
-                <h3 className="font-semibold mb-2">Tous les projets ({allProjects.length})</h3>
-                <ul className="list-disc list-inside">
-                  {allProjects.map(project => (
-                    <li key={project.id}>{project.name}</li>
-                  ))}
-                </ul>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Diagnostics du Cache API</h1>
+      
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant={isDemoMode ? "default" : "outline"} 
+            onClick={handleToggleMode}
+          >
+            {isDemoMode ? "Mode Démo Actif" : "Mode Réel Actif"}
+          </Button>
+          
+          <Button 
+            variant={skipCache ? "destructive" : "outline"} 
+            onClick={handleToggleSkipCache}
+          >
+            {skipCache ? "Cache Désactivé" : "Cache Activé"}
+          </Button>
+        </div>
+      </div>
+      
+      <Alert className="mb-6">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Comment utiliser cette page</AlertTitle>
+        <AlertDescription>
+          Cette page vous permet de tester les hooks API avec cache. Vous pouvez basculer entre 
+          le mode démo et réel, activer ou désactiver le cache, et voir les résultats des appels API.
+        </AlertDescription>
+      </Alert>
+      
+      <Tabs defaultValue="projects">
+        <TabsList className="mb-4">
+          <TabsTrigger value="projects">Projets</TabsTrigger>
+          <TabsTrigger value="audits">Audits</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="projects">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Projets</CardTitle>
+                <CardDescription>Données des projets avec cache</CardDescription>
               </div>
-            )}
-
-            {activeProjects && (
-              <div className="p-4 bg-green-50 rounded-md">
-                <h3 className="font-semibold mb-2">Projets actifs ({activeProjects.length})</h3>
-                <ul className="list-disc list-inside">
-                  {activeProjects.map(project => (
-                    <li key={project.id}>{project.name}</li>
-                  ))}
-                </ul>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refetchProjects()} 
+                disabled={isProjectsLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isProjectsLoading ? 'animate-spin' : ''}`} />
+                Recharger
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isProjectsLoading ? (
+                <div className="py-6 text-center text-gray-500">Chargement...</div>
+              ) : projects && projects.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    {projects.length} projet(s) trouvé(s)
+                  </p>
+                  <ul className="space-y-2">
+                    {projects.map(project => (
+                      <li key={project.id} className="p-3 bg-gray-50 rounded-md">
+                        <div className="font-medium">{project.name}</div>
+                        <div className="text-sm text-gray-500">{project.url}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="py-6 text-center text-gray-500">
+                  Aucun projet trouvé
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="audits">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Audits</CardTitle>
+                <CardDescription>Données des audits avec cache</CardDescription>
               </div>
-            )}
-
-            <div className="p-4 bg-amber-50 rounded-md">
-              <h3 className="font-semibold mb-2">Info</h3>
-              <p className="text-sm">
-                Ce composant utilise les hooks personnalisés <code>useProjects</code> et <code>useActiveProjects</code> qui
-                intègrent le système de cache et la gestion du mode opérationnel.
-              </p>
-              <p className="text-sm mt-2">
-                En mode démo, les données sont simulées. En mode réel, les données proviennent de l'API.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refetchAudits()} 
+                disabled={isAuditsLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isAuditsLoading ? 'animate-spin' : ''}`} />
+                Recharger
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isAuditsLoading ? (
+                <div className="py-6 text-center text-gray-500">Chargement...</div>
+              ) : audits && audits.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    {audits.length} audit(s) trouvé(s)
+                  </p>
+                  <ul className="space-y-2">
+                    {audits.map(audit => (
+                      <li key={audit.id} className="p-3 bg-gray-50 rounded-md">
+                        <div className="font-medium">{audit.name}</div>
+                        <div className="text-sm text-gray-500">Projet: {audit.projectId}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="py-6 text-center text-gray-500">
+                  Aucun audit trouvé
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

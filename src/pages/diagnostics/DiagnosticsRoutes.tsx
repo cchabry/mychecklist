@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
