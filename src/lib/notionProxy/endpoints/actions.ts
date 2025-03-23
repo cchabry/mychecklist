@@ -70,7 +70,7 @@ export async function getAction(id: string): Promise<CorrectiveAction | null> {
       comment: response.properties.comment?.rich_text?.[0]?.text?.content || '',
       status: response.properties.status?.select?.name as ActionStatus || ActionStatus.ToDo,
       progress: response.properties.progress?.rich_text ? 
-        JSON.parse(response.properties.progress.rich_text[0]?.text?.content || '[]') : [],
+        JSON.parse(item.properties.progress.rich_text[0]?.text?.content || '[]') : [],
       createdAt: response.created_time || now,
       updatedAt: response.last_edited_time || now
     };
@@ -302,7 +302,7 @@ export async function updateAction(id: string, data: Partial<CorrectiveAction>):
 export async function deleteAction(id: string): Promise<boolean> {
   // En mode mock, retourner des données fictives
   if (mockMode.isActive()) {
-    return mockData.deleteAction(id);
+    return mockData.deleteAction();
   }
   
   // Implémentation réelle avec l'API Notion

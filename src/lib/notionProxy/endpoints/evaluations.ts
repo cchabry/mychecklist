@@ -235,7 +235,7 @@ export async function updateEvaluation(id: string, data: Partial<Evaluation>): P
 export async function deleteEvaluation(id: string): Promise<boolean> {
   // En mode mock, retourner des données fictives
   if (mockMode.isActive()) {
-    return mockData.deleteEvaluation(id);
+    return mockData.deleteEvaluation();
   }
   
   // Implémentation réelle avec l'API Notion

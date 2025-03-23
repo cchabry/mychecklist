@@ -1,4 +1,3 @@
-
 import { mockData as existingMockData } from '@/lib/mockData/index';
 import { ComplianceStatus, ImportanceLevel } from '@/lib/types';
 
@@ -90,7 +89,7 @@ if (!existingMockData.deleteAction) {
   };
 }
 
-// Ensure generateMockExigence function exists
+// Add the generateMockExigence function if it doesn't exist
 if (!existingMockData.generateMockExigence) {
   existingMockData.generateMockExigence = (projectId: string, itemId: string) => {
     return {
@@ -103,4 +102,10 @@ if (!existingMockData.generateMockExigence) {
   };
 }
 
-export const mockDataExtensions = existingMockData;
+// Ensure the mockData object has the generateMockExigence property
+const mockDataExtensions = {
+  ...existingMockData,
+  generateMockExigence: existingMockData.generateMockExigence
+};
+
+export { mockDataExtensions };
