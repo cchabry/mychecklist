@@ -1,8 +1,9 @@
 
 // Exporter les services
 export { notionErrorService } from './errorService';
-export { retryQueueService } from './retryQueue';
+export { notionRetryQueue } from './retryQueue';
 export { autoRetryHandler } from './autoRetry';
+export { notionErrorUtils } from './utils';
 
 // Exporter les hooks
 export { useNotionErrorService } from './useNotionErrorService';

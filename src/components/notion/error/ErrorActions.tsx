@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Settings, Database, AlertTriangle } from 'lucide-react';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
+import { RefreshCw, Settings, Stethoscope, RotateCcw } from 'lucide-react';
+import { NotionError } from '@/services/notion/errorHandling/types';
 
 interface ErrorActionsProps {
   error: NotionError;
-  onRetry?: () => void;
+  onRetry?: () => Promise<void>;
   onConfigure?: () => void;
   onRunDiagnostic?: () => void;
   isRetrying?: boolean;
@@ -19,74 +19,47 @@ const ErrorActions: React.FC<ErrorActionsProps> = ({
   onRunDiagnostic,
   isRetrying = false
 }) => {
-  // Déterminer l'action principale en fonction du type d'erreur
-  const getPrimaryAction = () => {
-    switch (error.type) {
-      case NotionErrorType.AUTH:
-      case NotionErrorType.PERMISSION:
-        return {
-          label: "Configurer",
-          icon: <Settings className="h-4 w-4 mr-2" />,
-          action: onConfigure,
-          variant: "default" as const
-        };
-        
-      case NotionErrorType.DATABASE:
-        return {
-          label: "Vérifier la structure",
-          icon: <Database className="h-4 w-4 mr-2" />,
-          action: onRunDiagnostic,
-          variant: "default" as const
-        };
-        
-      case NotionErrorType.NETWORK:
-      case NotionErrorType.RATE_LIMIT:
-      default:
-        return {
-          label: isRetrying ? "Réessai en cours..." : "Réessayer",
-          icon: <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />,
-          action: onRetry,
-          variant: "default" as const,
-          disabled: isRetrying
-        };
-    }
-  };
-  
-  const primaryAction = getPrimaryAction();
-  
   return (
-    <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-      <Button
-        variant={primaryAction.variant}
-        onClick={primaryAction.action}
-        disabled={primaryAction.disabled}
-        className="w-full sm:w-auto"
-      >
-        {primaryAction.icon}
-        {primaryAction.label}
-      </Button>
-      
-      {/* Actions secondaires */}
-      {onRunDiagnostic && primaryAction.label !== "Vérifier la structure" && (
+    <div className="space-y-3">
+      {error.retryable && onRetry && (
         <Button
-          variant="outline"
-          onClick={onRunDiagnostic}
-          className="w-full sm:w-auto"
+          className="w-full"
+          onClick={onRetry}
+          disabled={isRetrying}
         >
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          Diagnostiquer
+          {isRetrying ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Nouvelle tentative en cours...
+            </>
+          ) : (
+            <>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Réessayer l'opération
+            </>
+          )}
         </Button>
       )}
       
-      {onRetry && primaryAction.label !== "Réessayer" && primaryAction.label !== "Réessai en cours..." && (
+      {onConfigure && (
         <Button
           variant="outline"
-          onClick={onRetry}
-          disabled={isRetrying}
-          className="w-full sm:w-auto"
+          className="w-full"
+          onClick={onConfigure}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
-          {isRetrying ? "Réessai en cours..." : "Réessayer"}
+          <Settings className="mr-2 h-4 w-4" />
+          Configurer Notion
+        </Button>
+      )}
+      
+      {onRunDiagnostic && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={onRunDiagnostic}
+        >
+          <Stethoscope className="mr-2 h-4 w-4" />
+          Exécuter un diagnostic
         </Button>
       )}
     </div>

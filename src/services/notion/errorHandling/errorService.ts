@@ -87,7 +87,8 @@ class NotionErrorService {
       retryable: options.retryable || false,
       severity: options.severity || NotionErrorSeverity.ERROR,
       recoverable: options.recoverable || false,
-      recoveryActions: options.recoveryActions || []
+      recoveryActions: options.recoveryActions || [],
+      cause: options.cause
     };
   }
   

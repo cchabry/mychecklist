@@ -17,25 +17,6 @@ export enum NotionErrorType {
 }
 
 /**
- * Structure d'une erreur Notion enrichie
- */
-export interface NotionError {
-  id: string;
-  timestamp: number;
-  message: string;
-  type: NotionErrorType;
-  operation?: string;
-  context?: string;
-  originError?: Error;
-  details?: any;
-  retryable?: boolean;
-  name?: string; // Pour compatibilité avec Error
-  stack?: string; // Pour compatibilité avec Error
-  recoverable?: boolean;
-  recoveryActions?: any[];
-}
-
-/**
  * Niveaux de sévérité des erreurs
  */
 export enum NotionErrorSeverity {
@@ -46,17 +27,39 @@ export enum NotionErrorSeverity {
 }
 
 /**
+ * Structure d'une erreur Notion enrichie
+ */
+export interface NotionError {
+  id: string;
+  timestamp: number;
+  message: string;
+  type: NotionErrorType;
+  operation?: string;
+  context?: string | Record<string, any>;
+  originError?: Error;
+  details?: any;
+  retryable?: boolean;
+  name?: string; // Pour compatibilité avec Error
+  stack?: string; // Pour compatibilité avec Error
+  recoverable?: boolean;
+  recoveryActions?: any[];
+  severity?: NotionErrorSeverity;
+  cause?: Error | unknown;
+}
+
+/**
  * Options pour la création d'erreurs
  */
 export interface NotionErrorOptions {
   type?: NotionErrorType;
   operation?: string;
-  context?: string;
+  context?: string | Record<string, any>;
   details?: any;
   retryable?: boolean;
   severity?: NotionErrorSeverity;
   recoverable?: boolean;
   recoveryActions?: any[];
+  cause?: Error | unknown;
 }
 
 /**
@@ -64,7 +67,7 @@ export interface NotionErrorOptions {
  */
 export interface ReportErrorOptions {
   operation?: string;
-  context?: string;
+  context?: string | Record<string, any>;
   type?: NotionErrorType;
   details?: any;
   retryable?: boolean;
@@ -82,13 +85,18 @@ export interface ErrorSubscriber {
 }
 
 /**
+ * Fonction d'abonnement aux erreurs
+ */
+export type NotionErrorSubscriber = (errors: NotionError[]) => void;
+
+/**
  * Structure pour les opérations de retry
  */
 export interface RetryOperation {
   id: string;
   timestamp: number;
   operation: string;
-  context?: string;
+  context?: string | Record<string, any>;
   retryFn: () => Promise<any>;
   maxRetries: number;
   currentRetries: number;
@@ -105,6 +113,10 @@ export interface RetryQueueStats {
   failedOperations: number;
   totalOperations: number;
   lastProcessedAt: number | null;
+  isProcessing: boolean;
+  successful?: number;
+  failed?: number;
+  successRate?: number;
 }
 
 /**

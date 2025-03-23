@@ -1,14 +1,18 @@
 
 import { useState, useEffect } from 'react';
 import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
+import { RetryQueueStats } from '@/services/notion/errorHandling/types';
 
 /**
  * Hook pour accéder au service de file d'attente de retry Notion
  */
 export function useRetryQueue() {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<RetryQueueStats>({
     totalOperations: 0,
     pendingOperations: 0,
+    completedOperations: 0,
+    failedOperations: 0,
+    lastProcessedAt: null,
     isProcessing: false,
     successful: 0,
     failed: 0,
@@ -20,17 +24,20 @@ export function useRetryQueue() {
   // Récupérer les statistiques actuelles
   useEffect(() => {
     const interval = setInterval(() => {
+      const currentStats = notionRetryQueue.getStats();
       setStats({
-        ...notionRetryQueue.getStats(),
-        successful: 0, // Ces valeurs seront calculées par le service plus tard
-        failed: 0,
-        successRate: 100
+        ...currentStats,
+        successful: currentStats.completedOperations || 0,
+        failed: currentStats.failedOperations || 0,
+        successRate: currentStats.totalOperations > 0 
+          ? Math.round((currentStats.completedOperations / currentStats.totalOperations) * 100)
+          : 100
       });
       
       // Simuler des opérations en file d'attente pour la démo
       // À remplacer par une vraie implémentation quand disponible
       setQueuedOperations(
-        Array.from({ length: notionRetryQueue.getStats().pendingOperations }, (_, i) => ({
+        Array.from({ length: currentStats.pendingOperations }, (_, i) => ({
           id: `op_${i}`,
           context: `Opération Notion #${i+1}`,
           timestamp: Date.now() - (i * 60000),
@@ -43,11 +50,14 @@ export function useRetryQueue() {
     }, 1000);
     
     // Charger les stats initiales
+    const initialStats = notionRetryQueue.getStats();
     setStats({
-      ...notionRetryQueue.getStats(),
-      successful: 0,
-      failed: 0,
-      successRate: 100
+      ...initialStats,
+      successful: initialStats.completedOperations || 0,
+      failed: initialStats.failedOperations || 0,
+      successRate: initialStats.totalOperations > 0 
+        ? Math.round((initialStats.completedOperations / initialStats.totalOperations) * 100)
+        : 100
     });
     
     return () => clearInterval(interval);

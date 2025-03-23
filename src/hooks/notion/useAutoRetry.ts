@@ -8,6 +8,15 @@ import { autoRetryHandler } from '@/services/notion/errorHandling';
 export function useAutoRetry() {
   // Initialiser le gestionnaire au montage du composant
   useEffect(() => {
-    autoRetryHandler.initialize();
+    if (autoRetryHandler && typeof autoRetryHandler.initialize === 'function') {
+      autoRetryHandler.initialize();
+    }
   }, []);
+  
+  return {
+    isEnabled: autoRetryHandler?.isEnabled?.() || false,
+    enable: autoRetryHandler?.enable || (() => {}),
+    disable: autoRetryHandler?.disable || (() => {}),
+    getConfig: autoRetryHandler?.getConfig || (() => ({}))
+  };
 }

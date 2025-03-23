@@ -1,67 +1,86 @@
 
 import React from 'react';
-import { AlertTriangle, FileWarning, ServerCrash, Database } from 'lucide-react';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
+import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { AlertTriangle, AlertCircle, KeyRound, ServerCrash, Database, Clock } from 'lucide-react';
 
 interface ErrorHeaderProps {
-  error: NotionError | null;
-  onClose?: () => void;
+  error: NotionError;
 }
 
-const ErrorHeader: React.FC<ErrorHeaderProps> = ({ error, onClose }) => {
-  if (!error) return null;
-  
+const ErrorHeader: React.FC<ErrorHeaderProps> = ({ error }) => {
+  // Déterminer l'icône et la couleur en fonction du type d'erreur
   const getErrorIcon = () => {
     switch (error.type) {
-      case NotionErrorType.API:
-        return <ServerCrash className="h-5 w-5 text-red-500" />;
-      case NotionErrorType.CORS:
-        return <FileWarning className="h-5 w-5 text-amber-500" />;
+      case NotionErrorType.AUTH:
+        return <KeyRound className="h-5 w-5 text-amber-500" />;
+        
+      case NotionErrorType.PERMISSION:
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+        
+      case NotionErrorType.RATE_LIMIT:
+        return <Clock className="h-5 w-5 text-amber-500" />;
+        
       case NotionErrorType.DATABASE:
         return <Database className="h-5 w-5 text-amber-500" />;
+        
+      case NotionErrorType.API:
+        return <ServerCrash className="h-5 w-5 text-red-500" />;
+        
       default:
-        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
     }
   };
   
+  // Formater l'horodatage
+  const formattedTime = new Date(error.timestamp).toLocaleString();
+  
+  // Déterminer le titre en fonction du type d'erreur
   const getErrorTitle = () => {
     switch (error.type) {
-      case NotionErrorType.API:
+      case NotionErrorType.AUTH:
+        return "Erreur d'authentification Notion";
+        
+      case NotionErrorType.PERMISSION:
+        return "Erreur de permission Notion";
+        
+      case NotionErrorType.RATE_LIMIT:
+        return "Limite de requêtes atteinte";
+        
+      case NotionErrorType.DATABASE:
+        return "Erreur de base de données";
+        
+      case NotionErrorType.NETWORK:
+        return "Erreur de connexion réseau";
+        
+      case NotionErrorType.CORS:
+        return "Erreur de configuration CORS";
+        
+      default:
         return "Erreur API Notion";
-      case NotionErrorType.CORS:
-        return "Erreur de connexion Notion";
-      case NotionErrorType.DATABASE:
-        return "Erreur de base de données Notion";
-      default:
-        return "Erreur Notion";
-    }
-  };
-  
-  const getErrorDescription = () => {
-    switch (error.type) {
-      case NotionErrorType.API:
-        return "Une requête vers l'API Notion a échoué";
-      case NotionErrorType.CORS:
-        return "Impossible de se connecter directement à l'API Notion depuis le navigateur";
-      case NotionErrorType.DATABASE:
-        return "Problème avec la structure de la base de données Notion";
-      default:
-        return error.message || "Une erreur s'est produite lors de l'interaction avec Notion";
     }
   };
   
   return (
-    <div className="flex items-start space-x-3">
-      <div className="flex-shrink-0 mt-0.5">
+    <div className="space-y-2">
+      <div className="flex items-start gap-3">
         {getErrorIcon()}
+        
+        <div>
+          <h3 className="font-medium">{getErrorTitle()}</h3>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </div>
       </div>
-      <div className="flex-grow">
-        <h3 className="text-sm font-medium text-gray-900">
-          {getErrorTitle()}
-        </h3>
-        <p className="mt-1 text-xs text-gray-500">
-          {getErrorDescription()}
-        </p>
+      
+      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
+        {error.operation && (
+          <span className="bg-slate-100 px-2 py-1 rounded">
+            Opération: {error.operation}
+          </span>
+        )}
+        
+        <span className="bg-slate-100 px-2 py-1 rounded">
+          {formattedTime}
+        </span>
       </div>
     </div>
   );

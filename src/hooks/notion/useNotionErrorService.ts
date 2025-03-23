@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { notionErrorService, NotionError, NotionErrorSeverity } from '@/services/notion/errorHandling';
+import { notionErrorService } from '@/services/notion/errorHandling';
+import { NotionError, NotionErrorSeverity } from '@/services/notion/errorHandling/types';
 import { toast } from 'sonner';
 
 /**
@@ -49,10 +50,18 @@ export function useNotionErrorService() {
     notionErrorService.clearErrors();
   };
   
+  /**
+   * Génère un message utilisateur à partir d'une erreur
+   */
+  const getUserFriendlyMessage = (error: NotionError) => {
+    return notionErrorService.createUserFriendlyMessage(error);
+  };
+  
   return {
     errors,
     reportError,
     clearErrors,
+    getUserFriendlyMessage,
     service: notionErrorService
   };
 }

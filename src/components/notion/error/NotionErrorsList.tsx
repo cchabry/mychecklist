@@ -1,22 +1,24 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { AlertCircle, RefreshCw, ChevronRight, KeyRound, ServerCrash, Database } from 'lucide-react';
-import { useNotionErrorService, NotionError, NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling';
+import { useNotionErrorService } from '@/services/notion/errorHandling';
+import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
 
 interface NotionErrorsListProps {
   maxItems?: number;
   onRetryAll?: () => void;
   onShowDetails?: (error: NotionError) => void;
   compact?: boolean;
+  title?: string; // Ajout de la propriété title
 }
 
 const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
   maxItems = 5,
   onRetryAll,
   onShowDetails,
-  compact = false
+  compact = false,
+  title
 }) => {
   const { errors, clearErrors } = useNotionErrorService();
   
@@ -60,7 +62,9 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
           <div className="font-medium text-sm">{error.message}</div>
           {error.context && (
             <p className="text-xs text-muted-foreground mt-1">
-              {error.context}
+              {typeof error.context === 'string' 
+                ? error.context 
+                : JSON.stringify(error.context)}
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">
@@ -85,6 +89,7 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
   if (compact) {
     return (
       <div className="space-y-2">
+        {title && <h4 className="text-sm font-medium mb-2">{title}</h4>}
         {errorItems}
       </div>
     );
@@ -92,6 +97,8 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
   
   return (
     <div className="space-y-4">
+      {title && <h3 className="text-base font-medium">{title}</h3>}
+      
       <div className="space-y-2">
         {errorItems}
       </div>

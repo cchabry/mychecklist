@@ -22,11 +22,12 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { notionErrorService, NotionErrorType, useRetryQueue } from '@/services/notion/errorHandling';
+import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { useRetryQueue } from '@/services/notion/errorHandling';
 
 interface NotionErrorDetailsProps {
-  error?: string | Error;
-  context?: string;
+  error?: string | Error | NotionError;
+  context?: string | Record<string, any>;
   isOpen: boolean;
   onClose: () => void;
   onRetry?: () => void;
@@ -51,10 +52,42 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   
   if (!error) return null;
   
-  const errorObj = typeof error === 'string' ? { message: error } : error;
+  // Normaliser l'erreur en objet NotionError si nécessaire
+  const normalizeError = (): NotionError => {
+    if (typeof error === 'string') {
+      return {
+        id: 'temp-' + Date.now(),
+        timestamp: Date.now(),
+        message: error,
+        type: NotionErrorType.UNKNOWN
+      };
+    } else if (error instanceof Error) {
+      return {
+        id: 'temp-' + Date.now(),
+        timestamp: Date.now(),
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        type: NotionErrorType.UNKNOWN
+      };
+    } else if (typeof error === 'object' && 'type' in error) {
+      // C'est déjà une NotionError
+      return error as NotionError;
+    }
+    
+    // Cas par défaut
+    return {
+      id: 'temp-' + Date.now(),
+      timestamp: Date.now(),
+      message: String(error),
+      type: NotionErrorType.UNKNOWN
+    };
+  };
+  
+  const errorObj = normalizeError();
   const errorMessage = errorObj.message || 'Erreur inconnue';
   
-  const getErrorIcon = (type?: string) => {
+  const getErrorIcon = (type?: NotionErrorType) => {
     switch (type) {
       case NotionErrorType.API:
         return <ServerCrash className="h-5 w-5 text-red-500" />;
@@ -124,12 +157,22 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
     ));
   };
   
+  const formatContext = () => {
+    if (!context) return null;
+    
+    if (typeof context === 'string') {
+      return context;
+    }
+    
+    return JSON.stringify(context);
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {getErrorIcon()}
+            {getErrorIcon(errorObj.type)}
             <span>Erreur d'interaction avec Notion</span>
           </DialogTitle>
           <DialogDescription>
@@ -139,7 +182,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
         
         {context && (
           <div className="py-2">
-            <p className="text-sm text-muted-foreground">Contexte: {context}</p>
+            <p className="text-sm text-muted-foreground">Contexte: {formatContext()}</p>
           </div>
         )}
         
