@@ -103,4 +103,4 @@ if (!existingMockData.generateMockExigence) {
   };
 }
 
-export { existingMockData as mockDataExtensions };
+export const mockDataExtensions = existingMockData;

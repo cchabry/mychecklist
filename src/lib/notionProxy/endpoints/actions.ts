@@ -1,4 +1,3 @@
-
 import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
@@ -282,9 +281,7 @@ export async function updateAction(id: string, data: Partial<CorrectiveAction>):
     }
     
     // Mettre à jour la page Notion
-    await notionApiRequest(`/pages/${id}`, 'PATCH', {
-      properties
-    });
+    await notionApiRequest(`/pages/${id}`, 'PATCH', { properties });
     
     // Récupérer l'action corrective mise à jour
     const updatedAction = await getAction(id);

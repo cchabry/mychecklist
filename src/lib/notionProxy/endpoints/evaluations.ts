@@ -1,4 +1,3 @@
-
 import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
@@ -215,9 +214,7 @@ export async function updateEvaluation(id: string, data: Partial<Evaluation>): P
     }
     
     // Mettre à jour la page Notion
-    await notionApiRequest(`/pages/${id}`, 'PATCH', {
-      properties
-    });
+    await notionApiRequest(`/pages/${id}`, 'PATCH', { properties });
     
     // Récupérer l'évaluation mise à jour
     const updatedEvaluation = await getEvaluation(id);
