@@ -15,7 +15,7 @@ import * as actions from './endpoints/actions';
 import mockMode from './mock/mode';
 
 // Importer l'API Proxy
-import { proxyFetch } from './proxyFetch';
+import { proxyFetch, notionApiRequest } from './proxyFetch';
 
 // Créer et exporter l'API Notion
 export const notionApi = {

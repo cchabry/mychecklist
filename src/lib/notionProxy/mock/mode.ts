@@ -55,6 +55,30 @@ export const mockMode = {
   updateConfig(config: any): void {
     // Rien à faire, le concept équivalent n'existe plus
     console.warn('[DEPRECATED] mockMode.updateConfig is deprecated and has no effect');
+  },
+  
+  /**
+   * Force temporairement le mode réel (utile pour certaines opérations)
+   */
+  temporarilyForceReal(): void {
+    operationMode.enableRealMode();
+  },
+  
+  /**
+   * Vérifie si le mode réel est temporairement forcé
+   */
+  isTemporarilyForcedReal(reset: boolean = false): boolean {
+    // Cette fonctionnalité n'existe plus vraiment, mais on retourne false pour compatibilité
+    return false;
+  },
+  
+  /**
+   * Restore le mode après un forçage temporaire
+   */
+  restoreAfterForceReal(restore: boolean = true): void {
+    if (restore) {
+      operationMode.setDemoMode(true);
+    }
   }
 };
 
