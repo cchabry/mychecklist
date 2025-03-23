@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { mockEvaluations } from '@/lib/mockData';
-import { baseService } from './baseService';
+import { BaseService as baseService } from './baseService';
 import { QueryFilters } from './types';
 
 const initialEvaluations = mockEvaluations || [];

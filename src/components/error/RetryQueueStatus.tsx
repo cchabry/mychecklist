@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Inbox, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
-import { useRetryQueue } from '@/hooks/api/useOperationQueue';
+import { useOperationQueue } from '@/hooks/api/useOperationQueue';
 
 interface RetryQueueStatusProps {
   minimal?: boolean;
@@ -17,11 +17,18 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
   minimal = false,
   showControls = true
 }) => {
-  const { stats, processQueue, clearQueue } = useRetryQueue();
+  const { 
+    pendingCount: pendingOperations, 
+    successCount: completedOperations, 
+    errorCount: failedOperations,
+    isProcessing,
+    processQueue,
+    clearQueue
+  } = useOperationQueue();
   
-  const totalOperations = stats.pendingOperations + 
-    (stats.completedOperations || 0) + 
-    (stats.failedOperations || 0);
+  const totalOperations = pendingOperations + 
+    (completedOperations || 0) + 
+    (failedOperations || 0);
   
   // Pas de contenu si aucune opération
   if (totalOperations === 0) {
@@ -31,9 +38,9 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
   // Calculer les pourcentages pour la barre de progression
   const calculatePercentage = (count: number) => Math.round((count / totalOperations) * 100);
   
-  const pendingPercent = calculatePercentage(stats.pendingOperations);
-  const successPercent = calculatePercentage(stats.completedOperations || 0);
-  const failedPercent = calculatePercentage(stats.failedOperations || 0);
+  const pendingPercent = calculatePercentage(pendingOperations);
+  const successPercent = calculatePercentage(completedOperations || 0);
+  const failedPercent = calculatePercentage(failedOperations || 0);
   
   // Version minimale pour affichage dans un header ou un footer
   if (minimal) {
@@ -41,9 +48,9 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
       <div className="flex items-center gap-2">
         <Inbox className="h-4 w-4 text-blue-500" />
         <span className="text-sm">
-          {stats.pendingOperations} opération{stats.pendingOperations !== 1 ? 's' : ''} en attente
+          {pendingOperations} opération{pendingOperations !== 1 ? 's' : ''} en attente
         </span>
-        {showControls && stats.pendingOperations > 0 && (
+        {showControls && pendingOperations > 0 && (
           <Button 
             variant="ghost" 
             size="sm" 
@@ -71,7 +78,7 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
               variant="outline" 
               size="sm" 
               onClick={() => processQueue()}
-              disabled={stats.pendingOperations === 0}
+              disabled={pendingOperations === 0}
             >
               <RefreshCw className="h-4 w-4 mr-1" />
               Exécuter
@@ -80,7 +87,7 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
               variant="outline" 
               size="sm" 
               onClick={() => clearQueue()}
-              disabled={stats.pendingOperations === 0}
+              disabled={pendingOperations === 0}
             >
               Vider
             </Button>
@@ -93,19 +100,19 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
       <div className="grid grid-cols-3 gap-2 text-sm">
         <div className="flex items-center">
           <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-          <span>En attente: {stats.pendingOperations}</span>
+          <span>En attente: {pendingOperations}</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-          <span>Réussies: {stats.completedOperations || 0}</span>
+          <span>Réussies: {completedOperations || 0}</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-          <span>Échouées: {stats.failedOperations || 0}</span>
+          <span>Échouées: {failedOperations || 0}</span>
         </div>
       </div>
       
-      {stats.isProcessing && (
+      {isProcessing && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
           <RefreshCw className="h-3 w-3 animate-spin" />
           <span>Traitement en cours...</span>

@@ -1,9 +1,8 @@
-
 import { useCallback } from 'react';
 import { useOperationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useRetryQueue } from '@/hooks/api/useOperationQueue';
+import { useOperationQueue } from '@/hooks/api/useOperationQueue';
 import { ErrorCategory } from './useErrorHandling';
 
 /**
@@ -12,7 +11,7 @@ import { ErrorCategory } from './useErrorHandling';
 export function useRecoveryStrategies() {
   const { enableDemoMode, isRealMode } = useOperationMode();
   const navigate = useNavigate();
-  const { processQueue } = useRetryQueue();
+  const { processQueue } = useOperationQueue();
 
   /**
    * Active le mode démo

@@ -62,7 +62,7 @@ const AUTO_PROCESS_INTERVAL = 60000; // 1 minute
 /**
  * Calcule le délai pour la prochaine tentative selon la stratégie choisie
  */
-function calculateRetryDelay(
+export function calculateRetryDelay(
   attempt: number,
   options: Partial<RetryOptions> = {}
 ): number {
@@ -375,3 +375,8 @@ export function useOperationQueue() {
     successCount: state.operations.filter(op => op.status === 'success').length
   };
 }
+
+/**
+ * Alias pour useOperationQueue pour assurer la compatibilité
+ */
+export const useRetryQueue = useOperationQueue;

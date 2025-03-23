@@ -1,8 +1,8 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
+import { CorrectiveAction, ActionStatus, ActionPriority, ComplianceStatus } from '@/lib/types';
 import { mockActions } from '@/lib/mockData';
-import { baseService } from './baseService';
+import { BaseService as baseService } from './baseService';
 import { QueryFilters } from './types';
 
 const initialActions = mockActions || [];
@@ -14,7 +14,7 @@ class ActionsService {
   private actions: CorrectiveAction[] = [...initialActions];
 
   /**
-   * Récupère toutes les actions correctives
+   * Récupère toutes les actions
    */
   async getAll(filters?: QueryFilters): Promise<CorrectiveAction[]> {
     try {
@@ -27,7 +27,7 @@ class ActionsService {
   }
 
   /**
-   * Récupère une action corrective par son ID
+   * Récupère une action par son ID
    */
   async getById(id: string): Promise<CorrectiveAction | null> {
     try {
@@ -41,7 +41,7 @@ class ActionsService {
   }
 
   /**
-   * Récupère les actions correctives pour une évaluation
+   * Récupère les actions pour une évaluation spécifique
    */
   async getByEvaluationId(evaluationId: string): Promise<CorrectiveAction[]> {
     try {
@@ -54,21 +54,22 @@ class ActionsService {
   }
 
   /**
-   * Crée une nouvelle action corrective
+   * Crée une nouvelle action
    */
   async create(data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
     const newAction: CorrectiveAction = {
       id: uuidv4(),
       evaluationId: data.evaluationId || '',
       pageId: data.pageId || '',
-      targetScore: data.targetScore as ComplianceStatus || 'Conforme' as ComplianceStatus,
-      priority: data.priority as ActionPriority || 'Faible' as ActionPriority,
-      dueDate: data.dueDate || new Date().toISOString(),
+      targetScore: data.targetScore as ComplianceStatus || 'Conforme',
+      priority: data.priority as ActionPriority || 'Moyenne',
+      dueDate: data.dueDate || '',
       responsible: data.responsible || '',
       comment: data.comment || '',
-      status: data.status as ActionStatus || 'À faire' as ActionStatus,
+      status: data.status as ActionStatus || 'A faire',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      progress: []
     };
 
     try {
@@ -82,7 +83,7 @@ class ActionsService {
   }
 
   /**
-   * Met à jour une action corrective
+   * Met à jour une action
    */
   async update(id: string, data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
     try {
@@ -108,7 +109,7 @@ class ActionsService {
   }
 
   /**
-   * Supprime une action corrective
+   * Supprime une action
    */
   async delete(id: string): Promise<boolean> {
     try {

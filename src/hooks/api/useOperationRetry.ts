@@ -1,8 +1,7 @@
-
 import { useState, useCallback } from 'react';
 import { useErrorCategorization } from './useErrorCategorization';
-import { useRetryQueue } from './useOperationQueue';
-import { calculateRetryDelay, RetryOptions } from './useServiceWithRetry';
+import { useOperationQueue } from './useOperationQueue';
+import { calculateRetryDelay, RetryOptions, RetryStrategy } from './useServiceWithRetry';
 import { toast } from 'sonner';
 
 interface RetryableOperation<T> {
@@ -41,91 +40,91 @@ type RecoveryStrategyMap = {
 export function useOperationRetry() {
   const [currentOperation, setCurrentOperation] = useState<RetryableOperation<any> | null>(null);
   const { categorizeApiError, isRetryableError, getUserFriendlyMessage } = useErrorCategorization();
-  const { enqueue } = useRetryQueue();
+  const { addOperation: enqueue } = useOperationQueue();
   
   // Stratégies de récupération par type d'erreur
   const recoveryStrategies: RecoveryStrategyMap = {
     connection: {
       retry: true,
       maxRetries: 5,
-      strategy: 'exponential',
+      strategy: 'exponential' as RetryStrategy,
       shouldQueue: true,
       delayMultiplier: 1.5,
     },
     timeout: {
       retry: true,
       maxRetries: 3,
-      strategy: 'linear',
+      strategy: 'linear' as RetryStrategy,
       shouldQueue: true,
       delayMultiplier: 2,
     },
     rate_limit: {
       retry: true,
       maxRetries: 3,
-      strategy: 'exponential',
+      strategy: 'exponential' as RetryStrategy,
       shouldQueue: true,
       delayMultiplier: 3,
     },
     server: {
       retry: true,
       maxRetries: 2,
-      strategy: 'linear',
+      strategy: 'linear' as RetryStrategy,
       shouldQueue: true,
       delayMultiplier: 1.5,
     },
     authentication: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate',
+      strategy: 'immediate' as RetryStrategy,
       shouldQueue: false,
       delayMultiplier: 1,
     },
     authorization: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate',
+      strategy: 'immediate' as RetryStrategy,
       shouldQueue: false,
       delayMultiplier: 1,
     },
     validation: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate',
+      strategy: 'immediate' as RetryStrategy,
       shouldQueue: false,
       delayMultiplier: 1,
     },
     not_found: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate',
+      strategy: 'immediate' as RetryStrategy,
       shouldQueue: false,
       delayMultiplier: 1,
     },
     conflict: {
       retry: true,
       maxRetries: 2,
-      strategy: 'fixed',
+      strategy: 'fixed' as RetryStrategy,
       shouldQueue: true,
       delayMultiplier: 1,
     },
     parse: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate',
+      strategy: 'immediate' as RetryStrategy,
       shouldQueue: false,
       delayMultiplier: 1,
     },
     business: {
       retry: false,
       maxRetries: 0,
-      strategy: 'immediate',
+      strategy: 'immediate' as RetryStrategy,
       shouldQueue: false,
       delayMultiplier: 1,
     },
     unknown: {
       retry: true,
       maxRetries: 1,
-      strategy: 'fixed',
+      strategy: 'fixed' as RetryStrategy,
       shouldQueue: true,
       delayMultiplier: 1,
     }
@@ -269,7 +268,7 @@ export function useOperationRetry() {
             });
           }
           
-          // Réinitialiser l'opération en cours
+          // R��initialiser l'opération en cours
           setCurrentOperation(null);
           
           throw error;

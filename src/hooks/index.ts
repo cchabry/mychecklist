@@ -11,5 +11,5 @@ export * from './api';
 export * from './notion/useNotionAPI';
 export * from './notion/useNotionError';
 export * from './notion/useNotionErrorService';
-export * from './notion/useNotionAutoFallback';
+// export * from './notion/useNotionAutoFallback'; // Commenté car le fichier n'existe pas
 export * from './notion/useRetryQueue';
