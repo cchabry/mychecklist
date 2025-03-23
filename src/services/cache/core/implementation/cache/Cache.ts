@@ -8,7 +8,7 @@ import { getFullKey, getOriginalKey } from '../../../utils/keyUtils';
 import { logCacheEvent } from '../../../utils/logger';
 import { hasExpired } from './expiryOperations';
 import { CacheStorage } from '../CacheStorage';
-import { fetchFromCacheOrSource } from '../fetchUtils';
+import { fetchFromCacheOrSource } from './fetchOperations';
 import { cleanupEntries } from './cleanupOperations';
 import { getCacheStats } from './statsOperations';
 import { getByPrefix, deleteByPrefix } from './prefixOperations';

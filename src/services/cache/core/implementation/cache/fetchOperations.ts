@@ -3,7 +3,7 @@
  * Utilitaires pour les opérations de récupération de données
  */
 
-import { Cache } from './cache/Cache';
+import { Cache } from './Cache';
 
 /**
  * Récupère une valeur depuis le cache ou depuis la source si absente/expirée

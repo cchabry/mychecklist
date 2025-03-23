@@ -6,3 +6,4 @@
 
 export { Cache } from './implementation/cache/Cache';
 export { hasExpired } from './implementation/cache/expiryOperations';
+export { fetchFromCacheOrSource } from './implementation/cache/fetchOperations';
