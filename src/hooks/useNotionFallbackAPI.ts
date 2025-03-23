@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
 import { operationMode } from '@/services/operationMode';
-import { useOperationModeListener } from './useOperationModeListener';
+import { useOperationMode } from '@/services/operationMode';
 
 interface RequestOptions<T> {
   // Données à utiliser en mode démo
@@ -26,7 +26,7 @@ export function useNotionFallbackAPI<T = unknown>() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<T | null>(null);
-  const { isDemoMode } = useOperationModeListener();
+  const { isDemoMode } = useOperationMode();
   
   /**
    * Exécute une requête avec gestion automatique du mode opérationnel

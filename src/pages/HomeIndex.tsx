@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,12 +7,12 @@ import ProjectCard from '@/components/ProjectCard';
 import Header from '@/components/Header';
 import { Separator } from '@/components/ui/separator';
 import { isNotionConfigured } from '@/lib/notion';
-import { notionApi } from '@/lib/notionProxy';
 import NotionGuide from '@/components/NotionGuide';
 import { NotionConfig } from '@/components/notion';
 import { getProjectsFromNotion } from '@/lib/notion';
 import { Project } from '@/lib/types';
 import { toast } from 'sonner';
+import { useOperationMode } from '@/services/operationMode';
 
 const IndexPage = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,8 +20,8 @@ const IndexPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   
+  const { isDemoMode, enableDemoMode } = useOperationMode();
   const notionConfigured = isNotionConfigured();
-  const mockModeActive = notionApi.mockMode.isActive();
   
   // Fetch projects on component mount
   useEffect(() => {
@@ -42,14 +41,14 @@ const IndexPage = () => {
         console.error('Error loading projects:', err);
         setError('Erreur lors du chargement des projets');
         
-        // Activer le mode mock en cas d'erreur non gérée
-        if (!notionApi.mockMode.isActive()) {
-          notionApi.mockMode.activate();
+        // Activer le mode démo en cas d'erreur non gérée
+        if (!isDemoMode) {
+          enableDemoMode('Erreur lors du chargement des projets');
           toast.info('Mode démonstration activé automatiquement', { 
             description: 'Suite à une erreur, l\'application utilise des données fictives'
           });
           
-          // Recharger les données en mode mock après un court délai
+          // Recharger les données en mode démo après un court délai
           setTimeout(async () => {
             try {
               const { projects } = await getProjectsFromNotion();
@@ -67,7 +66,7 @@ const IndexPage = () => {
     };
     
     loadProjects();
-  }, []);
+  }, [isDemoMode, enableDemoMode]);
   
   const handleNotionConfigOpen = () => {
     setNotionConfigOpen(true);
@@ -102,7 +101,7 @@ const IndexPage = () => {
           </div>
         </div>
         
-        {mockModeActive && (
+        {isDemoMode && (
           <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
             <h2 className="text-sm font-medium text-amber-800 flex items-center gap-2">
               <TestTube size={16} className="text-amber-600" />
@@ -119,7 +118,7 @@ const IndexPage = () => {
                 size="sm" 
                 className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
                 onClick={() => {
-                  notionApi.mockMode.deactivate();
+                  enableDemoMode();
                   window.location.reload();
                 }}
               >
@@ -129,7 +128,7 @@ const IndexPage = () => {
           </div>
         )}
         
-        {error && !mockModeActive && (
+        {error && !isDemoMode && (
           <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
             <h2 className="text-sm font-medium text-red-800">Erreur de chargement</h2>
             <p className="text-xs text-red-700 mt-1">
@@ -179,7 +178,7 @@ const IndexPage = () => {
           )}
         </div>
         
-        {!isLoading && projects.length === 0 && !error && !mockModeActive && (
+        {!isLoading && projects.length === 0 && !error && !isDemoMode && (
           <div className="mt-6 flex justify-center">
             <NotionGuide onConnectClick={handleNotionConfigOpen} />
           </div>

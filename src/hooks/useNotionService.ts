@@ -103,6 +103,7 @@ export function useNotionService() {
         onSuccess(result);
       }
       
+      setIsLoading(false);
       return result;
     } catch (error) {
       // Formater l'erreur
@@ -139,15 +140,15 @@ export function useNotionService() {
             description: 'L\'application continue avec des données de démonstration'
           });
           
+          setIsLoading(false);
           return demoResult;
         } catch (fallbackError) {
           console.error('Erreur lors du fallback en mode démonstration:', fallbackError);
         }
       }
       
-      return null;
-    } finally {
       setIsLoading(false);
+      return null;
     }
   }, [isDemoMode, handleConnectionError, handleSuccessfulOperation]);
   
