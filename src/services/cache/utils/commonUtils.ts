@@ -1,117 +1,83 @@
 
 /**
- * Fonctions utilitaires courantes pour le cache
+ * Utilitaires communs pour le système de cache
  */
-
-import { cacheManager } from '../managers/defaultManager';
 
 /**
  * Génère une clé de cache basée sur les paramètres
- * @param baseKey Clé de base
- * @param params Paramètres à inclure dans la clé
- * @returns Une clé unique incluant les paramètres
  */
-export function generateCacheKey(baseKey: string, params?: Record<string, any>): string {
+export function generateCacheKey(
+  baseKey: string,
+  params?: Record<string, any>
+): string {
   if (!params || Object.keys(params).length === 0) {
     return baseKey;
   }
   
-  // Transformer les paramètres en chaîne triée et réduite pour être déterministe
-  const paramsString = Object.entries(params)
-    .filter(([_, value]) => value !== undefined && value !== null)
+  // Tri des clés pour assurer la cohérence
+  const sortedParams = Object.entries(params)
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-    .map(([key, value]) => {
-      // Pour les objets et tableaux, utiliser JSON.stringify
-      const valueStr = typeof value === 'object' 
-        ? JSON.stringify(value)
-        : String(value);
-      
-      return `${key}:${valueStr}`;
-    })
-    .join('&');
+    .reduce((obj, [key, value]) => {
+      obj[key] = value;
+      return obj;
+    }, {} as Record<string, any>);
   
-  return `${baseKey}:${paramsString}`;
+  return `${baseKey}:${JSON.stringify(sortedParams)}`;
 }
 
 /**
- * Analyse la durée fournie sous forme de chaîne et la convertit en millisecondes
- * Exemples: '5m', '1h', '1d'
- * @param duration Durée sous forme de chaîne
- * @param defaultValue Valeur par défaut si la durée est invalide
- * @returns Durée en millisecondes
+ * Convertit une durée spécifiée sous différents formats en millisecondes
  */
-export function parseDuration(duration: string | number, defaultValue: number = 0): number {
-  // Si c'est déjà un nombre, le retourner directement
+export function parseDuration(duration: number | string): number {
   if (typeof duration === 'number') {
     return duration;
   }
   
-  // Vérifier si la chaîne est valide
-  if (!duration || typeof duration !== 'string') {
-    return defaultValue;
-  }
-  
-  // Analyser la chaîne
-  const match = duration.match(/^(\d+)([smhd])$/);
-  
+  // Format: '1d', '2h', '30m', '45s'
+  const match = duration.match(/^(\d+)([dhms])$/);
   if (!match) {
-    return defaultValue;
+    return parseInt(duration, 10) || 0;
   }
   
   const value = parseInt(match[1], 10);
   const unit = match[2];
   
-  // Convertir en millisecondes selon l'unité
   switch (unit) {
-    case 's': return value * 1000; // secondes
-    case 'm': return value * 60 * 1000; // minutes
-    case 'h': return value * 60 * 60 * 1000; // heures
     case 'd': return value * 24 * 60 * 60 * 1000; // jours
-    default: return defaultValue;
+    case 'h': return value * 60 * 60 * 1000;      // heures
+    case 'm': return value * 60 * 1000;           // minutes
+    case 's': return value * 1000;                // secondes
+    default: return value;
   }
 }
 
 /**
- * Calcule la durée restante avant l'expiration d'une entrée de cache
- * @param expiry Timestamp d'expiration
- * @returns Durée restante en millisecondes ou null si pas d'expiration
+ * Calcule le temps restant avant l'expiration d'une entrée
  */
-export function getRemainingTime(expiry: number | null): number | null {
-  if (expiry === null) {
-    return null;
-  }
-  
-  const now = Date.now();
-  const remaining = expiry - now;
-  
-  return remaining > 0 ? remaining : 0;
+export function getRemainingTime(expiryTimestamp: number | null): number {
+  if (!expiryTimestamp) return Infinity;
+  return Math.max(0, expiryTimestamp - Date.now());
 }
 
 /**
- * Formate une durée en millisecondes en format lisible
- * @param ms Durée en millisecondes
- * @returns Chaîne formatée (ex: "5m 30s")
+ * Formate une durée en millisecondes dans un format lisible
  */
-export function formatDuration(ms: number | null): string {
-  if (ms === null) {
-    return 'Permanent';
+export function formatDuration(ms: number): string {
+  if (ms === Infinity) return 'sans expiration';
+  if (ms <= 0) return 'expiré';
+  
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) {
+    return `${days}j ${hours % 24}h`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  } else {
+    return `${seconds}s`;
   }
-  
-  if (ms <= 0) {
-    return 'Expiré';
-  }
-  
-  const seconds = Math.floor((ms / 1000) % 60);
-  const minutes = Math.floor((ms / (1000 * 60)) % 60);
-  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-  
-  const parts = [];
-  
-  if (days > 0) parts.push(`${days}j`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
-  
-  return parts.join(' ');
 }

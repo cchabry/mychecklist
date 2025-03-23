@@ -1,14 +1,15 @@
 
 /**
- * Types for core cache functionality
- */
-
-/**
  * Structure d'une entrée dans le cache
  */
-export interface CacheEntry<T> {
+export interface CacheEntry<T = any> {
+  /** Données stockées */
   data: T;
+  
+  /** Timestamp d'expiration (null = pas d'expiration) */
   expiry: number | null;
+  
+  /** Timestamp de création/mise à jour */
   timestamp: number;
 }
 

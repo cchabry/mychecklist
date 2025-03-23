@@ -1,10 +1,6 @@
 
 /**
- * Types for advanced fetch operations in the cache system
- */
-
-/**
- * Options for the récupération du cache
+ * Options pour les opérations de récupération via le cache
  */
 export interface CacheFetchOptions<T> {
   /**
@@ -23,9 +19,16 @@ export interface CacheFetchOptions<T> {
   skipCache?: boolean;
   
   /**
-   * Si true, le cache sera utilisé même s'il est expiré, mais sera rafraîchi en arrière-plan
+   * Si true, le cache sera utilisé même s'il est expiré, 
+   * mais sera rafraîchi en arrière-plan (stale-while-revalidate)
    */
   staleWhileRevalidate?: boolean;
+  
+  /**
+   * Temps en millisecondes pendant lequel les données sont considérées fraîches
+   * Utilisé avec staleWhileRevalidate pour décider quand rafraîchir
+   */
+  staleTime?: number;
   
   /**
    * Callbacks d'événements
