@@ -1,5 +1,6 @@
 
 import { NotionError, NotionErrorSeverity, NotionErrorType } from './types';
+import { notionErrorUtils } from './utils';
 
 interface RetryableOperation {
   id: string;
@@ -213,83 +214,13 @@ class NotionRetryQueueService {
       return error as NotionError;
     }
     
-    // Créer une nouvelle NotionError
+    // Créer une nouvelle NotionError à l'aide de notionErrorUtils
     const message = error.message || 'Erreur inconnue';
-    const type = this.determineErrorType(error);
-    
-    return {
-      name: 'NotionError',
-      message,
-      type,
-      severity: this.determineSeverity(type),
-      recoverable: this.isRecoverable(type),
-      context: {},
-      timestamp: new Date(),
-      stack: error.stack
-    };
-  }
-  
-  /**
-   * Détermine le type d'erreur en fonction du message
-   */
-  private determineErrorType(error: any): NotionErrorType {
-    const message = (error.message || '').toLowerCase();
-    
-    if (message.includes('network') || message.includes('fetch') || message.includes('réseau')) {
-      return NotionErrorType.NETWORK;
-    }
-    
-    if (message.includes('auth') || message.includes('401')) {
-      return NotionErrorType.AUTH;
-    }
-    
-    if (message.includes('permission') || message.includes('403')) {
-      return NotionErrorType.PERMISSION;
-    }
-    
-    if (message.includes('rate') || message.includes('limit') || message.includes('429')) {
-      return NotionErrorType.RATE_LIMIT;
-    }
-    
-    return NotionErrorType.UNKNOWN;
-  }
-  
-  /**
-   * Détermine la gravité en fonction du type d'erreur
-   */
-  private determineSeverity(type: NotionErrorType): NotionErrorSeverity {
-    switch (type) {
-      case NotionErrorType.NETWORK:
-        return NotionErrorSeverity.WARNING;
-        
-      case NotionErrorType.AUTH:
-      case NotionErrorType.PERMISSION:
-        return NotionErrorSeverity.ERROR;
-        
-      case NotionErrorType.RATE_LIMIT:
-        return NotionErrorSeverity.WARNING;
-        
-      default:
-        return NotionErrorSeverity.ERROR;
-    }
-  }
-  
-  /**
-   * Détermine si une erreur est récupérable
-   */
-  private isRecoverable(type: NotionErrorType): boolean {
-    switch (type) {
-      case NotionErrorType.NETWORK:
-      case NotionErrorType.RATE_LIMIT:
-        return true;
-        
-      case NotionErrorType.AUTH:
-      case NotionErrorType.PERMISSION:
-        return false;
-        
-      default:
-        return false;
-    }
+    return notionErrorUtils.createError(message, {
+      cause: error,
+      type: notionErrorUtils.determineErrorType(error),
+      context: {}
+    });
   }
 }
 

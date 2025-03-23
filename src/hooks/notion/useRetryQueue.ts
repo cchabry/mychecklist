@@ -1,63 +1,67 @@
 
 import { useState, useEffect } from 'react';
-import { retryQueueService } from '@/services/notion/errorHandling/retryQueueService';
+import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
 
 /**
- * Hook pour utiliser le service de file d'attente avec nouvelles tentatives
+ * Hook pour accéder au service de file d'attente de retry Notion
  */
 export function useRetryQueue() {
-  const [queuedOperations, setQueuedOperations] = useState(retryQueueService.getQueuedOperations());
-  const [stats, setStats] = useState(retryQueueService.getStats());
+  const [stats, setStats] = useState({
+    totalOperations: 0,
+    pendingOperations: 0,
+    isProcessing: false
+  });
   
-  // Intervalle de rafraîchissement pour les statistiques
+  // Récupérer les statistiques actuelles
   useEffect(() => {
-    const updateStats = () => {
-      setQueuedOperations(retryQueueService.getQueuedOperations());
-      setStats(retryQueueService.getStats());
-    };
+    const interval = setInterval(() => {
+      setStats(notionRetryQueue.getStats());
+    }, 1000);
     
-    // Intervalle de rafraîchissement
-    const interval = setInterval(updateStats, 2000);
-    
-    // Mise à jour initiale
-    updateStats();
+    // Charger les stats initiales
+    setStats(notionRetryQueue.getStats());
     
     return () => clearInterval(interval);
   }, []);
-
-  // Fonctions utilitaires
-  const enqueueOperation = <T>(
+  
+  /**
+   * Ajoute une opération à la file d'attente de retry
+   */
+  const enqueue = <T>(
     operation: () => Promise<T>,
-    context: string,
-    options?: {
-      maxAttempts?: number;
-      backoffFactor?: number;
-      initialDelay?: number;
-      onSuccess?: (result: T) => void;
-      onFailure?: (error: Error) => void;
-    }
-  ) => {
-    return retryQueueService.enqueue(operation, context, options);
+    context: string = '',
+    options: {
+      maxRetries?: number,
+      onSuccess?: (result: T) => void,
+      onFailure?: (error: Error) => void
+    } = {}
+  ): string => {
+    return notionRetryQueue.enqueue(
+      operation,
+      { operation: context },
+      options
+    );
   };
   
-  const cancelOperation = (operationId: string) => {
-    return retryQueueService.cancel(operationId);
+  /**
+   * Annule une opération en attente
+   */
+  const cancel = (operationId: string): boolean => {
+    return notionRetryQueue.cancel(operationId);
   };
   
-  const processQueue = () => {
-    return retryQueueService.processQueue();
+  /**
+   * Force l'exécution des opérations en attente
+   */
+  const processNow = async (): Promise<void> => {
+    return notionRetryQueue.processNow();
   };
   
-  const clearQueue = () => {
-    return retryQueueService.clearQueue();
-  };
-
   return {
-    queuedOperations,
     stats,
-    enqueueOperation,
-    cancelOperation,
-    processQueue,
-    clearQueue
+    enqueue,
+    cancel,
+    processNow,
+    service: notionRetryQueue
   };
 }

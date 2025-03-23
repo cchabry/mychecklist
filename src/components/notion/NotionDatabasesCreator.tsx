@@ -7,6 +7,11 @@ import { useNotionAPI } from '@/hooks/notion/useNotionAPI';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
+interface NotionResponse {
+  id: string;
+  [key: string]: any;
+}
+
 const NotionDatabasesCreator: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [result, setResult] = useState<{
@@ -23,7 +28,7 @@ const NotionDatabasesCreator: React.FC = () => {
     setResult(null);
     
     try {
-      const response = await notionAPI.execute('/v1/databases', 'POST', {
+      const response = await notionAPI.execute<NotionResponse>('/v1/databases', 'POST', {
         parent: { type: 'page_id', page_id: 'your-page-id-here' },
         title: [{ type: 'text', text: { content: 'Projets Audit' } }],
         properties: {

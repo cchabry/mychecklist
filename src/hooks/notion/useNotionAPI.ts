@@ -36,7 +36,7 @@ export function useNotionAPI() {
   /**
    * Exécute une requête Notion avec gestion des erreurs et retry
    */
-  const executeRequest = async <T>(
+  const execute = async <T>(
     endpoint: string,
     method: string = 'GET',
     body?: any,
@@ -78,9 +78,9 @@ export function useNotionAPI() {
       return processedResult;
     } catch (error) {
       // Enrichir l'erreur avec le service d'erreur
-      const enhancedError = errorService.handleError(
+      const enhancedError = errorService.reportError(
         error instanceof Error ? error : new Error(String(error)), 
-        { endpoint, method }
+        `${method} ${endpoint}`
       );
 
       // Callback d'erreur
@@ -90,13 +90,14 @@ export function useNotionAPI() {
 
       // Mettre en file d'attente pour retry si pertinent
       if (maxRetries > 0) {
-        retryQueue.enqueueOperation(
+        retryQueue.enqueue(
           () => notionApi.request(endpoint, method, body, token),
           `Notion ${method} ${endpoint}`,
           {
-            maxAttempts: maxRetries,
-            initialDelay: retryDelay,
-            backoffFactor: 1.5
+            maxRetries,
+            onSuccess: (result) => {
+              console.log(`Opération réussie après retry: ${method} ${endpoint}`);
+            }
           }
         );
       }
@@ -110,7 +111,7 @@ export function useNotionAPI() {
   return {
     isLoading,
     lastError,
-    execute: executeRequest,
+    execute,
     clearError: () => setLastError(null)
   };
 }

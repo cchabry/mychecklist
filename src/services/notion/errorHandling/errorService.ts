@@ -21,9 +21,14 @@ class NotionErrorService {
   /**
    * Traite une erreur et déclenche les réponses appropriées
    */
-  public handleError(error: Error, context: Record<string, any> = {}): NotionError {
+  public reportError(error: Error, context: string = ''): NotionError {
     // Enrichir l'erreur avec des informations supplémentaires
-    const enhancedError = notionErrorUtils.enhanceError(error, context);
+    const enhancedError = this.createError(error.message, {
+      cause: error,
+      context: { operation: context },
+      type: error.name === 'NotionError' ? (error as any).type : undefined,
+      severity: (error as any).severity
+    });
     
     // Journaliser l'erreur
     this.logError(enhancedError);
