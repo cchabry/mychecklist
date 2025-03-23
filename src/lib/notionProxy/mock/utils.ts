@@ -1,34 +1,35 @@
 
 /**
- * Utilitaires pour la compatibilité avec l'ancien système mockMode
+ * Utilitaires pour les fonctionnalités de simulation
+ * Note: Ce module sera à terme remplacé par operationModeUtils
  */
 
-import { operationModeUtils } from '@/services/operationMode/utils';
-import { operationMode } from '@/services/operationMode';
+import { operationMode, operationModeUtils } from '@/services/operationMode';
 
 /**
- * Vérifie si le mode mock est actif
+ * Vérifie si le mode démonstration est actif
  */
 export const isMockActive = (): boolean => {
   return operationMode.isDemoMode;
 };
 
 /**
- * Désactive temporairement le mode mock
+ * Active le mode réel
  */
 export const temporarilyDisableMock = (): void => {
   operationMode.enableRealMode();
 };
 
 /**
- * Active le mode mock
+ * Active le mode démonstration
  */
 export const enableMock = (): void => {
   operationMode.enableDemoMode('Activation manuelle via API');
 };
 
 /**
- * Adaptateur pour la compatibilité avec l'ancien système mockMode
+ * Utilitaires pour la simulation en mode démonstration
+ * @deprecated Utilisez directement operationModeUtils
  */
 export const mockUtils = {
   /**
@@ -56,7 +57,4 @@ export const mockUtils = {
   getScenario: (context: string) => operationModeUtils.getScenario(context)
 };
 
-/**
- * Pour compatibilité avec l'ancien mock.utils
- */
 export default mockUtils;
