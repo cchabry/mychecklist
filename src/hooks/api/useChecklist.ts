@@ -1,111 +1,67 @@
 
-import { useServiceWithCache } from './useServiceWithCache';
-import { useServiceWithRetry } from './useServiceWithRetry';
-import { checklistService } from '@/services/api/checklistService';
+import { useState, useCallback } from 'react';
 import { ChecklistItem } from '@/lib/types';
-import { toast } from 'sonner';
+import { useServiceWithCache } from './useServiceWithCache';
+import { checklistService } from '@/services/api/checklistService';
+import { QueryFilters } from './types';
 
 /**
- * Hook pour récupérer tous les items de checklist
+ * Hook pour interagir avec les items de checklist
  */
-export function useChecklistItems(options = {}) {
-  return useServiceWithCache<ChecklistItem[]>(
-    checklistService.getAll.bind(checklistService),
-    [],
-    options
-  );
-}
-
-/**
- * Hook pour récupérer un item de la checklist par son ID
- */
-export function useChecklistItem(id: string | undefined, options = {}) {
-  return useServiceWithCache<ChecklistItem | null>(
-    checklistService.getById.bind(checklistService),
-    [id],
+export function useChecklistItem(filters?: QueryFilters) {
+  const {
+    data: items,
+    isLoading,
+    error,
+    fetchData,
+    invalidateCache,
+    reload
+  } = useServiceWithCache<ChecklistItem[]>(
+    () => checklistService.getAll(filters),
     {
-      enabled: !!id,
-      ...options
+      cacheKey: `checklist_${JSON.stringify(filters || {})}`,
+      immediate: true
     }
   );
-}
 
-/**
- * Hook pour récupérer des items de checklist par catégorie
- */
-export function useChecklistItemsByCategory(category: string | undefined, options = {}) {
-  return useServiceWithCache<ChecklistItem[]>(
-    async () => {
-      const items = await checklistService.getAll();
-      return items.filter(item => item.category === category);
-    },
-    [category],
-    {
-      enabled: !!category,
-      ...options
-    }
-  );
-}
+  const getChecklistItem = useCallback(async (id: string) => {
+    return checklistService.getById(id);
+  }, []);
 
-/**
- * Hook pour créer un nouvel item de checklist
- */
-export function useCreateChecklistItem() {
-  const { execute, isLoading, error, result } = useServiceWithRetry<ChecklistItem, [Partial<ChecklistItem>]>(
-    checklistService.create.bind(checklistService),
-    'checklistItem',
-    'create',
-    (result) => {
-      toast.success('Item de checklist créé avec succès');
-    }
-  );
-  
-  return { 
-    createChecklistItem: execute, 
-    isCreating: isLoading, 
+  const createChecklistItem = useCallback(async (data: Partial<ChecklistItem>) => {
+    const newItem = await checklistService.create(data);
+    invalidateCache();
+    return newItem;
+  }, [invalidateCache]);
+
+  const updateChecklistItem = useCallback(async (id: string, data: Partial<ChecklistItem>) => {
+    const updatedItem = await checklistService.update(id, data);
+    invalidateCache();
+    return updatedItem;
+  }, [invalidateCache]);
+
+  const deleteChecklistItem = useCallback(async (id: string) => {
+    const result = await checklistService.delete(id);
+    invalidateCache();
+    return result;
+  }, [invalidateCache]);
+
+  const getCategories = useCallback(async () => {
+    const allItems = items || await checklistService.getAll();
+    const categories = [...new Set(allItems.map(item => item.category))].sort();
+    return categories;
+  }, [items]);
+
+  return {
+    items,
+    isLoading,
     error,
-    result
-  };
-}
-
-/**
- * Hook pour mettre à jour un item de checklist
- */
-export function useUpdateChecklistItem() {
-  const { execute, isLoading, error, result } = useServiceWithRetry<ChecklistItem, [string, Partial<ChecklistItem>]>(
-    checklistService.update.bind(checklistService),
-    'checklistItem',
-    'update',
-    (result) => {
-      toast.success('Item de checklist mis à jour avec succès');
-    }
-  );
-  
-  return { 
-    updateChecklistItem: execute, 
-    isUpdating: isLoading, 
-    error,
-    result
-  };
-}
-
-/**
- * Hook pour supprimer un item de checklist
- */
-export function useDeleteChecklistItem() {
-  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
-    checklistService.delete.bind(checklistService),
-    'checklistItem',
-    'delete',
-    (result) => {
-      toast.success('Item de checklist supprimé avec succès');
-    }
-  );
-  
-  return { 
-    deleteChecklistItem: execute, 
-    isDeleting: isLoading, 
-    error,
-    result
+    fetchData,
+    reload,
+    getChecklistItem,
+    createChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
+    getCategories
   };
 }

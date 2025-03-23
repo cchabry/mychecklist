@@ -1,10 +1,10 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getProjectById, createMockAudit, createNewAudit, getPagesByProjectId, getAllProjects } from '@/lib/mockData';
 import { Audit, Project, SamplePage } from '@/lib/types';
 import { notionApi } from '@/lib/notionProxy';
+import { operationMode, operationModeUtils } from '@/lib/operationMode';
 
 /**
  * Hook pour charger les données d'un projet et de son audit associé
@@ -259,6 +259,53 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
     }
   };
   
+  // Fonction pour créer un audit avec un échantillon de base
+  const createAuditWithSample = useCallback(async (auditName: string) => {
+    setIsLoading(true);
+    
+    try {
+      // Délai simulé en mode démo
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+      }
+      
+      // Parfois simuler une erreur en mode démo
+      if (operationMode.isDemoMode && operationModeUtils.shouldSimulateError()) {
+        throw new Error("Erreur simulée lors de la création de l'audit");
+      }
+      
+      // Récupérer un scénario de démo si disponible
+      const demoScenario = operationModeUtils.getScenario('create-audit');
+      
+      if (demoScenario) {
+        const mockAudit = createMockAudit(demoScenario.projectId);
+        setAudit(mockAudit);
+        setLoading(false);
+        return;
+      }
+      
+      // Créer un nouvel audit avec un échantillon de base
+      const mockAudit = createNewAudit(projectId);
+      setAudit(mockAudit);
+      setLoading(false);
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'audit:', error);
+      
+      const errorMsg = error instanceof Error 
+        ? error.message 
+        : `Erreur inconnue (ID: "${projectId}")`;
+      
+      toast.error("Erreur lors de la création de l'audit", {
+        description: errorMsg
+      });
+      
+      // Naviguer vers la page d'erreur avec l'ID problématique
+      navigate(`/error/audit-not-created?id=${encodeURIComponent(String(projectId))}&error=${encodeURIComponent(errorMsg)}`);
+      
+      setLoading(false);
+    }
+  }, [projectId, navigation]);
+  
   return {
     project,
     audit,
@@ -266,6 +313,7 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
     loading,
     notionError,
     setAudit,
-    loadProject
+    loadProject,
+    createAuditWithSample
   };
 };

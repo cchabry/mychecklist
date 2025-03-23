@@ -1,235 +1,308 @@
 
+import { v4 as uuidv4 } from 'uuid';
 import { 
-  Project, Audit, ChecklistItem, Exigence, 
-  SamplePage, Evaluation, CorrectiveAction, ActionProgress,
-  ComplianceStatus, ImportanceLevel, ActionStatus, ActionPriority 
+  Project, 
+  ChecklistItem, 
+  Exigence, 
+  Audit, 
+  Page, 
+  Evaluation, 
+  CorrectiveAction, 
+  ComplianceStatus, 
+  ImportanceLevel,
+  ActionPriority,
+  ActionStatus 
 } from '@/lib/types';
 
-// Mock projects data
-export const mockProjects: Project[] = [
+// Projets
+export const MOCK_PROJECTS: Project[] = [
   {
-    id: 'project-1',
-    name: 'Site corporate',
-    url: 'https://www.example.com',
-    description: 'Site vitrine de l\'entreprise',
+    id: 'proj_1',
+    name: 'Site Web Corporate',
+    url: 'https://example.com',
+    description: 'Refonte du site web corporate',
     status: 'En cours',
     createdAt: '2023-01-15T10:30:00Z',
-    updatedAt: '2023-02-20T14:45:00Z',
-    progress: 65,
-    itemsCount: 42,
+    updatedAt: '2023-03-20T14:45:00Z',
+    progress: 60,
+    itemsCount: 25,
     pagesCount: 5
   },
   {
-    id: 'project-2',
+    id: 'proj_2',
     name: 'Application mobile',
-    url: 'https://app.example.com',
-    description: 'Application pour les utilisateurs mobiles',
+    url: 'https://m.example.com',
+    description: 'Audit de l\'application mobile',
     status: 'Planifié',
-    createdAt: '2023-03-10T09:15:00Z',
-    updatedAt: '2023-03-15T16:20:00Z',
-    progress: 25,
-    itemsCount: 38,
+    createdAt: '2023-02-18T09:15:00Z',
+    updatedAt: '2023-02-18T09:15:00Z',
+    progress: 0,
+    itemsCount: 18,
     pagesCount: 3
   }
 ];
 
-// Mock audits data
+// Audits
 export const mockAudits: Audit[] = [
   {
-    id: 'audit-1',
-    name: 'Audit initial',
-    projectId: 'project-1',
-    createdAt: '2023-02-10T11:30:00Z',
-    updatedAt: '2023-02-15T16:45:00Z'
+    id: 'audit_1',
+    name: 'Audit Initial',
+    projectId: 'proj_1',
+    createdAt: '2023-03-01T08:00:00Z',
+    updatedAt: '2023-03-05T16:30:00Z',
+    score: 68,
+    items: [],
+    version: '1.0'
   },
   {
-    id: 'audit-2',
+    id: 'audit_2',
     name: 'Audit de suivi',
-    projectId: 'project-1',
-    createdAt: '2023-03-25T10:00:00Z',
-    updatedAt: '2023-03-28T14:30:00Z'
+    projectId: 'proj_1',
+    createdAt: '2023-04-10T09:45:00Z',
+    updatedAt: '2023-04-12T11:20:00Z',
+    score: 82,
+    items: [],
+    version: '1.1'
   }
 ];
 
-// Mock checklist items
+// Checklist
 export const mockChecklist: ChecklistItem[] = [
   {
-    id: 'item-1',
+    id: 'item_1',
     title: 'Images accessibles',
-    description: 'Toutes les images doivent avoir un attribut alt',
+    description: 'Toutes les images doivent avoir un texte alternatif',
     category: 'Accessibilité',
     subcategory: 'Images',
-    reference: ['RGAA 1.1', 'WCAG 2.1'],
-    profile: ['Développeur', 'Intégrateur'],
-    phase: ['Développement', 'Recette'],
+    reference: ['RGAA 1.1'],
+    profile: ['Développeur'],
+    phase: ['Développement'],
     effort: 'low',
     priority: 'high'
   },
   {
-    id: 'item-2',
+    id: 'item_2',
     title: 'Contraste des textes',
-    description: 'Les textes doivent avoir un contraste suffisant avec le fond',
+    description: 'Le contraste entre le texte et le fond doit être suffisant',
     category: 'Accessibilité',
-    subcategory: 'Contrastes',
-    reference: ['RGAA 3.3', 'WCAG 2.1'],
-    profile: ['Designer', 'Développeur'],
-    phase: ['Conception', 'Développement'],
-    effort: 'medium',
-    priority: 'high'
-  },
-  {
-    id: 'item-3',
-    title: 'Optimisation des images',
-    description: 'Les images doivent être optimisées pour le web',
-    category: 'Performance',
-    subcategory: 'Images',
-    reference: ['RGESN 1.2'],
-    profile: ['Développeur', 'Designer'],
-    phase: ['Développement'],
+    subcategory: 'Couleurs',
+    reference: ['RGAA 3.2'],
+    profile: ['UX Designer'],
+    phase: ['Conception'],
     effort: 'medium',
     priority: 'medium'
+  },
+  {
+    id: 'item_3',
+    title: 'Formulaires avec étiquettes',
+    description: 'Tous les champs de formulaire doivent avoir une étiquette',
+    category: 'Accessibilité',
+    subcategory: 'Formulaires',
+    reference: ['RGAA 11.1'],
+    profile: ['Développeur'],
+    phase: ['Développement'],
+    effort: 'low',
+    priority: 'high'
   }
 ];
 
-// Mock exigences data
-export const mockExigences: Exigence[] = [
+// Pages d'échantillon
+export const mockPages: Page[] = [
   {
-    id: 'exigence-1',
-    projectId: 'project-1',
-    itemId: 'item-1',
-    importance: ImportanceLevel.Major,
-    comment: 'Critique pour l\'accessibilité du site'
-  },
-  {
-    id: 'exigence-2',
-    projectId: 'project-1',
-    itemId: 'item-2',
-    importance: ImportanceLevel.Medium,
-    comment: 'Important pour la lisibilité'
-  },
-  {
-    id: 'exigence-3',
-    projectId: 'project-1',
-    itemId: 'item-3',
-    importance: ImportanceLevel.Major,
-    comment: 'Nécessaire pour la performance'
-  }
-];
-
-// Mock sample pages data
-export const mockPages: SamplePage[] = [
-  {
-    id: 'page-1',
-    projectId: 'project-1',
-    url: 'https://www.example.com',
+    id: 'page_1',
+    projectId: 'proj_1',
+    url: 'https://example.com/accueil',
     title: 'Page d\'accueil',
-    description: 'Page principale du site',
-    order: 0
-  },
-  {
-    id: 'page-2',
-    projectId: 'project-1',
-    url: 'https://www.example.com/services',
-    title: 'Services',
-    description: 'Présentation des services',
+    description: 'Page d\'accueil du site',
     order: 1
   },
   {
-    id: 'page-3',
-    projectId: 'project-1',
-    url: 'https://www.example.com/contact',
+    id: 'page_2',
+    projectId: 'proj_1',
+    url: 'https://example.com/contact',
     title: 'Contact',
     description: 'Formulaire de contact',
     order: 2
+  },
+  {
+    id: 'page_3',
+    projectId: 'proj_1',
+    url: 'https://example.com/produits',
+    title: 'Produits',
+    description: 'Liste des produits',
+    order: 3
   }
 ];
 
-// Mock evaluations data
+// Exigences
+export const mockExigences: Exigence[] = [
+  {
+    id: 'exigence_1',
+    projectId: 'proj_1',
+    itemId: 'item_1',
+    importance: ImportanceLevel.High,
+    comment: 'Très important pour notre audience'
+  },
+  {
+    id: 'exigence_2',
+    projectId: 'proj_1',
+    itemId: 'item_2',
+    importance: ImportanceLevel.Medium,
+    comment: 'À prendre en compte dans la charte graphique'
+  },
+  {
+    id: 'exigence_3',
+    projectId: 'proj_1',
+    itemId: 'item_3',
+    importance: ImportanceLevel.High,
+    comment: 'Essentiel pour l\'accessibilité des formulaires'
+  }
+];
+
+// Évaluations
 export const mockEvaluations: Evaluation[] = [
   {
-    id: 'eval-1',
-    auditId: 'audit-1',
-    pageId: 'page-1',
-    exigenceId: 'exigence-1',
-    score: ComplianceStatus.Compliant,
-    comment: 'Toutes les images ont des attributs alt',
-    attachments: ['capture1.png'],
-    createdAt: '2023-02-12T10:30:00Z',
-    updatedAt: '2023-02-12T10:30:00Z'
-  },
-  {
-    id: 'eval-2',
-    auditId: 'audit-1',
-    pageId: 'page-1',
-    exigenceId: 'exigence-2',
-    score: ComplianceStatus.PartiallyCompliant,
-    comment: 'Quelques textes n\'ont pas un contraste suffisant',
-    attachments: ['capture2.png', 'capture3.png'],
-    createdAt: '2023-02-12T11:15:00Z',
-    updatedAt: '2023-02-12T11:15:00Z'
-  },
-  {
-    id: 'eval-3',
-    auditId: 'audit-1',
-    pageId: 'page-2',
-    exigenceId: 'exigence-1',
+    id: 'eval_1',
+    auditId: 'audit_1',
+    pageId: 'page_1',
+    exigenceId: 'exigence_1',
     score: ComplianceStatus.NonCompliant,
-    comment: 'Plusieurs images sans attribut alt',
-    attachments: ['capture4.png'],
-    createdAt: '2023-02-13T09:45:00Z',
-    updatedAt: '2023-02-13T09:45:00Z'
+    comment: 'Plusieurs images sans texte alternatif',
+    attachments: [],
+    createdAt: '2023-03-02T10:15:00Z',
+    updatedAt: '2023-03-02T10:15:00Z'
+  },
+  {
+    id: 'eval_2',
+    auditId: 'audit_1',
+    pageId: 'page_2',
+    exigenceId: 'exigence_3',
+    score: ComplianceStatus.PartiallyCompliant,
+    comment: 'Quelques champs de formulaire sans étiquette',
+    attachments: [],
+    createdAt: '2023-03-03T14:20:00Z',
+    updatedAt: '2023-03-03T14:20:00Z'
   }
 ];
 
-// Mock actions data
+// Actions correctives
 export const mockActions: CorrectiveAction[] = [
   {
-    id: 'action-1',
-    evaluationId: 'eval-2',
-    pageId: 'page-1',
-    targetScore: ComplianceStatus.Compliant,
-    priority: ActionPriority.Medium,
-    dueDate: '2023-03-15',
-    responsible: 'Jean Dupont',
-    comment: 'Corriger le contraste des textes sur fond clair',
-    status: ActionStatus.InProgress,
-    progress: [
-      {
-        id: 'progress-1',
-        actionId: 'action-1',
-        date: '2023-02-20',
-        responsible: 'Jean Dupont',
-        comment: 'Correction en cours',
-        score: ComplianceStatus.PartiallyCompliant,
-        status: ActionStatus.InProgress
-      }
-    ],
-    createdAt: '2023-02-15T14:30:00Z',
-    updatedAt: '2023-02-20T11:45:00Z'
-  },
-  {
-    id: 'action-2',
-    evaluationId: 'eval-3',
-    pageId: 'page-2',
+    id: 'action_1',
+    evaluationId: 'eval_1',
+    pageId: 'page_1',
     targetScore: ComplianceStatus.Compliant,
     priority: ActionPriority.High,
-    dueDate: '2023-03-10',
-    responsible: 'Sophie Martin',
-    comment: 'Ajouter des attributs alt à toutes les images',
+    dueDate: '2023-04-15T00:00:00Z',
+    responsible: 'Jean Dupont',
+    comment: 'Ajouter des textes alternatifs à toutes les images',
+    status: ActionStatus.InProgress,
+    progress: [],
+    createdAt: '2023-03-05T09:30:00Z',
+    updatedAt: '2023-03-10T11:45:00Z'
+  },
+  {
+    id: 'action_2',
+    evaluationId: 'eval_2',
+    pageId: 'page_2',
+    targetScore: ComplianceStatus.Compliant,
+    priority: ActionPriority.Medium,
+    dueDate: '2023-04-30T00:00:00Z',
+    responsible: 'Marie Martin',
+    comment: 'Ajouter des étiquettes aux champs de formulaire',
     status: ActionStatus.ToDo,
     progress: [],
-    createdAt: '2023-02-16T10:15:00Z',
-    updatedAt: '2023-02-16T10:15:00Z'
+    createdAt: '2023-03-06T10:00:00Z',
+    updatedAt: '2023-03-06T10:00:00Z'
   }
 ];
 
-// Export all mock data for direct access
+// Données mockées complètes
 export const mockData = {
-  projects: mockProjects,
+  projects: MOCK_PROJECTS,
   audits: mockAudits,
   checklist: mockChecklist,
-  exigences: mockExigences,
   pages: mockPages,
+  exigences: mockExigences,
   evaluations: mockEvaluations,
-  actions: mockActions
+  actions: mockActions,
+  // Fonctions de récupération
+  getProjects: () => MOCK_PROJECTS,
+  getProject: (id: string) => MOCK_PROJECTS.find(p => p.id === id) || null,
+  getAudits: () => mockAudits,
+  getAudit: (id: string) => mockAudits.find(a => a.id === id) || null,
+  getChecklistItems: () => mockChecklist,
+  getChecklistItem: (id: string) => mockChecklist.find(i => i.id === id) || null,
+  getPages: () => mockPages,
+  getPage: (id: string) => mockPages.find(p => p.id === id) || null,
+  getExigences: () => mockExigences,
+  getExigence: (id: string) => mockExigences.find(e => e.id === id) || null,
+  getEvaluations: () => mockEvaluations,
+  getEvaluation: (id: string) => mockEvaluations.find(e => e.id === id) || null,
+  getActions: () => mockActions,
+  getAction: (id: string) => mockActions.find(a => a.id === id) || null,
+  // Fonctions de création/mise à jour/suppression simulées
+  createProject: (data: Partial<Project>) => {
+    const newProject: Project = {
+      id: `proj_${uuidv4()}`,
+      name: data.name || 'Nouveau projet',
+      url: data.url || '',
+      description: data.description || '',
+      status: data.status || 'Non démarré',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: data.progress || 0,
+      itemsCount: data.itemsCount || 15,
+      pagesCount: data.pagesCount || 0
+    };
+    return newProject;
+  },
+  updateProject: (id: string, data: Partial<Project>) => {
+    const project = MOCK_PROJECTS.find(p => p.id === id);
+    if (!project) return null;
+    return { ...project, ...data, updatedAt: new Date().toISOString() };
+  },
+  createEvaluation: (data: Partial<Evaluation>) => {
+    const newEvaluation: Evaluation = {
+      id: `eval_${uuidv4()}`,
+      auditId: data.auditId || '',
+      pageId: data.pageId || '',
+      exigenceId: data.exigenceId || '',
+      score: data.score || ComplianceStatus.NotEvaluated,
+      comment: data.comment || '',
+      attachments: data.attachments || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    return newEvaluation;
+  },
+  updateEvaluation: (id: string, data: Partial<Evaluation>) => {
+    const evaluation = mockEvaluations.find(e => e.id === id);
+    if (!evaluation) return null;
+    return { ...evaluation, ...data, updatedAt: new Date().toISOString() };
+  },
+  deleteEvaluation: (id: string) => true,
+  createAction: (data: Partial<CorrectiveAction>) => {
+    const newAction: CorrectiveAction = {
+      id: `action_${uuidv4()}`,
+      evaluationId: data.evaluationId || '',
+      pageId: data.pageId || '',
+      targetScore: data.targetScore || ComplianceStatus.Compliant,
+      priority: data.priority || ActionPriority.Medium,
+      dueDate: data.dueDate || '',
+      responsible: data.responsible || '',
+      comment: data.comment || '',
+      status: data.status || ActionStatus.ToDo,
+      progress: data.progress || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    return newAction;
+  },
+  updateAction: (id: string, data: Partial<CorrectiveAction>) => {
+    const action = mockActions.find(a => a.id === id);
+    if (!action) return null;
+    return { ...action, ...data, updatedAt: new Date().toISOString() };
+  },
+  deleteAction: (id: string) => true
 };

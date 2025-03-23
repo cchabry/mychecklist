@@ -1,5 +1,6 @@
 
 import { operationMode } from '@/services/operationMode';
+import { operationModeUtils } from '@/services/operationMode/utils';
 import { QueryFilters } from './types';
 
 /**
@@ -12,24 +13,37 @@ export const baseService = {
   async getAll<T>(entityType: string, filters?: QueryFilters): Promise<T[]> {
     // En mode démo, utiliser des données fictives
     if (operationMode.isDemoMode) {
+      // Simuler un délai réseau
+      await operationModeUtils.applySimulatedDelay();
+      
       // Récupérer les données mockées pour ce type d'entité
-      const mockModule = await import('@/lib/mockData');
-      const mockData = mockModule[`mock${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`] || [];
+      const mockData = await import('@/lib/mockData').then(m => m.mockData);
+      
+      // Vérifier si une fonction spécifique existe
+      const getterFn = `get${entityType.charAt(0).toUpperCase() + entityType.slice(1)}` as keyof typeof mockData;
+      
+      if (typeof mockData[getterFn] === 'function') {
+        // Utiliser la fonction getter si elle existe
+        const data = (mockData[getterFn] as Function)();
+        
+        // Appliquer les filtres si nécessaire
+        if (filters) {
+          return this.applyFilters(data, filters);
+        }
+        
+        return data;
+      }
+      
+      // Fallback sur l'accès direct à la propriété
+      const dataKey = entityType.toLowerCase() as keyof typeof mockData;
+      const mockEntities = mockData[dataKey] || [];
       
       // Appliquer les filtres si nécessaire
       if (filters) {
-        return mockData.filter((item: any) => {
-          // Logique de filtrage
-          for (const key in filters) {
-            if (item[key] !== filters[key]) {
-              return false;
-            }
-          }
-          return true;
-        });
+        return this.applyFilters(mockEntities, filters);
       }
       
-      return mockData;
+      return mockEntities;
     }
     
     // En mode réel, appeler l'API
@@ -58,11 +72,25 @@ export const baseService = {
   async getById<T>(entityType: string, id: string): Promise<T | null> {
     // En mode démo, utiliser des données fictives
     if (operationMode.isDemoMode) {
-      // Récupérer les données mockées pour ce type d'entité
-      const mockModule = await import('@/lib/mockData');
-      const mockData = mockModule[`mock${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`] || [];
-      const entity = mockData.find((item: any) => item.id === id);
-      return entity || null;
+      // Simuler un délai réseau
+      await operationModeUtils.applySimulatedDelay();
+      
+      // Récupérer les données mockées
+      const mockData = await import('@/lib/mockData').then(m => m.mockData);
+      
+      // Vérifier si une fonction getter spécifique existe
+      const getterFn = `get${entityType.charAt(0).toUpperCase() + entityType.slice(1).slice(0, -1)}` as keyof typeof mockData;
+      
+      if (typeof mockData[getterFn] === 'function') {
+        // Utiliser la fonction getter d'élément unique si elle existe
+        return (mockData[getterFn] as Function)(id);
+      }
+      
+      // Fallback sur la recherche dans la liste
+      const dataKey = entityType.toLowerCase() as keyof typeof mockData;
+      const mockEntities = mockData[dataKey] || [];
+      
+      return mockEntities.find((item: any) => item.id === id) || null;
     }
     
     // En mode réel, appeler l'API
@@ -91,10 +119,30 @@ export const baseService = {
   /**
    * Crée une nouvelle entité
    */
-  async create<T>(entityType: string, data: T): Promise<T> {
+  async create<T>(entityType: string, data: Partial<T>): Promise<T> {
     // En mode démo, simuler la création
     if (operationMode.isDemoMode) {
-      return data;
+      // Simuler un délai réseau
+      await operationModeUtils.applySimulatedDelay();
+      
+      // Récupérer les données mockées
+      const mockData = await import('@/lib/mockData').then(m => m.mockData);
+      
+      // Vérifier si une fonction de création spécifique existe
+      const creatorFn = `create${entityType.charAt(0).toUpperCase() + entityType.slice(1).slice(0, -1)}` as keyof typeof mockData;
+      
+      if (typeof mockData[creatorFn] === 'function') {
+        // Utiliser la fonction de création si elle existe
+        return (mockData[creatorFn] as Function)(data);
+      }
+      
+      // Fallback: simplement retourner les données avec un ID généré
+      return {
+        id: `${entityType.slice(0, -1)}_${Date.now()}`,
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as unknown as T;
     }
     
     // En mode réel, appeler l'API
@@ -124,22 +172,35 @@ export const baseService = {
   async update<T>(entityType: string, id: string, data: Partial<T>): Promise<T> {
     // En mode démo, simuler la mise à jour
     if (operationMode.isDemoMode) {
-      // Récupérer les données mockées pour ce type d'entité
-      const mockModule = await import('@/lib/mockData');
-      const mockData = mockModule[`mock${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`] || [];
-      const entityIndex = mockData.findIndex((item: any) => item.id === id);
+      // Simuler un délai réseau
+      await operationModeUtils.applySimulatedDelay();
+      
+      // Récupérer les données mockées
+      const mockData = await import('@/lib/mockData').then(m => m.mockData);
+      
+      // Vérifier si une fonction de mise à jour spécifique existe
+      const updaterFn = `update${entityType.charAt(0).toUpperCase() + entityType.slice(1).slice(0, -1)}` as keyof typeof mockData;
+      
+      if (typeof mockData[updaterFn] === 'function') {
+        // Utiliser la fonction de mise à jour si elle existe
+        return (mockData[updaterFn] as Function)(id, data);
+      }
+      
+      // Fallback: rechercher l'entité et la mettre à jour
+      const dataKey = entityType.toLowerCase() as keyof typeof mockData;
+      const mockEntities = mockData[dataKey] || [];
+      const entityIndex = mockEntities.findIndex((item: any) => item.id === id);
       
       if (entityIndex === -1) {
         throw new Error(`${entityType} non trouvé: ${id}`);
       }
       
       const updatedEntity = {
-        ...mockData[entityIndex],
+        ...mockEntities[entityIndex],
         ...data,
         updatedAt: new Date().toISOString()
       };
       
-      mockData[entityIndex] = updatedEntity;
       return updatedEntity as T;
     }
     
@@ -170,6 +231,20 @@ export const baseService = {
   async delete(entityType: string, id: string): Promise<boolean> {
     // En mode démo, simuler la suppression
     if (operationMode.isDemoMode) {
+      // Simuler un délai réseau
+      await operationModeUtils.applySimulatedDelay();
+      
+      // Récupérer les données mockées
+      const mockData = await import('@/lib/mockData').then(m => m.mockData);
+      
+      // Vérifier si une fonction de suppression spécifique existe
+      const deleterFn = `delete${entityType.charAt(0).toUpperCase() + entityType.slice(1).slice(0, -1)}` as keyof typeof mockData;
+      
+      if (typeof mockData[deleterFn] === 'function') {
+        // Utiliser la fonction de suppression si elle existe
+        return (mockData[deleterFn] as Function)(id);
+      }
+      
       return true;
     }
     
@@ -191,5 +266,27 @@ export const baseService = {
       console.error(`Erreur lors de la suppression de ${entityType}:`, error);
       throw error;
     }
+  },
+  
+  /**
+   * Applique des filtres à une collection d'entités
+   */
+  applyFilters<T>(entities: T[], filters: QueryFilters): T[] {
+    return entities.filter((entity: any) => {
+      // Vérifier chaque filtre
+      return Object.entries(filters).every(([key, value]) => {
+        // Si la valeur du filtre est undefined, ignorer ce filtre
+        if (value === undefined) return true;
+        
+        const entityValue = entity[key];
+        
+        // Gestion des différents types de valeurs
+        if (Array.isArray(value)) {
+          return value.includes(entityValue);
+        }
+        
+        return entityValue === value;
+      });
+    });
   }
 };

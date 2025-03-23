@@ -1,23 +1,22 @@
 
 import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
-import { mockProjects } from '../../mockData';
+import { MOCK_PROJECTS } from '@/lib/mockData';
 import { cleanProjectId } from '../../utils';
 
 /**
  * Récupère tous les projets
  */
 export const getProjects = async () => {
-  // Si nous sommes en mode démo, retourner les données mock
+  // Si nous sommes en mode mock, retourner les données mock
   if (operationMode.isDemoMode) {
     console.log('Using mock projects data');
-    return mockProjects;
+    return MOCK_PROJECTS;
   }
 
   // Sinon, récupérer depuis Notion
   const apiKey = localStorage.getItem('notion_api_key');
   const dbId = localStorage.getItem('notion_database_id');
-
   if (!apiKey || !dbId) {
     throw new Error('Configuration Notion manquante');
   }
@@ -25,9 +24,8 @@ export const getProjects = async () => {
   const response = await notionApiRequest(`/databases/${dbId}/query`, 'POST', {}, apiKey);
 
   // Mapper les résultats en projets
-  return response.results.map((page: any) => {
+  return response.results.map((page) => {
     const properties = page.properties;
-    
     return {
       id: page.id,
       name: properties.Name?.title?.[0]?.plain_text || properties.name?.title?.[0]?.plain_text || 'Sans titre',
@@ -47,22 +45,21 @@ export const getProjects = async () => {
  * Récupère un projet par son ID de manière fiable
  * Implémentation simplifiée et robuste
  */
-export const getProject = async (id: string) => {
+export const getProject = async (id) => {
   // Nettoyer l'ID pour assurer la cohérence
   const cleanedId = cleanProjectId(id);
   console.log(`🔍 getProject - ID original: "${id}", ID nettoyé: "${cleanedId}"`);
-
+  
   if (!cleanedId) {
     console.error("❌ getProject - ID invalide après nettoyage");
     return null;
   }
 
-  // Si nous sommes en mode démo, retourner les données mock
+  // Si nous sommes en mode mock, retourner les données mock
   if (operationMode.isDemoMode) {
     console.log(`🔍 getProject - Recherche du projet mock ID: "${cleanedId}"`);
-    
     // Rechercher le projet dans les données mock
-    const mockProject = mockProjects.find((project) => project.id === cleanedId);
+    const mockProject = MOCK_PROJECTS.find((project) => project.id === cleanedId);
     
     if (mockProject) {
       console.log(`✅ getProject - Projet mock trouvé: "${mockProject.name}"`);
@@ -76,12 +73,11 @@ export const getProject = async (id: string) => {
   // Sinon, récupérer depuis Notion
   try {
     const apiKey = localStorage.getItem('notion_api_key');
-    
     if (!apiKey) {
       console.error("❌ getProject - Clé API Notion manquante");
       throw new Error('Clé API Notion manquante');
     }
-    
+
     console.log(`🔍 getProject - Appel API Notion pour page ID: "${cleanedId}"`);
     const response = await notionApiRequest(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
     
@@ -89,7 +85,7 @@ export const getProject = async (id: string) => {
       console.error(`❌ getProject - Réponse vide de l'API Notion pour ID: "${cleanedId}"`);
       return null;
     }
-    
+
     const properties = response.properties;
     console.log(`✅ getProject - Projet Notion récupéré: "${properties.Name?.title?.[0]?.plain_text || 'Sans titre'}"`);
     
@@ -105,13 +101,13 @@ export const getProject = async (id: string) => {
       itemsCount: properties.ItemsCount?.number || properties.itemsCount?.number || properties.Nombre?.number || 15,
       pagesCount: properties.PagesCount?.number || properties.pagesCount?.number || 0
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error(`❌ getProject - Erreur lors de la récupération du projet ID: "${cleanedId}"`, error);
     
     // Activer le mode démo en cas d'erreur d'accès à l'API
     if (error.message?.includes('Failed to fetch') || error.message?.includes('401')) {
       console.log('🔄 getProject - Activation du mode démo suite à une erreur API');
-      operationMode.enableDemoMode('Erreur de connexion à l\'API Notion');
+      operationMode.enableDemoMode('Erreur API Notion');
       
       // Retenter avec les données mock
       return getProject(cleanedId);
@@ -124,11 +120,10 @@ export const getProject = async (id: string) => {
 /**
  * Crée un nouveau projet
  */
-export const createProject = async (data: { name: string; url: string }) => {
-  // Si nous sommes en mode démo, créer un faux projet
+export const createProject = async (data) => {
+  // Si nous sommes en mode mock, créer un faux projet
   if (operationMode.isDemoMode) {
     console.log('Creating mock project with name:', data.name);
-    
     const newProject = {
       id: `project-${Date.now()}`,
       name: data.name,
@@ -143,7 +138,7 @@ export const createProject = async (data: { name: string; url: string }) => {
     };
     
     // Ajouter aux projets mock pour cohérence
-    mockProjects.unshift(newProject);
+    MOCK_PROJECTS.unshift(newProject);
     
     return newProject;
   }
@@ -194,15 +189,12 @@ export const createProject = async (data: { name: string; url: string }) => {
     }
   };
 
-  const response = await notionApiRequest(
-    `/pages`,
-    'POST',
-    {
-      parent: { database_id: dbId },
-      properties
+  const response = await notionApiRequest(`/pages`, 'POST', {
+    parent: {
+      database_id: dbId
     },
-    apiKey
-  );
+    properties
+  }, apiKey);
 
   return {
     id: response.id,
@@ -221,22 +213,21 @@ export const createProject = async (data: { name: string; url: string }) => {
 /**
  * Met à jour un projet existant
  */
-export const updateProject = async (id: string, data: { name: string; url: string }) => {
-  // Si nous sommes en mode démo, mettre à jour un faux projet
+export const updateProject = async (id, data) => {
+  // Si nous sommes en mode mock, mettre à jour un faux projet
   if (operationMode.isDemoMode) {
     console.log('Updating mock project with ID:', id);
-    
-    const projectIndex = mockProjects.findIndex((project) => project.id === id);
+    const projectIndex = MOCK_PROJECTS.findIndex((project) => project.id === id);
     
     if (projectIndex !== -1) {
-      mockProjects[projectIndex] = {
-        ...mockProjects[projectIndex],
+      MOCK_PROJECTS[projectIndex] = {
+        ...MOCK_PROJECTS[projectIndex],
         name: data.name,
         url: data.url,
         updatedAt: new Date().toISOString()
       };
       
-      return mockProjects[projectIndex];
+      return MOCK_PROJECTS[projectIndex];
     }
     
     return null;
@@ -244,7 +235,6 @@ export const updateProject = async (id: string, data: { name: string; url: strin
 
   // Sinon, mettre à jour dans Notion
   const apiKey = localStorage.getItem('notion_api_key');
-  
   if (!apiKey) {
     throw new Error('Clé API Notion manquante');
   }
@@ -264,14 +254,9 @@ export const updateProject = async (id: string, data: { name: string; url: strin
     }
   };
 
-  await notionApiRequest(
-    `/pages/${id}`,
-    'PATCH',
-    {
-      properties
-    },
-    apiKey
-  );
+  await notionApiRequest(`/pages/${id}`, 'PATCH', {
+    properties
+  }, apiKey);
 
   // Récupérer le projet mis à jour
   return getProject(id);
@@ -280,15 +265,14 @@ export const updateProject = async (id: string, data: { name: string; url: strin
 /**
  * Supprime un projet
  */
-export const deleteProject = async (id: string) => {
-  // Si nous sommes en mode démo, simuler une suppression
+export const deleteProject = async (id) => {
+  // Si nous sommes en mode mock, simuler une suppression
   if (operationMode.isDemoMode) {
     console.log('Deleting mock project with ID:', id);
-    
-    const projectIndex = mockProjects.findIndex((project) => project.id === id);
+    const projectIndex = MOCK_PROJECTS.findIndex((project) => project.id === id);
     
     if (projectIndex !== -1) {
-      mockProjects.splice(projectIndex, 1);
+      MOCK_PROJECTS.splice(projectIndex, 1);
       return true;
     }
     
@@ -297,20 +281,14 @@ export const deleteProject = async (id: string) => {
 
   // Sinon, supprimer dans Notion (Notion archive les pages, ne les supprime pas vraiment)
   const apiKey = localStorage.getItem('notion_api_key');
-  
   if (!apiKey) {
     throw new Error('Clé API Notion manquante');
   }
 
   try {
-    await notionApiRequest(
-      `/pages/${id}`,
-      'PATCH',
-      {
-        archived: true
-      },
-      apiKey
-    );
+    await notionApiRequest(`/pages/${id}`, 'PATCH', {
+      archived: true
+    }, apiKey);
     
     return true;
   } catch (error) {

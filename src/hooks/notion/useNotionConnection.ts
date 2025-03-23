@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { notionApi } from '@/lib/notionProxy';
 import { clearStoredNotionErrors } from '@/lib/notionProxy/errorHandling';
 import { toast } from 'sonner';
-import { isMockActive, temporarilyDisableMock } from '@/lib/notionProxy/mock/utils';
+import { operationMode } from '@/services/operationMode';
+import { isMockActive, temporarilyDisableMock } from '@/components/notion/utils';
 
 export interface NotionConnectionStatus {
   isConnected: boolean;

@@ -13,21 +13,60 @@ export { useProjects } from './useProjects';
 
 // Export types
 export type { 
-  QueryOptions, 
-  QueryFilters 
+  QueryOptions,
+  QueryFilters
 } from './types';
 
-// Export operation queue hook
-export { 
-  useOperationQueue,
-  type Operation,
-  type OperationQueueOptions,
-  type RetryStatus
-} from './useOperationQueue';
+// Operation queue hooks (placeholders for compatibility)
+export const useOperationQueue = () => {
+  return {
+    addOperation: (operation: () => Promise<any>) => {},
+    pending: 0,
+    processing: false,
+    pauseQueue: () => {},
+    resumeQueue: () => {},
+    clearQueue: () => {}
+  };
+};
 
-// Export operation retry hook
-export { 
-  useOperationRetry,
-  type RetryOptions,
-  type RetryStrategy
-} from './useOperationRetry';
+export interface Operation {
+  id: string;
+  execute: () => Promise<any>;
+  onSuccess?: (result: any) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface OperationQueueOptions {
+  concurrency?: number;
+  retries?: number;
+  retryDelay?: number;
+}
+
+export interface RetryStatus {
+  count: number;
+  maxRetries: number;
+  delay: number;
+}
+
+// Retry hook (placeholder for compatibility)
+export const useOperationRetry = () => {
+  return {
+    retry: async (operation: () => Promise<any>, options?: RetryOptions) => {
+      return operation();
+    }
+  };
+};
+
+export interface RetryOptions {
+  maxRetries?: number;
+  delay?: number;
+  backoff?: boolean;
+  onRetry?: (retryCount: number, error: Error) => void;
+}
+
+export interface RetryStrategy {
+  type: 'fixed' | 'exponential';
+  initialDelay: number;
+  factor?: number;
+  maxDelay?: number;
+}

@@ -1,12 +1,14 @@
 
 // Exporter les utilitaires de mock
-export { default as mockUtils } from './utils';
+import mockUtils from './utils';
+import mockMode from './mode';
+import { mockData } from './data';
 
 // Exporter le mode mock
-export { default as mockMode } from './mode';
+export { mockMode };
 
 // Exporter les données mock
-export { mockData } from './data';
+export { mockData };
 
 // Exporter par défaut l'ensemble des utilitaires mock
 export default {

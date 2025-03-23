@@ -40,7 +40,7 @@ const Header: React.FC = () => {
         </Link>
         
         <div className="flex items-center space-x-4">
-          {/* Remplacer MockModeToggle par OperationModeControl */}
+          {/* Utilisation de OperationModeControl */}
           <OperationModeControl simplified />
           
           {location.pathname !== "/" && (
