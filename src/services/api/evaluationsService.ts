@@ -1,18 +1,13 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { Evaluation, ComplianceStatus } from '@/lib/types';
-import { mockEvaluations } from '@/lib/mockData';
 import { baseService } from './baseService';
 import { QueryFilters } from './types';
-
-const initialEvaluations = mockEvaluations || [];
 
 /**
  * Service pour gérer les évaluations
  */
 class EvaluationsService {
-  private evaluations: Evaluation[] = [...initialEvaluations];
-
   /**
    * Récupère toutes les évaluations
    */
@@ -22,7 +17,7 @@ class EvaluationsService {
       return result;
     } catch (error) {
       console.error('Erreur lors de la récupération des évaluations:', error);
-      return this.evaluations;
+      return [];
     }
   }
 
@@ -35,8 +30,7 @@ class EvaluationsService {
       return result;
     } catch (error) {
       console.error(`Erreur lors de la récupération de l'évaluation ${id}:`, error);
-      const evaluation = this.evaluations.find(e => e.id === id) || null;
-      return evaluation;
+      return null;
     }
   }
 
@@ -49,7 +43,7 @@ class EvaluationsService {
       return allEvaluations.filter(evaluation => evaluation.auditId === auditId);
     } catch (error) {
       console.error(`Erreur lors de la récupération des évaluations pour l'audit ${auditId}:`, error);
-      return this.evaluations.filter(evaluation => evaluation.auditId === auditId);
+      return [];
     }
   }
 
@@ -62,7 +56,7 @@ class EvaluationsService {
       auditId: data.auditId || '',
       pageId: data.pageId || '',
       exigenceId: data.exigenceId || '',
-      score: data.score || 'Non évalué',
+      score: data.score || ComplianceStatus.NotEvaluated,
       comment: data.comment || '',
       attachments: data.attachments || [],
       createdAt: new Date().toISOString(),
@@ -74,7 +68,6 @@ class EvaluationsService {
       return result;
     } catch (error) {
       console.error('Erreur lors de la création de l\'évaluation:', error);
-      this.evaluations.push(newEvaluation);
       return newEvaluation;
     }
   }
@@ -88,20 +81,7 @@ class EvaluationsService {
       return result;
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de l'évaluation ${id}:`, error);
-      
-      const index = this.evaluations.findIndex(e => e.id === id);
-      if (index === -1) {
-        throw new Error(`Évaluation non trouvée: ${id}`);
-      }
-      
-      const updatedEvaluation = {
-        ...this.evaluations[index],
-        ...data,
-        updatedAt: new Date().toISOString()
-      };
-      
-      this.evaluations[index] = updatedEvaluation;
-      return updatedEvaluation;
+      throw new Error(`Évaluation non trouvée: ${id}`);
     }
   }
 
@@ -114,14 +94,7 @@ class EvaluationsService {
       return result;
     } catch (error) {
       console.error(`Erreur lors de la suppression de l'évaluation ${id}:`, error);
-      
-      const index = this.evaluations.findIndex(e => e.id === id);
-      if (index === -1) {
-        return false;
-      }
-      
-      this.evaluations.splice(index, 1);
-      return true;
+      return false;
     }
   }
 }

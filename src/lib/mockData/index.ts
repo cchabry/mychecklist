@@ -1,5 +1,5 @@
 
-import { Project, Audit, Page, Exigence, Checklist, Evaluation, CorrectiveAction } from '@/lib/types';
+import { Project, Audit, Exigence, CorrectiveAction, Evaluation } from '@/lib/types';
 
 // Mock data pour les projets
 export const mockProjects: Project[] = [
@@ -7,23 +7,29 @@ export const mockProjects: Project[] = [
     id: 'project-1',
     name: 'Projet Test 1',
     description: 'Description du projet 1',
-    client: 'Client A',
     startDate: '2023-01-01',
     endDate: '2023-12-31',
     status: 'En cours',
     createdAt: '2023-01-01',
-    updatedAt: '2023-01-01'
+    updatedAt: '2023-01-01',
+    url: 'https://example.com/project1',
+    progress: 0,
+    itemsCount: 0,
+    pagesCount: 0
   },
   {
     id: 'project-2',
     name: 'Projet Test 2',
     description: 'Description du projet 2',
-    client: 'Client B',
     startDate: '2023-02-15',
     endDate: '2024-03-30',
     status: 'Planifié',
     createdAt: '2023-02-15',
-    updatedAt: '2023-02-15'
+    updatedAt: '2023-02-15',
+    url: 'https://example.com/project2',
+    progress: 0,
+    itemsCount: 0,
+    pagesCount: 0
   }
 ];
 
@@ -33,7 +39,6 @@ export const mockAudits: Audit[] = [
     id: 'audit-1',
     projectId: 'project-1',
     name: 'Audit Test 1',
-    description: 'Description de l\'audit 1',
     startDate: '2023-05-01',
     endDate: '2023-05-15',
     status: 'En cours',
@@ -44,7 +49,6 @@ export const mockAudits: Audit[] = [
     id: 'audit-2',
     projectId: 'project-2',
     name: 'Audit Test 2',
-    description: 'Description de l\'audit 2',
     startDate: '2023-06-01',
     endDate: '2023-06-30',
     status: 'Terminé',
@@ -53,8 +57,8 @@ export const mockAudits: Audit[] = [
   }
 ];
 
-// Mock data pour les pages
-export const mockPages: Page[] = [
+// Mock data pour les pages (utilisant SamplePage au lieu de Page)
+export const mockPages = [
   {
     id: 'page-1',
     auditId: 'audit-1',
@@ -79,7 +83,6 @@ export const mockPages: Page[] = [
 export const mockExigences: Exigence[] = [
   {
     id: 'exigence-1',
-    checklistId: 'checklist-1',
     name: 'Exigence Test 1',
     description: 'Description de l\'exigence 1',
     createdAt: '2023-05-01',
@@ -87,7 +90,6 @@ export const mockExigences: Exigence[] = [
   },
   {
     id: 'exigence-2',
-    checklistId: 'checklist-2',
     name: 'Exigence Test 2',
     description: 'Description de l\'exigence 2',
     createdAt: '2023-06-01',
@@ -96,7 +98,7 @@ export const mockExigences: Exigence[] = [
 ];
 
 // Mock data pour les checklists
-export const mockChecklists: Checklist[] = [
+export const mockChecklists = [
   {
     id: 'checklist-1',
     name: 'Checklist Test 1',
@@ -113,6 +115,6 @@ export const mockChecklists: Checklist[] = [
   }
 ];
 
-// Ajouter les mocks pour les actions et évaluations
+// Initialisation des mocks pour les actions et évaluations
 export const mockActions: CorrectiveAction[] = [];
 export const mockEvaluations: Evaluation[] = [];
