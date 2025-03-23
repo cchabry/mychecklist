@@ -5,6 +5,7 @@
  */
 
 import { operationMode } from '@/services/operationMode';
+import { operationModeUtils } from '@/services/operationMode/utils';
 import { toast } from 'sonner';
 
 // Afficher un avertissement une seule fois
@@ -49,6 +50,55 @@ export const mockMode = {
     });
     operationMode.toggle();
     return operationMode.isDemoMode;
+  },
+  
+  // Nouvelles méthodes de compatibilité qui manquaient
+  forceReset: () => {
+    showDeprecationWarning();
+    toast.warning('Utilisation d\'une API dépréciée', { 
+      description: 'mockMode.forceReset() est déprécié. Utilisez operationMode.enableRealMode() à la place.'
+    });
+    operationMode.enableRealMode();
+  },
+  
+  temporarilyForceReal: () => {
+    showDeprecationWarning();
+    toast.warning('Utilisation d\'une API dépréciée', { 
+      description: 'mockMode.temporarilyForceReal() est déprécié.'
+    });
+    return operationModeUtils.temporarilyForceReal();
+  },
+  
+  isTemporarilyForcedReal: (wasMock = false) => {
+    showDeprecationWarning();
+    toast.warning('Utilisation d\'une API dépréciée', { 
+      description: 'mockMode.isTemporarilyForcedReal() est déprécié.'
+    });
+    return operationModeUtils.isTemporarilyForcedReal(wasMock);
+  },
+  
+  restoreAfterForceReal: (wasMock) => {
+    showDeprecationWarning();
+    toast.warning('Utilisation d\'une API dépréciée', { 
+      description: 'mockMode.restoreAfterForceReal() est déprécié.'
+    });
+    operationModeUtils.restoreAfterForceReal(wasMock);
+  },
+  
+  applySimulatedDelay: async (delay = 500) => {
+    showDeprecationWarning();
+    toast.warning('Utilisation d\'une API dépréciée', { 
+      description: 'mockMode.applySimulatedDelay() est déprécié.'
+    });
+    return operationModeUtils.applySimulatedDelay(delay);
+  },
+  
+  shouldSimulateError: (errorRate = 5) => {
+    showDeprecationWarning();
+    toast.warning('Utilisation d\'une API dépréciée', { 
+      description: 'mockMode.shouldSimulateError() est déprécié.'
+    });
+    return operationModeUtils.shouldSimulateError(errorRate);
   },
   
   // Autres méthodes pour maintenir la compatibilité
