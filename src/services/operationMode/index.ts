@@ -12,7 +12,6 @@ export { useOperationMode } from './hooks/useOperationMode';
 
 // Exporter les types
 export type { 
-  OperationMode, 
   OperationModeSettings, 
   SwitchReason,
   IOperationModeService,

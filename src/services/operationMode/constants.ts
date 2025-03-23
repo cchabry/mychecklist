@@ -23,3 +23,13 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   // Taux de simulation d'erreurs en mode démo (%)
   errorSimulationRate: 10
 };
+
+/**
+ * Clés pour le stockage local
+ */
+export const STORAGE_KEYS = {
+  MODE: 'operation_mode',
+  REASON: 'operation_mode_reason',
+  SETTINGS: 'operation_mode_settings',
+  FAILURES: 'operation_mode_failures'
+};
