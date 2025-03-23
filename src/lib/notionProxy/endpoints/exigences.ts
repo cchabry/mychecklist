@@ -1,15 +1,15 @@
 
 import { notionApiRequest } from '../proxyFetch';
-import { mockMode } from '../mockMode';
+import { operationMode } from '@/services/operationMode';
 import { Exigence, ImportanceLevel } from '@/lib/types';
 
 /**
  * Récupère toutes les exigences
  */
 export const getExigences = async (): Promise<Exigence[]> => {
-  // Si nous sommes en mode mock, retourner des données mock
-  if (mockMode.isActive()) {
-    console.log('Using mock exigences data');
+  // Si nous sommes en mode démo, retourner des données simulées
+  if (operationMode.isDemoMode) {
+    console.log('Using demo exigences data');
     return [
       {
         id: 'exigence-1',
@@ -54,9 +54,9 @@ export const getExigences = async (): Promise<Exigence[]> => {
  * Récupère une exigence par son ID
  */
 export const getExigence = async (id: string): Promise<Exigence | null> => {
-  // Si nous sommes en mode mock, retourner une fausse exigence
-  if (mockMode.isActive()) {
-    console.log('Using mock exigence data for ID:', id);
+  // Si nous sommes en mode démo, retourner une fausse exigence
+  if (operationMode.isDemoMode) {
+    console.log('Using demo exigence data for ID:', id);
     return {
       id,
       projectId: 'project-1',
@@ -104,9 +104,9 @@ export const getExigence = async (id: string): Promise<Exigence | null> => {
  * Crée une nouvelle exigence
  */
 export const createExigence = async (data: Partial<Exigence>): Promise<Exigence> => {
-  // Si nous sommes en mode mock, créer une fausse exigence
-  if (mockMode.isActive()) {
-    console.log('Creating mock exigence for project:', data.projectId);
+  // Si nous sommes en mode démo, créer une fausse exigence
+  if (operationMode.isDemoMode) {
+    console.log('Creating demo exigence for project:', data.projectId);
     return {
       id: `exigence-${Date.now()}`,
       projectId: data.projectId || '',
@@ -154,9 +154,9 @@ export const createExigence = async (data: Partial<Exigence>): Promise<Exigence>
  * Met à jour une exigence existante
  */
 export const updateExigence = async (id: string, data: Partial<Exigence>): Promise<Exigence> => {
-  // Si nous sommes en mode mock, mettre à jour une fausse exigence
-  if (mockMode.isActive()) {
-    console.log('Updating mock exigence with ID:', id);
+  // Si nous sommes en mode démo, mettre à jour une fausse exigence
+  if (operationMode.isDemoMode) {
+    console.log('Updating demo exigence with ID:', id);
     return {
       id,
       projectId: data.projectId || '',
@@ -205,9 +205,9 @@ export const updateExigence = async (id: string, data: Partial<Exigence>): Promi
  * Supprime une exigence
  */
 export const deleteExigence = async (id: string): Promise<boolean> => {
-  // Si nous sommes en mode mock, simuler une suppression
-  if (mockMode.isActive()) {
-    console.log('Deleting mock exigence with ID:', id);
+  // Si nous sommes en mode démo, simuler une suppression
+  if (operationMode.isDemoMode) {
+    console.log('Deleting demo exigence with ID:', id);
     return true;
   }
 

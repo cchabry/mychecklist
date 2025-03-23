@@ -1,6 +1,7 @@
 
 import React, { useEffect } from 'react';
 import OperationModeControl from './OperationModeControl';
+import { toast } from 'sonner';
 
 interface MockModeToggleProps {
   onToggle?: (isMockMode: boolean) => void;
@@ -12,8 +13,11 @@ interface MockModeToggleProps {
  */
 const MockModeToggle = ({ onToggle }: MockModeToggleProps) => {
   useEffect(() => {
-    console.warn(
-      'MockModeToggle est déprécié. Veuillez utiliser OperationModeControl à la place.'
+    toast.warning(
+      'Composant obsolète',
+      {
+        description: 'MockModeToggle est déprécié. Veuillez utiliser OperationModeControl à la place.'
+      }
     );
   }, []);
 

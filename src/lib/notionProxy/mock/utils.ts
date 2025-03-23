@@ -1,5 +1,6 @@
 
 import { operationMode } from '@/services/operationMode';
+import { operationModeUtils } from '@/services/operationMode/utils';
 
 /**
  * Utilitaires pour le fonctionnement du mock Notion
@@ -61,18 +62,11 @@ export const mockUtils = {
   },
   
   /**
-   * Désactive temporairement le mode mock
-   * @deprecated Utiliser temporarilyForceReal à la place
-   */
-  temporarilyDisableMock: (): void => {
-    console.warn('temporarilyDisableMock est déprécié. Utiliser temporarilyForceReal à la place');
-    mockUtils.temporarilyForceReal();
-  },
-  
-  /**
    * Active le mode mock (redirection vers operationMode)
+   * @deprecated Utiliser operationMode.enableDemoMode() à la place
    */
   enableMock: (): void => {
+    console.warn('enableMock est déprécié. Utiliser operationMode.enableDemoMode() à la place');
     operationMode.enableDemoMode('Activation via API legacy');
   }
 };
@@ -82,5 +76,8 @@ export const mockUtils = {
  * @deprecated Utiliser mockUtils à la place
  */
 export const isMockActive = mockUtils.isMockActive;
-export const temporarilyDisableMock = mockUtils.temporarilyDisableMock;
+export const temporarilyDisableMock = ((): () => boolean => {
+  console.warn('temporarilyDisableMock est déprécié. Utiliser mockUtils.temporarilyForceReal à la place');
+  return mockUtils.temporarilyForceReal;
+})();
 export const enableMock = mockUtils.enableMock;

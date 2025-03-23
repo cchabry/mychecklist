@@ -1,20 +1,28 @@
 
 /**
  * Hook pour interagir avec le mode mock d'une façon compatible
+ * @deprecated Utilisez useOperationMode à la place
  */
 
 import { useState, useEffect } from 'react';
-import { notionApi } from '@/lib/notionProxy';
-import { isMockActive } from '@/lib/notionProxy/mock/utils';
+import { toast } from 'sonner';
 import { operationMode } from '@/services/operationMode';
 
 export function useMockMode() {
-  const [isMockMode, setIsMockMode] = useState(isMockActive());
+  const [isMockMode, setIsMockMode] = useState(operationMode.isDemoMode);
   
   useEffect(() => {
+    // Afficher un avertissement de dépréciation
+    toast.warning(
+      'Hook déprécié',
+      {
+        description: 'useMockMode est déprécié. Veuillez utiliser useOperationMode à la place.',
+        duration: 5000
+      }
+    );
+    
     const checkMockMode = () => {
-      const active = isMockActive();
-      setIsMockMode(active);
+      setIsMockMode(operationMode.isDemoMode);
     };
     
     // Vérifier au montage
@@ -25,11 +33,7 @@ export function useMockMode() {
       checkMockMode();
     });
     
-    // Vérifier à intervalles réguliers pour compatibilité
-    const interval = setInterval(checkMockMode, 1000);
-    
     return () => {
-      clearInterval(interval);
       unsubscribe();
     };
   }, []);
@@ -37,18 +41,24 @@ export function useMockMode() {
   return {
     isMockMode,
     toggleMockMode: () => {
-      // Use the toggle method that returns the new state
-      const newState = notionApi.mockMode.toggle();
-      setIsMockMode(newState);
-      return newState;
+      // Use the toggle method
+      operationMode.toggle();
+      setIsMockMode(operationMode.isDemoMode);
+      return operationMode.isDemoMode;
     },
     enableMockMode: () => {
-      notionApi.mockMode.activate();
+      operationMode.enableDemoMode('Appel via useMockMode déprécié');
       setIsMockMode(true);
     },
     disableMockMode: () => {
-      notionApi.mockMode.deactivate();
+      operationMode.enableRealMode();
       setIsMockMode(false);
     }
   };
 }
+
+// Avertissement dans la console
+console.warn(
+  "[Deprecated] useMockMode est un hook déprécié qui sera supprimé dans une future version. " +
+  "Veuillez utiliser useOperationMode à la place."
+);

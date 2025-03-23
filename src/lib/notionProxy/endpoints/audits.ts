@@ -1,15 +1,15 @@
 
 import { notionApiRequest } from '../proxyFetch';
-import { mockMode } from '../mockMode';
+import { operationMode } from '@/services/operationMode';
 import { Audit } from '@/lib/types';
 
 /**
  * Récupère tous les audits
  */
 export const getAudits = async (): Promise<Audit[]> => {
-  // Si nous sommes en mode mock, retourner des données mock
-  if (mockMode.isActive()) {
-    console.log('Using mock audits data');
+  // Si nous sommes en mode démo, retourner des données simulées
+  if (operationMode.isDemoMode) {
+    console.log('Using demo audits data');
     return [
       {
         id: 'audit-1',
@@ -60,9 +60,9 @@ export const getAudits = async (): Promise<Audit[]> => {
  * Crée un nouvel audit
  */
 export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
-  // Si nous sommes en mode mock, créer un faux audit
-  if (mockMode.isActive()) {
-    console.log('Creating mock audit with name:', data.name);
+  // Si nous sommes en mode démo, créer un faux audit
+  if (operationMode.isDemoMode) {
+    console.log('Creating demo audit with name:', data.name);
     return {
       id: `audit-${Date.now()}`,
       projectId: data.projectId || '',
@@ -116,9 +116,9 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
  * Met à jour un audit existant
  */
 export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Audit> => {
-  // Si nous sommes en mode mock, mettre à jour un faux audit
-  if (mockMode.isActive()) {
-    console.log('Updating mock audit with ID:', id);
+  // Si nous sommes en mode démo, mettre à jour un faux audit
+  if (operationMode.isDemoMode) {
+    console.log('Updating demo audit with ID:', id);
     return {
       id,
       projectId: data.projectId || '',
@@ -177,9 +177,9 @@ export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Aud
  * Supprime un audit
  */
 export const deleteAudit = async (id: string): Promise<boolean> => {
-  // Si nous sommes en mode mock, simuler une suppression
-  if (mockMode.isActive()) {
-    console.log('Deleting mock audit with ID:', id);
+  // Si nous sommes en mode démo, simuler une suppression
+  if (operationMode.isDemoMode) {
+    console.log('Deleting demo audit with ID:', id);
     return true;
   }
 
@@ -210,9 +210,9 @@ export const deleteAudit = async (id: string): Promise<boolean> => {
  * Récupère un audit par son ID (déjà implémenté dans projects.ts, mais ajouté ici pour compléter)
  */
 export const getAudit = async (id: string): Promise<Audit | null> => {
-  // Si nous sommes en mode mock, retourner un faux audit
-  if (mockMode.isActive()) {
-    console.log('Using mock audit data for ID:', id);
+  // Si nous sommes en mode démo, retourner un faux audit
+  if (operationMode.isDemoMode) {
+    console.log('Using demo audit data for ID:', id);
     return {
       id,
       name: `Audit de test`,

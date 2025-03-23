@@ -1,15 +1,15 @@
 
 import { notionApiRequest } from '../proxyFetch';
-import { mockMode } from '../mockMode';
+import { operationMode } from '@/services/operationMode';
 import { SamplePage } from '@/lib/types';
 
 /**
  * Récupère toutes les pages d'échantillon
  */
 export const getSamplePages = async (): Promise<SamplePage[]> => {
-  // Si nous sommes en mode mock, retourner des données mock
-  if (mockMode.isActive()) {
-    console.log('Using mock sample pages data');
+  // Si nous sommes en mode démo, retourner des données simulées
+  if (operationMode.isDemoMode) {
+    console.log('Using demo sample pages data');
     return [
       {
         id: 'page-1',
@@ -64,9 +64,9 @@ export const getSamplePages = async (): Promise<SamplePage[]> => {
  * Récupère une page d'échantillon par son ID
  */
 export const getSamplePage = async (id: string): Promise<SamplePage | null> => {
-  // Si nous sommes en mode mock, retourner une fausse page
-  if (mockMode.isActive()) {
-    console.log('Using mock sample page data for ID:', id);
+  // Si nous sommes en mode démo, retourner une fausse page
+  if (operationMode.isDemoMode) {
+    console.log('Using demo sample page data for ID:', id);
     return {
       id,
       projectId: 'project-1',
@@ -116,9 +116,9 @@ export const getSamplePage = async (id: string): Promise<SamplePage | null> => {
  * Crée une nouvelle page d'échantillon
  */
 export const createSamplePage = async (data: Partial<SamplePage>): Promise<SamplePage> => {
-  // Si nous sommes en mode mock, créer une fausse page
-  if (mockMode.isActive()) {
-    console.log('Creating mock sample page for project:', data.projectId);
+  // Si nous sommes en mode démo, créer une fausse page
+  if (operationMode.isDemoMode) {
+    console.log('Creating demo sample page for project:', data.projectId);
     return {
       id: `page-${Date.now()}`,
       projectId: data.projectId || '',
@@ -169,9 +169,9 @@ export const createSamplePage = async (data: Partial<SamplePage>): Promise<Sampl
  * Met à jour une page d'échantillon existante
  */
 export const updateSamplePage = async (id: string, data: Partial<SamplePage>): Promise<SamplePage> => {
-  // Si nous sommes en mode mock, mettre à jour une fausse page
-  if (mockMode.isActive()) {
-    console.log('Updating mock sample page with ID:', id);
+  // Si nous sommes en mode démo, mettre à jour une fausse page
+  if (operationMode.isDemoMode) {
+    console.log('Updating demo sample page with ID:', id);
     return {
       id,
       projectId: data.projectId || '',
@@ -230,9 +230,9 @@ export const updateSamplePage = async (id: string, data: Partial<SamplePage>): P
  * Supprime une page d'échantillon
  */
 export const deleteSamplePage = async (id: string): Promise<boolean> => {
-  // Si nous sommes en mode mock, simuler une suppression
-  if (mockMode.isActive()) {
-    console.log('Deleting mock sample page with ID:', id);
+  // Si nous sommes en mode démo, simuler une suppression
+  if (operationMode.isDemoMode) {
+    console.log('Deleting demo sample page with ID:', id);
     return true;
   }
 
