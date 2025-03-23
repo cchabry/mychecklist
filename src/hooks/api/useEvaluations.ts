@@ -35,7 +35,7 @@ export function useEvaluation(id: string | undefined, options = {}) {
  */
 export function useEvaluationsByAudit(auditId: string | undefined, options = {}) {
   return useServiceWithCache<Evaluation[]>(
-    evaluationsService.getByAudit.bind(evaluationsService),
+    evaluationsService.getByAuditId.bind(evaluationsService),
     [auditId],
     {
       enabled: !!auditId,
@@ -48,9 +48,14 @@ export function useEvaluationsByAudit(auditId: string | undefined, options = {})
  * Hook pour récupérer les évaluations pour une page spécifique dans un audit
  */
 export function useEvaluationsByPage(auditId: string | undefined, pageId: string | undefined, options = {}) {
+  // Note: Cette fonction devra être implémentée dans evaluationsService
+  // Pour l'instant, utilisons getByAuditId avec un filtrage local
   return useServiceWithCache<Evaluation[]>(
-    evaluationsService.getByPage.bind(evaluationsService),
-    [auditId, pageId],
+    async (auditId: string) => {
+      const evaluations = await evaluationsService.getByAuditId(auditId);
+      return evaluations.filter(evaluation => evaluation.pageId === pageId);
+    },
+    [auditId],
     {
       enabled: !!auditId && !!pageId,
       ...options

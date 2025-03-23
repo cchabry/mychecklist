@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import CacheDiagnostics from './CacheDiagnostics';
 import ApiCacheDiagnostics from './ApiCacheDiagnostics';
 import NotionDiagnostics from './NotionDiagnostics';
 import OperationModeDiagnostics from './OperationModeDiagnostics';
+import OperationQueueDiagnostics from './OperationQueueDiagnostics';
 
 const DiagnosticsMenu = () => {
   return (
@@ -67,6 +69,18 @@ const DiagnosticsMenu = () => {
             </Button>
           </CardFooter>
         </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>File d'attente</CardTitle>
+            <CardDescription>Test du système de file d'attente d'opérations</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button asChild>
+              <Link to="/diagnostics/operation-queue">Ouvrir</Link>
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
@@ -80,6 +94,7 @@ const DiagnosticsRoutes = () => {
       <Route path="/api-cache" element={<ApiCacheDiagnostics />} />
       <Route path="/notion" element={<NotionDiagnostics />} />
       <Route path="/operation-mode" element={<OperationModeDiagnostics />} />
+      <Route path="/operation-queue" element={<OperationQueueDiagnostics />} />
       <Route path="*" element={<Navigate to="/diagnostics" replace />} />
     </Routes>
   );

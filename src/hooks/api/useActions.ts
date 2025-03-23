@@ -2,14 +2,14 @@
 import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
 import { actionsService } from '@/services/api/actionsService';
-import { Action } from '@/lib/types';
+import { CorrectiveAction } from '@/lib/types';
 import { QueryFilters } from '@/services/api/types';
 
 /**
  * Hook pour récupérer toutes les actions correctives
  */
 export function useActions(filters?: QueryFilters, options = {}) {
-  return useServiceWithCache<Action[]>(
+  return useServiceWithCache<CorrectiveAction[]>(
     actionsService.getAll.bind(actionsService),
     [undefined, filters],
     options
@@ -20,7 +20,7 @@ export function useActions(filters?: QueryFilters, options = {}) {
  * Hook pour récupérer une action corrective par son ID
  */
 export function useAction(id: string | undefined, options = {}) {
-  return useServiceWithCache<Action | null>(
+  return useServiceWithCache<CorrectiveAction | null>(
     actionsService.getById.bind(actionsService),
     [id],
     {
@@ -34,8 +34,8 @@ export function useAction(id: string | undefined, options = {}) {
  * Hook pour récupérer les actions correctives liées à une évaluation
  */
 export function useActionsByEvaluation(evaluationId: string | undefined, options = {}) {
-  return useServiceWithCache<Action[]>(
-    actionsService.getByEvaluation.bind(actionsService),
+  return useServiceWithCache<CorrectiveAction[]>(
+    actionsService.getByEvaluationId.bind(actionsService),
     [evaluationId],
     {
       enabled: !!evaluationId,
@@ -48,9 +48,11 @@ export function useActionsByEvaluation(evaluationId: string | undefined, options
  * Hook pour récupérer les actions correctives pour un audit
  */
 export function useActionsByAudit(auditId: string | undefined, options = {}) {
-  return useServiceWithCache<Action[]>(
-    actionsService.getByAudit.bind(actionsService),
-    [auditId],
+  // Note: Cette fonction devra être implémentée dans actionsService
+  // Pour l'instant, utilisons getAll avec un filtre
+  return useServiceWithCache<CorrectiveAction[]>(
+    actionsService.getAll.bind(actionsService),
+    [undefined, { auditId }],
     {
       enabled: !!auditId,
       ...options
@@ -65,7 +67,7 @@ export function useCreateAction() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
-  const createAction = async (data: Partial<Action>) => {
+  const createAction = async (data: Partial<CorrectiveAction>) => {
     setIsCreating(true);
     setError(null);
     
@@ -91,7 +93,7 @@ export function useUpdateAction() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
-  const updateAction = async (id: string, data: Partial<Action>) => {
+  const updateAction = async (id: string, data: Partial<CorrectiveAction>) => {
     setIsUpdating(true);
     setError(null);
     
