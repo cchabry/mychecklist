@@ -1,137 +1,92 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { QueryOptions } from './types';
 
-/**
- * Options pour les requêtes
- */
-export interface QueryOptions {
-  cacheKey?: string;
-  immediate?: boolean;
-  cacheTTL?: number;
-  onSuccess?: (data: any) => void;
-  onError?: (error: Error) => void;
+export interface ServiceWithCacheResult<T> {
+  data: T | null;
+  isLoading: boolean;
+  error: Error | null;
+  fetchData: () => Promise<T>;
+  reload: () => void;
+  invalidateCache: () => void;
 }
 
 /**
- * Hook générique pour gérer les appels de service avec mise en cache
+ * Hook pour utiliser un service avec mise en cache
+ * @param serviceFunction La fonction du service à appeler
+ * @param dependencies Les dépendances pour recalculer les données
+ * @param options Options de configuration
  */
-export function useServiceWithCache<T, P extends any[] = []>(
-  fetchData: (...args: P) => Promise<T>,
-  params: P = [] as unknown as P,
+export function useServiceWithCache<T, D extends any[] = []>(
+  serviceFunction: (...args: D) => Promise<T>,
+  dependencies: D = [] as unknown as D,
   options: QueryOptions = {}
-) {
-  const { 
-    cacheKey, 
-    immediate = true, 
-    cacheTTL = 5 * 60 * 1000, // 5 minutes par défaut
-    onSuccess,
-    onError
-  } = options;
-  
+): ServiceWithCacheResult<T> {
+  const { immediate = true, cacheKey, enabled = true } = options;
   const [data, setData] = useState<T | null>(null);
-  const [isLoading, setIsLoading] = useState(immediate);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
-  const getCachedData = useCallback(() => {
-    if (!cacheKey) return null;
-    
-    try {
-      const cachedDataStr = localStorage.getItem(`cache_${cacheKey}`);
-      if (!cachedDataStr) return null;
-      
-      const { data, timestamp } = JSON.parse(cachedDataStr);
-      const now = Date.now();
-      
-      // Vérifier si le cache est expiré
-      if (now - timestamp > cacheTTL) {
-        localStorage.removeItem(`cache_${cacheKey}`);
-        return null;
-      }
-      
-      return data;
-    } catch (err) {
-      console.error('Erreur lors de la récupération du cache:', err);
-      return null;
+  const isMounted = useRef(true);
+  const dependenciesRef = useRef(dependencies);
+  dependenciesRef.current = dependencies;
+
+  const fetchData = useCallback(async (): Promise<T> => {
+    if (!enabled) {
+      return data as T;
     }
-  }, [cacheKey, cacheTTL]);
-  
-  const setCachedData = useCallback((data: T) => {
-    if (!cacheKey) return;
-    
-    try {
-      const cacheData = {
-        data,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem(`cache_${cacheKey}`, JSON.stringify(cacheData));
-    } catch (err) {
-      console.error('Erreur lors de la mise en cache des données:', err);
-    }
-  }, [cacheKey]);
-  
-  const invalidateCache = useCallback(() => {
-    if (!cacheKey) return;
-    
-    try {
-      localStorage.removeItem(`cache_${cacheKey}`);
-      console.log(`Cache invalidé: ${cacheKey}`);
-    } catch (err) {
-      console.error('Erreur lors de l\'invalidation du cache:', err);
-    }
-  }, [cacheKey]);
-  
-  const executeQuery = useCallback(async () => {
+
     setIsLoading(true);
     setError(null);
-    
-    // Vérifier le cache
-    const cachedData = getCachedData();
-    if (cachedData) {
-      setData(cachedData);
-      setIsLoading(false);
-      if (onSuccess) onSuccess(cachedData);
-      return cachedData;
-    }
-    
+
     try {
-      const result = await fetchData(...params);
-      setData(result);
-      setCachedData(result);
+      const result = await serviceFunction(...dependenciesRef.current);
       
-      if (onSuccess) onSuccess(result);
+      if (isMounted.current) {
+        setData(result);
+        setIsLoading(false);
+      }
       
-      setIsLoading(false);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      setIsLoading(false);
-      
-      if (onError) onError(error);
-      
-      return null;
+      if (isMounted.current) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        setIsLoading(false);
+      }
+      throw err;
     }
-  }, [fetchData, params, getCachedData, setCachedData, onSuccess, onError]);
-  
+  }, [serviceFunction, enabled, data]);
+
   const reload = useCallback(() => {
-    invalidateCache();
-    return executeQuery();
-  }, [invalidateCache, executeQuery]);
-  
-  // Exécuter la requête au montage du composant si demandé
-  useEffect(() => {
-    if (immediate) {
-      executeQuery();
+    fetchData().catch(console.error);
+  }, [fetchData]);
+
+  const invalidateCache = useCallback(() => {
+    if (cacheKey) {
+      // Si on implémente un système de cache, on pourrait l'invalider ici
+      console.log(`Cache invalidated for key: ${cacheKey}`);
     }
-  }, [immediate, executeQuery]);
-  
+    reload();
+  }, [cacheKey, reload]);
+
+  useEffect(() => {
+    isMounted.current = true;
+    
+    if (immediate && enabled) {
+      fetchData().catch(console.error);
+    }
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, [fetchData, immediate, enabled]);
+
   return {
     data,
     isLoading,
     error,
-    fetchData: executeQuery,
-    invalidateCache,
-    reload
+    fetchData,
+    reload,
+    invalidateCache
   };
 }

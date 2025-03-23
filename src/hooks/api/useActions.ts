@@ -22,7 +22,7 @@ export function useActions(options = {}) {
 export function useAction(id: string | undefined, options = {}) {
   return useServiceWithCache<CorrectiveAction | null>(
     () => actionsService.getById(id || ''),
-    [id],
+    [],
     {
       enabled: !!id,
       ...options
@@ -41,7 +41,7 @@ export function useActionsByAudit(auditId: string | undefined, options = {}) {
       // On filtre les actions qui sont liées à l'audit via les évaluations
       return actions.filter(action => action.evaluationId.startsWith(`eval_${auditId}`));
     },
-    [auditId],
+    [],
     {
       enabled: !!auditId,
       ...options
@@ -59,7 +59,7 @@ export function useActionsByEvaluation(evaluationId: string | undefined, options
       const actions = await actionsService.getAll();
       return actions.filter(action => action.evaluationId === evaluationId);
     },
-    [evaluationId],
+    [],
     {
       enabled: !!evaluationId,
       ...options

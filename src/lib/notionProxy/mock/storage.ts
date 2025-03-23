@@ -71,8 +71,7 @@ export const saveStorage = (storage: MockStorage): void => {
  */
 export const hasExistingStorage = (): boolean => {
   try {
-    const exists = localStorage.getItem(STORAGE_KEY) !== null;
-    return exists;
+    return localStorage.getItem(STORAGE_KEY) !== null;
   } catch (error) {
     console.error('Erreur lors de la vérification du stockage:', error);
     return false;

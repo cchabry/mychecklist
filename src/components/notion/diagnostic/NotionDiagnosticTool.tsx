@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NotionConnectionTest } from './NotionConnectionTest';
-import { NotionDatabaseTest } from './NotionDatabaseTest';
-import { NotionCreatePageTest } from './NotionCreatePageTest';
+import NotionConnectionTest from './NotionConnectionTest';
+import NotionDatabaseTest from './NotionDatabaseTest';
+import NotionCreatePageTest from './NotionCreatePageTest';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { NotionConfig } from '@/components/notion/config/NotionConfig';
+import NotionConfig from '@/components/notion/config/NotionConfig';
 import { extractNotionDatabaseId } from '@/lib/notion';
 
 /**
@@ -98,7 +98,7 @@ export function NotionDiagnosticTool() {
               </div>
             </div>
             
-            <Alert variant="info" className="mt-4">
+            <Alert variant="default">
               <AlertTitle>Information</AlertTitle>
               <AlertDescription>
                 Enter your Notion API key and database ID or URL to run the tests.
@@ -161,3 +161,5 @@ export function NotionDiagnosticTool() {
     </Card>
   );
 }
+
+export default NotionDiagnosticTool;

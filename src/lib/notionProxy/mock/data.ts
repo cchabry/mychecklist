@@ -4,7 +4,7 @@
  * Ce fichier réexporte les données depuis le module mockData central
  */
 
-import { mockData as centralMockData, MOCK_PROJECTS } from '@/lib/mockData/index';
+import * as centralMockData from '@/lib/mockData/index';
 import { ImportanceLevel } from '@/lib/types';
 
 // Réexporter toutes les données mockées depuis le module central
@@ -57,4 +57,4 @@ export const mockData = {
 };
 
 // Exporter aussi les données mockées directement
-export { MOCK_PROJECTS };
+export { MOCK_PROJECTS } from '@/lib/mockData/index';

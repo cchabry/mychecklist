@@ -10,7 +10,7 @@ import { toast } from 'sonner';
  */
 export function useExigences(options = {}) {
   return useServiceWithCache<Exigence[]>(
-    exigencesService.getAll.bind(exigencesService),
+    () => exigencesService.getAll(),
     [],
     options
   );
@@ -22,7 +22,7 @@ export function useExigences(options = {}) {
 export function useExigence(id: string | undefined, options = {}) {
   return useServiceWithCache<Exigence | null>(
     () => exigencesService.getById(id || ''),
-    [id],
+    [],
     {
       enabled: !!id,
       ...options
@@ -37,10 +37,10 @@ export function useExigencesByProject(projectId: string | undefined, options = {
   return useServiceWithCache<Exigence[]>(
     async () => {
       if (!projectId) return [];
-      const exigences = await exigencesService.getAll({ projectId });
-      return exigences;
+      const exigences = await exigencesService.getAll();
+      return exigences.filter(exigence => exigence.projectId === projectId);
     },
-    [projectId],
+    [],
     {
       enabled: !!projectId,
       ...options
