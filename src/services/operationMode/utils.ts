@@ -1,84 +1,63 @@
 
-import { operationMode } from './operationModeService';
-import { OperationMode } from './types';
-
 /**
- * Utilitaires pour le système operationMode
+ * Utilitaires pour le mode opérationnel
  */
+
+import { operationMode } from './index';
+
 export const operationModeUtils = {
   /**
-   * Applique un délai simulé pour représenter la latence réseau
-   * @param minDelay Délai minimum en ms (par défaut: 200)
-   * @param maxDelay Délai maximum en ms (par défaut: 800)
-   * @returns Promesse résolue après le délai
+   * Applique un délai simulé selon la configuration du mode
    */
-  applySimulatedDelay: async (minDelay = 200, maxDelay = 800): Promise<void> => {
-    // Calculer un délai aléatoire entre min et max
-    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+  async applySimulatedDelay(): Promise<void> {
+    if (!operationMode.isDemoMode) {
+      return Promise.resolve();
+    }
     
-    // Renvoyer une promesse résolue après le délai
-    return new Promise(resolve => setTimeout(resolve, delay));
-  },
-  
-  /**
-   * Détermine si une erreur doit être simulée (selon le taux d'erreur)
-   * @param errorRate Taux d'erreur entre 0 et 1 (par défaut: 0.05, soit 5%)
-   * @returns Vrai si une erreur doit être simulée
-   */
-  shouldSimulateError: (errorRate = 0.05): boolean => {
-    return Math.random() < errorRate;
-  },
-  
-  /**
-   * Simule une erreur de connexion
-   * @param message Message d'erreur optionnel
-   * @throws Error
-   */
-  simulateConnectionError: (message = "Erreur de connexion simulée"): never => {
-    throw new Error(message);
-  },
-  
-  /**
-   * Récupère un scénario de démo spécifique
-   * @param scenarioName Nom du scénario (par défaut: 'default')
-   * @returns Objet contenant les données du scénario
-   */
-  getScenario: (scenarioName = 'default'): any => {
-    // Scénarios prédéfinis (à adapter selon les besoins)
-    const scenarios: Record<string, any> = {
-      default: {
-        name: 'Scénario par défaut',
-        config: { errorRate: 0.05, delay: 500 }
-      },
-      success: {
-        name: 'Succès systématique',
-        config: { errorRate: 0, delay: 300 }
-      },
-      error: {
-        name: 'Erreurs fréquentes',
-        config: { errorRate: 0.8, delay: 200 }
-      },
-      slow: {
-        name: 'Connexion lente',
-        config: { errorRate: 0.05, delay: 2000 }
-      }
-    };
+    const settings = operationMode.getSettings();
+    const delay = settings.simulatedNetworkDelay || 0;
     
-    // Retourner le scénario demandé ou le scénario par défaut
-    return scenarios[scenarioName] || scenarios.default;
+    if (delay > 0) {
+      return new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    return Promise.resolve();
   },
   
   /**
-   * Vérifie si l'application est actuellement en mode démo
+   * Détermine si une erreur doit être simulée selon le taux configuré
    */
-  isDemoModeActive: (): boolean => {
-    return operationMode.isDemoMode;
+  shouldSimulateError(): boolean {
+    if (!operationMode.isDemoMode) {
+      return false;
+    }
+    
+    const settings = operationMode.getSettings();
+    const errorRate = settings.errorSimulationRate || 0;
+    
+    return Math.random() * 100 < errorRate;
   },
   
   /**
-   * Convertit l'ancien format de mode (isDemoMode: boolean) vers le nouveau (OperationMode)
+   * Génère une erreur simulée
    */
-  convertLegacyMode: (isDemoMode: boolean): OperationMode => {
-    return isDemoMode ? OperationMode.DEMO : OperationMode.REAL;
+  generateSimulatedError(action: string): Error {
+    return new Error(`Erreur simulée lors de l'action: ${action}`);
+  },
+  
+  /**
+   * Simule une opération avec possibilité d'erreur et délai
+   */
+  async simulateOperation<T>(operation: () => T | Promise<T>, action: string): Promise<T> {
+    // Simuler un délai réseau
+    await this.applySimulatedDelay();
+    
+    // Simuler une erreur potentielle
+    if (this.shouldSimulateError()) {
+      throw this.generateSimulatedError(action);
+    }
+    
+    // Exécuter l'opération réelle
+    return operation();
   }
 };

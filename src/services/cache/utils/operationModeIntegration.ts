@@ -49,6 +49,32 @@ export function reportCacheError(error: Error, context: string = 'Opération de 
  * Rapporte une opération de cache réussie
  */
 export function reportCacheSuccess(): void {
-  // Optionnellement signaler au système operationMode
-  // une opération réussie liée au cache
+  operationMode.handleSuccessfulOperation();
+}
+
+/**
+ * Calcule un délai de chargement simulé en fonction du mode opérationnel
+ */
+export function getSimulatedDelay(): number {
+  if (!operationMode.isDemoMode) {
+    return 0;
+  }
+  
+  const settings = operationMode.getSettings();
+  return settings.simulatedNetworkDelay || 500;
+}
+
+/**
+ * Détermine si une erreur doit être simulée en fonction du mode opérationnel
+ */
+export function shouldSimulateError(): boolean {
+  if (!operationMode.isDemoMode) {
+    return false;
+  }
+  
+  const settings = operationMode.getSettings();
+  const errorRate = settings.errorSimulationRate || 0;
+  
+  // Simuler une erreur selon le taux configuré
+  return Math.random() * 100 < errorRate;
 }

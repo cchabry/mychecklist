@@ -9,6 +9,9 @@ export { cacheService, Cache } from './cache';
 // Exporter le gestionnaire de cache avancé
 export { cacheManager, CacheManager } from './cacheManager';
 
+// Exporter le service de cache unifié
+export { cachingService } from './cacheServiceUtility';
+
 // Exporter les types
 export type { 
   CacheEntry, 
@@ -19,8 +22,8 @@ export type {
 // Exporter les utilitaires
 export * from './utils';
 
-// Exporter les hooks de cache (optionnel)
-// Note: les hooks sont désormais importés directement depuis leurs emplacements
+// Exporter les hooks de cache
 export { useCache } from '@/hooks/cache/useCache';
 export { useCachedData } from '@/hooks/cache/useCachedData';
 export { useStaleWhileRevalidate } from '@/hooks/cache/useStaleWhileRevalidate';
+export { useCachedOperation } from '@/hooks/cache/useCachedOperation';
