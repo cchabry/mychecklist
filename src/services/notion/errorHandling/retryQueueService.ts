@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { notionErrorService } from './notionErrorService';
+import { notionErrorService } from './errorService';
 
 // Types pour les opérations dans la file d'attente
 interface QueuedOperation {
@@ -273,11 +273,10 @@ class RetryQueueService {
       this.queue[nextOpIndex].error = error instanceof Error ? error : new Error(String(error));
       
       // Enrichir l'erreur avec le service d'erreur
-      notionErrorService.handleError(this.queue[nextOpIndex].error, {
-        context: this.queue[nextOpIndex].context,
-        attempt: this.queue[nextOpIndex].attempts,
-        maxAttempts: this.queue[nextOpIndex].maxAttempts
-      });
+      notionErrorService.reportError(
+        this.queue[nextOpIndex].error, 
+        this.queue[nextOpIndex].context
+      );
       
       // Vérifier si l'opération a atteint le nombre maximum de tentatives
       if (this.queue[nextOpIndex].attempts >= this.queue[nextOpIndex].maxAttempts) {

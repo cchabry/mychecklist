@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Clock, Play, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertCircle, Check, Clock, Play, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
 import { Progress } from '@/components/ui/progress';
 
@@ -11,11 +11,13 @@ const RetryQueueMonitor: React.FC = () => {
   const { 
     queuedOperations,
     stats,
+    processNow,
     processQueue,
     clearQueue,
   } = useRetryQueue();
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Rafraîchir les informations de la file d'attente
   const handleRefresh = () => {
@@ -27,6 +29,20 @@ const RetryQueueMonitor: React.FC = () => {
     const interval = setInterval(handleRefresh, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Gérer le traitement immédiat de la file d'attente
+  const handleProcessQueue = async () => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
+    try {
+      await processQueue();
+    } catch (error) {
+      console.error('Erreur lors du traitement de la file d\'attente:', error);
+    } finally {
+      setTimeout(() => setIsProcessing(false), 1000);
+    }
+  };
 
   // Formater le temps relatif (ex: "il y a 2min")
   const formatRelativeTime = (timestamp: number) => {
@@ -81,10 +97,15 @@ const RetryQueueMonitor: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={processQueue}
+                  onClick={handleProcessQueue}
                   className="h-8 gap-1 text-xs"
+                  disabled={isProcessing}
                 >
-                  <Play size={14} />
+                  {isProcessing ? (
+                    <Loader2 size={14} className="animate-spin mr-1" />
+                  ) : (
+                    <Play size={14} />
+                  )}
                   Exécuter
                 </Button>
                 <Button

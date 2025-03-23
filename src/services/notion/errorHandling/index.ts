@@ -16,8 +16,7 @@ export { autoRetryHandler } from './autoRetry';
 export type { 
   NotionError,
   NotionErrorOptions,
-  NotionErrorSubscriber,
-  NotionErrorHandler
+  NotionErrorSubscriber
 } from './types';
 
 // Exporter les enums
@@ -31,5 +30,5 @@ export { notionErrorUtils } from './utils';
 
 // Exporter les hooks
 export { useNotionErrorService } from './useNotionErrorService';
-export { useNotionRetryQueue } from './useRetryQueue';
+export { useRetryQueue } from './useRetryQueue';
 export { useAutoRetry } from './useAutoRetry';

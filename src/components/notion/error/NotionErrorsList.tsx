@@ -1,11 +1,12 @@
 
-import React from 'react';
-import { useNotionErrorService } from '@/services/notion/errorHandling';
-import NotionErrorDetails from './NotionErrorDetails';
+import React, { useState } from 'react';
+import { useNotionErrorService } from '@/hooks/notion/useNotionErrorService';
+import { NotionError } from '@/services/notion/errorHandling/types';
 import { Button } from '@/components/ui/button';
 import { Trash2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import NotionErrorDetails from './NotionErrorDetails';
 
 interface NotionErrorsListProps {
   title?: string;
@@ -22,7 +23,8 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
   showClearButton = true,
   emptyMessage = "Aucune erreur récente"
 }) => {
-  const { recentErrors, clearErrors } = useNotionErrorService();
+  const { errors, clearErrors } = useNotionErrorService();
+  const [selectedError, setSelectedError] = useState<NotionError | null>(null);
   
   // Gérer le clic sur réessayer
   const handleRetry = () => {
@@ -35,13 +37,23 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
   const handleClear = () => {
     clearErrors();
   };
+
+  // Afficher les détails d'une erreur
+  const handleShowDetails = (error: NotionError) => {
+    setSelectedError(error);
+  };
+
+  // Fermer les détails
+  const handleCloseDetails = () => {
+    setSelectedError(null);
+  };
   
   return (
     <Card className="shadow-sm border-slate-200">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{title}</CardTitle>
-          {recentErrors.length > 0 && (
+          {errors.length > 0 && (
             <div className="flex gap-2">
               {onRetryAll && (
                 <Button 
@@ -70,23 +82,33 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
           )}
         </div>
         
-        {recentErrors.length > 0 && (
+        {errors.length > 0 && (
           <CardDescription>
-            {recentErrors.length} erreur{recentErrors.length > 1 ? 's' : ''} récente{recentErrors.length > 1 ? 's' : ''}
+            {errors.length} erreur{errors.length > 1 ? 's' : ''} récente{errors.length > 1 ? 's' : ''}
           </CardDescription>
         )}
       </CardHeader>
       
       <CardContent>
-        {recentErrors.length > 0 ? (
+        {errors.length > 0 ? (
           <ScrollArea className={`max-h-[${maxHeight}]`}>
             <div className="space-y-3">
-              {recentErrors.map((error, index) => (
-                <NotionErrorDetails 
-                  key={`${error.timestamp.getTime()}-${index}`} 
-                  error={error} 
-                  showActions={index === 0}
-                />
+              {errors.map((error, index) => (
+                <div 
+                  key={`${error.timestamp.getTime()}-${index}`}
+                  className="p-3 border rounded-md hover:border-slate-300 cursor-pointer"
+                  onClick={() => handleShowDetails(error)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{error.message}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {error.timestamp.toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground truncate">
+                    {error.context ? JSON.stringify(error.context) : 'Aucun contexte'}
+                  </div>
+                </div>
               ))}
             </div>
           </ScrollArea>
@@ -97,7 +119,7 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
         )}
       </CardContent>
       
-      {recentErrors.length > 3 && (
+      {errors.length > 3 && (
         <CardFooter className="flex justify-end pt-2">
           {showClearButton && (
             <Button 
@@ -109,6 +131,15 @@ const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
             </Button>
           )}
         </CardFooter>
+      )}
+
+      {selectedError && (
+        <NotionErrorDetails
+          isOpen={!!selectedError}
+          onClose={handleCloseDetails}
+          error={selectedError.message}
+          context={selectedError.context ? JSON.stringify(selectedError.context) : undefined}
+        />
       )}
     </Card>
   );

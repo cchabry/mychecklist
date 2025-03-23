@@ -82,6 +82,7 @@ class NotionErrorService {
    */
   public clearErrors(): void {
     this.recentErrors = [];
+    this.notifySubscribers(null as any); // Notifier pour rafraîchir les UI
   }
   
   /**
@@ -205,3 +206,4 @@ class NotionErrorService {
 
 // Créer et exporter l'instance du service
 export const notionErrorService = new NotionErrorService();
+

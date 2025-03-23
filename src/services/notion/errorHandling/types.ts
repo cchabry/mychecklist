@@ -36,6 +36,7 @@ export interface NotionError extends Error {
   timestamp: Date;
   recoverable: boolean;
   recoveryActions: string[];
+  cause?: Error;
 }
 
 // Options pour la création d'erreurs

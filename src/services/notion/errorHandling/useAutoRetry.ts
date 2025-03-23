@@ -1,44 +1,80 @@
 
 import { useState } from 'react';
 import { autoRetryHandler } from './autoRetry';
+import { notionErrorUtils } from './utils';
 import { NotionError } from './types';
 
 /**
- * Hook pour utiliser le système de retry automatique
- * dans les composants React
+ * Hook pour utiliser le gestionnaire d'auto-retry
  */
 export function useAutoRetry() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<NotionError | null>(null);
-  
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastError, setLastError] = useState<NotionError | null>(null);
+
   /**
-   * Exécute une opération avec gestion automatique de retry
+   * Exécute une opération avec gestion d'erreur automatique et retry
    */
   const executeWithRetry = async <T>(
     operation: () => Promise<T>,
-    context: Record<string, any> = {},
-    maxRetries: number = 3
-  ): Promise<T | null> => {
-    setLoading(true);
-    setError(null);
-    
+    context: string = '',
+    options: {
+      maxRetries?: number;
+      onSuccess?: (result: T) => void;
+      onFailure?: (error: NotionError) => void;
+    } = {}
+  ): Promise<T> => {
     try {
-      const result = await autoRetryHandler.execute(operation, context, maxRetries);
+      setIsRetrying(true);
+      setRetryCount(0);
+      setLastError(null);
+
+      const result = await autoRetryHandler.execute(
+        operation,
+        { operation: context },
+        options.maxRetries
+      );
+
+      if (options.onSuccess) {
+        options.onSuccess(result);
+      }
+
       return result;
-    } catch (err) {
-      // Convertir en NotionError si nécessaire (devrait déjà être fait dans autoRetryHandler)
-      const notionError = err as NotionError;
-      setError(notionError);
-      return null;
+    } catch (error) {
+      const notionError = notionErrorUtils.createError(
+        error instanceof Error ? error.message : String(error),
+        {
+          cause: error instanceof Error ? error : undefined,
+          context: { operation: context }
+        }
+      );
+
+      setLastError(notionError);
+
+      if (options.onFailure) {
+        options.onFailure(notionError);
+      }
+
+      throw notionError;
     } finally {
-      setLoading(false);
+      setIsRetrying(false);
     }
   };
-  
+
+  /**
+   * Vérifie si une erreur est récupérable
+   */
+  const isErrorRecoverable = (error: Error | null): boolean => {
+    if (!error) return false;
+    return notionErrorUtils.isRecoverable(error);
+  };
+
   return {
-    loading,
-    error,
     executeWithRetry,
-    clearError: () => setError(null)
+    isRetrying,
+    retryCount,
+    lastError,
+    isErrorRecoverable,
+    utils: notionErrorUtils
   };
 }

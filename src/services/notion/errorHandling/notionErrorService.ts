@@ -29,9 +29,8 @@ export class NotionErrorService {
     const {
       type = NotionErrorType.UNKNOWN,
       severity = NotionErrorSeverity.ERROR,
-      code,
       context,
-      originalError,
+      cause,
       recoveryActions,
       recoverable = false
     } = options;
@@ -39,10 +38,9 @@ export class NotionErrorService {
     const error = new Error(message) as NotionError;
     error.type = type;
     error.severity = severity;
-    error.code = code;
-    error.context = context;
-    error.originalError = originalError;
-    error.recoveryActions = recoveryActions;
+    error.context = context || {};
+    error.cause = cause;
+    error.recoveryActions = recoveryActions || [];
     error.recoverable = recoverable;
     error.timestamp = new Date();
 
@@ -141,7 +139,7 @@ export class NotionErrorService {
     return this.createError(error.message, {
       type,
       severity,
-      originalError: error,
+      cause: error,
       context: context ? { context } : undefined
     });
   }

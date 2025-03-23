@@ -26,7 +26,10 @@ export const autoRetryHandler = {
       return await operation();
     } catch (error) {
       // Enrichir l'erreur avec le service de gestion d'erreurs
-      const notionError = notionErrorService.handleError(error instanceof Error ? error : new Error(String(error)), context);
+      const notionError = notionErrorService.reportError(
+        error instanceof Error ? error : new Error(String(error)), 
+        context.operation || 'Opération Notion'
+      );
       
       // Déterminer si l'erreur est récupérable
       if (this.shouldRetry(notionError)) {

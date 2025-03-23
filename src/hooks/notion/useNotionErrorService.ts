@@ -26,12 +26,7 @@ export function useNotionErrorService() {
    * Signale une erreur au service
    */
   const reportError = (error: Error, context: string = 'Opération Notion', options: { showToast?: boolean } = {}) => {
-    const notionError = notionErrorService.createError(error.message, {
-      cause: error,
-      context: { operation: context },
-      type: error.name === 'NotionError' ? (error as any).type : undefined,
-      severity: (error as any).severity
-    });
+    const notionError = notionErrorService.reportError(error, context);
     
     // Afficher un toast si demandé
     if (options.showToast !== false) {
@@ -40,8 +35,7 @@ export function useNotionErrorService() {
       });
     }
     
-    // Enrichir l'erreur
-    return notionErrorService.reportError(error, context);
+    return notionError;
   };
   
   /**

@@ -9,17 +9,46 @@ export function useRetryQueue() {
   const [stats, setStats] = useState({
     totalOperations: 0,
     pendingOperations: 0,
-    isProcessing: false
+    isProcessing: false,
+    successful: 0,
+    failed: 0,
+    successRate: 100
   });
+  
+  const [queuedOperations, setQueuedOperations] = useState<any[]>([]);
   
   // Récupérer les statistiques actuelles
   useEffect(() => {
     const interval = setInterval(() => {
-      setStats(notionRetryQueue.getStats());
+      setStats({
+        ...notionRetryQueue.getStats(),
+        successful: 0, // Ces valeurs seront calculées par le service plus tard
+        failed: 0,
+        successRate: 100
+      });
+      
+      // Simuler des opérations en file d'attente pour la démo
+      // À remplacer par une vraie implémentation quand disponible
+      setQueuedOperations(
+        Array.from({ length: notionRetryQueue.getStats().pendingOperations }, (_, i) => ({
+          id: `op_${i}`,
+          context: `Opération Notion #${i+1}`,
+          timestamp: Date.now() - (i * 60000),
+          attempts: Math.floor(Math.random() * 3) + 1,
+          maxAttempts: 3,
+          status: 'pending',
+          nextRetry: Date.now() + (Math.random() * 60000)
+        }))
+      );
     }, 1000);
     
     // Charger les stats initiales
-    setStats(notionRetryQueue.getStats());
+    setStats({
+      ...notionRetryQueue.getStats(),
+      successful: 0,
+      failed: 0,
+      successRate: 100
+    });
     
     return () => clearInterval(interval);
   }, []);
@@ -57,11 +86,30 @@ export function useRetryQueue() {
     return notionRetryQueue.processNow();
   };
   
+  /**
+   * Gestion de la file d'attente - force le traitement immédiat
+   */
+  const processQueue = async (): Promise<void> => {
+    return processNow();
+  };
+  
+  /**
+   * Vide la file d'attente
+   */
+  const clearQueue = (): void => {
+    // Cette fonction sera implémentée dans le service réel
+    // Pour l'instant, on simule en vidant la liste locale
+    setQueuedOperations([]);
+  };
+  
   return {
     stats,
+    queuedOperations,
     enqueue,
     cancel,
     processNow,
+    processQueue,
+    clearQueue,
     service: notionRetryQueue
   };
 }
