@@ -4,10 +4,11 @@ export * from './useErrorHandling';
 export * from './useRecoveryStrategies';
 export * from './useErrorReporter';
 
-// Hooks pour l'API et le cache (sauf imports en conflit)
+// Hooks pour l'API et le cache (avec imports explicites pour éviter les conflits)
 export {
   useActions,
   useAudits,
+  useChecklistItem,
   useChecklist,
   useEvaluations,
   useExigences,
@@ -30,3 +31,6 @@ export * from './notion';
 
 // Hook pour le mode opérationnel
 export * from './useOperationModeListener';
+
+// Hooks pour le cache
+export * from './useCache';

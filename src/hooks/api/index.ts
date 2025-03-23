@@ -5,7 +5,8 @@ export { useServiceWithCache } from './useServiceWithCache';
 // Export custom hooks for specific entities
 export { useActions } from './useActions';
 export { useAudits } from './useAudits';
-export { useChecklistItem } from './useChecklist';
+export { useChecklistItem } from './useChecklistItem';
+export { useChecklist } from './useChecklist';
 export { useEvaluations } from './useEvaluations';
 export { useExigences } from './useExigences';
 export { usePages } from './usePages';
