@@ -18,5 +18,11 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   showNotifications: true,
   
   // Utiliser le cache en mode réel
-  useCacheInRealMode: true
+  useCacheInRealMode: true,
+  
+  // Taux d'erreurs simulées en mode démo (pourcentage)
+  errorSimulationRate: 5,
+  
+  // Délai réseau simulé en mode démo (ms)
+  simulatedNetworkDelay: 500
 };

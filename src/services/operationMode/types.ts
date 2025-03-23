@@ -30,6 +30,12 @@ export interface OperationModeSettings {
   
   // Utiliser le cache en mode réel
   useCacheInRealMode?: boolean;
+  
+  // Taux d'erreurs simulées en mode démo (pourcentage)
+  errorSimulationRate: number;
+  
+  // Délai réseau simulé en mode démo (ms)
+  simulatedNetworkDelay: number;
 }
 
 /**

@@ -1,4 +1,3 @@
-
 import { notionApiRequest } from '../proxyFetch';
 import { toast } from 'sonner';
 import { mockMode } from '../mockMode';
@@ -33,7 +32,7 @@ export const create = async (data: any, token: string) => {
     'forceRealMode': forceRealMode,
     'localStorage.notion_mock_mode': localStorage.getItem('notion_mock_mode'),
     'localStorage.notion_force_real': localStorage.getItem('notion_force_real'),
-    'temporarilyForcedReal': mockMode.isTemporarilyForcedReal ? mockMode.isTemporarilyForcedReal(false) : 'non disponible'
+    'temporarilyForcedReal': mockMode.isTemporarilyForcedReal ? mockMode.isTemporarilyForcedReal() : 'non disponible'
   });
   
   // Désactiver le mode mock pendant la création
