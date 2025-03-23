@@ -42,14 +42,28 @@ export const mockMode = {
   /**
    * Vérifie si le mode réel est temporairement forcé
    * @deprecated Cette fonctionnalité n'est plus supportée
+   * @param _ Paramètre ignoré (pour compatibilité avec l'ancien code)
    */
-  isTemporarilyForcedReal: () => !operationMode.isDemoMode,
+  isTemporarilyForcedReal: (_?: boolean) => !operationMode.isDemoMode,
   
   /**
    * Restaure l'état du mode après forçage temporaire
    * @deprecated Cette fonctionnalité n'est plus supportée
+   * @param _ Paramètre ignoré (pour compatibilité avec l'ancien code)
    */
-  restoreAfterForceReal: () => {}
+  restoreAfterForceReal: (_?: any) => {},
+  
+  /**
+   * Réinitialise complètement le mode et force le mode réel
+   * @deprecated Utilisez operationMode.enableRealMode()
+   */
+  forceReset: () => operationMode.enableRealMode(),
+  
+  /**
+   * Réinitialise le mode (alias pour forceReset)
+   * @deprecated Utilisez operationMode.enableRealMode()
+   */
+  reset: () => operationMode.enableRealMode()
 };
 
 // Exporter par défaut pour compatibilité
