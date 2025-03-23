@@ -1,24 +1,21 @@
 
-/**
- * Point d'entrée pour les hooks Notion
- */
+// Hooks pour la gestion des erreurs
+export * from './useNotionAPI';
+export * from './useNotionError';
+export * from './useNotionErrorService';
+export * from './useNotionErrorState';
+export * from './useRetryQueue';
 
-// Exporter les hooks
+// Hooks pour la gestion de la configuration
 export * from './useNotionConfig';
 export * from './useNotionConfigUI';
-export * from './useNotionConnection';
 export * from './useNotionConnectionStatus';
 export * from './useNotionDiagnostic';
-export * from './useNotionError';
-export * from './useNotionErrorHandling';
-export * from './useNotionErrorState';
 export * from './useNotionIntegrationUpdated';
-export * from './useNotionRequest';
 export * from './useNotionStorage';
-export * from './useMockMode';
-export * from './useNotionErrorService';
-export * from './useRetryQueue';
-export { useNotionAPI } from './useNotionAPI';
+export * from './useNotionConnection';
+export * from './useNotionRequest';
+export * from './useAutoRetry';
 
-// Avertissement de dépréciation
-console.warn('Les hooks Notion sont en cours de migration vers le nouveau système operationMode.');
+// Hooks pour les diagnostics
+export * from './useNotionErrorHandling';

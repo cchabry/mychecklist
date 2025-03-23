@@ -1,298 +1,183 @@
 
-import { useState, useCallback } from 'react';
-import { useErrorCategorization } from './useErrorCategorization';
-import { useOperationQueue } from './useOperationQueue';
-import { calculateRetryDelay, RetryOptions, RetryStrategy } from './useServiceWithRetry';
+import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 
-interface RetryableOperation<T> {
-  id: string;
-  operation: () => Promise<T>;
-  attempt: number;
-  maxAttempts: number;
-  lastError?: Error;
-  lastErrorTime?: number;
-  nextRetryTime?: number;
-}
-
-// Options pour exécuter une opération avec retry
-interface ExecuteOptions extends RetryOptions {
+// Types pour le système de retry
+export interface RetryOptions {
+  maxAttempts?: number;
+  initialDelay?: number;
+  maxDelay?: number;
+  backoffFactor?: number;
   onSuccess?: (result: any) => void;
   onError?: (error: Error) => void;
-  context?: string;
-  showToast?: boolean;
-  queueOnFailure?: boolean;
+  retryableErrors?: string[];
 }
 
-// Type pour les stratégies de récupération pour chaque type d'erreur
-type RecoveryStrategy = {
-  retry: boolean;
-  maxRetries: number;
-  strategy: RetryStrategy;
-  shouldQueue: boolean;
-  delayMultiplier: number;
-}
+export type RetryStrategy = 'linear' | 'exponential' | 'constant';
 
-// Stratégies de récupération pour chaque type d'erreur
-type RecoveryStrategyMap = {
-  [key: string]: RecoveryStrategy;
+/**
+ * Calcule le délai avant la prochaine tentative selon la stratégie choisie
+ */
+export function calculateRetryDelay(
+  attempt: number,
+  strategy: RetryStrategy,
+  options: {
+    initialDelay?: number;
+    maxDelay?: number;
+    backoffFactor?: number;
+  }
+): number {
+  const {
+    initialDelay = 1000,
+    maxDelay = 30000,
+    backoffFactor = 2
+  } = options;
+
+  let delay: number;
+
+  switch (strategy) {
+    case 'linear':
+      // Délai linéaire: initialDelay * attempt
+      delay = initialDelay * attempt;
+      break;
+    case 'exponential':
+      // Délai exponentiel: initialDelay * (backoffFactor ^ attempt)
+      delay = initialDelay * Math.pow(backoffFactor, attempt - 1);
+      break;
+    case 'constant':
+    default:
+      // Délai constant
+      delay = initialDelay;
+      break;
+  }
+
+  // Limiter le délai maximum
+  return Math.min(delay, maxDelay);
 }
 
 /**
- * Hook pour gérer la logique de retry avec catégorisation des erreurs
+ * Hook pour exécuter des opérations avec retry automatique en cas d'échec
  */
-export function useOperationRetry() {
-  const [currentOperation, setCurrentOperation] = useState<RetryableOperation<any> | null>(null);
-  const { categorizeApiError, isRetryableError, getUserFriendlyMessage } = useErrorCategorization();
-  const { addOperation } = useOperationQueue();
-  
-  // Stratégies de récupération par type d'erreur
-  const recoveryStrategies: RecoveryStrategyMap = {
-    connection: {
-      retry: true,
-      maxRetries: 5,
-      strategy: 'exponential',
-      shouldQueue: true,
-      delayMultiplier: 1.5,
-    },
-    timeout: {
-      retry: true,
-      maxRetries: 3,
-      strategy: 'linear',
-      shouldQueue: true,
-      delayMultiplier: 2,
-    },
-    rate_limit: {
-      retry: true,
-      maxRetries: 3,
-      strategy: 'exponential',
-      shouldQueue: true,
-      delayMultiplier: 3,
-    },
-    server: {
-      retry: true,
-      maxRetries: 2,
-      strategy: 'linear',
-      shouldQueue: true,
-      delayMultiplier: 1.5,
-    },
-    authentication: {
-      retry: false,
-      maxRetries: 0,
-      strategy: 'immediate',
-      shouldQueue: false,
-      delayMultiplier: 1,
-    },
-    authorization: {
-      retry: false,
-      maxRetries: 0,
-      strategy: 'immediate',
-      shouldQueue: false,
-      delayMultiplier: 1,
-    },
-    validation: {
-      retry: false,
-      maxRetries: 0,
-      strategy: 'immediate',
-      shouldQueue: false,
-      delayMultiplier: 1,
-    },
-    not_found: {
-      retry: false,
-      maxRetries: 0,
-      strategy: 'immediate',
-      shouldQueue: false,
-      delayMultiplier: 1,
-    },
-    conflict: {
-      retry: true,
-      maxRetries: 2,
-      strategy: 'fixed',
-      shouldQueue: true,
-      delayMultiplier: 1,
-    },
-    parse: {
-      retry: false,
-      maxRetries: 0,
-      strategy: 'immediate',
-      shouldQueue: false,
-      delayMultiplier: 1,
-    },
-    business: {
-      retry: false,
-      maxRetries: 0,
-      strategy: 'immediate',
-      shouldQueue: false,
-      delayMultiplier: 1,
-    },
-    unknown: {
-      retry: true,
-      maxRetries: 1,
-      strategy: 'fixed',
-      shouldQueue: true,
-      delayMultiplier: 1,
+export function useServiceWithRetry<T, Args extends any[] = any[]>(
+  serviceMethod: (...args: Args) => Promise<T>,
+  entityName: string,
+  operationType: string,
+  onSuccessCallback?: (result: T) => void,
+  options: RetryOptions = {}
+) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [result, setResult] = useState<T | null>(null);
+  const attemptRef = useRef(0);
+  const argsRef = useRef<Args | null>(null);
+
+  const {
+    maxAttempts = 3,
+    initialDelay = 1000,
+    maxDelay = 15000,
+    backoffFactor = 2,
+    onSuccess,
+    onError,
+    retryableErrors = []
+  } = options;
+
+  /**
+   * Détermine si une erreur est retraitable
+   */
+  const isRetryableError = useCallback((error: Error): boolean => {
+    // Si la liste des erreurs retraitables est vide, on considère toutes les erreurs comme retraitables
+    if (retryableErrors.length === 0) {
+      return true;
     }
-  };
-  
+
+    // Sinon, on vérifie si l'erreur est dans la liste
+    return retryableErrors.some(pattern => 
+      error.message.includes(pattern) || 
+      error.name.includes(pattern)
+    );
+  }, [retryableErrors]);
+
   /**
-   * Adapte les stratégies de retry en fonction du type d'erreur
+   * Exécute l'opération avec retry
    */
-  const getRetryOptionsForError = useCallback((error: Error, defaultOptions: RetryOptions = {}): RetryOptions => {
-    const errorDetails = categorizeApiError(error);
-    const strategy = recoveryStrategies[errorDetails.type] || recoveryStrategies.unknown;
-    
-    return {
-      maxRetries: strategy.maxRetries,
-      strategy: strategy.strategy,
-      initialDelay: (defaultOptions.initialDelay || 1000) * strategy.delayMultiplier,
-      backoffFactor: defaultOptions.backoffFactor || 2,
-      useJitter: defaultOptions.useJitter !== false,
-    };
-  }, [categorizeApiError]);
-  
-  /**
-   * Exécute une opération avec gestion des erreurs et retry adaptatif
-   */
-  const executeWithRetry = useCallback(async <T>(
-    operation: () => Promise<T>,
-    options: ExecuteOptions = {}
-  ): Promise<T> => {
-    const {
-      maxRetries = 2,
-      initialDelay = 1000,
-      strategy = 'exponential',
-      backoffFactor = 2,
-      useJitter = true,
-      onSuccess,
-      onError,
-      context = 'Opération',
-      showToast = true,
-      queueOnFailure = true
-    } = options;
-    
-    let attempt = 0;
-    let lastError: Error | undefined;
-    
-    // Fonction pour la tentative actuelle
-    const attemptOperation = async (): Promise<T> => {
-      attempt++;
+  const execute = useCallback(async (...args: Args): Promise<T | null> => {
+    setIsLoading(true);
+    setError(null);
+    argsRef.current = args;
+    attemptRef.current = 0;
+
+    try {
+      const result = await serviceMethod(...args);
+      setResult(result);
+      setIsLoading(false);
       
-      try {
-        const result = await operation();
-        
-        // Réinitialiser l'opération en cours
-        setCurrentOperation(null);
-        
-        // Appeler le callback de succès
-        if (onSuccess) {
-          onSuccess(result);
-        }
-        
-        // Afficher un toast de succès si demandé et si ce n'est pas la première tentative
-        if (showToast && attempt > 1) {
-          toast.success(`Opération réussie après ${attempt} tentative${attempt > 1 ? 's' : ''}`);
-        }
-        
-        return result;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        lastError = error;
-        
-        // Catégoriser l'erreur
-        const errorDetails = categorizeApiError(error);
-        const strategy = recoveryStrategies[errorDetails.type] || recoveryStrategies.unknown;
-        
-        // Mettre à jour l'opération en cours
-        const operationId = Math.random().toString(36).substring(2, 9);
-        setCurrentOperation({
-          id: operationId,
-          operation,
-          attempt,
-          maxAttempts: maxRetries,
-          lastError: error,
-          lastErrorTime: Date.now()
+      if (onSuccessCallback) {
+        onSuccessCallback(result);
+      }
+      
+      if (onSuccess) {
+        onSuccess(result);
+      }
+      
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      attemptRef.current += 1;
+      
+      if (attemptRef.current < maxAttempts && isRetryableError(error)) {
+        const strategy: RetryStrategy = 'exponential';
+        const delay = calculateRetryDelay(attemptRef.current, strategy, {
+          initialDelay,
+          maxDelay,
+          backoffFactor
         });
         
-        // Appeler le callback d'erreur
+        toast.error(`Échec de l'opération, nouvelle tentative dans ${Math.round(delay / 1000)}s...`, {
+          description: `${error.message.substring(0, 100)}${error.message.length > 100 ? '...' : ''}`
+        });
+        
+        setTimeout(() => {
+          if (argsRef.current) {
+            execute(...argsRef.current).catch(console.error);
+          }
+        }, delay);
+      } else {
+        setError(error);
+        setIsLoading(false);
+        
+        toast.error(`Erreur lors de l'opération`, {
+          description: error.message
+        });
+        
         if (onError) {
           onError(error);
         }
-        
-        // Vérifier si on doit réessayer
-        const shouldRetry = attempt <= maxRetries && strategy.retry;
-        
-        if (shouldRetry) {
-          // Calculer le délai avant la prochaine tentative
-          const retryOptions = getRetryOptionsForError(error, {
-            initialDelay,
-            strategy,
-            backoffFactor,
-            useJitter
-          });
-          
-          const delay = calculateRetryDelay(attempt, retryOptions);
-          const nextRetryTime = Date.now() + delay;
-          
-          // Mettre à jour l'opération avec le temps de la prochaine tentative
-          setCurrentOperation(prev => 
-            prev ? { ...prev, nextRetryTime } : null
-          );
-          
-          // Afficher un toast d'information
-          if (showToast) {
-            toast.info(`Nouvelle tentative dans ${Math.round(delay / 1000)}s...`, {
-              description: getUserFriendlyMessage(errorDetails)
-            });
-          }
-          
-          // Attendre avant de réessayer
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          // Réessayer
-          return attemptOperation();
-        } else {
-          // Si on ne réessaie pas, ajouter à la file d'attente si demandé
-          if (queueOnFailure && strategy.shouldQueue) {
-            addOperation(
-              operation,
-              context,
-              {
-                maxRetries: strategy.maxRetries
-              }
-            );
-            
-            if (showToast) {
-              toast.info('Opération mise en file d\'attente', {
-                description: 'Elle sera réessayée automatiquement plus tard'
-              });
-            }
-          } else if (showToast) {
-            // Afficher un toast d'erreur
-            toast.error(getUserFriendlyMessage(errorDetails), {
-              description: context
-            });
-          }
-          
-          // Réinitialiser l'opération en cours
-          setCurrentOperation(null);
-          
-          throw error;
-        }
       }
-    };
-    
-    return attemptOperation();
+      
+      return null;
+    }
   }, [
-    categorizeApiError,
-    getRetryOptionsForError,
-    getUserFriendlyMessage,
-    addOperation
+    serviceMethod,
+    maxAttempts,
+    initialDelay,
+    maxDelay,
+    backoffFactor,
+    isRetryableError,
+    onSuccess,
+    onError,
+    onSuccessCallback
   ]);
-  
+
   return {
-    executeWithRetry,
-    currentOperation,
-    getRetryOptionsForError,
-    clearOperation: () => setCurrentOperation(null)
+    execute,
+    isLoading,
+    error,
+    result,
+    reset: () => {
+      setError(null);
+      setResult(null);
+      attemptRef.current = 0;
+      argsRef.current = null;
+    }
   };
 }

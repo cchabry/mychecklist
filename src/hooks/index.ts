@@ -8,7 +8,7 @@ export * from './useErrorReporter';
 export * from './api';
 
 // Hooks pour Notion
-export * from './notion/useNotionAPI';
-export * from './notion/useNotionError';
-export * from './notion/useNotionErrorService';
-export * from './notion/useRetryQueue';
+export * from './notion';
+
+// Hook pour le mode opérationnel
+export * from './useOperationModeListener';

@@ -1,12 +1,14 @@
+
 import { Project } from '@/lib/types';
-import { BaseService } from './baseService';
+import { BaseServiceAbstract } from './BaseServiceAbstract';
 import { notionApi } from '@/lib/notionProxy';
 import { QueryFilters } from './types';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Service pour la gestion des projets
  */
-export class ProjectsService extends BaseService<Project> {
+export class ProjectsService extends BaseServiceAbstract<Project> {
   constructor() {
     super('projects', {
       cacheTTL: 10 * 60 * 1000, // 10 minutes

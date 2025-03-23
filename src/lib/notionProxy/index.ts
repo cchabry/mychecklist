@@ -10,7 +10,6 @@ import * as checklist from './endpoints/checklist';
 import * as samplePages from './endpoints/samplePages';
 import * as evaluations from './endpoints/evaluations';
 import * as actions from './endpoints/actions';
-import { mockMode } from './mockMode';
 import { operationMode } from '@/services/operationMode';
 
 // Exporter toutes les API de Notion depuis un point d'entrée unique
@@ -22,9 +21,6 @@ export const notionApi = {
   users,
   databases,
   pages,
-  
-  // Support pour les données de test - maintenu pour la compatibilité
-  mockMode,
   
   // Nouveau système de mode opérationnel
   operationMode,

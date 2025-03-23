@@ -7,8 +7,7 @@ export const mockProjects: Project[] = [
     id: 'project-1',
     name: 'Projet Test 1',
     description: 'Description du projet 1',
-    startDate: '2023-01-01',
-    endDate: '2023-12-31',
+    client: 'Client 1',
     status: 'En cours',
     createdAt: '2023-01-01',
     updatedAt: '2023-01-01',
@@ -21,8 +20,7 @@ export const mockProjects: Project[] = [
     id: 'project-2',
     name: 'Projet Test 2',
     description: 'Description du projet 2',
-    startDate: '2023-02-15',
-    endDate: '2024-03-30',
+    client: 'Client 2',
     status: 'Planifié',
     createdAt: '2023-02-15',
     updatedAt: '2023-02-15',
@@ -39,8 +37,7 @@ export const mockAudits: Audit[] = [
     id: 'audit-1',
     projectId: 'project-1',
     name: 'Audit Test 1',
-    startDate: '2023-05-01',
-    endDate: '2023-05-15',
+    description: 'Premier audit de test',
     status: 'En cours',
     createdAt: '2023-05-01',
     updatedAt: '2023-05-01'
@@ -49,8 +46,7 @@ export const mockAudits: Audit[] = [
     id: 'audit-2',
     projectId: 'project-2',
     name: 'Audit Test 2',
-    startDate: '2023-06-01',
-    endDate: '2023-06-30',
+    description: 'Second audit de test',
     status: 'Terminé',
     createdAt: '2023-06-01',
     updatedAt: '2023-06-30'
@@ -83,15 +79,19 @@ export const mockPages = [
 export const mockExigences: Exigence[] = [
   {
     id: 'exigence-1',
-    name: 'Exigence Test 1',
+    checklistId: 'checklist-1',
     description: 'Description de l\'exigence 1',
+    importance: 'Majeur',
+    comment: 'Commentaire sur l\'exigence 1',
     createdAt: '2023-05-01',
     updatedAt: '2023-05-01'
   },
   {
     id: 'exigence-2',
-    name: 'Exigence Test 2',
+    checklistId: 'checklist-2',
     description: 'Description de l\'exigence 2',
+    importance: 'Moyen',
+    comment: 'Commentaire sur l\'exigence 2',
     createdAt: '2023-06-01',
     updatedAt: '2023-06-01'
   }
