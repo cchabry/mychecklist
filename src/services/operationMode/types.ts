@@ -4,6 +4,24 @@
  */
 
 /**
+ * Modes opérationnels possibles
+ */
+export enum OperationMode {
+  REAL = 'real',
+  DEMO = 'demo'
+}
+
+/**
+ * Raison du changement de mode
+ */
+export type SwitchReason = string;
+
+/**
+ * Type de fonction de rappel pour les événements de mode opérationnel
+ */
+export type OperationModeSubscriber = (mode: OperationMode, reason: SwitchReason | null) => void;
+
+/**
  * Paramètres du mode opérationnel
  */
 export interface OperationModeSettings {
@@ -25,28 +43,38 @@ export interface OperationModeSettings {
   /**
    * Basculer automatiquement en mode démo en cas d'erreur
    */
-  autoSwitchOnError: boolean;
+  autoSwitchOnFailure?: boolean;
   
   /**
    * Tentatives maximales avant de basculer en mode démo
    */
-  maxRetryAttempts: number;
-  
-  /**
-   * Seuil d'erreurs consécutives avant de basculer en mode démo
-   */
-  errorThreshold: number;
+  maxConsecutiveFailures?: number;
   
   /**
    * Durée (en ms) entre les tentatives de reconnexion au mode réel
    */
-  reconnectInterval: number;
+  reconnectInterval?: number;
   
   /**
    * Utiliser le cache en mode réel
    * Si false, les données seront toujours rechargées depuis l'API
    */
   useCacheInRealMode?: boolean;
+  
+  /**
+   * Persistance du mode opérationnel dans le stockage local
+   */
+  persistentModeStorage?: boolean;
+  
+  /**
+   * Délai simulé pour les opérations réseau (en ms)
+   */
+  simulatedNetworkDelay?: number;
+  
+  /**
+   * Taux d'erreurs simulées (en pourcentage)
+   */
+  errorSimulationRate?: number;
 }
 
 /**
@@ -127,4 +155,45 @@ export interface EnableDemoModeOptions {
    * Erreurs consécutives à incrémenter
    */
   incrementConsecutiveErrors?: boolean;
+}
+
+/**
+ * Interface pour le service de mode opérationnel
+ */
+export interface IOperationModeService {
+  readonly isDemoMode: boolean;
+  readonly isRealMode: boolean;
+  getMode(): OperationMode;
+  getSwitchReason(): SwitchReason | null;
+  getSettings(): OperationModeSettings;
+  getConsecutiveFailures(): number;
+  getLastError(): Error | null;
+  subscribe(subscriber: OperationModeSubscriber): () => void;
+  enableDemoMode(reason?: SwitchReason): void;
+  enableRealMode(): void;
+  toggle(): void;
+  handleConnectionError(error: Error, context?: string): void;
+  handleSuccessfulOperation(): void;
+  updateSettings(partialSettings: Partial<OperationModeSettings>): void;
+  reset(): void;
+}
+
+/**
+ * Interface du hook useOperationMode
+ */
+export interface OperationModeHook {
+  mode: OperationMode;
+  switchReason: string | null;
+  failures: number;
+  lastError: Error | null;
+  settings: OperationModeSettings;
+  isDemoMode: boolean;
+  isRealMode: boolean;
+  enableDemoMode: (reason?: string) => void;
+  enableRealMode: () => void;
+  toggle: () => void;
+  handleConnectionError: (error: Error, context?: string) => void;
+  handleSuccessfulOperation: () => void;
+  updateSettings: (settings: Partial<OperationModeSettings>) => void;
+  reset: () => void;
 }

@@ -2,34 +2,26 @@
 import { OperationModeSettings } from './types';
 
 /**
- * Paramètres par défaut pour le système operationMode
- */
-export const DEFAULT_SETTINGS: OperationModeSettings = {
-  // Nombre d'échecs consécutifs avant basculement automatique
-  maxConsecutiveFailures: 3,
-  
-  // Activer le basculement automatique en cas d'échecs répétés
-  autoSwitchOnFailure: true,
-  
-  // Stocker le mode dans localStorage pour persistance
-  persistentModeStorage: true,
-  
-  // Durée d'affichage des notifications (ms)
-  notificationDuration: 5000,
-  
-  // Délai simulé pour les opérations en mode démo (ms)
-  simulatedNetworkDelay: 500,
-  
-  // Taux de simulation d'erreurs en mode démo (%)
-  errorSimulationRate: 10
-};
-
-/**
- * Clés pour le stockage local
+ * Clés de stockage local pour le mode opérationnel
  */
 export const STORAGE_KEYS = {
   MODE: 'operation_mode',
   REASON: 'operation_mode_reason',
-  SETTINGS: 'operation_mode_settings',
-  FAILURES: 'operation_mode_failures'
+  SETTINGS: 'operation_mode_settings'
+};
+
+/**
+ * Paramètres par défaut du mode opérationnel
+ */
+export const DEFAULT_SETTINGS: OperationModeSettings = {
+  showIndicators: true,
+  showDetails: false,
+  showNotifications: true,
+  autoSwitchOnFailure: true,
+  maxConsecutiveFailures: 3,
+  reconnectInterval: 30000,
+  useCacheInRealMode: true,
+  persistentModeStorage: true,
+  simulatedNetworkDelay: 300,
+  errorSimulationRate: 0
 };

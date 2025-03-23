@@ -49,7 +49,7 @@ export function useNotionCachedData<T = any>(
   const cacheKey = `notion:${method}:${endpoint}:${JSON.stringify(body || {})}`;
   
   const cache = useCache();
-  const { execute, isLoading: isApiLoading } = useNotionAPI<T>();
+  const { execute, isLoading: isApiLoading } = useNotionAPI();
   
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,7 +139,7 @@ export function useNotionCachedData<T = any>(
       }
       
       // Vérifier le cache
-      const cachedEntry = cache.get<{ data: T, timestamp: number }>(cacheKey);
+      const cachedEntry = cache.get(cacheKey);
       
       if (cachedEntry && 'data' in cachedEntry) {
         // Vérifier si les données sont périmées

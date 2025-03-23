@@ -40,15 +40,15 @@ export function useCachedData<T>(
       
       try {
         // Vérifier le cache d'abord
-        const cachedData = cache.get<{ data: T, timestamp: number }>(key);
+        const cachedData = cache.get(key);
         
-        if (cachedData && 'data' in cachedData) {
-          setData(cachedData.data);
-          setTimestamp(cachedData.timestamp || null);
+        if (cachedData && typeof cachedData === 'object' && 'data' in cachedData) {
+          setData(cachedData.data as T);
+          setTimestamp(cachedData.timestamp as number || null);
           setIsLoading(false);
           
           if (onSuccess) {
-            onSuccess(cachedData.data);
+            onSuccess(cachedData.data as T);
           }
           return;
         }
