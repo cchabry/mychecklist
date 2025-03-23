@@ -28,6 +28,7 @@ export enum NotionErrorSeverity {
 
 /**
  * Structure d'une erreur Notion enrichie
+ * Étend Error pour assurer la compatibilité avec les API standard
  */
 export interface NotionError {
   id: string;
@@ -39,11 +40,11 @@ export interface NotionError {
   originError?: Error;
   details?: any;
   retryable?: boolean;
-  name?: string; // Pour compatibilité avec Error
+  name: string; // Rendu obligatoire pour compatibilité avec Error
   stack?: string; // Pour compatibilité avec Error
   recoverable?: boolean;
   recoveryActions?: any[];
-  severity?: NotionErrorSeverity;
+  severity: NotionErrorSeverity; // Rendu obligatoire
   cause?: Error | unknown;
 }
 
@@ -114,9 +115,6 @@ export interface RetryQueueStats {
   totalOperations: number;
   lastProcessedAt: number | null;
   isProcessing: boolean;
-  successful?: number;
-  failed?: number;
-  successRate?: number;
 }
 
 /**

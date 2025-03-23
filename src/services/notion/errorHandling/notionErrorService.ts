@@ -35,14 +35,18 @@ export class NotionErrorService {
       recoverable = false
     } = options;
 
-    const error = new Error(message) as NotionError;
-    error.type = type;
-    error.severity = severity;
-    error.context = context || {};
-    error.cause = cause;
-    error.recoveryActions = recoveryActions || [];
-    error.recoverable = recoverable;
-    error.timestamp = new Date();
+    const error: NotionError = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `err-${Date.now()}`,
+      message,
+      type,
+      severity,
+      context: context || {},
+      cause,
+      recoveryActions: recoveryActions || [],
+      recoverable,
+      timestamp: Date.now(),
+      name: 'NotionError',
+    };
 
     return error;
   }
@@ -63,7 +67,7 @@ export class NotionErrorService {
     }
     
     // Notifier les abonnés
-    this.notifySubscribers(notionError);
+    this.notifySubscribers();
     
     return notionError;
   }
@@ -88,10 +92,18 @@ export class NotionErrorService {
   }
 
   /**
+   * Obtenir les erreurs récentes
+   */
+  public getRecentErrors(count: number = 5): NotionError[] {
+    return this.errors.slice(0, Math.min(count, this.errors.length));
+  }
+
+  /**
    * Effacer toutes les erreurs
    */
   public clearErrors(): void {
     this.errors = [];
+    this.notifySubscribers();
   }
 
   /**
@@ -107,7 +119,7 @@ export class NotionErrorService {
    */
   public isRecoverableError(error: Error | NotionError): boolean {
     const notionError = this.ensureNotionError(error);
-    return notionError.recoverable;
+    return notionError.recoverable === true;
   }
 
   /**
@@ -136,21 +148,30 @@ export class NotionErrorService {
       type = NotionErrorType.RATE_LIMIT;
     }
     
-    return this.createError(error.message, {
+    return {
+      id: crypto.randomUUID ? crypto.randomUUID() : `err-${Date.now()}`,
+      timestamp: Date.now(),
+      message: error.message,
       type,
       severity,
       cause: error,
-      context: context ? { context } : undefined
-    });
+      context: context ? { context } : undefined,
+      name: error.name || 'NotionError',
+      stack: error.stack,
+      retryable: type === NotionErrorType.NETWORK || type === NotionErrorType.RATE_LIMIT,
+      recoverable: false,
+      recoveryActions: []
+    };
   }
 
   /**
    * Notifier tous les abonnés d'une nouvelle erreur
    */
-  private notifySubscribers(error: NotionError): void {
+  private notifySubscribers(): void {
+    const errorsCopy = [...this.errors];
     this.subscribers.forEach(subscriber => {
       try {
-        subscriber(error);
+        subscriber(errorsCopy);
       } catch (err) {
         console.error('Erreur lors de la notification d\'un abonné:', err);
       }

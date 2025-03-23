@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useOperationMode } from '@/services/operationMode/hooks/useOperationMode';
 import { useNotionAPI } from './useNotionAPI';
+import { NotionError } from '@/services/notion/errorHandling/types';
 
 /**
  * Hook pour effectuer des requêtes Notion (version compatible avec l'ancien système)
@@ -24,7 +25,17 @@ export function useNotionRequest() {
 
     try {
       const result = await notionAPI.execute<T>(endpoint, method, body, token, {
-        onError: (err) => setError(err)
+        onError: (err) => {
+          // Convertir NotionError en Error standard si nécessaire
+          if (err && typeof err === 'object') {
+            const standardError = new Error(err.message);
+            standardError.name = err.name || 'NotionError';
+            standardError.stack = err.stack;
+            setError(standardError);
+          } else {
+            setError(err as unknown as Error);
+          }
+        }
       });
       return result;
     } catch (err) {

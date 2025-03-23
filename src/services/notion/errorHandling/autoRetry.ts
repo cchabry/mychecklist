@@ -1,4 +1,3 @@
-
 import { operationMode } from '@/services/operationMode';
 import { notionErrorService } from './errorService';
 import { retryQueueService } from './retryQueue';
@@ -95,9 +94,16 @@ class AutoRetryHandler {
     retryableErrors.forEach(error => {
       // Pour les erreurs CORS, tenter de passer en mode démo
       if (error.type === NotionErrorType.CORS) {
+        const errorMessage = typeof error.message === 'string' ? error.message : 'Erreur CORS détectée';
+        const contextStr = error.context ? 
+                          (typeof error.context === 'string' ? 
+                            error.context : 
+                            JSON.stringify(error.context)) : 
+                          "Erreur CORS détectée";
+                          
         operationMode.handleConnectionError(
-          new Error(error.message),
-          error.context || "Erreur CORS détectée"
+          new Error(errorMessage),
+          contextStr
         );
       }
     });
@@ -159,11 +165,12 @@ class AutoRetryHandler {
       context?: string;
       maxRetries?: number;
       onSuccess?: (result: T) => void;
-      onFailure?: (error: NotionError) => void;
+      onFailure?: (error: Error | NotionError) => void;
     } = {}
   ): Promise<T> {
     if (!this.isEnabled() || !this.shouldRetry(error)) {
       if (options.onFailure) {
+        // Acceptons NotionError et Error pour une meilleure compatibilité
         options.onFailure(error);
       }
       throw error;

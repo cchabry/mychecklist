@@ -1,10 +1,8 @@
-
 import React, { useState } from 'react';
 import { 
   AlertCircle, 
   XCircle, 
-  AlertTriangle, 
-  RefreshCw, 
+  RefreshCw,
   ServerCrash,
   Database,
   FileWarning,
@@ -59,7 +57,9 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
         id: 'temp-' + Date.now(),
         timestamp: Date.now(),
         message: error,
-        type: NotionErrorType.UNKNOWN
+        type: NotionErrorType.UNKNOWN,
+        name: 'NotionError',
+        severity: 'ERROR' as any,
       };
     } else if (error instanceof Error) {
       return {
@@ -68,7 +68,8 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
         message: error.message,
         name: error.name,
         stack: error.stack,
-        type: NotionErrorType.UNKNOWN
+        type: NotionErrorType.UNKNOWN,
+        severity: 'ERROR' as any,
       };
     } else if (typeof error === 'object' && 'type' in error) {
       // C'est déjà une NotionError
@@ -80,7 +81,9 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
       id: 'temp-' + Date.now(),
       timestamp: Date.now(),
       message: String(error),
-      type: NotionErrorType.UNKNOWN
+      type: NotionErrorType.UNKNOWN,
+      name: 'NotionError',
+      severity: 'ERROR' as any,
     };
   };
   
@@ -113,35 +116,25 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
       setIsRetrying(false);
     }
   };
-  
-  // Traiter les formats d'erreur potentiellement complexes
-  const formatErrorDetails = (errorDetails: unknown): React.ReactNode => {
-    if (!errorDetails) return null;
+
+  // Formater le contexte pour l'affichage
+  const formatContext = (): React.ReactNode => {
+    // Prioriser le contexte passé directement en prop
+    const contextToFormat = context || errorObj.context;
     
-    if (typeof errorDetails === 'string') {
-      try {
-        // Essayer de parser si c'est une chaîne JSON
-        const parsed = JSON.parse(errorDetails);
-        return (
-          <pre className="text-xs overflow-auto p-2 bg-gray-50 border rounded max-h-40">
-            {JSON.stringify(parsed, null, 2)}
-          </pre>
-        );
-      } catch (e) {
-        // Si ce n'est pas un JSON, afficher comme texte
-        return <p className="text-xs text-gray-600">{errorDetails}</p>;
-      }
+    if (!contextToFormat) return null;
+    
+    if (typeof contextToFormat === 'string') {
+      return contextToFormat;
     }
     
-    // Si c'est déjà un objet, le formatter
-    return (
-      <pre className="text-xs overflow-auto p-2 bg-gray-50 border rounded max-h-40">
-        {JSON.stringify(errorDetails, null, 2)}
-      </pre>
-    );
+    try {
+      return JSON.stringify(contextToFormat, null, 2);
+    } catch (e) {
+      return '[Contexte non affichable]';
+    }
   };
-
-  // Gérer les actions personnalisées
+  
   const renderActions = () => {
     if (!actions || actions.length === 0) return null;
     
@@ -157,16 +150,6 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
     ));
   };
   
-  const formatContext = () => {
-    if (!context) return null;
-    
-    if (typeof context === 'string') {
-      return context;
-    }
-    
-    return JSON.stringify(context);
-  };
-  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
@@ -180,7 +163,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        {context && (
+        {formatContext() && (
           <div className="py-2">
             <p className="text-sm text-muted-foreground">Contexte: {formatContext()}</p>
           </div>

@@ -9,6 +9,7 @@ import RetryQueueStatus from './RetryQueueStatus';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NotionErrorDetails from './NotionErrorDetails';
+import { Button } from '@/components/ui/button';
 
 interface NotionErrorManagerProps {
   error: NotionError;
@@ -48,6 +49,22 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
   
   const handleCloseDetails = () => {
     setShowDetails(false);
+  };
+  
+  // Formater le contexte pour l'affichage
+  const formatContext = (context?: string | Record<string, any>): React.ReactNode => {
+    if (!context) return null;
+    
+    if (typeof context === 'string') {
+      return <span>{context}</span>;
+    }
+    
+    // Si c'est un objet, afficher une représentation simplifiée
+    try {
+      return <span>{JSON.stringify(context, null, 2)}</span>;
+    } catch (e) {
+      return <span>[Contexte complexe]</span>;
+    }
   };
   
   return (
@@ -98,7 +115,11 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
                 <div className="text-sm">
                   <p><strong>Type:</strong> {error.type}</p>
                   {error.operation && <p><strong>Opération:</strong> {error.operation}</p>}
-                  {error.context && <p><strong>Contexte:</strong> {error.context}</p>}
+                  {error.context && (
+                    <p>
+                      <strong>Contexte:</strong> {formatContext(error.context)}
+                    </p>
+                  )}
                   <p><strong>Timestamp:</strong> {new Date(error.timestamp).toLocaleString()}</p>
                   <p><strong>ID:</strong> {error.id}</p>
                 </div>
@@ -127,6 +148,3 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
 };
 
 export default NotionErrorManager;
-
-// Import Button component
-import { Button } from '@/components/ui/button';

@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { 
   RetryOperation, 
@@ -103,7 +102,8 @@ class RetryQueueService {
       completedOperations,
       failedOperations,
       totalOperations: this.operations.length,
-      lastProcessedAt: this.lastProcessedAt
+      lastProcessedAt: this.lastProcessedAt,
+      isProcessing: this.isProcessing
     };
   }
   
