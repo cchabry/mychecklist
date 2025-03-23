@@ -18,23 +18,22 @@ export * from './useChecklist';
 export * from './useChecklistAndExigences';
 export * from './useErrorHandling';
 export * from './useErrorReporter';
-export * from './useExigences';
 
-// Hooks d'API
+// Hooks d'API - importations individuelles pour éviter les conflits
 export { 
   useServiceWithCache,
   useServiceWithRetry,
   useOperationQueue
 } from './api';
 
-// Hooks de service pour l'API
-export * from './api/useProjects';
-export * from './api/useAudits';
-export * from './api/useChecklistItem';
-export * from './api/usePages';
-export * from './api/useExigences';
-export * from './api/useEvaluations';
-export * from './api/useActions';
+// Hooks de service pour l'API - importations individuelles pour éviter les conflits
+export { useProjects, useProject, useActiveProjects } from './api/useProjects';
+export { useAudits } from './api/useAudits';
+export { useChecklistItem } from './api/useChecklistItem';
+export { usePages, usePage, usePagesByProject } from './api/usePages';
+export { useExigence, useExigencesByProject } from './api/useExigences';
+export { useEvaluations, useEvaluation, useEvaluationsByAudit, useEvaluationsByPage } from './api/useEvaluations';
+export { useActions, useAction, useActionsByAudit, useActionsByEvaluation } from './api/useActions';
 
 // Hooks pour Notion
 export * from './notion';

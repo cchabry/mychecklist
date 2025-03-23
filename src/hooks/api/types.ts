@@ -10,6 +10,7 @@ export interface QueryOptions {
   immediate?: boolean;
   cacheKey?: string;
   cacheTTL?: number;
+  enabled?: boolean;
   onSuccess?: (data: any) => void;
   onError?: (error: Error) => void;
 }

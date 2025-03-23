@@ -9,5 +9,3 @@ import { QueryFilters } from './types';
 export function useChecklist(filters?: QueryFilters) {
   return useChecklistItem(filters);
 }
-
-export { useChecklistItem };

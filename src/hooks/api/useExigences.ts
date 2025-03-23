@@ -22,10 +22,10 @@ export function useExigences(options = {}) {
 export function useExigence(id: string | undefined, options = {}) {
   return useServiceWithCache<Exigence | null>(
     () => exigencesService.getById(id || ''),
-    [],
+    [id],
     {
-      enabled: !!id,
-      ...options
+      ...options,
+      enabled: !!id
     }
   );
 }
@@ -40,10 +40,10 @@ export function useExigencesByProject(projectId: string | undefined, options = {
       const exigences = await exigencesService.getAll();
       return exigences.filter(exigence => exigence.projectId === projectId);
     },
-    [],
+    [projectId],
     {
-      enabled: !!projectId,
-      ...options
+      ...options,
+      enabled: !!projectId
     }
   );
 }

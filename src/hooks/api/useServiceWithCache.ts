@@ -17,9 +17,9 @@ export interface ServiceWithCacheResult<T> {
  * @param dependencies Les dépendances pour recalculer les données
  * @param options Options de configuration
  */
-export function useServiceWithCache<T, D extends any[] = []>(
-  serviceFunction: (...args: D) => Promise<T>,
-  dependencies: D = [] as unknown as D,
+export function useServiceWithCache<T>(
+  serviceFunction: () => Promise<T>,
+  dependencies: any = [],
   options: QueryOptions = {}
 ): ServiceWithCacheResult<T> {
   const { immediate = true, cacheKey, enabled = true } = options;
@@ -27,8 +27,9 @@ export function useServiceWithCache<T, D extends any[] = []>(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
-  const dependenciesRef = useRef(dependencies);
-  dependenciesRef.current = dependencies;
+  
+  // Convert dependencies to array if it's not already
+  const deps = Array.isArray(dependencies) ? dependencies : [dependencies];
 
   const fetchData = useCallback(async (): Promise<T> => {
     if (!enabled) {
@@ -39,7 +40,7 @@ export function useServiceWithCache<T, D extends any[] = []>(
     setError(null);
 
     try {
-      const result = await serviceFunction(...dependenciesRef.current);
+      const result = await serviceFunction();
       
       if (isMounted.current) {
         setData(result);
@@ -79,7 +80,7 @@ export function useServiceWithCache<T, D extends any[] = []>(
     return () => {
       isMounted.current = false;
     };
-  }, [fetchData, immediate, enabled]);
+  }, [fetchData, immediate, enabled, ...deps]);
 
   return {
     data,

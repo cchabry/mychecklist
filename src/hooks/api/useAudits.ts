@@ -17,6 +17,7 @@ export function useAudits() {
     reload
   } = useServiceWithCache<Audit[]>(
     () => auditsService.getAll(),
+    [],
     {
       cacheKey: 'audits',
       immediate: true

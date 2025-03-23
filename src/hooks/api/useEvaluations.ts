@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export function useEvaluations(filters?: QueryFilters) {
   return useServiceWithCache<Evaluation[]>(
     () => evaluationsService.getAll(filters),
-    [],
+    [filters],
     {
       cacheKey: `evaluations_${JSON.stringify(filters || {})}`
     }
@@ -25,7 +25,7 @@ export function useEvaluations(filters?: QueryFilters) {
 export function useEvaluation(id: string | undefined) {
   return useServiceWithCache<Evaluation | null>(
     () => evaluationsService.getById(id || ''),
-    [],
+    [id],
     {
       cacheKey: `evaluation_${id}`,
       enabled: !!id
@@ -39,7 +39,7 @@ export function useEvaluation(id: string | undefined) {
 export function useEvaluationsByAudit(auditId: string | undefined) {
   return useServiceWithCache<Evaluation[]>(
     () => evaluationsService.getByAuditId(auditId || ''),
-    [],
+    [auditId],
     {
       cacheKey: `evaluations_audit_${auditId}`,
       enabled: !!auditId
@@ -57,7 +57,7 @@ export function useEvaluationsByPage(auditId: string | undefined, pageId: string
       const evaluations = await evaluationsService.getByAuditId(auditId);
       return evaluations.filter(evaluation => evaluation.pageId === pageId);
     },
-    [],
+    [auditId, pageId],
     {
       cacheKey: `evaluations_audit_${auditId}_page_${pageId}`,
       enabled: !!auditId && !!pageId

@@ -6,8 +6,8 @@ export { useServiceWithRetry } from './useServiceWithRetry';
 export { useChecklistItem } from './useChecklistItem';
 export { useChecklist } from './useChecklist';
 
-// Export types from a single source to avoid conflicts
-export * from './types';
+// Export types from individual files
+export type { QueryOptions, QueryFilters } from './types';
 
 // Service hooks
 export * from './useProjects';

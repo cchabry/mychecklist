@@ -24,8 +24,8 @@ export function useProject(id: string | undefined, options = {}) {
     () => projectsService.getById(id || ''),
     [id],
     {
-      enabled: !!id,
-      ...options
+      ...options,
+      enabled: !!id
     }
   );
 }

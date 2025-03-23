@@ -24,8 +24,8 @@ export function usePage(id: string | undefined, options = {}) {
     () => pagesService.getById(id || ''),
     [id],
     {
-      enabled: !!id,
-      ...options
+      ...options,
+      enabled: !!id
     }
   );
 }
@@ -42,8 +42,8 @@ export function usePagesByProject(projectId: string | undefined, options = {}) {
     },
     [projectId],
     {
-      enabled: !!projectId,
-      ...options
+      ...options,
+      enabled: !!projectId
     }
   );
 }
