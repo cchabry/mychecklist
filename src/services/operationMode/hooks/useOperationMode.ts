@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { operationMode } from './operationModeService';
-import { OperationMode, OperationModeSettings } from './types';
+import { operationMode } from '../operationModeService';
+import { OperationMode, OperationModeSettings } from '../types';
 
 /**
  * Hook React pour accéder au système de gestion des modes opérationnels
