@@ -35,7 +35,7 @@ export function useNotionCachedAPI<T>(
   } = options;
   
   const { executeOperation, isLoading: isOperationLoading, error: operationError } = useNotionAPI();
-  const cache = useCache();
+  const cacheManager = useCache();
   
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +58,7 @@ export function useNotionCachedAPI<T>(
       );
       
       // Stocker dans le cache
-      cache.set(fullCacheKey, {
+      cacheManager.setData(fullCacheKey, {
         data: result,
         timestamp: Date.now()
       }, ttl);
@@ -77,7 +77,7 @@ export function useNotionCachedAPI<T>(
         setIsLoading(false);
       }
     }
-  }, [apiFn, fullCacheKey, ttl, cache, executeOperation, apiOptions]);
+  }, [apiFn, fullCacheKey, ttl, cacheManager, executeOperation, apiOptions]);
   
   // Fonction pour recharger les données
   const refresh = useCallback(() => {
@@ -92,7 +92,9 @@ export function useNotionCachedAPI<T>(
   // Effet initial pour charger les données
   useEffect(() => {
     // Vérifier si nous avons des données en cache
-    const cachedEntry = cache.get<{ data: T, timestamp: number }>(fullCacheKey);
+    const cachedEntry = cacheManager.data && typeof cacheManager.data === 'object' && cacheManager.data[fullCacheKey] 
+      ? cacheManager.data[fullCacheKey] as { data: T, timestamp: number }
+      : null;
     
     if (cachedEntry) {
       // Vérifier si les données sont périmées
@@ -111,7 +113,7 @@ export function useNotionCachedAPI<T>(
       // Pas de cache, charger les données
       fetchData();
     }
-  }, [fullCacheKey, staleTime, revalidateOnMount, cache, fetchData, silentRefresh]);
+  }, [fullCacheKey, staleTime, revalidateOnMount, cacheManager, fetchData, silentRefresh]);
   
   return {
     data,
