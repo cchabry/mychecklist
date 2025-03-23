@@ -10,4 +10,4 @@ export { default as ErrorHeader } from './ErrorHeader';
 export { default as ErrorActions } from './ErrorActions';
 export { default as ErrorDiagnostics } from './ErrorDiagnostics';
 export { default as RetryQueueStatus } from './RetryQueueStatus';
-export { default as RetryQueueMonitor } from '../RetryQueueMonitor';
+export { default as RetryQueueMonitor } from './RetryQueueMonitor';
