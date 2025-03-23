@@ -24,3 +24,11 @@ export function temporarilyDisableMock(): void {
 export function temporarilyEnableMock(): void {
   operationMode.setDemoMode(true);
 }
+
+/**
+ * Active le mode mock (compatibilité)
+ * @deprecated Utilisez operationMode.setDemoMode(true) à la place
+ */
+export function enableMock(): void {
+  operationMode.setDemoMode(true);
+}

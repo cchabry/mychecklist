@@ -1,150 +1,151 @@
-import { Exigence, ImportanceLevel } from '@/lib/types';
-import { BaseService } from './baseService';
-import { notionApi } from '@/lib/notionProxy';
-import { QueryFilters } from './types';
 
-/**
- * Service pour la gestion des exigences
- */
-export class ExigencesService extends BaseService<Exigence> {
+import { Exigence } from '@/lib/types';
+import { BaseServiceAbstract } from './BaseServiceAbstract';
+import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
+
+class ExigencesService extends BaseServiceAbstract<Exigence> {
   constructor() {
     super('exigences', {
-      cacheTTL: 10 * 60 * 1000, // 10 minutes
+      cacheTTL: 5 * 60 * 1000 // 5 minutes
     });
   }
   
-  /**
-   * Récupère une exigence par son ID
-   */
   protected async fetchById(id: string): Promise<Exigence | null> {
+    if (operationMode.isDemoMode) {
+      const mockExigences = await import('@/lib/mockData').then(m => m.mockExigences);
+      return mockExigences.find(exigence => exigence.id === id) || null;
+    }
+    
     try {
-      return await notionApi.getExigence(id);
+      const exigence = await notionApi.getExigence(id);
+      return exigence;
     } catch (error) {
-      console.error(`Erreur lors de la récupération de l'exigence #${id}:`, error);
-      return null;
+      console.error(`Erreur lors de la récupération de l'exigence ${id}:`, error);
+      throw error;
     }
   }
   
-  /**
-   * Récupère toutes les exigences
-   */
-  protected async fetchAll(filters?: QueryFilters): Promise<Exigence[]> {
-    try {
-      const exigences = await notionApi.getExigences();
+  protected async fetchAll(filters?: { projectId?: string }): Promise<Exigence[]> {
+    if (operationMode.isDemoMode) {
+      const mockExigences = await import('@/lib/mockData').then(m => m.mockExigences);
       
-      // Appliquer les filtres si nécessaire
-      if (filters && Object.keys(filters).length > 0) {
-        return this.applyFilters(exigences, filters);
+      if (filters?.projectId) {
+        return mockExigences.filter(exigence => exigence.projectId === filters.projectId);
       }
       
+      return mockExigences;
+    }
+    
+    try {
+      const projectId = filters?.projectId;
+      if (!projectId) {
+        throw new Error('L\'ID du projet est requis pour récupérer les exigences');
+      }
+      
+      const exigences = await notionApi.getExigences(projectId);
       return exigences;
     } catch (error) {
       console.error('Erreur lors de la récupération des exigences:', error);
-      return [];
+      throw error;
     }
   }
   
-  /**
-   * Crée une nouvelle exigence
-   */
   protected async createItem(data: Partial<Exigence>): Promise<Exigence> {
-    if (!data.projectId) {
-      throw new Error('L\'ID du projet est requis');
+    if (operationMode.isDemoMode) {
+      const newExigence: Exigence = {
+        id: `exigence_${Date.now()}`,
+        itemId: data.itemId || '',
+        projectId: data.projectId || '',
+        importance: data.importance || 'medium',
+        comment: data.comment || ''
+      };
+      
+      return newExigence;
     }
     
-    if (!data.itemId) {
-      throw new Error('L\'ID de l\'item de checklist est requis');
+    try {
+      if (!data.projectId || !data.itemId) {
+        throw new Error('projectId et itemId sont requis pour créer une exigence');
+      }
+      
+      const exigence = await notionApi.createExigence(data as Exigence);
+      return exigence;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'exigence:', error);
+      throw error;
     }
-    
-    return await notionApi.createExigence({
-      projectId: data.projectId,
-      itemId: data.itemId,
-      importance: data.importance || ImportanceLevel.NA,
-      comment: data.comment || '',
-      ...data
-    });
   }
   
-  /**
-   * Met à jour une exigence existante
-   */
   protected async updateItem(id: string, data: Partial<Exigence>): Promise<Exigence> {
-    const existingExigence = await this.fetchById(id);
-    
-    if (!existingExigence) {
-      throw new Error(`Exigence #${id} non trouvée`);
+    if (operationMode.isDemoMode) {
+      const mockExigences = await import('@/lib/mockData').then(m => m.mockExigences);
+      const exigenceIndex = mockExigences.findIndex(exigence => exigence.id === id);
+      
+      if (exigenceIndex === -1) {
+        throw new Error(`Exigence non trouvée: ${id}`);
+      }
+      
+      const updatedExigence: Exigence = {
+        ...mockExigences[exigenceIndex],
+        ...data
+      };
+      
+      return updatedExigence;
     }
     
-    return await notionApi.updateExigence(id, {
-      ...existingExigence,
-      ...data,
-      id // S'assurer que l'ID reste inchangé
-    });
+    try {
+      const exigence = await notionApi.updateExigence(id, data);
+      return exigence;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'exigence ${id}:`, error);
+      throw error;
+    }
   }
   
-  /**
-   * Supprime une exigence
-   */
   protected async deleteItem(id: string): Promise<boolean> {
-    return await notionApi.deleteExigence(id);
-  }
-  
-  /**
-   * Récupère les exigences pour un projet spécifique
-   */
-  async getByProject(projectId: string): Promise<Exigence[]> {
-    return this.getAll(undefined, { projectId });
-  }
-  
-  /**
-   * Récupère une exigence spécifique par projet et item
-   */
-  async getByProjectAndItem(projectId: string, itemId: string): Promise<Exigence | null> {
-    const exigences = await this.getByProject(projectId);
-    return exigences.find(e => e.itemId === itemId) || null;
-  }
-  
-  /**
-   * Met à jour ou crée une exigence pour un projet et un item
-   */
-  async setExigence(projectId: string, itemId: string, importance: ImportanceLevel, comment: string = ''): Promise<Exigence> {
-    const existing = await this.getByProjectAndItem(projectId, itemId);
+    if (operationMode.isDemoMode) {
+      return true;
+    }
     
-    if (existing) {
-      return this.update(existing.id, { importance, comment });
-    } else {
-      return this.create({
-        projectId,
-        itemId,
-        importance,
-        comment
-      });
+    try {
+      await notionApi.deleteExigence(id);
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de l'exigence ${id}:`, error);
+      throw error;
     }
   }
   
-  /**
-   * Méthode privée pour appliquer des filtres aux exigences
-   */
-  private applyFilters(exigences: Exigence[], filters: QueryFilters): Exigence[] {
-    return exigences.filter(exigence => {
-      // Vérifier chaque filtre
-      return Object.entries(filters).every(([key, value]) => {
-        // Si la valeur du filtre est undefined, ignorer ce filtre
-        if (value === undefined) return true;
-        
-        // @ts-ignore - Nous savons que la clé peut exister sur l'objet
-        const exigenceValue = exigence[key];
-        
-        // Gestion des différents types de valeurs
-        if (Array.isArray(value)) {
-          return value.includes(exigenceValue);
-        }
-        
-        return exigenceValue === value;
-      });
-    });
+  // Méthode spécifique pour mettre à jour les exigences par lot
+  async updateBulkExigences(projectId: string, exigences: Exigence[]): Promise<Exigence[]> {
+    if (operationMode.isDemoMode) {
+      return exigences;
+    }
+    
+    try {
+      // Mettre à jour les exigences existantes
+      const updatePromises = exigences
+        .filter(exigence => exigence.id) // Filtrer celles qui ont un ID (existantes)
+        .map(exigence => this.update(exigence.id, exigence));
+      
+      // Créer les nouvelles exigences
+      const createPromises = exigences
+        .filter(exigence => !exigence.id) // Filtrer celles qui n'ont pas d'ID (nouvelles)
+        .map(exigence => this.create({ ...exigence, projectId }));
+      
+      // Attendre la fin de toutes les opérations
+      const results = await Promise.all([...updatePromises, ...createPromises]);
+      
+      // Invalider la liste
+      this.invalidateList();
+      
+      return results;
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des exigences en masse:', error);
+      throw error;
+    }
   }
 }
 
-// Exporter une instance singleton du service
 export const exigencesService = new ExigencesService();

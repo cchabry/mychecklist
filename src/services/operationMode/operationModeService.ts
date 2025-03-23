@@ -7,6 +7,8 @@ import {
   IOperationModeService
 } from './types';
 import { DEFAULT_SETTINGS } from './constants';
+import { operationModeStorage } from './storage';
+import { operationModeNotifications } from './notifications';
 
 class OperationModeService implements IOperationModeService {
   private mode: OperationMode = OperationMode.REAL;
@@ -58,11 +60,34 @@ class OperationModeService implements IOperationModeService {
     };
   }
   
+  // Alias pour la compatibilité avec l'ancien système
+  public onModeChange(subscriber: (isDemoMode: boolean) => void): () => void {
+    // Adaptateur qui convertit les callbacks de l'ancien format (isDemoMode)
+    // vers le nouveau format (mode, reason)
+    const adapter: OperationModeSubscriber = (mode) => {
+      subscriber(mode === OperationMode.DEMO);
+    };
+    
+    return this.subscribe(adapter);
+  }
+  
+  // Alias pour la compatibilité avec l'ancien système
+  public offModeChange(subscriber: (isDemoMode: boolean) => void): void {
+    // Supprimer tous les abonnements qui correspondent à cette fonction
+    this.subscribers = this.subscribers.filter(s => s !== subscriber);
+  }
+  
   // Méthodes de changement de mode
   public enableDemoMode(reason: SwitchReason = 'Changement manuel'): void {
     if (this.mode !== OperationMode.DEMO) {
       this.mode = OperationMode.DEMO;
       this.switchReason = reason;
+      
+      // Notification de changement
+      if (this.settings.showNotifications) {
+        operationModeNotifications.showModeChangeNotification(OperationMode.DEMO, reason);
+      }
+      
       this.notifySubscribers();
       this.persistState();
     }
@@ -72,6 +97,12 @@ class OperationModeService implements IOperationModeService {
     if (this.mode !== OperationMode.REAL) {
       this.mode = OperationMode.REAL;
       this.switchReason = null;
+      
+      // Notification de changement
+      if (this.settings.showNotifications) {
+        operationModeNotifications.showModeChangeNotification(OperationMode.REAL);
+      }
+      
       this.notifySubscribers();
       this.persistState();
     }
@@ -80,6 +111,20 @@ class OperationModeService implements IOperationModeService {
   public toggle(): void {
     if (this.mode === OperationMode.REAL) {
       this.enableDemoMode('Basculement manuel');
+    } else {
+      this.enableRealMode();
+    }
+  }
+  
+  // Alias pour la compatibilité avec l'ancien système
+  public toggleMode(): void {
+    this.toggle();
+  }
+  
+  // Alias pour la compatibilité avec l'ancien système
+  public setDemoMode(value: boolean): void {
+    if (value) {
+      this.enableDemoMode('Changement manuel');
     } else {
       this.enableRealMode();
     }
@@ -99,7 +144,16 @@ class OperationModeService implements IOperationModeService {
       this.mode === OperationMode.REAL &&
       this.consecutiveFailures >= this.settings.maxConsecutiveFailures
     ) {
-      this.enableDemoMode(`Basculement automatique après ${this.consecutiveFailures} échecs`);
+      const reason = `Basculement automatique après ${this.consecutiveFailures} échecs`;
+      this.enableDemoMode(reason);
+      
+      // Notification spécifique pour le switch automatique
+      if (this.settings.showNotifications) {
+        operationModeNotifications.showAutoSwitchNotification(this.consecutiveFailures);
+      }
+    } else if (this.settings.showNotifications) {
+      // Notification d'erreur standard
+      operationModeNotifications.showConnectionErrorNotification(error, context);
     }
     
     this.notifySubscribers();
@@ -120,6 +174,10 @@ class OperationModeService implements IOperationModeService {
       ...this.settings,
       ...partialSettings
     };
+    
+    // Persister les paramètres
+    operationModeStorage.saveSettings(this.settings);
+    
     this.notifySubscribers();
   }
   
@@ -140,29 +198,19 @@ class OperationModeService implements IOperationModeService {
   
   private persistState(): void {
     if (this.settings.persistentModeStorage) {
-      try {
-        localStorage.setItem('operation_mode', this.mode);
-        localStorage.setItem('operation_mode_reason', this.switchReason || '');
-      } catch (error) {
-        console.error('Erreur lors de la persistance du mode:', error);
-      }
+      operationModeStorage.saveMode(this.mode, this.switchReason);
     }
   }
   
   private loadPersistedState(): void {
-    if (typeof window !== 'undefined') {
-      try {
-        // Récupérer le mode persisté si disponible
-        const persistedMode = localStorage.getItem('operation_mode') as OperationMode | null;
-        const persistedReason = localStorage.getItem('operation_mode_reason') || null;
-        
-        if (persistedMode && Object.values(OperationMode).includes(persistedMode)) {
-          this.mode = persistedMode;
-          this.switchReason = persistedReason;
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement du mode persisté:', error);
-      }
+    // Charger les paramètres
+    this.settings = operationModeStorage.loadSettings();
+    
+    // Charger le mode 
+    if (this.settings.persistentModeStorage) {
+      const { mode, reason } = operationModeStorage.loadMode();
+      this.mode = mode;
+      this.switchReason = reason;
     }
   }
 }

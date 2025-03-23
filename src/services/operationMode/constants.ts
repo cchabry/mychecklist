@@ -2,7 +2,7 @@
 import { OperationModeSettings } from './types';
 
 /**
- * Clés de stockage local pour le mode opérationnel
+ * Clés de stockage pour le mode opérationnel
  */
 export const STORAGE_KEYS = {
   MODE: 'operation_mode',
@@ -15,13 +15,13 @@ export const STORAGE_KEYS = {
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
   showIndicators: true,
-  showDetails: false,
+  showDetails: true,
   showNotifications: true,
   autoSwitchOnFailure: true,
   maxConsecutiveFailures: 3,
-  reconnectInterval: 30000,
+  reconnectInterval: 60 * 1000, // 1 minute
   useCacheInRealMode: true,
   persistentModeStorage: true,
-  simulatedNetworkDelay: 300,
+  simulatedNetworkDelay: 300, // 300ms
   errorSimulationRate: 0
 };

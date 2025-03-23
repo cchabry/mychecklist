@@ -1,158 +1,147 @@
 
 import { ChecklistItem } from '@/lib/types';
-import { BaseService } from './baseService';
-import { notionApi } from '@/lib/notionProxy';
 import { QueryFilters } from './types';
+import { BaseServiceAbstract } from './BaseServiceAbstract';
+import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 
-/**
- * Service pour la gestion des items de checklist
- */
-export class ChecklistService extends BaseService<ChecklistItem> {
+class ChecklistService extends BaseServiceAbstract<ChecklistItem> {
   constructor() {
     super('checklist', {
-      cacheTTL: 30 * 60 * 1000, // 30 minutes (moins fréquemment mis à jour)
+      cacheTTL: 15 * 60 * 1000 // 15 minutes
     });
   }
   
-  /**
-   * Récupère un item de checklist par son ID
-   */
   protected async fetchById(id: string): Promise<ChecklistItem | null> {
+    if (operationMode.isDemoMode) {
+      const mockChecklist = await import('@/lib/mockData').then(m => m.mockChecklist);
+      return mockChecklist.find(item => item.id === id) || null;
+    }
+    
     try {
-      return await notionApi.getChecklistItem(id);
+      const item = await notionApi.getChecklistItem(id);
+      return item;
     } catch (error) {
-      console.error(`Erreur lors de la récupération de l'item de checklist #${id}:`, error);
-      return null;
+      console.error(`Erreur lors de la récupération de l'item ${id}:`, error);
+      throw error;
     }
   }
   
-  /**
-   * Récupère tous les items de checklist
-   */
   protected async fetchAll(filters?: QueryFilters): Promise<ChecklistItem[]> {
-    try {
-      const items = await notionApi.getChecklistItems();
+    if (operationMode.isDemoMode) {
+      const mockChecklist = await import('@/lib/mockData').then(m => m.mockChecklist);
       
-      // Appliquer les filtres si nécessaire
-      if (filters && Object.keys(filters).length > 0) {
-        return this.applyFilters(items, filters);
+      if (filters && filters.category) {
+        return mockChecklist.filter(item => item.category === filters.category);
       }
       
-      return items;
+      return mockChecklist;
+    }
+    
+    try {
+      const checklist = await notionApi.getChecklistItems(filters);
+      return checklist;
     } catch (error) {
-      console.error('Erreur lors de la récupération des items de checklist:', error);
-      return [];
+      console.error('Erreur lors de la récupération de la checklist:', error);
+      throw error;
     }
   }
   
-  /**
-   * Crée un nouvel item de checklist
-   */
   protected async createItem(data: Partial<ChecklistItem>): Promise<ChecklistItem> {
-    if (!data.consigne) {
-      throw new Error('La consigne est requise');
+    if (operationMode.isDemoMode) {
+      const newItem: ChecklistItem = {
+        id: `item_${Date.now()}`,
+        title: data.title || 'Nouvel item',
+        description: data.description || '',
+        category: data.category || 'Autres',
+        subcategory: data.subcategory || '',
+        references: data.references || [],
+        profiles: data.profiles || [],
+        phases: data.phases || [],
+        effort: data.effort || 'medium',
+        priority: data.priority || 'medium'
+      };
+      
+      return newItem;
     }
     
-    return await notionApi.createChecklistItem({
-      consigne: data.consigne,
-      description: data.description || '',
-      category: data.category || '',
-      subcategory: data.subcategory || '',
-      ...data
-    });
+    try {
+      const item = await notionApi.createChecklistItem(data);
+      return item;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'item:', error);
+      throw error;
+    }
   }
   
-  /**
-   * Met à jour un item de checklist existant
-   */
   protected async updateItem(id: string, data: Partial<ChecklistItem>): Promise<ChecklistItem> {
-    const existingItem = await this.fetchById(id);
-    
-    if (!existingItem) {
-      throw new Error(`Item de checklist #${id} non trouvé`);
+    if (operationMode.isDemoMode) {
+      const mockChecklist = await import('@/lib/mockData').then(m => m.mockChecklist);
+      const itemIndex = mockChecklist.findIndex(item => item.id === id);
+      
+      if (itemIndex === -1) {
+        throw new Error(`Item non trouvé: ${id}`);
+      }
+      
+      const updatedItem: ChecklistItem = {
+        ...mockChecklist[itemIndex],
+        ...data
+      };
+      
+      return updatedItem;
     }
     
-    return await notionApi.updateChecklistItem(id, {
-      ...existingItem,
-      ...data,
-      id // S'assurer que l'ID reste inchangé
-    });
+    try {
+      const item = await notionApi.updateChecklistItem(id, data);
+      return item;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'item ${id}:`, error);
+      throw error;
+    }
   }
   
-  /**
-   * Supprime un item de checklist
-   */
   protected async deleteItem(id: string): Promise<boolean> {
-    return await notionApi.deleteChecklistItem(id);
+    if (operationMode.isDemoMode) {
+      return true;
+    }
+    
+    try {
+      await notionApi.deleteChecklistItem(id);
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de l'item ${id}:`, error);
+      throw error;
+    }
   }
   
-  /**
-   * Récupère les items de checklist par catégorie
-   */
-  async getByCategory(category: string): Promise<ChecklistItem[]> {
-    return this.getAll(undefined, { category });
-  }
-  
-  /**
-   * Récupère les catégories distinctes
-   */
   async getCategories(): Promise<string[]> {
     const items = await this.getAll();
-    const categories = new Set<string>();
+    const categories = [...new Set(items.map(item => item.category))].sort();
+    return categories;
+  }
+  
+  async getCategoriesWithSubcategories(): Promise<Record<string, string[]>> {
+    const items = await this.getAll();
+    
+    const result: Record<string, string[]> = {};
     
     items.forEach(item => {
-      if (item.category) {
-        categories.add(item.category);
+      if (!result[item.category]) {
+        result[item.category] = [];
+      }
+      
+      if (item.subcategory && !result[item.category].includes(item.subcategory)) {
+        result[item.category].push(item.subcategory);
       }
     });
     
-    return Array.from(categories).sort();
-  }
-  
-  /**
-   * Récupère les sous-catégories distinctes pour une catégorie
-   */
-  async getSubcategories(category?: string): Promise<string[]> {
-    const items = category ? await this.getByCategory(category) : await this.getAll();
-    const subcategories = new Set<string>();
-    
-    items.forEach(item => {
-      if (item.subcategory) {
-        subcategories.add(item.subcategory);
-      }
+    // Tri des sous-catégories
+    Object.keys(result).forEach(category => {
+      result[category].sort();
     });
     
-    return Array.from(subcategories).sort();
-  }
-  
-  /**
-   * Méthode privée pour appliquer des filtres aux items de checklist
-   */
-  private applyFilters(items: ChecklistItem[], filters: QueryFilters): ChecklistItem[] {
-    return items.filter(item => {
-      // Vérifier chaque filtre
-      return Object.entries(filters).every(([key, value]) => {
-        // Si la valeur du filtre est undefined, ignorer ce filtre
-        if (value === undefined) return true;
-        
-        // @ts-ignore - Nous savons que la clé peut exister sur l'objet
-        const itemValue = item[key];
-        
-        // Gestion des différents types de valeurs
-        if (Array.isArray(value)) {
-          return value.includes(itemValue);
-        }
-        
-        // Pour les références et autres tableaux dans l'item
-        if (Array.isArray(itemValue) && typeof value === 'string') {
-          return itemValue.includes(value);
-        }
-        
-        return itemValue === value;
-      });
-    });
+    return result;
   }
 }
 
-// Exporter une instance singleton du service
 export const checklistService = new ChecklistService();

@@ -1,118 +1,80 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { cacheService } from '@/services/cache/cache';
-import { useOperationModeListener } from '@/hooks/useOperationModeListener';
+import { useCache } from '@/hooks/cache/useCache';
 
-export interface CacheOptions {
-  enabled?: boolean;
-  ttl?: number;
-  forceRefresh?: boolean;
-  staleWhileRevalidate?: boolean;
-  onError?: (error: Error) => void;
-  onSuccess?: (data: any) => void;
-}
-
+/**
+ * Hook pour utiliser un service avec mise en cache
+ */
 export function useServiceWithCache<T>(
-  serviceMethod: (...args: any[]) => Promise<T>,
-  dependencies: any[] = [],
-  options: CacheOptions = {}
+  fetchFn: () => Promise<T>,
+  cacheKey: string,
+  options?: {
+    invalidateOn?: string[];
+    enabled?: boolean;
+    ttl?: number;
+  }
 ) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
-  const { isDemoMode } = useOperationModeListener();
-
-  const {
-    enabled = true,
-    ttl = 5 * 60 * 1000, // 5 minutes par défaut
-    forceRefresh = false,
-    staleWhileRevalidate = true,
-    onError,
-    onSuccess
-  } = options;
-
-  // Générer une clé de cache basée sur le nom de la méthode et les dépendances
-  const getCacheKey = useCallback(() => {
-    const methodName = serviceMethod.name || 'unknownMethod';
-    const depsString = dependencies.map(dep => 
-      typeof dep === 'object' ? JSON.stringify(dep) : String(dep)
-    ).join('-');
-    return `${methodName}:${depsString}`;
-  }, [serviceMethod, dependencies]);
-
-  // Fonction pour exécuter le service
-  const fetchData = useCallback(async (skipCache = false) => {
-    const cacheKey = getCacheKey();
+  
+  const { getCache, setCache, invalidateCache } = useCache();
+  
+  const fetch = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      // Vérifier le cache si on ne force pas un refresh
-      if (!skipCache && !forceRefresh) {
-        const cachedData = cacheService.get(cacheKey);
-        if (cachedData) {
-          setData(cachedData);
+      // Essayer de récupérer depuis le cache
+      if (!forceRefresh) {
+        const cached = getCache<T>(cacheKey);
+        if (cached) {
+          setData(cached);
           setIsLoading(false);
-          
-          if (onSuccess) {
-            onSuccess(cachedData);
-          }
-          
-          // Si staleWhileRevalidate est activé, mettre à jour les données en arrière-plan
-          if (staleWhileRevalidate) {
-            setTimeout(() => fetchData(true), 0);
-          }
-          
-          return;
+          return cached;
         }
       }
-
-      // Appeler le service avec les dépendances
-      const result = await serviceMethod(...dependencies);
       
-      // Mettre en cache les résultats
-      if (result && cacheKey) {
-        cacheService.set(cacheKey, result, ttl);
-      }
+      // Récupérer les données
+      const result = await fetchFn();
       
+      // Mettre en cache
+      setCache(cacheKey, result, options?.ttl);
+      
+      // Mettre à jour l'état
       setData(result);
       
-      if (onSuccess) {
-        onSuccess(result);
-      }
+      return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
-      
-      if (onError) {
-        onError(error);
-      }
+      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [
-    serviceMethod, 
-    dependencies, 
-    getCacheKey, 
-    forceRefresh, 
-    staleWhileRevalidate,
-    ttl,
-    onSuccess,
-    onError
-  ]);
-
-  // Rafraîchir les données lorsque les dépendances changent
+  }, [fetchFn, cacheKey, getCache, setCache, options?.ttl]);
+  
+  const invalidate = useCallback(() => {
+    invalidateCache(cacheKey);
+  }, [invalidateCache, cacheKey]);
+  
+  const refresh = useCallback(() => {
+    return fetch(true);
+  }, [fetch]);
+  
+  // Charger les données au montage si activé
   useEffect(() => {
-    if (enabled) {
-      fetchData();
+    if (options?.enabled !== false) {
+      fetch();
     }
-  }, [enabled, fetchData, ...dependencies, isDemoMode]);
-
+  }, [fetch, options?.enabled]);
+  
   return {
     data,
     isLoading,
     error,
-    refetch: () => fetchData(true),
-    clearCache: () => cacheService.remove(getCacheKey())
+    fetch,
+    refresh,
+    invalidate
   };
 }

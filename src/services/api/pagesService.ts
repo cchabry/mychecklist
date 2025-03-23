@@ -1,122 +1,143 @@
 
-import { SamplePage } from '@/lib/types';
-import { BaseService } from './baseService';
-import { notionApi } from '@/lib/notionProxy';
+import { Page } from '@/lib/types';
 import { QueryFilters } from './types';
+import { BaseServiceAbstract } from './BaseServiceAbstract';
+import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 
-/**
- * Service pour la gestion des pages d'échantillon
- */
-export class PagesService extends BaseService<SamplePage> {
+class PagesService extends BaseServiceAbstract<Page> {
   constructor() {
     super('pages', {
-      cacheTTL: 15 * 60 * 1000, // 15 minutes
+      cacheTTL: 5 * 60 * 1000 // 5 minutes
     });
   }
   
-  /**
-   * Récupère une page par son ID
-   */
-  protected async fetchById(id: string): Promise<SamplePage | null> {
+  protected async fetchById(id: string): Promise<Page | null> {
+    if (operationMode.isDemoMode) {
+      const mockPages = await import('@/lib/mockData').then(m => m.mockPages);
+      return mockPages.find(page => page.id === id) || null;
+    }
+    
     try {
-      return await notionApi.getSamplePage(id);
+      const page = await notionApi.getSamplePage(id);
+      return page;
     } catch (error) {
-      console.error(`Erreur lors de la récupération de la page #${id}:`, error);
-      return null;
+      console.error(`Erreur lors de la récupération de la page ${id}:`, error);
+      throw error;
     }
   }
   
-  /**
-   * Récupère toutes les pages
-   */
-  protected async fetchAll(filters?: QueryFilters): Promise<SamplePage[]> {
-    try {
-      const pages = await notionApi.getSamplePages();
+  protected async fetchAll(filters?: QueryFilters): Promise<Page[]> {
+    if (operationMode.isDemoMode) {
+      const mockPages = await import('@/lib/mockData').then(m => m.mockPages);
       
-      // Appliquer les filtres si nécessaire
-      if (filters && Object.keys(filters).length > 0) {
-        return this.applyFilters(pages, filters);
+      if (filters?.projectId) {
+        return mockPages.filter(page => page.projectId === filters.projectId);
       }
       
+      return mockPages;
+    }
+    
+    try {
+      const projectId = filters?.projectId;
+      if (!projectId) {
+        return [];
+      }
+      
+      const pages = await notionApi.getSamplePages(projectId);
       return pages;
     } catch (error) {
       console.error('Erreur lors de la récupération des pages:', error);
-      return [];
+      throw error;
     }
   }
   
-  /**
-   * Crée une nouvelle page
-   */
-  protected async createItem(data: Partial<SamplePage>): Promise<SamplePage> {
-    if (!data.projectId) {
-      throw new Error('L\'ID du projet est requis');
-    }
-    
-    if (!data.url) {
-      throw new Error('L\'URL de la page est requise');
-    }
-    
-    return await notionApi.createSamplePage({
-      projectId: data.projectId,
-      url: data.url,
-      title: data.title || '',
-      description: data.description || '',
-      order: data.order || 0,
-      ...data
-    });
-  }
-  
-  /**
-   * Met à jour une page existante
-   */
-  protected async updateItem(id: string, data: Partial<SamplePage>): Promise<SamplePage> {
-    const existingPage = await this.fetchById(id);
-    
-    if (!existingPage) {
-      throw new Error(`Page #${id} non trouvée`);
-    }
-    
-    return await notionApi.updateSamplePage(id, {
-      ...existingPage,
-      ...data,
-      id // S'assurer que l'ID reste inchangé
-    });
-  }
-  
-  /**
-   * Supprime une page
-   */
-  protected async deleteItem(id: string): Promise<boolean> {
-    return await notionApi.deleteSamplePage(id);
-  }
-  
-  /**
-   * Récupère les pages pour un projet spécifique
-   */
-  async getByProject(projectId: string): Promise<SamplePage[]> {
-    return this.getAll(undefined, { projectId });
-  }
-  
-  /**
-   * Réorganise l'ordre des pages
-   */
-  async reorderPages(projectId: string, newOrder: string[]): Promise<boolean> {
-    try {
-      const pages = await this.getByProject(projectId);
+  protected async createItem(data: Partial<Page>): Promise<Page> {
+    if (operationMode.isDemoMode) {
+      const newPage: Page = {
+        id: `page_${Date.now()}`,
+        url: data.url || '',
+        title: data.title || 'Nouvelle page',
+        description: data.description || '',
+        projectId: data.projectId || '',
+        order: data.order || 0
+      };
       
-      // Mettre à jour l'ordre de chaque page
-      const updatePromises = newOrder.map((id, index) => {
-        const page = pages.find(p => p.id === id);
-        if (page) {
-          return this.update(id, { order: index });
-        }
-        return Promise.resolve(null);
-      });
+      return newPage;
+    }
+    
+    try {
+      if (!data.projectId || !data.url) {
+        throw new Error('projectId et url sont requis pour créer une page');
+      }
+      
+      const page = await notionApi.createSamplePage(data as Page);
+      
+      // Invalider le cache des pages pour ce projet
+      this.invalidateList();
+      
+      return page;
+    } catch (error) {
+      console.error('Erreur lors de la création de la page:', error);
+      throw error;
+    }
+  }
+  
+  protected async updateItem(id: string, data: Partial<Page>): Promise<Page> {
+    if (operationMode.isDemoMode) {
+      const mockPages = await import('@/lib/mockData').then(m => m.mockPages);
+      const pageIndex = mockPages.findIndex(page => page.id === id);
+      
+      if (pageIndex === -1) {
+        throw new Error(`Page non trouvée: ${id}`);
+      }
+      
+      const updatedPage: Page = {
+        ...mockPages[pageIndex],
+        ...data
+      };
+      
+      return updatedPage;
+    }
+    
+    try {
+      const page = await notionApi.updateSamplePage(id, data);
+      return page;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de la page ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  protected async deleteItem(id: string): Promise<boolean> {
+    if (operationMode.isDemoMode) {
+      return true;
+    }
+    
+    try {
+      await notionApi.deleteSamplePage(id);
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de la page ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  // Méthode spécifique pour réordonner les pages
+  async reorderPages(projectId: string, pageIds: string[]): Promise<boolean> {
+    if (operationMode.isDemoMode) {
+      return true;
+    }
+    
+    try {
+      // Mettre à jour chaque page avec son nouvel ordre
+      const updatePromises = pageIds.map((id, index) => 
+        this.update(id, { order: index })
+      );
       
       await Promise.all(updatePromises);
       
-      // Invalider les caches
+      // Invalider le cache
       this.invalidateList();
       
       return true;
@@ -125,30 +146,6 @@ export class PagesService extends BaseService<SamplePage> {
       return false;
     }
   }
-  
-  /**
-   * Méthode privée pour appliquer des filtres aux pages
-   */
-  private applyFilters(pages: SamplePage[], filters: QueryFilters): SamplePage[] {
-    return pages.filter(page => {
-      // Vérifier chaque filtre
-      return Object.entries(filters).every(([key, value]) => {
-        // Si la valeur du filtre est undefined, ignorer ce filtre
-        if (value === undefined) return true;
-        
-        // @ts-ignore - Nous savons que la clé peut exister sur l'objet
-        const pageValue = page[key];
-        
-        // Gestion des différents types de valeurs
-        if (Array.isArray(value)) {
-          return value.includes(pageValue);
-        }
-        
-        return pageValue === value;
-      });
-    });
-  }
 }
 
-// Exporter une instance singleton du service
 export const pagesService = new PagesService();

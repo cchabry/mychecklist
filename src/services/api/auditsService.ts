@@ -1,137 +1,115 @@
 
 import { Audit } from '@/lib/types';
-import { BaseService } from './baseService';
-import { notionApi } from '@/lib/notionProxy';
 import { QueryFilters } from './types';
+import { BaseServiceAbstract } from './BaseServiceAbstract';
+import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 
-/**
- * Service pour la gestion des audits
- */
-export class AuditsService extends BaseService<Audit> {
+class AuditsService extends BaseServiceAbstract<Audit> {
   constructor() {
     super('audits', {
-      cacheTTL: 5 * 60 * 1000, // 5 minutes
+      cacheTTL: 5 * 60 * 1000 // 5 minutes
     });
   }
   
-  /**
-   * Récupère un audit par son ID
-   */
   protected async fetchById(id: string): Promise<Audit | null> {
+    if (operationMode.isDemoMode) {
+      const mockAudits = await import('@/lib/mockData').then(m => m.mockAudits);
+      return mockAudits.find(audit => audit.id === id) || null;
+    }
+    
     try {
-      return await notionApi.getAudit(id);
+      const audit = await notionApi.getAudit(id);
+      return audit;
     } catch (error) {
-      console.error(`Erreur lors de la récupération de l'audit #${id}:`, error);
-      return null;
+      console.error(`Erreur lors de la récupération de l'audit ${id}:`, error);
+      throw error;
     }
   }
   
-  /**
-   * Récupère tous les audits
-   */
   protected async fetchAll(filters?: QueryFilters): Promise<Audit[]> {
-    try {
-      const audits = await notionApi.getAudits();
+    if (operationMode.isDemoMode) {
+      const mockAudits = await import('@/lib/mockData').then(m => m.mockAudits);
       
-      // Appliquer les filtres si nécessaire
-      if (filters && Object.keys(filters).length > 0) {
-        return this.applyFilters(audits, filters);
+      if (filters && filters.projectId) {
+        return mockAudits.filter(audit => audit.projectId === filters.projectId);
       }
       
+      return mockAudits;
+    }
+    
+    try {
+      const audits = await notionApi.getAudits(filters?.projectId);
       return audits;
     } catch (error) {
       console.error('Erreur lors de la récupération des audits:', error);
-      return [];
+      throw error;
     }
   }
   
-  /**
-   * Crée un nouvel audit
-   */
   protected async createItem(data: Partial<Audit>): Promise<Audit> {
-    if (!data.projectId) {
-      throw new Error('L\'ID du projet est requis');
+    if (operationMode.isDemoMode) {
+      const newAudit: Audit = {
+        id: `audit_${Date.now()}`,
+        name: data.name || 'Nouvel audit',
+        projectId: data.projectId || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: data.status || 'En cours'
+      };
+      
+      return newAudit;
     }
     
-    return await notionApi.createAudit({
-      name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
-      projectId: data.projectId,
-      ...data
-    });
+    try {
+      const audit = await notionApi.createAudit(data);
+      return audit;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'audit:', error);
+      throw error;
+    }
   }
   
-  /**
-   * Met à jour un audit existant
-   */
   protected async updateItem(id: string, data: Partial<Audit>): Promise<Audit> {
-    const existingAudit = await this.fetchById(id);
-    
-    if (!existingAudit) {
-      throw new Error(`Audit #${id} non trouvé`);
+    if (operationMode.isDemoMode) {
+      const mockAudits = await import('@/lib/mockData').then(m => m.mockAudits);
+      const auditIndex = mockAudits.findIndex(audit => audit.id === id);
+      
+      if (auditIndex === -1) {
+        throw new Error(`Audit non trouvé: ${id}`);
+      }
+      
+      const updatedAudit: Audit = {
+        ...mockAudits[auditIndex],
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+      
+      return updatedAudit;
     }
     
-    return await notionApi.updateAudit(id, {
-      ...existingAudit,
-      ...data,
-      id // S'assurer que l'ID reste inchangé
-    });
+    try {
+      const audit = await notionApi.updateAudit(id, data);
+      return audit;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'audit ${id}:`, error);
+      throw error;
+    }
   }
   
-  /**
-   * Supprime un audit
-   */
   protected async deleteItem(id: string): Promise<boolean> {
-    return await notionApi.deleteAudit(id);
-  }
-  
-  /**
-   * Récupère les audits pour un projet spécifique
-   */
-  async getByProject(projectId: string): Promise<Audit[]> {
-    return this.getAll(undefined, { projectId });
-  }
-  
-  /**
-   * Récupère le dernier audit pour un projet
-   */
-  async getLatestByProject(projectId: string): Promise<Audit | null> {
-    const audits = await this.getByProject(projectId);
-    
-    if (audits.length === 0) {
-      return null;
+    if (operationMode.isDemoMode) {
+      return true;
     }
     
-    // Trier les audits par date (du plus récent au plus ancien)
-    return audits.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB.getTime() - dateA.getTime();
-    })[0];
-  }
-  
-  /**
-   * Méthode privée pour appliquer des filtres aux audits
-   */
-  private applyFilters(audits: Audit[], filters: QueryFilters): Audit[] {
-    return audits.filter(audit => {
-      // Vérifier chaque filtre
-      return Object.entries(filters).every(([key, value]) => {
-        // Si la valeur du filtre est undefined, ignorer ce filtre
-        if (value === undefined) return true;
-        
-        // @ts-ignore - Nous savons que la clé peut exister sur l'objet
-        const auditValue = audit[key];
-        
-        // Gestion des différents types de valeurs
-        if (Array.isArray(value)) {
-          return value.includes(auditValue);
-        }
-        
-        return auditValue === value;
-      });
-    });
+    try {
+      await notionApi.deleteAudit(id);
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de l'audit ${id}:`, error);
+      throw error;
+    }
   }
 }
 
-// Exporter une instance singleton du service
 export const auditsService = new AuditsService();

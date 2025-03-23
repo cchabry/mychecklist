@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
 import { handleNotionError } from '@/lib/notionProxy/errorHandling';
+import { operationMode } from '@/services/operationMode';
 
 interface RequestOptions<T, R> {
   onSuccess?: (data: R) => void;
@@ -33,8 +34,8 @@ export function useNotionRequest<T = unknown>() {
     setError(null);
     
     try {
-      // Vérifier si nous sommes en mode mock et si une réponse mock est fournie
-      if (notionApi.mockMode.isActive() && mockResponse !== undefined) {
+      // Vérifier si nous sommes en mode démo et si une réponse mock est fournie
+      if (operationMode.isDemoMode && mockResponse !== undefined) {
         // Simuler un délai pour l'expérience utilisateur
         await new Promise(resolve => setTimeout(resolve, 300));
         
@@ -50,6 +51,9 @@ export function useNotionRequest<T = unknown>() {
       
       const result = await requestFn();
       
+      // Signaler une opération réussie
+      operationMode.handleSuccessfulOperation();
+      
       if (successMessage) {
         toast.success(successMessage);
       }
@@ -63,6 +67,9 @@ export function useNotionRequest<T = unknown>() {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
+      
+      // Signaler une opération échouée
+      operationMode.handleConnectionError(error, 'API Notion');
       
       // Utiliser le service de gestion d'erreur
       handleNotionError(error, errorMessage);

@@ -4,8 +4,26 @@ export * from './useErrorHandling';
 export * from './useRecoveryStrategies';
 export * from './useErrorReporter';
 
-// Hooks pour l'API et le cache
-export * from './api';
+// Hooks pour l'API et le cache (sauf imports en conflit)
+export {
+  useActions,
+  useAudits,
+  useChecklist,
+  useEvaluations,
+  useExigences,
+  usePages,
+  useProjects,
+  useServiceWithCache
+} from './api';
+
+// Custom re-export pour résoudre les conflits de RetryOptions et RetryStrategy
+export {
+  useOperationQueue,
+  useOperationRetry,
+  OperationQueueOptions,
+  RetryStatus,
+  type Operation
+} from './api';
 
 // Hooks pour Notion
 export * from './notion';
