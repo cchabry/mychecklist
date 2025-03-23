@@ -1,53 +1,82 @@
 
 /**
- * Types pour le système de gestion des erreurs Notion
+ * Types d'erreurs Notion
  */
-
-// Types d'erreurs possibles
 export enum NotionErrorType {
-  NETWORK = 'network',
-  AUTH = 'auth',
-  PERMISSION = 'permission',
-  RATE_LIMIT = 'rate_limit',
-  VALIDATION = 'validation',
+  API = 'api',
+  CORS = 'cors',
   DATABASE = 'database',
+  AUTHENTICATION = 'authentication',
+  NETWORK = 'network',
   UNKNOWN = 'unknown'
 }
 
-// Niveaux de gravité
-export enum NotionErrorSeverity {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical'
-}
-
-// Structure d'une erreur Notion enrichie
-export interface NotionError extends Error {
-  // Propriétés standard Error
-  name: string;
+/**
+ * Structure d'une erreur Notion enrichie
+ */
+export interface NotionError {
+  id: string;
+  timestamp: number;
   message: string;
-  stack?: string;
-  
-  // Propriétés spécifiques Notion
   type: NotionErrorType;
-  severity: NotionErrorSeverity;
-  context: Record<string, any>;
-  timestamp: Date;
-  recoverable: boolean;
-  recoveryActions: string[];
-  cause?: Error;
+  operation?: string;
+  context?: string;
+  originError?: Error;
+  details?: any;
+  retryable?: boolean;
 }
 
-// Options pour la création d'erreurs
-export interface NotionErrorOptions {
+/**
+ * Paramètres pour rapporter une erreur
+ */
+export interface ReportErrorOptions {
+  operation?: string;
+  context?: string;
   type?: NotionErrorType;
-  severity?: NotionErrorSeverity;
-  cause?: Error;
-  context?: Record<string, any>;
-  recoverable?: boolean;
-  recoveryActions?: string[];
+  details?: any;
+  retryable?: boolean;
 }
 
-// Type pour les abonnés aux erreurs
-export type NotionErrorSubscriber = (error: NotionError) => void;
+/**
+ * Structure pour les abonnés aux erreurs
+ */
+export interface ErrorSubscriber {
+  id: string;
+  callback: (errors: NotionError[]) => void;
+}
+
+/**
+ * Structure pour les opérations de retry
+ */
+export interface RetryOperation {
+  id: string;
+  timestamp: number;
+  operation: string;
+  context?: string;
+  retryFn: () => Promise<any>;
+  maxRetries: number;
+  currentRetries: number;
+  lastError?: Error;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+}
+
+/**
+ * Statistiques de la file d'attente de retry
+ */
+export interface RetryQueueStats {
+  pendingOperations: number;
+  completedOperations: number;
+  failedOperations: number;
+  totalOperations: number;
+  lastProcessedAt: number | null;
+}
+
+/**
+ * Callbacks pour la file d'attente de retry
+ */
+export interface RetryQueueCallbacks {
+  onSuccess?: (operation: RetryOperation) => void;
+  onFailure?: (operation: RetryOperation, error: Error) => void;
+  onProcessingStart?: () => void;
+  onProcessingComplete?: (stats: RetryQueueStats) => void;
+}

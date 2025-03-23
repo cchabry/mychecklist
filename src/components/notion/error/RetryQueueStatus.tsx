@@ -37,7 +37,7 @@ const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
         {showButton && (
           <Button
             variant="ghost"
-            size="xs"
+            size="sm"
             onClick={handleProcess}
             disabled={isProcessing}
             className="h-6 px-2"

@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { notionErrorService } from '@/services/notion/errorHandling';
-import { NotionError } from '@/services/notion/errorHandling';
+import { notionErrorService, NotionError } from '@/services/notion/errorHandling';
 
 // Types pour les options de l'API Notion
 export interface NotionAPIOptions<T = any> {

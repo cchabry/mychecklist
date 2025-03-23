@@ -1,164 +1,210 @@
 
-import React from 'react';
-import { NotionError, NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { 
+  AlertCircle, 
+  XCircle, 
+  AlertTriangle, 
+  RefreshCw, 
+  ServerCrash,
+  Database,
+  FileWarning,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Clock, FileText, RefreshCw, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { notionErrorService, NotionErrorType } from '@/services/notion/errorHandling';
+import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
 
 interface NotionErrorDetailsProps {
-  error: NotionError;
-  onClose?: () => void;
+  error?: string | Error;
+  context?: string;
+  isOpen: boolean;
+  onClose: () => void;
   onRetry?: () => void;
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  }>;
 }
 
-const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
-  error,
+const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ 
+  error, 
+  context, 
+  isOpen, 
   onClose,
-  onRetry
+  onRetry,
+  actions = []
 }) => {
-  // Formatter la date
-  const formattedDate = error.timestamp 
-    ? new Date(error.timestamp).toLocaleString() 
-    : 'Date inconnue';
+  const { enqueueOperation } = useRetryQueue();
+  const [showDetails, setShowDetails] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   
-  // Déterminer la couleur selon la sévérité
-  const getSeverityColor = () => {
-    switch (error.severity) {
-      case NotionErrorSeverity.ERROR:
-        return 'text-red-600';
-      case NotionErrorSeverity.WARNING:
-        return 'text-amber-600';
-      case NotionErrorSeverity.INFO:
-        return 'text-blue-600';
+  if (!error) return null;
+  
+  const errorObj = typeof error === 'string' ? { message: error } : error;
+  const errorMessage = errorObj.message || 'Erreur inconnue';
+  
+  const getErrorIcon = (type?: string) => {
+    switch (type) {
+      case NotionErrorType.API:
+        return <ServerCrash className="h-5 w-5 text-red-500" />;
+      case NotionErrorType.CORS:
+        return <FileWarning className="h-5 w-5 text-amber-500" />;
+      case NotionErrorType.DATABASE:
+        return <Database className="h-5 w-5 text-amber-500" />;
       default:
-        return 'text-slate-600';
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
     }
   };
   
-  // Obtenir le libellé du type d'erreur
-  const getErrorTypeLabel = () => {
-    switch (error.type) {
-      case NotionErrorType.AUTH:
-        return 'Authentification';
-      case NotionErrorType.NETWORK:
-        return 'Réseau';
-      case NotionErrorType.RATE_LIMIT:
-        return 'Limite d\'API';
-      case NotionErrorType.PERMISSION:
-        return 'Permission';
-      case NotionErrorType.DATABASE:
-        return 'Base de données';
-      case NotionErrorType.VALIDATION:
-        return 'Validation';
-      case NotionErrorType.SERVER:
-        return 'Serveur';
-      default:
-        return 'Inconnue';
+  const handleRetry = async () => {
+    if (!onRetry) return;
+    
+    setIsRetrying(true);
+    try {
+      await onRetry();
+      onClose();
+    } catch (err) {
+      console.error('Retry failed:', err);
+    } finally {
+      setIsRetrying(false);
     }
+  };
+  
+  // Traiter les formats d'erreur potentiellement complexes
+  const formatErrorDetails = (errorDetails: unknown): React.ReactNode => {
+    if (!errorDetails) return null;
+    
+    if (typeof errorDetails === 'string') {
+      try {
+        // Essayer de parser si c'est une chaîne JSON
+        const parsed = JSON.parse(errorDetails);
+        return (
+          <pre className="text-xs overflow-auto p-2 bg-gray-50 border rounded max-h-40">
+            {JSON.stringify(parsed, null, 2)}
+          </pre>
+        );
+      } catch (e) {
+        // Si ce n'est pas un JSON, afficher comme texte
+        return <p className="text-xs text-gray-600">{errorDetails}</p>;
+      }
+    }
+    
+    // Si c'est déjà un objet, le formatter
+    return (
+      <pre className="text-xs overflow-auto p-2 bg-gray-50 border rounded max-h-40">
+        {JSON.stringify(errorDetails, null, 2)}
+      </pre>
+    );
+  };
+
+  // Gérer les actions personnalisées
+  const renderActions = () => {
+    if (!actions || actions.length === 0) return null;
+    
+    return actions.map((actionItem, index) => (
+      <Button
+        key={index}
+        variant={actionItem.variant || 'outline'}
+        size="sm"
+        onClick={actionItem.onClick}
+      >
+        {actionItem.label}
+      </Button>
+    ));
   };
   
   return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center">
-            <AlertTriangle className={`mr-2 h-5 w-5 ${getSeverityColor()}`} />
-            <CardTitle className="text-lg">{error.message}</CardTitle>
-          </div>
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div>
-            <div className="text-xs font-medium text-slate-500 mb-1">Type d'erreur</div>
-            <div className="text-sm">{getErrorTypeLabel()}</div>
-          </div>
-          
-          <div>
-            <div className="text-xs font-medium text-slate-500 mb-1">Récupérable</div>
-            <div className="text-sm">
-              {error.recoverable ? 'Oui' : 'Non'}
-            </div>
-          </div>
-          
-          <div>
-            <div className="text-xs font-medium text-slate-500 mb-1">Date</div>
-            <div className="text-sm flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
-              {formattedDate}
-            </div>
-          </div>
-          
-          <div>
-            <div className="text-xs font-medium text-slate-500 mb-1">Contexte</div>
-            <div className="text-sm">
-              {error.context && typeof error.context === 'object' 
-                ? Object.keys(error.context).length > 0 
-                  ? 'Voir détails'
-                  : 'Aucun contexte'
-                : error.context || 'Aucun contexte'}
-            </div>
-          </div>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {getErrorIcon()}
+            <span>Erreur d'interaction avec Notion</span>
+          </DialogTitle>
+          <DialogDescription>
+            {errorMessage}
+          </DialogDescription>
+        </DialogHeader>
         
-        {error.stack && (
-          <div className="mt-4">
-            <div className="text-xs font-medium text-slate-500 mb-1">Trace d'erreur</div>
-            <div className="text-xs font-mono bg-slate-50 p-2 rounded border overflow-x-auto max-h-32 overflow-y-auto">
-              {error.stack}
-            </div>
+        {context && (
+          <div className="py-2">
+            <p className="text-sm text-muted-foreground">Contexte: {context}</p>
           </div>
         )}
         
-        {error.context && typeof error.context === 'object' && Object.keys(error.context).length > 0 && (
-          <div className="mt-4">
-            <div className="text-xs font-medium text-slate-500 mb-1">Détails du contexte</div>
-            <div className="text-xs font-mono bg-slate-50 p-2 rounded border overflow-x-auto max-h-32 overflow-y-auto">
-              {JSON.stringify(error.context, null, 2)}
-            </div>
-          </div>
-        )}
-      </CardContent>
-      
-      {(onRetry || error.recoveryActions?.length > 0) && (
-        <CardFooter className="border-t pt-4 flex justify-between">
-          {error.recoveryActions?.length > 0 ? (
-            <div className="space-x-2">
-              {error.recoveryActions.map((action, index) => (
-                <Button 
-                  key={index} 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={action.action}
-                >
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <div></div>
-          )}
+        <Separator />
+        
+        <div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="p-0 h-auto flex items-center text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setShowDetails(!showDetails)}
+          >
+            {showDetails ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+            {showDetails ? 'Masquer les détails' : 'Afficher les détails techniques'}
+          </Button>
           
-          {onRetry && error.recoverable && (
+          {showDetails && (
+            <div className="mt-2 text-xs">
+              {errorObj.stack && (
+                <div className="mt-2">
+                  <p className="font-medium mb-1">Stack trace:</p>
+                  <pre className="overflow-auto p-2 bg-gray-50 border rounded text-[10px] max-h-40">
+                    {errorObj.stack}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter className="flex sm:justify-between gap-2">
+          <div className="flex gap-2">
+            {renderActions()}
+            
+            {onRetry && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Réessayer
+              </Button>
+            )}
+          </div>
+          
+          <DialogClose asChild>
             <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRetry}
-              className="ml-auto"
+              variant="ghost" 
+              size="sm"
+              onClick={onClose}
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer
+              <XCircle className="mr-2 h-4 w-4" />
+              Fermer
             </Button>
-          )}
-        </CardFooter>
-      )}
-    </Card>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

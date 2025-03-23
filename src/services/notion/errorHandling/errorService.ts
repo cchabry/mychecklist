@@ -1,209 +1,139 @@
 
+import { v4 as uuidv4 } from 'uuid';
 import { 
   NotionError, 
-  NotionErrorSubscriber,
-  NotionErrorType,
-  NotionErrorSeverity,
-  NotionErrorOptions
+  NotionErrorType, 
+  ErrorSubscriber,
+  ReportErrorOptions 
 } from './types';
 import { notionErrorUtils } from './utils';
-import { operationMode } from '@/services/operationMode';
-import { toast } from 'sonner';
+
+// Nombre maximum d'erreurs à conserver en mémoire
+const MAX_ERRORS = 50;
 
 /**
- * Service central de gestion des erreurs Notion
+ * Service de gestion des erreurs pour Notion
  */
 class NotionErrorService {
-  private subscribers: NotionErrorSubscriber[] = [];
-  private recentErrors: NotionError[] = [];
-  private maxRecentErrors: number = 10;
+  private errors: NotionError[] = [];
+  private subscribers: ErrorSubscriber[] = [];
   
   /**
-   * Traite une erreur et déclenche les réponses appropriées
+   * Ajoute une nouvelle erreur au service
    */
-  public reportError(error: Error, context: string = ''): NotionError {
-    // Enrichir l'erreur avec des informations supplémentaires
-    const enhancedError = this.createError(error.message, {
-      cause: error,
-      context: { operation: context },
-      type: error.name === 'NotionError' ? (error as any).type : undefined,
-      severity: (error as any).severity
-    });
+  reportError(error: Error | string, operation?: string, options: ReportErrorOptions = {}): NotionError {
+    // Créer l'objet d'erreur enrichi
+    const errorMessage = typeof error === 'string' ? error : error.message;
+    const originError = typeof error === 'string' ? new Error(error) : error;
     
-    // Journaliser l'erreur
-    this.logError(enhancedError);
+    const notionError: NotionError = {
+      id: uuidv4(),
+      timestamp: Date.now(),
+      message: errorMessage,
+      type: options.type || notionErrorUtils.detectErrorType(error),
+      operation: operation || options.operation,
+      context: options.context,
+      originError,
+      details: options.details,
+      retryable: options.retryable !== undefined 
+        ? options.retryable 
+        : notionErrorUtils.isRetryableError(error)
+    };
     
-    // Stocker l'erreur dans l'historique
-    this.storeError(enhancedError);
+    // Ajouter l'erreur à la liste
+    this.errors.unshift(notionError);
+    
+    // Limiter le nombre d'erreurs en mémoire
+    if (this.errors.length > MAX_ERRORS) {
+      this.errors = this.errors.slice(0, MAX_ERRORS);
+    }
     
     // Notifier les abonnés
-    this.notifySubscribers(enhancedError);
+    this.notifySubscribers();
     
-    // Afficher une notification à l'utilisateur
-    this.showNotification(enhancedError);
+    // Loguer l'erreur
+    console.error('Notion Error:', {
+      message: notionError.message,
+      type: notionError.type,
+      operation: notionError.operation,
+      context: notionError.context,
+      retryable: notionError.retryable
+    });
     
-    // Gérer le basculement automatique en mode démo si nécessaire
-    this.handleAutoSwitch(enhancedError);
-    
-    return enhancedError;
+    return notionError;
   }
   
   /**
-   * Crée une erreur Notion personnalisée
+   * Obtient la liste de toutes les erreurs
    */
-  public createError(message: string, options: NotionErrorOptions = {}): NotionError {
-    return notionErrorUtils.createError(message, options);
+  getAllErrors(): NotionError[] {
+    return [...this.errors];
   }
   
   /**
-   * S'abonner aux erreurs
+   * Obtient seulement les erreurs récentes
    */
-  public subscribe(subscriber: NotionErrorSubscriber): () => void {
-    this.subscribers.push(subscriber);
+  getRecentErrors(count = 5): NotionError[] {
+    return this.errors.slice(0, count);
+  }
+  
+  /**
+   * Obtient une erreur par son ID
+   */
+  getErrorById(id: string): NotionError | undefined {
+    return this.errors.find(error => error.id === id);
+  }
+  
+  /**
+   * Supprime une erreur par son ID
+   */
+  dismissError(id: string): boolean {
+    const initialLength = this.errors.length;
+    this.errors = this.errors.filter(error => error.id !== id);
     
-    // Retourner la fonction de désabonnement
+    const removed = initialLength > this.errors.length;
+    if (removed) {
+      this.notifySubscribers();
+    }
+    
+    return removed;
+  }
+  
+  /**
+   * Supprime toutes les erreurs
+   */
+  clearAllErrors(): void {
+    if (this.errors.length > 0) {
+      this.errors = [];
+      this.notifySubscribers();
+    }
+  }
+  
+  /**
+   * S'abonne aux notifications d'erreurs
+   */
+  subscribe(callback: (errors: NotionError[]) => void): () => void {
+    const id = uuidv4();
+    this.subscribers.push({ id, callback });
+    
+    // Notifier immédiatement le nouvel abonné avec l'état actuel
+    callback([...this.errors]);
+    
+    // Retourner une fonction de désabonnement
     return () => {
-      const index = this.subscribers.indexOf(subscriber);
-      if (index !== -1) {
-        this.subscribers.splice(index, 1);
-      }
+      this.subscribers = this.subscribers.filter(sub => sub.id !== id);
     };
   }
   
   /**
-   * Récupère les erreurs récentes
+   * Notifie tous les abonnés d'un changement dans les erreurs
    */
-  public getRecentErrors(): NotionError[] {
-    return [...this.recentErrors];
-  }
-  
-  /**
-   * Efface l'historique des erreurs
-   */
-  public clearErrors(): void {
-    this.recentErrors = [];
-    this.notifySubscribers(null as any); // Notifier pour rafraîchir les UI
-  }
-  
-  /**
-   * Journalise l'erreur dans la console
-   */
-  private logError(error: NotionError): void {
-    const { type, severity, context, recoveryActions } = error;
-    
-    console.group(`Notion Error: ${type.toUpperCase()} (${severity})`);
-    console.error('Message:', error.message);
-    console.info('Context:', context);
-    console.info('Recovery actions:', recoveryActions);
-    console.info('Stack:', error.stack);
-    console.groupEnd();
-  }
-  
-  /**
-   * Stocke l'erreur dans l'historique des erreurs récentes
-   */
-  private storeError(error: NotionError): void {
-    this.recentErrors.unshift(error);
-    
-    // Limiter la taille de l'historique
-    if (this.recentErrors.length > this.maxRecentErrors) {
-      this.recentErrors = this.recentErrors.slice(0, this.maxRecentErrors);
-    }
-  }
-  
-  /**
-   * Notifie tous les abonnés d'une erreur
-   */
-  private notifySubscribers(error: NotionError): void {
+  private notifySubscribers(): void {
     this.subscribers.forEach(subscriber => {
-      try {
-        subscriber(error);
-      } catch (e) {
-        console.error('Erreur lors de la notification d\'un abonné:', e);
-      }
+      subscriber.callback([...this.errors]);
     });
-  }
-  
-  /**
-   * Affiche une notification à l'utilisateur
-   */
-  private showNotification(error: NotionError): void {
-    const { type, severity, recoveryActions } = error;
-    
-    const title = this.getErrorTitle(type);
-    const description = error.message;
-    
-    // Adapter le type de toast à la gravité
-    switch (severity) {
-      case NotionErrorSeverity.INFO:
-        toast.info(title, { description });
-        break;
-        
-      case NotionErrorSeverity.WARNING:
-        toast.warning(title, { 
-          description,
-          action: recoveryActions.length > 0 ? {
-            label: 'Passer en démo',
-            onClick: () => operationMode.enableDemoMode('Erreur Notion: ' + error.message)
-          } : undefined
-        });
-        break;
-        
-      case NotionErrorSeverity.ERROR:
-      case NotionErrorSeverity.CRITICAL:
-        toast.error(title, { 
-          description,
-          duration: 8000,
-          action: recoveryActions.length > 0 ? {
-            label: 'Passer en démo',
-            onClick: () => operationMode.enableDemoMode('Erreur Notion: ' + error.message)
-          } : undefined
-        });
-        break;
-    }
-  }
-  
-  /**
-   * Obtient un titre d'erreur en fonction du type
-   */
-  private getErrorTitle(type: NotionErrorType): string {
-    switch (type) {
-      case NotionErrorType.NETWORK:
-        return 'Erreur de connexion';
-        
-      case NotionErrorType.AUTH:
-        return 'Erreur d\'authentification';
-        
-      case NotionErrorType.PERMISSION:
-        return 'Erreur de permission';
-        
-      case NotionErrorType.RATE_LIMIT:
-        return 'Limite d\'API atteinte';
-        
-      case NotionErrorType.VALIDATION:
-        return 'Erreur de validation';
-        
-      case NotionErrorType.DATABASE:
-        return 'Erreur de base de données';
-        
-      case NotionErrorType.UNKNOWN:
-      default:
-        return 'Erreur Notion';
-    }
-  }
-  
-  /**
-   * Gère le basculement automatique en mode démo si nécessaire
-   */
-  private handleAutoSwitch(error: NotionError): void {
-    // Signaler l'erreur au service operationMode
-    operationMode.handleConnectionError(
-      error, 
-      `Notion API (${error.type})`
-    );
   }
 }
 
-// Créer et exporter l'instance du service
+// Créer et exporter une instance unique
 export const notionErrorService = new NotionErrorService();
-

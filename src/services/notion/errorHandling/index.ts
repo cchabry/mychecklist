@@ -1,34 +1,9 @@
 
-/**
- * Point d'entrée pour le module de gestion d'erreurs Notion
- */
-
-// Exporter le service principal de gestion d'erreur
+// Exporter les services
 export { notionErrorService } from './errorService';
-
-// Exporter le service de file d'attente de retry
-export { notionRetryQueue } from './retryQueue';
-
-// Exporter l'utilitaire de retry automatique
+export { retryQueueService } from './retryQueue';
 export { autoRetryHandler } from './autoRetry';
 
-// Exporter les types
-export type { 
-  NotionError,
-  NotionErrorOptions,
-  NotionErrorSubscriber
-} from './types';
-
-// Exporter les enums
-export { 
-  NotionErrorType,
-  NotionErrorSeverity
-} from './types';
-
-// Exporter les utilitaires
-export { notionErrorUtils } from './utils';
-
-// Exporter les hooks
-export { useNotionErrorService } from './useNotionErrorService';
-export { useNotionRetryQueue } from './useRetryQueue';
-export { useAutoRetry } from './useAutoRetry';
+// Exporter les types et utilitaires
+export * from './types';
+export * from './utils';
