@@ -21,7 +21,7 @@ export function useExigences(options = {}) {
  */
 export function useExigence(id: string | undefined, options = {}) {
   return useServiceWithCache<Exigence | null>(
-    exigencesService.getById.bind(exigencesService),
+    () => exigencesService.getById(id || ''),
     [id],
     {
       enabled: !!id,
@@ -36,8 +36,9 @@ export function useExigence(id: string | undefined, options = {}) {
 export function useExigencesByProject(projectId: string | undefined, options = {}) {
   return useServiceWithCache<Exigence[]>(
     async () => {
-      const exigences = await exigencesService.getAll();
-      return exigences.filter(exigence => exigence.projectId === projectId);
+      if (!projectId) return [];
+      const exigences = await exigencesService.getAll({ projectId });
+      return exigences;
     },
     [projectId],
     {

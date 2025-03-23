@@ -1,77 +1,94 @@
 
-import { mockState, MockConfig } from './state';
+/**
+ * Système de stockage pour les données mockées de Notion
+ * Utilise le localStorage pour persister les données entre les rechargements
+ */
+
+const STORAGE_KEY = 'notion_proxy_storage';
 
 /**
- * Clés de stockage pour le mode mock
+ * Interface pour le stockage des données mockées
  */
-const STORAGE_KEYS = {
-  MOCK_MODE: 'notion_mock_mode',
-  MOCK_CONFIG: 'notion_mock_config'
+interface MockStorage {
+  projects: Record<string, any>;
+  audits: Record<string, any>;
+  checklistItems: Record<string, any>;
+  samplePages: Record<string, any>;
+  exigences: Record<string, any>;
+  evaluations: Record<string, any>;
+  actions: Record<string, any>;
+  progress: Record<string, any>;
+  lastUpdate: string;
+}
+
+/**
+ * Stockage initial vide
+ */
+const emptyStorage: MockStorage = {
+  projects: {},
+  audits: {},
+  checklistItems: {},
+  samplePages: {},
+  exigences: {},
+  evaluations: {},
+  actions: {},
+  progress: {},
+  lastUpdate: new Date().toISOString()
 };
 
 /**
- * Module de gestion du stockage pour le mode mock
+ * Récupère les données stockées
+ * @returns Les données stockées ou un stockage vide si aucune donnée n'est trouvée
  */
-export const mockStorage = {
-  /**
-   * Charge l'état du mode mock depuis le localStorage
-   */
-  loadFromStorage(): void {
-    try {
-      const storedMode = localStorage.getItem(STORAGE_KEYS.MOCK_MODE);
-      
-      if (storedMode === 'true') {
-        mockState.setActive(true);
-        console.log('✅ Mode mock chargé depuis localStorage (activé)');
-      } else if (storedMode === 'true_permanent') {
-        mockState.setActive(true);
-        mockState.setPermanent(true);
-        console.log('✅ Mode mock permanent chargé depuis localStorage');
-      }
-      
-      // Charger la configuration
-      const storedConfig = localStorage.getItem(STORAGE_KEYS.MOCK_CONFIG);
-      if (storedConfig) {
-        try {
-          const config = JSON.parse(storedConfig);
-          mockState.updateConfig(config);
-          console.log('✅ Configuration mock chargée depuis localStorage');
-        } catch (e) {
-          // Ignorer les erreurs de parsing JSON
-        }
-      }
-    } catch (e) {
-      // Ignorer les erreurs de localStorage
-    }
-  },
-  
-  /**
-   * Sauvegarde l'état du mode mock dans le localStorage
-   */
-  saveToStorage(): void {
-    try {
-      if (mockState.isPermanent()) {
-        localStorage.setItem(STORAGE_KEYS.MOCK_MODE, 'true_permanent');
-      } else {
-        localStorage.setItem(STORAGE_KEYS.MOCK_MODE, mockState.isActive() ? 'true' : 'false');
-      }
-      
-      // Sauvegarder la configuration
-      localStorage.setItem(STORAGE_KEYS.MOCK_CONFIG, JSON.stringify(mockState.getConfig()));
-    } catch (e) {
-      // Ignorer les erreurs de localStorage
-    }
-  },
-  
-  /**
-   * Supprime l'état du mode mock du localStorage
-   */
-  clearStorage(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-      localStorage.removeItem(STORAGE_KEYS.MOCK_CONFIG);
-    } catch (e) {
-      // Ignorer les erreurs de localStorage
-    }
+export const getStorage = (): MockStorage => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : emptyStorage;
+  } catch (error) {
+    console.error('Erreur lors de la récupération du stockage:', error);
+    return emptyStorage;
   }
 };
+
+/**
+ * Sauvegarde les données dans le stockage
+ * @param storage Les données à stocker
+ */
+export const saveStorage = (storage: MockStorage): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...storage,
+      lastUpdate: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du stockage:', error);
+  }
+};
+
+/**
+ * Vérifie si le stockage existe déjà
+ * @returns true si le stockage existe, false sinon
+ */
+export const hasExistingStorage = (): boolean => {
+  try {
+    const exists = localStorage.getItem(STORAGE_KEY) !== null;
+    return exists;
+  } catch (error) {
+    console.error('Erreur lors de la vérification du stockage:', error);
+    return false;
+  }
+};
+
+/**
+ * Réinitialise le stockage aux valeurs par défaut
+ */
+export const resetStorage = (): void => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Erreur lors de la réinitialisation du stockage:', error);
+  }
+};
+
+// Exporter les fonctions et interfaces
+export type { MockStorage };

@@ -16,8 +16,9 @@ export function useChecklistItem(filters?: QueryFilters) {
     fetchData,
     invalidateCache,
     reload
-  } = useServiceWithCache<ChecklistItem[]>(
+  } = useServiceWithCache<ChecklistItem[], [QueryFilters | undefined]>(
     () => checklistService.getAll(filters),
+    [filters],
     {
       cacheKey: `checklist_${JSON.stringify(filters || {})}`,
       immediate: true

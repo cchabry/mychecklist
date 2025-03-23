@@ -1,21 +1,21 @@
 
-import { Page } from '@/lib/types';
+import { SamplePage } from '@/lib/types';
 import { QueryFilters } from './types';
 import { BaseServiceAbstract } from './BaseServiceAbstract';
 import { notionApi } from '@/lib/notionProxy';
 import { operationMode } from '@/services/operationMode';
 
-class PagesService extends BaseServiceAbstract<Page> {
+class PagesService extends BaseServiceAbstract<SamplePage> {
   constructor() {
     super('pages', {
       cacheTTL: 5 * 60 * 1000 // 5 minutes
     });
   }
   
-  protected async fetchById(id: string): Promise<Page | null> {
+  protected async fetchById(id: string): Promise<SamplePage | null> {
     if (operationMode.isDemoMode) {
-      const mockPages = await import('@/lib/mockData').then(m => m.mockPages);
-      return mockPages.find(page => page.id === id) || null;
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      return mockData.getPage(id) || null;
     }
     
     try {
@@ -27,15 +27,17 @@ class PagesService extends BaseServiceAbstract<Page> {
     }
   }
   
-  protected async fetchAll(filters?: QueryFilters): Promise<Page[]> {
+  protected async fetchAll(filters?: QueryFilters): Promise<SamplePage[]> {
     if (operationMode.isDemoMode) {
-      const mockPages = await import('@/lib/mockData').then(m => m.mockPages);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      
+      const allPages = mockData.getPages();
       
       if (filters?.projectId) {
-        return mockPages.filter(page => page.projectId === filters.projectId);
+        return allPages.filter(page => page.projectId === filters.projectId);
       }
       
-      return mockPages;
+      return allPages;
     }
     
     try {
@@ -52,9 +54,9 @@ class PagesService extends BaseServiceAbstract<Page> {
     }
   }
   
-  protected async createItem(data: Partial<Page>): Promise<Page> {
+  protected async createItem(data: Partial<SamplePage>): Promise<SamplePage> {
     if (operationMode.isDemoMode) {
-      const newPage: Page = {
+      const newPage: SamplePage = {
         id: `page_${Date.now()}`,
         url: data.url || '',
         title: data.title || 'Nouvelle page',
@@ -71,7 +73,7 @@ class PagesService extends BaseServiceAbstract<Page> {
         throw new Error('projectId et url sont requis pour créer une page');
       }
       
-      const page = await notionApi.createSamplePage(data as Page);
+      const page = await notionApi.createSamplePage(data as SamplePage);
       
       // Invalider le cache des pages pour ce projet
       this.invalidateList();
@@ -83,17 +85,17 @@ class PagesService extends BaseServiceAbstract<Page> {
     }
   }
   
-  protected async updateItem(id: string, data: Partial<Page>): Promise<Page> {
+  protected async updateItem(id: string, data: Partial<SamplePage>): Promise<SamplePage> {
     if (operationMode.isDemoMode) {
-      const mockPages = await import('@/lib/mockData').then(m => m.mockPages);
-      const pageIndex = mockPages.findIndex(page => page.id === id);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      const existingPage = mockData.getPage(id);
       
-      if (pageIndex === -1) {
+      if (!existingPage) {
         throw new Error(`Page non trouvée: ${id}`);
       }
       
-      const updatedPage: Page = {
-        ...mockPages[pageIndex],
+      const updatedPage: SamplePage = {
+        ...existingPage,
         ...data
       };
       

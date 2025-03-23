@@ -1,5 +1,5 @@
 
-import { Exigence } from '@/lib/types';
+import { Exigence, ImportanceLevel } from '@/lib/types';
 import { BaseServiceAbstract } from './BaseServiceAbstract';
 import { notionApi } from '@/lib/notionProxy';
 import { operationMode } from '@/services/operationMode';
@@ -13,8 +13,8 @@ class ExigencesService extends BaseServiceAbstract<Exigence> {
   
   protected async fetchById(id: string): Promise<Exigence | null> {
     if (operationMode.isDemoMode) {
-      const mockExigences = await import('@/lib/mockData').then(m => m.mockExigences);
-      return mockExigences.find(exigence => exigence.id === id) || null;
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      return mockData.getExigence(id) || null;
     }
     
     try {
@@ -28,19 +28,21 @@ class ExigencesService extends BaseServiceAbstract<Exigence> {
   
   protected async fetchAll(filters?: { projectId?: string }): Promise<Exigence[]> {
     if (operationMode.isDemoMode) {
-      const mockExigences = await import('@/lib/mockData').then(m => m.mockExigences);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      
+      const allExigences = mockData.getExigences();
       
       if (filters?.projectId) {
-        return mockExigences.filter(exigence => exigence.projectId === filters.projectId);
+        return allExigences.filter(exigence => exigence.projectId === filters.projectId);
       }
       
-      return mockExigences;
+      return allExigences;
     }
     
     try {
       const projectId = filters?.projectId;
       if (!projectId) {
-        throw new Error('L\'ID du projet est requis pour récupérer les exigences');
+        return [];
       }
       
       const exigences = await notionApi.getExigences(projectId);
@@ -57,7 +59,7 @@ class ExigencesService extends BaseServiceAbstract<Exigence> {
         id: `exigence_${Date.now()}`,
         itemId: data.itemId || '',
         projectId: data.projectId || '',
-        importance: data.importance || 'medium',
+        importance: data.importance || ImportanceLevel.Moyen,
         comment: data.comment || ''
       };
       
@@ -79,15 +81,15 @@ class ExigencesService extends BaseServiceAbstract<Exigence> {
   
   protected async updateItem(id: string, data: Partial<Exigence>): Promise<Exigence> {
     if (operationMode.isDemoMode) {
-      const mockExigences = await import('@/lib/mockData').then(m => m.mockExigences);
-      const exigenceIndex = mockExigences.findIndex(exigence => exigence.id === id);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      const existingExigence = mockData.getExigence(id);
       
-      if (exigenceIndex === -1) {
+      if (!existingExigence) {
         throw new Error(`Exigence non trouvée: ${id}`);
       }
       
       const updatedExigence: Exigence = {
-        ...mockExigences[exigenceIndex],
+        ...existingExigence,
         ...data
       };
       

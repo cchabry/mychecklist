@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Project, 
@@ -79,6 +78,10 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     phase: 'Développement',
     effort: 'low',
     priority: 'high',
+    consigne: 'Images accessibles',
+    criteria: 'Accessibilité',
+    requirementLevel: 'A',
+    scope: 'Toutes pages',
     status: ComplianceStatus.NotEvaluated
   },
   {
@@ -92,6 +95,10 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     phase: 'Conception',
     effort: 'medium',
     priority: 'medium',
+    consigne: 'Contraste des textes',
+    criteria: 'Accessibilité',
+    requirementLevel: 'AA',
+    scope: 'Toutes pages',
     status: ComplianceStatus.NotEvaluated
   },
   {
@@ -105,6 +112,10 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     phase: 'Développement',
     effort: 'low',
     priority: 'high',
+    consigne: 'Formulaires avec étiquettes',
+    criteria: 'Accessibilité',
+    requirementLevel: 'A',
+    scope: 'Toutes pages',
     status: ComplianceStatus.NotEvaluated
   }
 ];
@@ -235,6 +246,9 @@ export const createNewAudit = (projectId: string) => ({
   version: '1.0'
 });
 
+// Corriger l'erreur dans la méthode getAction
+export const getAction = (id: string) => mockActions.find(a => a.id === id);
+
 // Export une structure complète qui correspond à ce qui est attendu
 export const mockData = {
   projects: MOCK_PROJECTS,
@@ -257,7 +271,7 @@ export const mockData = {
   getEvaluations: () => mockEvaluations,
   getEvaluation: (id: string) => mockEvaluations.find(e => e.id === id),
   getActions: () => mockActions,
-  getAction: (id: string) => mockActions.find(a => a.id === a),
+  getAction: getAction,
   createProject: (data: any) => ({...data, id: `proj_${uuidv4()}`}),
   updateProject: (id: string, data: any) => ({...getProjectById(id), ...data}),
   createEvaluation: (data: any) => ({...data, id: `eval_${uuidv4()}`}),

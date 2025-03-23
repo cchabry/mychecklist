@@ -50,7 +50,7 @@ export const mockData = {
       id: `exigence_${Date.now()}`,
       projectId,
       itemId,
-      importance: ImportanceLevel.Medium,
+      importance: ImportanceLevel.Moyen,
       comment: 'Exigence générée automatiquement'
     };
   }

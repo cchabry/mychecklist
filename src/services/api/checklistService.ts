@@ -14,8 +14,8 @@ class ChecklistService extends BaseServiceAbstract<ChecklistItem> {
   
   protected async fetchById(id: string): Promise<ChecklistItem | null> {
     if (operationMode.isDemoMode) {
-      const mockChecklist = await import('@/lib/mockData').then(m => m.mockChecklist);
-      return mockChecklist.find(item => item.id === id) || null;
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      return mockData.getChecklistItem(id) || null;
     }
     
     try {
@@ -29,17 +29,19 @@ class ChecklistService extends BaseServiceAbstract<ChecklistItem> {
   
   protected async fetchAll(filters?: QueryFilters): Promise<ChecklistItem[]> {
     if (operationMode.isDemoMode) {
-      const mockChecklist = await import('@/lib/mockData').then(m => m.mockChecklist);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      
+      const allItems = mockData.getChecklistItems();
       
       if (filters && filters.category) {
-        return mockChecklist.filter(item => item.category === filters.category);
+        return allItems.filter(item => item.category === filters.category);
       }
       
-      return mockChecklist;
+      return allItems;
     }
     
     try {
-      const checklist = await notionApi.getChecklistItems(filters);
+      const checklist = await notionApi.getChecklistItems();
       return checklist;
     } catch (error) {
       console.error('Erreur lors de la récupération de la checklist:', error);
@@ -55,11 +57,16 @@ class ChecklistService extends BaseServiceAbstract<ChecklistItem> {
         description: data.description || '',
         category: data.category || 'Autres',
         subcategory: data.subcategory || '',
-        references: data.references || [],
-        profiles: data.profiles || [],
-        phases: data.phases || [],
+        reference: data.reference || '',
+        profile: data.profile || '',
+        phase: data.phase || '',
         effort: data.effort || 'medium',
-        priority: data.priority || 'medium'
+        priority: data.priority || 'medium',
+        criteria: data.criteria || '',
+        requirementLevel: data.requirementLevel || '',
+        scope: data.scope || '',
+        consigne: data.consigne || '',
+        status: data.status || ComplianceStatus.NotEvaluated
       };
       
       return newItem;
@@ -76,15 +83,15 @@ class ChecklistService extends BaseServiceAbstract<ChecklistItem> {
   
   protected async updateItem(id: string, data: Partial<ChecklistItem>): Promise<ChecklistItem> {
     if (operationMode.isDemoMode) {
-      const mockChecklist = await import('@/lib/mockData').then(m => m.mockChecklist);
-      const itemIndex = mockChecklist.findIndex(item => item.id === id);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      const existingItem = mockData.getChecklistItem(id);
       
-      if (itemIndex === -1) {
+      if (!existingItem) {
         throw new Error(`Item non trouvé: ${id}`);
       }
       
       const updatedItem: ChecklistItem = {
-        ...mockChecklist[itemIndex],
+        ...existingItem,
         ...data
       };
       

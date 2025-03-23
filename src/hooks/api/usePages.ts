@@ -21,7 +21,7 @@ export function usePages(options = {}) {
  */
 export function usePage(id: string | undefined, options = {}) {
   return useServiceWithCache<SamplePage | null>(
-    pagesService.getById.bind(pagesService),
+    () => pagesService.getById(id || ''),
     [id],
     {
       enabled: !!id,
@@ -36,6 +36,7 @@ export function usePage(id: string | undefined, options = {}) {
 export function usePagesByProject(projectId: string | undefined, options = {}) {
   return useServiceWithCache<SamplePage[]>(
     async () => {
+      if (!projectId) return [];
       const pages = await pagesService.getAll();
       return pages.filter(page => page.projectId === projectId);
     },

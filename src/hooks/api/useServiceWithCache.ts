@@ -1,12 +1,23 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { QueryOptions } from './types';
+
+/**
+ * Options pour les requêtes
+ */
+export interface QueryOptions {
+  cacheKey?: string;
+  immediate?: boolean;
+  cacheTTL?: number;
+  onSuccess?: (data: any) => void;
+  onError?: (error: Error) => void;
+}
 
 /**
  * Hook générique pour gérer les appels de service avec mise en cache
  */
-export function useServiceWithCache<T>(
-  fetchData: () => Promise<T>,
+export function useServiceWithCache<T, P extends any[] = []>(
+  fetchData: (...args: P) => Promise<T>,
+  params: P = [] as unknown as P,
   options: QueryOptions = {}
 ) {
   const { 
@@ -84,7 +95,7 @@ export function useServiceWithCache<T>(
     }
     
     try {
-      const result = await fetchData();
+      const result = await fetchData(...params);
       setData(result);
       setCachedData(result);
       
@@ -101,7 +112,7 @@ export function useServiceWithCache<T>(
       
       return null;
     }
-  }, [fetchData, getCachedData, setCachedData, onSuccess, onError]);
+  }, [fetchData, params, getCachedData, setCachedData, onSuccess, onError]);
   
   const reload = useCallback(() => {
     invalidateCache();

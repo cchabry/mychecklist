@@ -14,8 +14,8 @@ class AuditsService extends BaseServiceAbstract<Audit> {
   
   protected async fetchById(id: string): Promise<Audit | null> {
     if (operationMode.isDemoMode) {
-      const mockAudits = await import('@/lib/mockData').then(m => m.mockAudits);
-      return mockAudits.find(audit => audit.id === id) || null;
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      return mockData.getAudit(id) || null;
     }
     
     try {
@@ -29,17 +29,19 @@ class AuditsService extends BaseServiceAbstract<Audit> {
   
   protected async fetchAll(filters?: QueryFilters): Promise<Audit[]> {
     if (operationMode.isDemoMode) {
-      const mockAudits = await import('@/lib/mockData').then(m => m.mockAudits);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      
+      const allAudits = mockData.getAudits();
       
       if (filters && filters.projectId) {
-        return mockAudits.filter(audit => audit.projectId === filters.projectId);
+        return allAudits.filter(audit => audit.projectId === filters.projectId);
       }
       
-      return mockAudits;
+      return allAudits;
     }
     
     try {
-      const audits = await notionApi.getAudits(filters?.projectId);
+      const audits = await notionApi.getAudits();
       return audits;
     } catch (error) {
       console.error('Erreur lors de la récupération des audits:', error);
@@ -55,7 +57,9 @@ class AuditsService extends BaseServiceAbstract<Audit> {
         projectId: data.projectId || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        status: data.status || 'En cours'
+        items: data.items || [],
+        score: data.score || 0,
+        version: data.version || '1.0'
       };
       
       return newAudit;
@@ -72,15 +76,15 @@ class AuditsService extends BaseServiceAbstract<Audit> {
   
   protected async updateItem(id: string, data: Partial<Audit>): Promise<Audit> {
     if (operationMode.isDemoMode) {
-      const mockAudits = await import('@/lib/mockData').then(m => m.mockAudits);
-      const auditIndex = mockAudits.findIndex(audit => audit.id === id);
+      const mockData = await import('@/lib/mockData/index').then(m => m.mockData);
+      const existingAudit = mockData.getAudit(id);
       
-      if (auditIndex === -1) {
+      if (!existingAudit) {
         throw new Error(`Audit non trouvé: ${id}`);
       }
       
       const updatedAudit: Audit = {
-        ...mockAudits[auditIndex],
+        ...existingAudit,
         ...data,
         updatedAt: new Date().toISOString()
       };

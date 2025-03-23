@@ -10,8 +10,8 @@ import { QueryFilters } from '@/services/api/types';
  */
 export function useProjects(filters?: QueryFilters, options = {}) {
   return useServiceWithCache<Project[]>(
-    projectsService.getAll.bind(projectsService),
-    [undefined, filters],
+    () => projectsService.getAll(undefined, filters),
+    [filters],
     options
   );
 }
@@ -21,7 +21,7 @@ export function useProjects(filters?: QueryFilters, options = {}) {
  */
 export function useProject(id: string | undefined, options = {}) {
   return useServiceWithCache<Project | null>(
-    projectsService.getById.bind(projectsService),
+    () => projectsService.getById(id || ''),
     [id],
     {
       enabled: !!id,

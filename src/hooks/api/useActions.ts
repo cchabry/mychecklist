@@ -1,65 +1,131 @@
 
-import { useState, useCallback } from 'react';
-import { CorrectiveAction } from '@/lib/types';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { actionsService } from '@/services/api/actionsService';
-import { QueryFilters } from './types';
+import { CorrectiveAction } from '@/lib/types';
+import { toast } from 'sonner';
 
 /**
- * Hook pour gérer les actions correctives
+ * Hook pour récupérer toutes les actions correctives
  */
-export function useActions(filters?: QueryFilters) {
-  const {
-    data: actions,
-    isLoading,
-    error,
-    fetchData,
-    invalidateCache,
-    reload
-  } = useServiceWithCache<CorrectiveAction[]>(
-    () => actionsService.getAll(filters),
+export function useActions(options = {}) {
+  return useServiceWithCache<CorrectiveAction[]>(
+    actionsService.getAll.bind(actionsService),
+    [],
+    options
+  );
+}
+
+/**
+ * Hook pour récupérer une action corrective par son ID
+ */
+export function useAction(id: string | undefined, options = {}) {
+  return useServiceWithCache<CorrectiveAction | null>(
+    () => actionsService.getById(id || ''),
+    [id],
     {
-      cacheKey: `actions_${JSON.stringify(filters || {})}`,
-      immediate: true
+      enabled: !!id,
+      ...options
     }
   );
+}
 
-  const getAction = useCallback(async (id: string) => {
-    return actionsService.getById(id);
-  }, []);
+/**
+ * Hook pour récupérer les actions correctives pour un audit
+ */
+export function useActionsByAudit(auditId: string | undefined, options = {}) {
+  return useServiceWithCache<CorrectiveAction[]>(
+    async () => {
+      if (!auditId) return [];
+      const actions = await actionsService.getAll();
+      // On filtre les actions qui sont liées à l'audit via les évaluations
+      return actions.filter(action => action.evaluationId.startsWith(`eval_${auditId}`));
+    },
+    [auditId],
+    {
+      enabled: !!auditId,
+      ...options
+    }
+  );
+}
 
-  const createAction = useCallback(async (data: Partial<CorrectiveAction>) => {
-    const newAction = await actionsService.create(data);
-    invalidateCache();
-    return newAction;
-  }, [invalidateCache]);
+/**
+ * Hook pour récupérer les actions correctives pour une évaluation
+ */
+export function useActionsByEvaluation(evaluationId: string | undefined, options = {}) {
+  return useServiceWithCache<CorrectiveAction[]>(
+    async () => {
+      if (!evaluationId) return [];
+      const actions = await actionsService.getAll();
+      return actions.filter(action => action.evaluationId === evaluationId);
+    },
+    [evaluationId],
+    {
+      enabled: !!evaluationId,
+      ...options
+    }
+  );
+}
 
-  const updateAction = useCallback(async (id: string, data: Partial<CorrectiveAction>) => {
-    const updatedAction = await actionsService.update(id, data);
-    invalidateCache();
-    return updatedAction;
-  }, [invalidateCache]);
-
-  const getActionsByEvaluationId = useCallback(async (evaluationId: string) => {
-    return actionsService.getAll({ evaluationId });
-  }, []);
-
-  const deleteAction = useCallback(async (id: string) => {
-    const result = await actionsService.delete(id);
-    invalidateCache();
-    return result;
-  }, [invalidateCache]);
-
-  return {
-    actions,
-    isLoading,
+/**
+ * Hook pour créer une nouvelle action corrective
+ */
+export function useCreateAction() {
+  const { execute, isLoading, error, result } = useServiceWithRetry<CorrectiveAction, [Partial<CorrectiveAction>]>(
+    actionsService.create.bind(actionsService),
+    'action',
+    'create',
+    (result) => {
+      toast.success('Action corrective créée avec succès');
+    }
+  );
+  
+  return { 
+    createAction: execute, 
+    isCreating: isLoading, 
     error,
-    fetchData,
-    reload,
-    getAction,
-    createAction,
-    updateAction,
-    getActionsByEvaluationId,
-    deleteAction
+    result
+  };
+}
+
+/**
+ * Hook pour mettre à jour une action corrective
+ */
+export function useUpdateAction() {
+  const { execute, isLoading, error, result } = useServiceWithRetry<CorrectiveAction, [string, Partial<CorrectiveAction>]>(
+    actionsService.update.bind(actionsService),
+    'action',
+    'update',
+    (result) => {
+      toast.success('Action corrective mise à jour avec succès');
+    }
+  );
+  
+  return { 
+    updateAction: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
+  };
+}
+
+/**
+ * Hook pour supprimer une action corrective
+ */
+export function useDeleteAction() {
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    actionsService.delete.bind(actionsService),
+    'action',
+    'delete',
+    (result) => {
+      toast.success('Action corrective supprimée avec succès');
+    }
+  );
+  
+  return { 
+    deleteAction: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
   };
 }

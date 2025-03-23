@@ -9,24 +9,26 @@ import { toast } from 'sonner';
 /**
  * Hook pour récupérer toutes les évaluations
  */
-export function useEvaluations(filters?: QueryFilters, options = {}) {
+export function useEvaluations(filters?: QueryFilters) {
   return useServiceWithCache<Evaluation[]>(
-    evaluationsService.getAll.bind(evaluationsService),
-    [undefined, filters],
-    options
+    () => evaluationsService.getAll(filters),
+    [filters],
+    {
+      cacheKey: `evaluations_${JSON.stringify(filters || {})}`
+    }
   );
 }
 
 /**
  * Hook pour récupérer une évaluation par son ID
  */
-export function useEvaluation(id: string | undefined, options = {}) {
+export function useEvaluation(id: string | undefined) {
   return useServiceWithCache<Evaluation | null>(
-    evaluationsService.getById.bind(evaluationsService),
+    () => evaluationsService.getById(id || ''),
     [id],
     {
-      enabled: !!id,
-      ...options
+      cacheKey: `evaluation_${id}`,
+      enabled: !!id
     }
   );
 }
@@ -34,13 +36,13 @@ export function useEvaluation(id: string | undefined, options = {}) {
 /**
  * Hook pour récupérer les évaluations pour un audit spécifique
  */
-export function useEvaluationsByAudit(auditId: string | undefined, options = {}) {
+export function useEvaluationsByAudit(auditId: string | undefined) {
   return useServiceWithCache<Evaluation[]>(
-    evaluationsService.getByAuditId.bind(evaluationsService),
+    () => evaluationsService.getByAuditId(auditId || ''),
     [auditId],
     {
-      enabled: !!auditId,
-      ...options
+      cacheKey: `evaluations_audit_${auditId}`,
+      enabled: !!auditId
     }
   );
 }
@@ -48,16 +50,17 @@ export function useEvaluationsByAudit(auditId: string | undefined, options = {})
 /**
  * Hook pour récupérer les évaluations pour une page spécifique dans un audit
  */
-export function useEvaluationsByPage(auditId: string | undefined, pageId: string | undefined, options = {}) {
+export function useEvaluationsByPage(auditId: string | undefined, pageId: string | undefined) {
   return useServiceWithCache<Evaluation[]>(
-    async (auditId: string) => {
+    async () => {
+      if (!auditId || !pageId) return [];
       const evaluations = await evaluationsService.getByAuditId(auditId);
       return evaluations.filter(evaluation => evaluation.pageId === pageId);
     },
-    [auditId],
+    [auditId, pageId],
     {
-      enabled: !!auditId && !!pageId,
-      ...options
+      cacheKey: `evaluations_audit_${auditId}_page_${pageId}`,
+      enabled: !!auditId && !!pageId
     }
   );
 }
