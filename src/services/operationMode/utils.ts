@@ -46,6 +46,24 @@ export const operationModeUtils = {
   },
   
   /**
+   * Simule une erreur de connexion
+   */
+  simulateConnectionError(): never {
+    throw new Error("Erreur de connexion simulée");
+  },
+  
+  /**
+   * Récupère un scénario de démo en fonction du contexte
+   * @param context Contexte du scénario
+   * @returns Données du scénario ou null si aucun scénario n'est configuré
+   */
+  getScenario(context: string): any | null {
+    // Pour l'instant, retourne null (pas de scénario configuré)
+    // Cette méthode pourra être enrichie pour retourner des scénarios prédéfinis
+    return null;
+  },
+  
+  /**
    * Simule une opération avec possibilité d'erreur et délai
    */
   async simulateOperation<T>(operation: () => T | Promise<T>, action: string): Promise<T> {

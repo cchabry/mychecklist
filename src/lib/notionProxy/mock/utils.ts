@@ -48,12 +48,12 @@ export const mockUtils = {
   /**
    * Force une erreur simulée
    */
-  forceError: operationModeUtils.simulateConnectionError,
+  forceError: () => operationModeUtils.simulateConnectionError(),
   
   /**
    * Récupère un scénario de démo
    */
-  getScenario: operationModeUtils.getScenario
+  getScenario: (context: string) => operationModeUtils.getScenario(context)
 };
 
 /**
