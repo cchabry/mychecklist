@@ -1,188 +1,132 @@
 
-import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
-import { BaseService } from './baseService';
-import { notionApi } from '@/lib/notionProxy';
+import { v4 as uuidv4 } from 'uuid';
+import { CorrectiveAction } from '@/lib/types';
+import { mockData } from '@/lib/mockData';
+import { createBaseService } from './baseService';
 import { QueryFilters } from './types';
 
+const initialActions = mockData.actions || [];
+
 /**
- * Service pour la gestion des actions correctives
+ * Service pour gérer les actions correctives
  */
-export class ActionsService extends BaseService<CorrectiveAction> {
-  constructor() {
-    super('actions', {
-      cacheTTL: 10 * 60 * 1000, // 10 minutes
-    });
-  }
-  
-  /**
-   * Récupère une action corrective par son ID
-   */
-  protected async fetchById(id: string): Promise<CorrectiveAction | null> {
-    try {
-      return await notionApi.getAction(id);
-    } catch (error) {
-      console.error(`Erreur lors de la récupération de l'action corrective #${id}:`, error);
-      return null;
-    }
-  }
-  
+class ActionsService {
+  private actions: CorrectiveAction[] = [...initialActions];
+  private baseService = createBaseService<CorrectiveAction>('actions');
+
   /**
    * Récupère toutes les actions correctives
    */
-  protected async fetchAll(filters?: QueryFilters): Promise<CorrectiveAction[]> {
+  async getAll(filters?: QueryFilters): Promise<CorrectiveAction[]> {
     try {
-      const actions = await notionApi.getActions();
-      
-      // Appliquer les filtres si nécessaire
-      if (filters && Object.keys(filters).length > 0) {
-        return this.applyFilters(actions, filters);
-      }
-      
-      return actions;
+      const result = await this.baseService.getAll(filters);
+      return result;
     } catch (error) {
-      console.error('Erreur lors de la récupération des actions correctives:', error);
-      return [];
+      console.error('Erreur lors de la récupération des actions:', error);
+      return this.actions;
     }
   }
-  
+
+  /**
+   * Récupère une action corrective par son ID
+   */
+  async getById(id: string): Promise<CorrectiveAction | null> {
+    try {
+      const result = await this.baseService.getById(id);
+      return result;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération de l'action ${id}:`, error);
+      const action = this.actions.find(a => a.id === id) || null;
+      return action;
+    }
+  }
+
+  /**
+   * Récupère les actions correctives pour une évaluation
+   */
+  async getByEvaluationId(evaluationId: string): Promise<CorrectiveAction[]> {
+    try {
+      const allActions = await this.getAll();
+      return allActions.filter(action => action.evaluationId === evaluationId);
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des actions pour l'évaluation ${evaluationId}:`, error);
+      return this.actions.filter(action => action.evaluationId === evaluationId);
+    }
+  }
+
   /**
    * Crée une nouvelle action corrective
    */
-  protected async createItem(data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
-    if (!data.evaluationId) {
-      throw new Error("L'ID de l'évaluation est requis");
-    }
-    
-    return await notionApi.createAction({
-      evaluationId: data.evaluationId,
+  async create(data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
+    const newAction: CorrectiveAction = {
+      id: uuidv4(),
+      evaluationId: data.evaluationId || '',
       pageId: data.pageId || '',
-      targetScore: data.targetScore || ComplianceStatus.NotEvaluated,
-      priority: data.priority || ActionPriority.Medium,
-      dueDate: data.dueDate || '',
+      targetScore: data.targetScore || 'Conforme',
+      priority: data.priority || 'Faible',
+      dueDate: data.dueDate || new Date().toISOString(),
       responsible: data.responsible || '',
       comment: data.comment || '',
-      status: data.status || ActionStatus.ToDo,
-      progress: data.progress || []
-    });
-  }
-  
-  /**
-   * Met à jour une action corrective existante
-   */
-  protected async updateItem(id: string, data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
-    const existingAction = await this.fetchById(id);
-    
-    if (!existingAction) {
-      throw new Error(`Action corrective #${id} non trouvée`);
+      status: data.status || 'À faire',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const result = await this.baseService.create(newAction);
+      return result;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'action:', error);
+      this.actions.push(newAction);
+      return newAction;
     }
-    
-    return await notionApi.updateAction(id, {
-      ...data
-    });
   }
-  
+
+  /**
+   * Met à jour une action corrective
+   */
+  async update(id: string, data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
+    try {
+      const result = await this.baseService.update(id, data);
+      return result;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'action ${id}:`, error);
+      
+      const index = this.actions.findIndex(a => a.id === id);
+      if (index === -1) {
+        throw new Error(`Action non trouvée: ${id}`);
+      }
+      
+      const updatedAction = {
+        ...this.actions[index],
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+      
+      this.actions[index] = updatedAction;
+      return updatedAction;
+    }
+  }
+
   /**
    * Supprime une action corrective
    */
-  protected async deleteItem(id: string): Promise<boolean> {
-    return await notionApi.deleteAction(id);
-  }
-  
-  /**
-   * Récupère les actions correctives pour une évaluation spécifique
-   */
-  async getByEvaluationId(evaluationId: string): Promise<CorrectiveAction[]> {
-    // Vérifier d'abord le cache
-    const cacheKey = `${this.entityName}:evaluation:${evaluationId}`;
-    const cached = await this.entityCache.getById(cacheKey);
-    
-    if (cached) {
-      return cached;
-    }
-    
+  async delete(id: string): Promise<boolean> {
     try {
-      const actions = await notionApi.getActionsByEvaluationId(evaluationId);
-      
-      // Mettre en cache pour les requêtes futures
-      await this.entityCache.setById(cacheKey, actions, this.cacheTTL);
-      
-      return actions;
+      const result = await this.baseService.delete(id);
+      return result;
     } catch (error) {
-      console.error(`Erreur lors de la récupération des actions correctives pour l'évaluation #${evaluationId}:`, error);
-      return [];
-    }
-  }
-  
-  /**
-   * Récupère les actions correctives dont le délai d'échéance approche
-   */
-  async getUpcomingActions(daysThreshold: number = 7): Promise<CorrectiveAction[]> {
-    const allActions = await this.getAll(undefined, { status: ActionStatus.InProgress });
-    const today = new Date();
-    const thresholdDate = new Date();
-    thresholdDate.setDate(today.getDate() + daysThreshold);
-    
-    return allActions.filter(action => {
-      if (!action.dueDate) return false;
+      console.error(`Erreur lors de la suppression de l'action ${id}:`, error);
       
-      const dueDate = new Date(action.dueDate);
-      return dueDate > today && dueDate <= thresholdDate;
-    });
-  }
-  
-  /**
-   * Récupère les actions correctives en retard
-   */
-  async getOverdueActions(): Promise<CorrectiveAction[]> {
-    const allActions = await this.getAll(undefined, { status: ActionStatus.InProgress });
-    const today = new Date();
-    
-    return allActions.filter(action => {
-      if (!action.dueDate) return false;
+      const index = this.actions.findIndex(a => a.id === id);
+      if (index === -1) {
+        return false;
+      }
       
-      const dueDate = new Date(action.dueDate);
-      return dueDate < today;
-    });
-  }
-  
-  /**
-   * Met à jour le statut d'une action corrective
-   */
-  async updateStatus(id: string, status: ActionStatus, progress: number = 0): Promise<CorrectiveAction> {
-    const action = await this.getById(id);
-    if (!action) {
-      throw new Error(`Action corrective #${id} non trouvée`);
+      this.actions.splice(index, 1);
+      return true;
     }
-    
-    // Transformer le nombre en tableau de progrès vide si nécessaire
-    const progressArray = Array.isArray(action.progress) ? action.progress : [];
-    
-    return this.update(id, { status, progress: progressArray });
-  }
-  
-  /**
-   * Méthode privée pour appliquer des filtres aux actions correctives
-   */
-  private applyFilters(actions: CorrectiveAction[], filters: QueryFilters): CorrectiveAction[] {
-    return actions.filter(action => {
-      // Vérifier chaque filtre
-      return Object.entries(filters).every(([key, value]) => {
-        // Si la valeur du filtre est undefined, ignorer ce filtre
-        if (value === undefined) return true;
-        
-        // @ts-ignore - Nous savons que la clé peut exister sur l'objet
-        const actionValue = action[key];
-        
-        // Gestion des différents types de valeurs
-        if (Array.isArray(value)) {
-          return value.includes(actionValue);
-        }
-        
-        return actionValue === value;
-      });
-    });
   }
 }
 
-// Exporter une instance singleton du service
 export const actionsService = new ActionsService();
