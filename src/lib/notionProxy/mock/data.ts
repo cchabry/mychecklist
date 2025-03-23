@@ -4,45 +4,45 @@
  * Ce fichier réexporte les données depuis le module mockData central
  */
 
-import { mockData as centralMockData } from '@/lib/mockData';
+import * as centralMockData from '@/lib/mockData';
 import { ImportanceLevel } from '@/lib/types';
 
 // Réexporter toutes les données mockées depuis le module central
 export const mockData = {
   // Data
-  projects: centralMockData.projects,
-  audits: centralMockData.audits,
-  checklist: centralMockData.checklist,
-  pages: centralMockData.pages,
-  exigences: centralMockData.exigences,
-  evaluations: centralMockData.evaluations,
-  actions: centralMockData.actions,
+  projects: centralMockData.MOCK_PROJECTS,
+  audits: centralMockData.mockAudits || [],
+  checklist: centralMockData.CHECKLIST_ITEMS,
+  pages: centralMockData.SAMPLE_PAGES,
+  exigences: centralMockData.mockExigences || [],
+  evaluations: centralMockData.mockEvaluations || [],
+  actions: centralMockData.mockActions || [],
 
   // Getters
-  getProjects: centralMockData.getProjects,
-  getProject: centralMockData.getProject,
-  getAudits: centralMockData.getAudits,
-  getAudit: centralMockData.getAudit,
-  getChecklistItems: centralMockData.getChecklistItems,
-  getChecklistItem: centralMockData.getChecklistItem,
-  getPages: centralMockData.getPages,
-  getPage: centralMockData.getPage,
-  getExigences: centralMockData.getExigences,
-  getExigence: centralMockData.getExigence,
-  getEvaluations: centralMockData.getEvaluations,
-  getEvaluation: centralMockData.getEvaluation,
-  getActions: centralMockData.getActions,
-  getAction: centralMockData.getAction,
+  getProjects: centralMockData.getAllProjects,
+  getProject: centralMockData.getProjectById,
+  getAudits: () => centralMockData.mockAudits || [],
+  getAudit: (id: string) => (centralMockData.mockAudits || []).find(a => a.id === id),
+  getChecklistItems: () => centralMockData.CHECKLIST_ITEMS,
+  getChecklistItem: (id: string) => centralMockData.CHECKLIST_ITEMS.find(i => i.id === id),
+  getPages: () => centralMockData.SAMPLE_PAGES,
+  getPage: centralMockData.getPageById,
+  getExigences: () => centralMockData.mockExigences || [],
+  getExigence: (id: string) => (centralMockData.mockExigences || []).find(e => e.id === id),
+  getEvaluations: () => centralMockData.mockEvaluations || [],
+  getEvaluation: (id: string) => (centralMockData.mockEvaluations || []).find(e => e.id === id),
+  getActions: () => centralMockData.mockActions || [],
+  getAction: (id: string) => (centralMockData.mockActions || []).find(a => a.id === id),
   
   // Create/Update/Delete
-  createProject: centralMockData.createProject,
-  updateProject: centralMockData.updateProject,
-  createEvaluation: centralMockData.createEvaluation,
-  updateEvaluation: centralMockData.updateEvaluation,
-  deleteEvaluation: centralMockData.deleteEvaluation,
-  createAction: centralMockData.createAction,
-  updateAction: centralMockData.updateAction,
-  deleteAction: centralMockData.deleteAction,
+  createProject: centralMockData.createNewAudit || ((data: any) => ({...data, id: `proj_${Date.now()}`})),
+  updateProject: (id: string, data: any) => ({...centralMockData.getProjectById(id), ...data}),
+  createEvaluation: (data: any) => ({...data, id: `eval_${Date.now()}`}),
+  updateEvaluation: (id: string, data: any) => ({...((centralMockData.mockEvaluations || []).find(e => e.id === id) || {}), ...data}),
+  deleteEvaluation: () => true,
+  createAction: (data: any) => ({...data, id: `action_${Date.now()}`}),
+  updateAction: (id: string, data: any) => ({...((centralMockData.mockActions || []).find(a => a.id === id) || {}), ...data}),
+  deleteAction: () => true,
   
   // Fonction d'aide pour générer des données supplémentaires pour les tests
   generateMockExigence: (projectId: string, itemId: string) => {

@@ -5,7 +5,7 @@ import {
   ChecklistItem, 
   Exigence, 
   Audit, 
-  Page, 
+  SamplePage as Page, 
   Evaluation, 
   CorrectiveAction, 
   ComplianceStatus, 
@@ -67,18 +67,19 @@ export const mockAudits: Audit[] = [
 ];
 
 // Checklist
-export const mockChecklist: ChecklistItem[] = [
+export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'item_1',
     title: 'Images accessibles',
     description: 'Toutes les images doivent avoir un texte alternatif',
     category: 'Accessibilité',
     subcategory: 'Images',
-    reference: ['RGAA 1.1'],
-    profile: ['Développeur'],
-    phase: ['Développement'],
+    reference: 'RGAA 1.1',
+    profile: 'Développeur',
+    phase: 'Développement',
     effort: 'low',
-    priority: 'high'
+    priority: 'high',
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: 'item_2',
@@ -86,11 +87,12 @@ export const mockChecklist: ChecklistItem[] = [
     description: 'Le contraste entre le texte et le fond doit être suffisant',
     category: 'Accessibilité',
     subcategory: 'Couleurs',
-    reference: ['RGAA 3.2'],
-    profile: ['UX Designer'],
-    phase: ['Conception'],
+    reference: 'RGAA 3.2',
+    profile: 'UX Designer',
+    phase: 'Conception',
     effort: 'medium',
-    priority: 'medium'
+    priority: 'medium',
+    status: ComplianceStatus.NotEvaluated
   },
   {
     id: 'item_3',
@@ -98,16 +100,17 @@ export const mockChecklist: ChecklistItem[] = [
     description: 'Tous les champs de formulaire doivent avoir une étiquette',
     category: 'Accessibilité',
     subcategory: 'Formulaires',
-    reference: ['RGAA 11.1'],
-    profile: ['Développeur'],
-    phase: ['Développement'],
+    reference: 'RGAA 11.1',
+    profile: 'Développeur',
+    phase: 'Développement',
     effort: 'low',
-    priority: 'high'
+    priority: 'high',
+    status: ComplianceStatus.NotEvaluated
   }
 ];
 
 // Pages d'échantillon
-export const mockPages: Page[] = [
+export const SAMPLE_PAGES: Page[] = [
   {
     id: 'page_1',
     projectId: 'proj_1',
@@ -140,21 +143,21 @@ export const mockExigences: Exigence[] = [
     id: 'exigence_1',
     projectId: 'proj_1',
     itemId: 'item_1',
-    importance: ImportanceLevel.High,
+    importance: ImportanceLevel.Important,
     comment: 'Très important pour notre audience'
   },
   {
     id: 'exigence_2',
     projectId: 'proj_1',
     itemId: 'item_2',
-    importance: ImportanceLevel.Medium,
+    importance: ImportanceLevel.Moyen,
     comment: 'À prendre en compte dans la charte graphique'
   },
   {
     id: 'exigence_3',
     projectId: 'proj_1',
     itemId: 'item_3',
-    importance: ImportanceLevel.High,
+    importance: ImportanceLevel.Important,
     comment: 'Essentiel pour l\'accessibilité des formulaires'
   }
 ];
@@ -217,92 +220,50 @@ export const mockActions: CorrectiveAction[] = [
   }
 ];
 
-// Données mockées complètes
+// Fonctions utilitaires
+export const getAllProjects = () => MOCK_PROJECTS;
+export const getProjectById = (id: string) => MOCK_PROJECTS.find(p => p.id === id);
+export const getPageById = (id: string) => SAMPLE_PAGES.find(p => p.id === id);
+export const createNewAudit = (projectId: string) => ({
+  id: `audit_${Date.now()}`,
+  name: `Audit ${new Date().toLocaleDateString()}`,
+  projectId,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  score: 0,
+  items: [],
+  version: '1.0'
+});
+
+// Export une structure complète qui correspond à ce qui est attendu
 export const mockData = {
   projects: MOCK_PROJECTS,
   audits: mockAudits,
-  checklist: mockChecklist,
-  pages: mockPages,
+  checklist: CHECKLIST_ITEMS,
+  pages: SAMPLE_PAGES,
   exigences: mockExigences,
   evaluations: mockEvaluations,
   actions: mockActions,
-  // Fonctions de récupération
-  getProjects: () => MOCK_PROJECTS,
-  getProject: (id: string) => MOCK_PROJECTS.find(p => p.id === id) || null,
+  getProjects: getAllProjects,
+  getProject: getProjectById,
   getAudits: () => mockAudits,
-  getAudit: (id: string) => mockAudits.find(a => a.id === id) || null,
-  getChecklistItems: () => mockChecklist,
-  getChecklistItem: (id: string) => mockChecklist.find(i => i.id === id) || null,
-  getPages: () => mockPages,
-  getPage: (id: string) => mockPages.find(p => p.id === id) || null,
+  getAudit: (id: string) => mockAudits.find(a => a.id === id),
+  getChecklistItems: () => CHECKLIST_ITEMS,
+  getChecklistItem: (id: string) => CHECKLIST_ITEMS.find(i => i.id === id),
+  getPages: () => SAMPLE_PAGES,
+  getPage: getPageById,
   getExigences: () => mockExigences,
-  getExigence: (id: string) => mockExigences.find(e => e.id === id) || null,
+  getExigence: (id: string) => mockExigences.find(e => e.id === id),
   getEvaluations: () => mockEvaluations,
-  getEvaluation: (id: string) => mockEvaluations.find(e => e.id === id) || null,
+  getEvaluation: (id: string) => mockEvaluations.find(e => e.id === id),
   getActions: () => mockActions,
-  getAction: (id: string) => mockActions.find(a => a.id === id) || null,
-  // Fonctions de création/mise à jour/suppression simulées
-  createProject: (data: Partial<Project>) => {
-    const newProject: Project = {
-      id: `proj_${uuidv4()}`,
-      name: data.name || 'Nouveau projet',
-      url: data.url || '',
-      description: data.description || '',
-      status: data.status || 'Non démarré',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      progress: data.progress || 0,
-      itemsCount: data.itemsCount || 15,
-      pagesCount: data.pagesCount || 0
-    };
-    return newProject;
-  },
-  updateProject: (id: string, data: Partial<Project>) => {
-    const project = MOCK_PROJECTS.find(p => p.id === id);
-    if (!project) return null;
-    return { ...project, ...data, updatedAt: new Date().toISOString() };
-  },
-  createEvaluation: (data: Partial<Evaluation>) => {
-    const newEvaluation: Evaluation = {
-      id: `eval_${uuidv4()}`,
-      auditId: data.auditId || '',
-      pageId: data.pageId || '',
-      exigenceId: data.exigenceId || '',
-      score: data.score || ComplianceStatus.NotEvaluated,
-      comment: data.comment || '',
-      attachments: data.attachments || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    return newEvaluation;
-  },
-  updateEvaluation: (id: string, data: Partial<Evaluation>) => {
-    const evaluation = mockEvaluations.find(e => e.id === id);
-    if (!evaluation) return null;
-    return { ...evaluation, ...data, updatedAt: new Date().toISOString() };
-  },
-  deleteEvaluation: (id: string) => true,
-  createAction: (data: Partial<CorrectiveAction>) => {
-    const newAction: CorrectiveAction = {
-      id: `action_${uuidv4()}`,
-      evaluationId: data.evaluationId || '',
-      pageId: data.pageId || '',
-      targetScore: data.targetScore || ComplianceStatus.Compliant,
-      priority: data.priority || ActionPriority.Medium,
-      dueDate: data.dueDate || '',
-      responsible: data.responsible || '',
-      comment: data.comment || '',
-      status: data.status || ActionStatus.ToDo,
-      progress: data.progress || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    return newAction;
-  },
-  updateAction: (id: string, data: Partial<CorrectiveAction>) => {
-    const action = mockActions.find(a => a.id === id);
-    if (!action) return null;
-    return { ...action, ...data, updatedAt: new Date().toISOString() };
-  },
-  deleteAction: (id: string) => true
+  getAction: (id: string) => mockActions.find(a => a.id === a),
+  createProject: (data: any) => ({...data, id: `proj_${uuidv4()}`}),
+  updateProject: (id: string, data: any) => ({...getProjectById(id), ...data}),
+  createEvaluation: (data: any) => ({...data, id: `eval_${uuidv4()}`}),
+  updateEvaluation: (id: string, data: any) => ({...mockEvaluations.find(e => e.id === id), ...data}),
+  deleteEvaluation: () => true,
+  createAction: (data: any) => ({...data, id: `action_${uuidv4()}`}),
+  updateAction: (id: string, data: any) => ({...mockActions.find(a => a.id === id), ...data}),
+  deleteAction: () => true
 };

@@ -21,9 +21,13 @@ export {
 export {
   useOperationQueue,
   useOperationRetry,
+} from './api';
+
+// Exporter les types correctement
+export type { 
   OperationQueueOptions,
   RetryStatus,
-  type Operation
+  Operation 
 } from './api';
 
 // Hooks pour Notion
