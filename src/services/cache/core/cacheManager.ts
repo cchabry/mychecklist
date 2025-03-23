@@ -7,24 +7,27 @@ import { Cache } from './baseCache';
 import { CacheOptions } from '../types/cacheEntry';
 import { CacheFetchOptions } from '../types/fetchOptions';
 import { logCacheEvent } from '../utils/logger';
+import { executeFetcher, refreshInBackground } from './operations/fetchOperations';
+import { getCacheStats, cleanupCache } from './operations/cacheStats';
+import { ICacheManager, CacheManagerOptions } from './types/managerTypes';
 
 /**
- * Classe du gestionnaire de cache avancé
+ * Cache manager class that provides advanced caching capabilities
  */
-export class CacheManager {
+export class CacheManager implements ICacheManager {
   private cache: Cache;
   private pendingFetches: Map<string, Promise<any>>;
   private debug: boolean;
   
-  constructor(options?: Partial<CacheOptions>) {
+  constructor(options?: CacheManagerOptions) {
     this.cache = new Cache(options);
     this.pendingFetches = new Map();
     this.debug = options?.debug || false;
   }
   
   /**
-   * Récupère une valeur du cache ou l'obtient via le fetcher
-   * Supporte la stratégie stale-while-revalidate et les callbacks
+   * Fetches a value from the cache or retrieves it via the fetcher
+   * Supports stale-while-revalidate strategy and callbacks
    */
   async fetch<T>(
     key: string,
@@ -40,26 +43,31 @@ export class CacheManager {
       onLoading
     } = options;
     
-    // Signaler le début du chargement
+    // Signal loading start
     if (onLoading) {
       onLoading(true);
     }
     
     try {
-      // Vérifier s'il faut ignorer le cache
+      // Check if cache should be skipped
       if (skipCache) {
-        // Exécuter le fetcher directement
-        const freshData = await this.executeFetcher<T>(key, fetcher);
+        // Execute the fetcher directly
+        const freshData = await executeFetcher<T>(
+          this.pendingFetches, 
+          key, 
+          fetcher, 
+          this.debug
+        );
         
-        // Mettre en cache le résultat
+        // Cache the result
         this.cache.set(key, freshData, ttl);
         
-        // Appeler le callback de succès
+        // Call success callback
         if (onSuccess) {
           onSuccess(freshData, false);
         }
         
-        // Signaler la fin du chargement
+        // Signal loading end
         if (onLoading) {
           onLoading(false);
         }
@@ -67,23 +75,23 @@ export class CacheManager {
         return freshData;
       }
       
-      // Vérifier si des données en cache sont disponibles
+      // Check if cached data is available
       const cachedData = this.cache.get<T>(key);
       
-      // Si des données sont en cache
+      // If data is in cache
       if (cachedData !== null) {
-        // Si stale-while-revalidate est activé, rafraîchir en arrière-plan
+        // If stale-while-revalidate is enabled, refresh in background
         if (staleWhileRevalidate) {
-          // Rafraîchir en arrière-plan
+          // Refresh in background
           this.refreshInBackground<T>(key, fetcher, ttl, onSuccess);
         }
         
-        // Appeler le callback de succès avec les données du cache
+        // Call success callback with cached data
         if (onSuccess) {
           onSuccess(cachedData, true);
         }
         
-        // Signaler la fin du chargement
+        // Signal loading end
         if (onLoading) {
           onLoading(false);
         }
@@ -91,27 +99,32 @@ export class CacheManager {
         return cachedData;
       }
       
-      // Aucune donnée en cache, exécuter le fetcher
-      const freshData = await this.executeFetcher<T>(key, fetcher);
+      // No cached data, execute the fetcher
+      const freshData = await executeFetcher<T>(
+        this.pendingFetches, 
+        key, 
+        fetcher, 
+        this.debug
+      );
       
-      // Mettre en cache le résultat
+      // Cache the result
       this.cache.set(key, freshData, ttl);
       
-      // Appeler le callback de succès
+      // Call success callback
       if (onSuccess) {
         onSuccess(freshData, false);
       }
       
       return freshData;
     } catch (error) {
-      // Appeler le callback d'erreur
+      // Call error callback
       if (onError) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
       
       throw error;
     } finally {
-      // Signaler la fin du chargement dans tous les cas
+      // Signal loading end in all cases
       if (onLoading) {
         onLoading(false);
       }
@@ -119,121 +132,82 @@ export class CacheManager {
   }
   
   /**
-   * Exécute un fetcher avec déduplication des requêtes simultanées
+   * Refreshes cache data in the background
    */
-  private async executeFetcher<T>(
-    key: string,
-    fetcher: () => Promise<T>
-  ): Promise<T> {
-    // Vérifier si une requête est déjà en cours pour cette clé
-    const pendingFetch = this.pendingFetches.get(key);
-    
-    if (pendingFetch) {
-      // Réutiliser la promesse existante
-      return pendingFetch as Promise<T>;
-    }
-    
-    // Créer une nouvelle promesse
-    const fetchPromise = fetcher();
-    
-    // Enregistrer la promesse en cours
-    this.pendingFetches.set(key, fetchPromise);
-    
-    try {
-      // Attendre le résultat
-      const result = await fetchPromise;
-      return result;
-    } finally {
-      // Supprimer la promesse en cours
-      this.pendingFetches.delete(key);
-    }
-  }
-  
-  /**
-   * Rafraîchit les données en cache en arrière-plan
-   */
-  private async refreshInBackground<T>(
+  private refreshInBackground<T>(
     key: string,
     fetcher: () => Promise<T>,
     ttl?: number,
     onSuccess?: (data: T, fromCache: boolean) => void
-  ): Promise<void> {
-    try {
-      // Exécuter le fetcher
-      const freshData = await fetcher();
-      
-      // Mettre à jour le cache
-      this.cache.set(key, freshData, ttl);
-      
-      // Appeler le callback si nécessaire
-      if (onSuccess) {
-        onSuccess(freshData, false);
-      }
-    } catch (error) {
-      // Ignorer les erreurs en arrière-plan, elles seront gérées
-      // lors de la prochaine requête explicite
-      this.log(`Erreur lors du rafraîchissement en arrière-plan pour ${key}:`, error);
-    }
+  ): void {
+    refreshInBackground(
+      key, 
+      fetcher, 
+      this.set.bind(this), 
+      ttl, 
+      onSuccess, 
+      this.debug
+    );
   }
   
   /**
-   * Définit une valeur dans le cache
+   * Sets a value in the cache
    */
   set<T>(key: string, value: T, ttl?: number): void {
     this.cache.set(key, value, ttl);
   }
   
   /**
-   * Récupère une valeur du cache
+   * Gets a value from the cache
    */
   get<T>(key: string): T | null {
     return this.cache.get<T>(key);
   }
   
   /**
-   * Vérifie si une clé existe dans le cache
+   * Checks if a key exists in the cache
    */
   has(key: string): boolean {
     return this.cache.has(key);
   }
   
   /**
-   * Supprime une entrée du cache
+   * Removes an entry from the cache
    */
   invalidate(key: string): boolean {
     return this.cache.delete(key);
   }
   
   /**
-   * Supprime toutes les entrées correspondant à un préfixe
+   * Removes all entries matching a prefix
    */
   invalidateByPrefix(prefix: string): number {
     return this.cache.deleteByPrefix(prefix);
   }
   
   /**
-   * Vide entièrement le cache
+   * Clears the entire cache
    */
   clear(): number {
     return this.cache.clear();
   }
   
   /**
-   * Obtient des statistiques sur le cache
+   * Gets statistics about the cache
    */
   getStats(): Record<string, any> {
-    return this.cache.getStats();
+    return getCacheStats(this.cache, this.debug);
   }
   
   /**
-   * Supprime toutes les entrées expirées du cache
+   * Removes all expired entries from the cache
    */
   cleanup(): number {
-    return this.cache.cleanup();
+    return cleanupCache(this.cache);
   }
   
   /**
-   * Affiche un message de log si le mode debug est activé
+   * Logs a message if debug mode is enabled
    */
   private log(message: string, data?: any): void {
     logCacheEvent(this.debug, message, data);
