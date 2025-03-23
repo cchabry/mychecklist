@@ -4,5 +4,5 @@
  * Réexporte la classe Cache depuis l'implémentation modulaire
  */
 
-export { Cache } from './implementation/Cache';
+export { Cache } from './implementation/cache/Cache';
 export { hasExpired } from './implementation/expiryUtils';

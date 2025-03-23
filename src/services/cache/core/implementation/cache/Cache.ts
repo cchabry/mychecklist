@@ -1,3 +1,4 @@
+
 /**
  * Implémentation principale de la classe Cache
  */
@@ -5,9 +6,13 @@
 import { CacheEntry, CacheOptions, DEFAULT_CACHE_OPTIONS } from '../../types/cacheEntry';
 import { getFullKey, getOriginalKey } from '../../utils/keyUtils';
 import { logCacheEvent } from '../../utils/logger';
-import { cleanupEntries, hasExpired } from './expiryUtils';
-import { CacheStorage } from './CacheStorage';
-import { fetchFromCacheOrSource } from './fetchUtils';
+import { hasExpired } from '../expiryUtils';
+import { CacheStorage } from '../CacheStorage';
+import { fetchFromCacheOrSource } from '../fetchUtils';
+import { cleanupEntries } from './cleanupOperations';
+import { getCacheStats } from './statsOperations';
+import { getByPrefix, deleteByPrefix } from './prefixOperations';
+import { getAllEntries } from './entryOperations';
 
 /**
  * Classe principale du service de cache
@@ -177,27 +182,7 @@ export class Cache {
    * @returns Liste de paires [clé, valeur]
    */
   getByPrefix<T>(prefix: string): [string, T][] {
-    const fullPrefix = this.getFullKey(prefix);
-    const result: [string, T][] = [];
-    
-    for (const [key, entry] of this.storage.entries()) {
-      // Vérifier le préfixe
-      if (!key.startsWith(fullPrefix)) {
-        continue;
-      }
-      
-      // Vérifier l'expiration
-      if (hasExpired(entry)) {
-        this.storage.delete(key);
-        continue;
-      }
-      
-      // Ajouter au résultat (en supprimant le préfixe global)
-      const originalKey = this.getOriginalKey(key);
-      result.push([originalKey, entry.data]);
-    }
-    
-    return result;
+    return getByPrefix<T>(this.storage, prefix, this.getFullKey.bind(this), this.getOriginalKey.bind(this));
   }
 
   /**
@@ -206,18 +191,9 @@ export class Cache {
    * @returns Le nombre d'entrées supprimées
    */
   deleteByPrefix(prefix: string): number {
-    const fullPrefix = this.getFullKey(prefix);
-    let count = 0;
-    
-    for (const key of this.storage.keys()) {
-      if (key.startsWith(fullPrefix)) {
-        this.storage.delete(key);
-        count++;
-      }
-    }
-    
-    this.log(`Préfixe supprimé: ${prefix} (${count} entrées)`);
-    return count;
+    const result = deleteByPrefix(this.storage, prefix, this.getFullKey.bind(this));
+    this.log(`Préfixe supprimé: ${prefix} (${result} entrées)`);
+    return result;
   }
 
   /**
@@ -225,25 +201,7 @@ export class Cache {
    * @returns Liste des entrées avec leurs métadonnées
    */
   getAll(): Array<{key: string, data: any, expiry: number | null, timestamp: number}> {
-    const entries: Array<{key: string, data: any, expiry: number | null, timestamp: number}> = [];
-    
-    for (const [fullKey, entry] of this.storage.entries()) {
-      // Vérifier l'expiration
-      if (hasExpired(entry)) {
-        this.storage.delete(fullKey);
-        continue;
-      }
-      
-      // Ajouter à la liste
-      entries.push({
-        key: this.getOriginalKey(fullKey),
-        data: entry.data,
-        expiry: entry.expiry,
-        timestamp: entry.timestamp
-      });
-    }
-    
-    return entries;
+    return getAllEntries(this.storage, this.getOriginalKey.bind(this));
   }
 
   /**
@@ -278,28 +236,7 @@ export class Cache {
    * Obtient des statistiques sur le cache
    */
   getStats(): Record<string, any> {
-    const now = Date.now();
-    let expiredCount = 0;
-    let validCount = 0;
-    let noExpiryCount = 0;
-    
-    for (const entry of this.storage.values()) {
-      if (entry.expiry === null) {
-        noExpiryCount++;
-      } else if (entry.expiry < now) {
-        expiredCount++;
-      } else {
-        validCount++;
-      }
-    }
-    
-    return {
-      total: this.storage.size(),
-      valid: validCount,
-      expired: expiredCount,
-      noExpiry: noExpiryCount,
-      options: this.options
-    };
+    return getCacheStats(this.storage, this.options, Date.now());
   }
 
   /**
