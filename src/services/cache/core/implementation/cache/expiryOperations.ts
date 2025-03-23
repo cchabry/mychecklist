@@ -3,8 +3,8 @@
  * Utilitaires pour la gestion des expirations du cache
  */
 
-import { CacheEntry } from '../../types/cacheEntry';
-import { CacheStorage } from './CacheStorage';
+import { CacheEntry } from '../../../types/cacheEntry';
+import { CacheStorage } from '../CacheStorage';
 
 /**
  * Vérifie si une entrée de cache est expirée

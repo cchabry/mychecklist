@@ -5,4 +5,4 @@
  */
 
 export { Cache } from './implementation/cache/Cache';
-export { hasExpired } from './implementation/expiryUtils';
+export { hasExpired } from './implementation/cache/expiryOperations';

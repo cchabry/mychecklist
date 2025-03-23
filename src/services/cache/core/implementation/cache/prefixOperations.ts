@@ -3,7 +3,7 @@
  * Operations liées aux préfixes de clés
  */
 
-import { hasExpired } from '../expiryUtils';
+import { hasExpired } from './expiryOperations';
 import { CacheStorage } from '../CacheStorage';
 
 /**

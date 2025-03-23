@@ -6,7 +6,7 @@
 import { CacheEntry, CacheOptions, DEFAULT_CACHE_OPTIONS } from '../../../types/cacheEntry';
 import { getFullKey, getOriginalKey } from '../../../utils/keyUtils';
 import { logCacheEvent } from '../../../utils/logger';
-import { hasExpired } from '../expiryUtils';
+import { hasExpired } from './expiryOperations';
 import { CacheStorage } from '../CacheStorage';
 import { fetchFromCacheOrSource } from '../fetchUtils';
 import { cleanupEntries } from './cleanupOperations';
