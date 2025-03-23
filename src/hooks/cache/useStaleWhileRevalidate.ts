@@ -96,21 +96,21 @@ export function useStaleWhileRevalidate<T>(
       
       try {
         // Vérifier le cache d'abord
-        const cachedEntry = cache.get(key);
+        const cachedEntry = cache.get<{ data: T, timestamp: number }>(key);
         
         if (cachedEntry && typeof cachedEntry === 'object' && 'data' in cachedEntry) {
           // Déterminer si les données sont "stale"
-          const cachedTimestamp = (cachedEntry as any).timestamp || 0;
+          const cachedTimestamp = cachedEntry.timestamp || 0;
           const dataIsStale = (Date.now() - cachedTimestamp) > staleTime;
           
           // Mettre à jour l'état avec les données du cache
-          setData((cachedEntry as any).data as T);
+          setData(cachedEntry.data);
           setTimestamp(cachedTimestamp);
           setIsStale(dataIsStale);
           setIsLoading(false);
           
           if (onSuccess) {
-            onSuccess((cachedEntry as any).data as T, true);
+            onSuccess(cachedEntry.data, true);
           }
           
           // Si les données sont périmées, recharger en arrière-plan
@@ -127,6 +127,8 @@ export function useStaleWhileRevalidate<T>(
         await fetchData();
       } catch (error) {
         console.error(`Erreur lors du chargement initial pour ${key}:`, error);
+      } finally {
+        setIsLoading(false);
       }
     };
     

@@ -40,6 +40,10 @@ const CacheDiagnostics: React.FC = () => {
   const incrementCounter = () => {
     setCounter(prev => prev + 1);
   };
+  
+  const handleRefetch = () => {
+    refetch();
+  };
 
   return (
     <div className="space-y-6">
@@ -50,7 +54,7 @@ const CacheDiagnostics: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Button onClick={refetch} disabled={isLoading}>
+              <Button onClick={handleRefetch} disabled={isLoading}>
                 {isLoading ? 'Chargement...' : 'Recharger les données'}
               </Button>
               <Button onClick={incrementCounter} variant="outline">

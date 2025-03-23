@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useCache } from './cache/useCache';
 import { useNotionAPI, NotionAPIOptions } from './notion/useNotionAPI';
 import { CacheOptions } from '@/services/cache/types';
+import { CacheEntry } from '@/services/cache/types/cacheEntry';
 
 interface NotionCachedAPIOptions<T> extends NotionAPIOptions, Partial<CacheOptions> {
   // Options spécifiques au cache
@@ -70,7 +71,7 @@ export function useNotionCachedAPI<T = any>(
   // Charger les données initiales
   useEffect(() => {
     // Vérifier le cache
-    const cachedData = cache.get(cacheKey);
+    const cachedData = cache.get<{ data: T, timestamp: number }>(cacheKey);
     
     if (cachedData && 'data' in cachedData) {
       // Déterminer si les données sont périmées

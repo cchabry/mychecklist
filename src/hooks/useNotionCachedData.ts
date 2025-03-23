@@ -139,7 +139,7 @@ export function useNotionCachedData<T = any>(
       }
       
       // Vérifier le cache
-      const cachedEntry = cache.get(cacheKey);
+      const cachedEntry = cache.get<{ data: T, timestamp: number }>(cacheKey);
       
       if (cachedEntry && 'data' in cachedEntry) {
         // Vérifier si les données sont périmées
