@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getProjectById, createMockAudit, createNewAudit, getPagesByProjectId, getAllProjects } from '@/lib/mockData';
 import { Audit, Project, SamplePage } from '@/lib/types';
 import { notionApi } from '@/lib/notionProxy';
-import { operationMode, operationModeUtils } from '@/lib/operationMode';
+import { operationMode, operationModeUtils } from '@/services/operationMode';
 
 /**
  * Hook pour charger les données d'un projet et de son audit associé

@@ -205,7 +205,7 @@ export async function createAction(data: Partial<CorrectiveAction>): Promise<Cor
 }
 
 /**
- * Met à jour une action corrective existante
+ * Met �� jour une action corrective existante
  */
 export async function updateAction(id: string, data: Partial<CorrectiveAction>): Promise<CorrectiveAction> {
   // En mode mock, retourner des données fictives
