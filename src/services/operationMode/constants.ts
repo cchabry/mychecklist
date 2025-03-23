@@ -2,26 +2,21 @@
 import { OperationModeSettings } from './types';
 
 /**
- * Clés de stockage pour le mode opérationnel
- */
-export const STORAGE_KEYS = {
-  MODE: 'operation_mode',
-  REASON: 'operation_mode_reason',
-  SETTINGS: 'operation_mode_settings'
-};
-
-/**
- * Paramètres par défaut du mode opérationnel
+ * Paramètres par défaut pour le mode opérationnel
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
-  showIndicators: true,
-  showDetails: true,
-  showNotifications: true,
+  // Basculer automatiquement en mode démo après un certain nombre d'échecs
   autoSwitchOnFailure: true,
+  
+  // Nombre d'échecs consécutifs avant basculement automatique
   maxConsecutiveFailures: 3,
-  reconnectInterval: 60 * 1000, // 1 minute
-  useCacheInRealMode: true,
+  
+  // Conserver le mode entre les sessions
   persistentModeStorage: true,
-  simulatedNetworkDelay: 300, // 300ms
-  errorSimulationRate: 0
+  
+  // Afficher les notifications de changement de mode
+  showNotifications: true,
+  
+  // Utiliser le cache en mode réel
+  useCacheInRealMode: true
 };

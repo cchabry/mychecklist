@@ -1,34 +1,26 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { operationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 
 /**
- * Hook pour écouter les changements du mode opérationnel
+ * Hook pour écouter les changements de mode opérationnel
+ * et fournir des méthodes simples pour interagir avec le mode
  */
 export function useOperationModeListener() {
-  const [isDemoMode, setIsDemoMode] = useState(operationMode.isDemoMode);
-  
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
+  const { toggle, enableRealMode, enableDemoMode } = useOperationMode();
+
+  // S'abonner aux changements du mode opérationnel
   useEffect(() => {
-    // Mettre à jour l'état quand le mode change
-    const handleModeChange = (newIsDemoMode: boolean) => {
-      setIsDemoMode(newIsDemoMode);
-    };
-    
-    // S'abonner aux changements de mode
-    const unsubscribe = operationMode.onModeChange(handleModeChange);
-    
-    // Initialiser avec la valeur actuelle
-    setIsDemoMode(operationMode.isDemoMode);
-    
-    // Nettoyer l'abonnement
-    return () => {
-      unsubscribe();
-    };
+    const unsubscribe = operationMode.onModeChange(setIsDemoMode);
+    return unsubscribe;
   }, []);
-  
+
   return {
     isDemoMode,
-    toggleMode: operationMode.toggleMode.bind(operationMode),
-    setDemoMode: operationMode.setDemoMode.bind(operationMode)
+    toggleMode: toggle,
+    enableRealMode,
+    enableDemoMode
   };
 }

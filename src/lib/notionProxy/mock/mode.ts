@@ -17,21 +17,21 @@ export const mockMode = {
    * Active le mode mock
    */
   activate(): void {
-    operationMode.setDemoMode(true);
+    operationMode.enableDemoMode('Activé via ancien API mockMode');
   },
   
   /**
    * Désactive le mode mock
    */
   deactivate(): void {
-    operationMode.setDemoMode(false);
+    operationMode.enableRealMode();
   },
   
   /**
    * Bascule le mode mock
    */
   toggle(): void {
-    operationMode.toggleMode();
+    operationMode.toggle();
   },
   
   /**
@@ -47,6 +47,7 @@ export const mockMode = {
    */
   persist(): void {
     // Rien à faire, operationMode s'en charge
+    operationMode.updateSettings({ persistentModeStorage: true });
   },
   
   /**

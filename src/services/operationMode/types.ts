@@ -1,199 +1,101 @@
 
 /**
- * Types pour le service operationMode
- */
-
-/**
- * Modes opérationnels possibles
+ * Modes de fonctionnement de l'application
  */
 export enum OperationMode {
-  REAL = 'real',
-  DEMO = 'demo'
+  REAL = 'real',  // Mode réel, données depuis l'API
+  DEMO = 'demo'   // Mode démo, données simulées
 }
 
 /**
- * Raison du changement de mode
+ * Types de raisons pour le changement de mode
  */
-export type SwitchReason = string;
-
-/**
- * Type de fonction de rappel pour les événements de mode opérationnel
- */
-export type OperationModeSubscriber = (mode: OperationMode, reason: SwitchReason | null) => void;
+export type SwitchReason = string | null;
 
 /**
  * Paramètres du mode opérationnel
  */
 export interface OperationModeSettings {
-  /**
-   * Afficher les indicateurs de mode opérationnel dans l'UI
-   */
-  showIndicators: boolean;
+  // Bascule automatique en mode démo après un certain nombre d'échecs
+  autoSwitchOnFailure: boolean;
   
-  /**
-   * Afficher les détails du mode opérationnel
-   */
-  showDetails: boolean;
+  // Nombre d'échecs consécutifs avant basculement automatique
+  maxConsecutiveFailures: number;
   
-  /**
-   * Afficher les notifications lors des changements de mode
-   */
+  // Conserver le mode entre les sessions
+  persistentModeStorage: boolean;
+  
+  // Afficher les notifications de changement de mode
   showNotifications: boolean;
   
-  /**
-   * Basculer automatiquement en mode démo en cas d'erreur
-   */
-  autoSwitchOnFailure?: boolean;
-  
-  /**
-   * Tentatives maximales avant de basculer en mode démo
-   */
-  maxConsecutiveFailures?: number;
-  
-  /**
-   * Durée (en ms) entre les tentatives de reconnexion au mode réel
-   */
-  reconnectInterval?: number;
-  
-  /**
-   * Utiliser le cache en mode réel
-   * Si false, les données seront toujours rechargées depuis l'API
-   */
+  // Utiliser le cache en mode réel
   useCacheInRealMode?: boolean;
-  
-  /**
-   * Persistance du mode opérationnel dans le stockage local
-   */
-  persistentModeStorage?: boolean;
-  
-  /**
-   * Délai simulé pour les opérations réseau (en ms)
-   */
-  simulatedNetworkDelay?: number;
-  
-  /**
-   * Taux d'erreurs simulées (en pourcentage)
-   */
-  errorSimulationRate?: number;
 }
 
 /**
- * État du mode opérationnel
+ * Fonction appelée lors des changements de mode
  */
-export interface OperationModeState {
-  /**
-   * Indique si le mode démo est actif
-   */
-  isDemoMode: boolean;
-  
-  /**
-   * Raison pour laquelle le mode démo est activé (le cas échéant)
-   */
-  demoModeReason?: string;
-  
-  /**
-   * Horodatage de l'activation du mode démo
-   */
-  demoModeActivatedAt?: number;
-  
-  /**
-   * Nombre d'erreurs consécutives
-   */
-  consecutiveErrors: number;
-  
-  /**
-   * Nombre de tentatives échouées
-   */
-  failedAttempts: number;
-  
-  /**
-   * Dernières erreurs rencontrées
-   */
-  lastErrors: OperationModeError[];
-}
-
-/**
- * Structure d'une erreur enregistrée
- */
-export interface OperationModeError {
-  /**
-   * Message d'erreur
-   */
-  message: string;
-  
-  /**
-   * Contexte de l'erreur
-   */
-  context?: string;
-  
-  /**
-   * Horodatage de l'erreur
-   */
-  timestamp: number;
-}
-
-/**
- * Options pour l'activation du mode démo
- */
-export interface EnableDemoModeOptions {
-  /**
-   * Raison de l'activation du mode démo
-   */
-  reason?: string;
-  
-  /**
-   * Afficher une notification à l'utilisateur
-   */
-  notify?: boolean;
-  
-  /**
-   * Tentatives échouées à incrémenter
-   */
-  incrementFailedAttempts?: boolean;
-  
-  /**
-   * Erreurs consécutives à incrémenter
-   */
-  incrementConsecutiveErrors?: boolean;
-}
+export type OperationModeSubscriber = (mode: OperationMode, reason: SwitchReason) => void;
 
 /**
  * Interface pour le service de mode opérationnel
  */
 export interface IOperationModeService {
-  readonly isDemoMode: boolean;
-  readonly isRealMode: boolean;
-  getMode(): OperationMode;
-  getSwitchReason(): SwitchReason | null;
-  getSettings(): OperationModeSettings;
-  getConsecutiveFailures(): number;
-  getLastError(): Error | null;
-  subscribe(subscriber: OperationModeSubscriber): () => void;
-  enableDemoMode(reason?: SwitchReason): void;
-  enableRealMode(): void;
-  toggle(): void;
-  handleConnectionError(error: Error, context?: string): void;
-  handleSuccessfulOperation(): void;
-  updateSettings(partialSettings: Partial<OperationModeSettings>): void;
-  reset(): void;
+  // Propriétés calculées
+  isDemoMode: boolean;
+  isRealMode: boolean;
+  
+  // Accesseurs d'état
+  getMode: () => OperationMode;
+  getSwitchReason: () => SwitchReason;
+  getSettings: () => OperationModeSettings;
+  getConsecutiveFailures: () => number;
+  getLastError: () => Error | null;
+  
+  // Gestion des abonnements
+  subscribe: (subscriber: OperationModeSubscriber) => () => void;
+  onModeChange: (subscriber: (isDemoMode: boolean) => void) => () => void;
+  offModeChange: (subscriber: (isDemoMode: boolean) => void) => void;
+  
+  // Méthodes de changement de mode
+  enableDemoMode: (reason?: SwitchReason) => void;
+  enableRealMode: () => void;
+  toggle: () => void;
+  toggleMode: () => void;
+  setDemoMode: (value: boolean) => void;
+  
+  // Gestion des erreurs
+  handleConnectionError: (error: Error, context?: string) => void;
+  handleSuccessfulOperation: () => void;
+  
+  // Configuration
+  updateSettings: (partialSettings: Partial<OperationModeSettings>) => void;
+  
+  // Réinitialisation
+  reset: () => void;
 }
 
 /**
- * Interface du hook useOperationMode
+ * Interface pour le hook useOperationMode
  */
 export interface OperationModeHook {
+  // État
   mode: OperationMode;
-  switchReason: string | null;
+  switchReason: SwitchReason;
   failures: number;
   lastError: Error | null;
   settings: OperationModeSettings;
+  
+  // Propriétés calculées
   isDemoMode: boolean;
   isRealMode: boolean;
-  enableDemoMode: (reason?: string) => void;
+  
+  // Actions
+  enableDemoMode: (reason?: SwitchReason) => void;
   enableRealMode: () => void;
   toggle: () => void;
   handleConnectionError: (error: Error, context?: string) => void;
   handleSuccessfulOperation: () => void;
-  updateSettings: (settings: Partial<OperationModeSettings>) => void;
+  updateSettings: (partialSettings: Partial<OperationModeSettings>) => void;
   reset: () => void;
 }

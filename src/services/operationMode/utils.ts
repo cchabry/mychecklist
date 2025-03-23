@@ -1,75 +1,84 @@
 
-/**
- * Utilitaires pour le mode opérationnel
- */
-
 import { operationMode } from './operationModeService';
+import { OperationMode } from './types';
 
 /**
- * Delay minimum pour les opérations simulées (ms)
+ * Utilitaires pour le système operationMode
  */
-const MIN_DELAY = 200;
-
-/**
- * Delay maximum pour les opérations simulées (ms)
- */
-const MAX_DELAY = 800;
-
 export const operationModeUtils = {
   /**
-   * Applique un délai simulé pour les opérations en mode démo
-   * @param customDelay Délai personnalisé (optionnel)
+   * Applique un délai simulé pour représenter la latence réseau
+   * @param minDelay Délai minimum en ms (par défaut: 200)
+   * @param maxDelay Délai maximum en ms (par défaut: 800)
    * @returns Promesse résolue après le délai
    */
-  applySimulatedDelay: async (customDelay?: number): Promise<void> => {
-    if (operationMode.isDemoMode) {
-      const settings = operationMode.getSettings();
-      const delay = customDelay || settings.simulatedNetworkDelay || 300;
-      
-      // Ajouter une variation aléatoire de ±20% pour plus de réalisme
-      const variation = delay * 0.2;
-      const finalDelay = delay + (Math.random() * variation * 2 - variation);
-      
-      // Limiter le délai entre MIN_DELAY et MAX_DELAY
-      const cappedDelay = Math.max(MIN_DELAY, Math.min(MAX_DELAY, finalDelay));
-      
-      await new Promise(resolve => setTimeout(resolve, cappedDelay));
-    }
-  },
-  
-  /**
-   * Détermine si une erreur doit être simulée en fonction du taux d'erreur
-   * @returns true si une erreur doit être simulée
-   */
-  shouldSimulateError: (): boolean => {
-    if (operationMode.isDemoMode) {
-      const settings = operationMode.getSettings();
-      const errorRate = settings.errorSimulationRate || 0;
-      
-      if (errorRate > 0) {
-        // Générer un nombre aléatoire entre 0 et 100
-        const random = Math.random() * 100;
-        return random < errorRate;
-      }
-    }
+  applySimulatedDelay: async (minDelay = 200, maxDelay = 800): Promise<void> => {
+    // Calculer un délai aléatoire entre min et max
+    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
     
-    return false;
+    // Renvoyer une promesse résolue après le délai
+    return new Promise(resolve => setTimeout(resolve, delay));
   },
   
   /**
-   * Simule une erreur de connexion pour tester le système de gestion des erreurs
+   * Détermine si une erreur doit être simulée (selon le taux d'erreur)
+   * @param errorRate Taux d'erreur entre 0 et 1 (par défaut: 0.05, soit 5%)
+   * @returns Vrai si une erreur doit être simulée
    */
-  simulateConnectionError: (): never => {
-    throw new Error('Erreur de connexion simulée pour tester le système');
+  shouldSimulateError: (errorRate = 0.05): boolean => {
+    return Math.random() < errorRate;
   },
   
   /**
-   * Récupère le scénario de démo spécifié
-   * @param name Nom du scénario
-   * @returns Valeur du scénario ou null si non trouvé
+   * Simule une erreur de connexion
+   * @param message Message d'erreur optionnel
+   * @throws Error
    */
-  getScenario: (name: string): any => {
-    // Cette fonction sera implémentée plus tard pour les scénarios de démo
-    return null;
+  simulateConnectionError: (message = "Erreur de connexion simulée"): never => {
+    throw new Error(message);
+  },
+  
+  /**
+   * Récupère un scénario de démo spécifique
+   * @param scenarioName Nom du scénario (par défaut: 'default')
+   * @returns Objet contenant les données du scénario
+   */
+  getScenario: (scenarioName = 'default'): any => {
+    // Scénarios prédéfinis (à adapter selon les besoins)
+    const scenarios: Record<string, any> = {
+      default: {
+        name: 'Scénario par défaut',
+        config: { errorRate: 0.05, delay: 500 }
+      },
+      success: {
+        name: 'Succès systématique',
+        config: { errorRate: 0, delay: 300 }
+      },
+      error: {
+        name: 'Erreurs fréquentes',
+        config: { errorRate: 0.8, delay: 200 }
+      },
+      slow: {
+        name: 'Connexion lente',
+        config: { errorRate: 0.05, delay: 2000 }
+      }
+    };
+    
+    // Retourner le scénario demandé ou le scénario par défaut
+    return scenarios[scenarioName] || scenarios.default;
+  },
+  
+  /**
+   * Vérifie si l'application est actuellement en mode démo
+   */
+  isDemoModeActive: (): boolean => {
+    return operationMode.isDemoMode;
+  },
+  
+  /**
+   * Convertit l'ancien format de mode (isDemoMode: boolean) vers le nouveau (OperationMode)
+   */
+  convertLegacyMode: (isDemoMode: boolean): OperationMode => {
+    return isDemoMode ? OperationMode.DEMO : OperationMode.REAL;
   }
 };
