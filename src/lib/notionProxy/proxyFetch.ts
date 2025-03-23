@@ -98,3 +98,9 @@ export const notionApiRequest = async (
     throw error;
   }
 };
+
+/**
+ * Fonction proxy pour les requêtes Notion, alias de notionApiRequest
+ * Maintenue pour la compatibilité avec le code existant
+ */
+export const proxyFetch = notionApiRequest;

@@ -4,44 +4,44 @@
  * Ce fichier réexporte les données depuis le module mockData central
  */
 
-import * as centralMockData from '@/lib/mockData';
+import { mockData as centralMockData, MOCK_PROJECTS } from '@/lib/mockData/index';
 import { ImportanceLevel } from '@/lib/types';
 
 // Réexporter toutes les données mockées depuis le module central
 export const mockData = {
   // Data
-  projects: centralMockData.MOCK_PROJECTS,
-  audits: centralMockData.mockAudits || [],
-  checklist: centralMockData.CHECKLIST_ITEMS,
-  pages: centralMockData.SAMPLE_PAGES,
-  exigences: centralMockData.mockExigences || [],
-  evaluations: centralMockData.mockEvaluations || [],
-  actions: centralMockData.mockActions || [],
+  projects: centralMockData.projects,
+  audits: centralMockData.audits,
+  checklist: centralMockData.checklist,
+  pages: centralMockData.pages,
+  exigences: centralMockData.exigences,
+  evaluations: centralMockData.evaluations,
+  actions: centralMockData.actions,
 
   // Getters
-  getProjects: centralMockData.getAllProjects,
-  getProject: centralMockData.getProjectById,
-  getAudits: () => centralMockData.mockAudits || [],
-  getAudit: (id: string) => (centralMockData.mockAudits || []).find(a => a.id === id),
-  getChecklistItems: () => centralMockData.CHECKLIST_ITEMS,
-  getChecklistItem: (id: string) => centralMockData.CHECKLIST_ITEMS.find(i => i.id === id),
-  getPages: () => centralMockData.SAMPLE_PAGES,
-  getPage: centralMockData.getPageById,
-  getExigences: () => centralMockData.mockExigences || [],
-  getExigence: (id: string) => (centralMockData.mockExigences || []).find(e => e.id === id),
-  getEvaluations: () => centralMockData.mockEvaluations || [],
-  getEvaluation: (id: string) => (centralMockData.mockEvaluations || []).find(e => e.id === id),
-  getActions: () => centralMockData.mockActions || [],
-  getAction: (id: string) => (centralMockData.mockActions || []).find(a => a.id === id),
+  getProjects: centralMockData.getProjects,
+  getProject: centralMockData.getProject,
+  getAudits: () => centralMockData.audits,
+  getAudit: (id: string) => centralMockData.audits.find(a => a.id === id),
+  getChecklistItems: () => centralMockData.checklist,
+  getChecklistItem: (id: string) => centralMockData.checklist.find(i => i.id === id),
+  getPages: () => centralMockData.pages,
+  getPage: centralMockData.getPage,
+  getExigences: () => centralMockData.exigences,
+  getExigence: (id: string) => centralMockData.exigences.find(e => e.id === id),
+  getEvaluations: () => centralMockData.evaluations,
+  getEvaluation: (id: string) => centralMockData.evaluations.find(e => e.id === id),
+  getActions: () => centralMockData.actions,
+  getAction: (id: string) => centralMockData.actions.find(a => a.id === id),
   
   // Create/Update/Delete
-  createProject: centralMockData.createNewAudit || ((data: any) => ({...data, id: `proj_${Date.now()}`})),
-  updateProject: (id: string, data: any) => ({...centralMockData.getProjectById(id), ...data}),
+  createProject: centralMockData.createProject,
+  updateProject: (id: string, data: any) => ({...centralMockData.getProject(id), ...data}),
   createEvaluation: (data: any) => ({...data, id: `eval_${Date.now()}`}),
-  updateEvaluation: (id: string, data: any) => ({...((centralMockData.mockEvaluations || []).find(e => e.id === id) || {}), ...data}),
+  updateEvaluation: (id: string, data: any) => ({...(centralMockData.evaluations.find(e => e.id === id) || {}), ...data}),
   deleteEvaluation: () => true,
   createAction: (data: any) => ({...data, id: `action_${Date.now()}`}),
-  updateAction: (id: string, data: any) => ({...((centralMockData.mockActions || []).find(a => a.id === id) || {}), ...data}),
+  updateAction: (id: string, data: any) => ({...(centralMockData.actions.find(a => a.id === id) || {}), ...data}),
   deleteAction: () => true,
   
   // Fonction d'aide pour générer des données supplémentaires pour les tests
@@ -57,4 +57,4 @@ export const mockData = {
 };
 
 // Exporter aussi les données mockées directement
-export { MOCK_PROJECTS } from '@/lib/mockData';
+export { MOCK_PROJECTS };
