@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { notionErrorService, NotionError } from '@/services/notion/errorHandling';
+import { notionErrorService, NotionError, NotionErrorType } from '@/services/notion/errorHandling';
 
 // Types pour les options de l'API Notion
 export interface NotionAPIOptions<T = any> {
@@ -8,7 +8,7 @@ export interface NotionAPIOptions<T = any> {
   forceMode?: 'real' | 'demo';
   
   // Gestion des erreurs
-  onError?: (error: Error) => void;
+  onError?: (error: NotionError) => void;
   
   // Traitement additionnel des données
   processResult?: (data: T) => T;
@@ -25,7 +25,7 @@ export interface NotionAPIOptions<T = any> {
  */
 export function useNotionAPI() {
   const [isLoading, setIsLoading] = useState(false);
-  const [lastError, setLastError] = useState<Error | null>(null);
+  const [lastError, setLastError] = useState<NotionError | null>(null);
 
   // S'abonner aux notifications d'erreurs
   useEffect(() => {

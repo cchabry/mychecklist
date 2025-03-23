@@ -3,8 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NotionErrorsList } from '@/components/notion/error';
 import { RetryQueueStatus } from '@/components/notion/error';
-import { useNotionErrorService } from '@/services/notion/errorHandling';
-import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
+import { useNotionErrorService, useRetryQueue } from '@/services/notion/errorHandling';
 import { Badge } from '@/components/ui/badge';
 
 interface NotionErrorMonitorProps {

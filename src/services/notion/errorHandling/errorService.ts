@@ -4,7 +4,9 @@ import {
   NotionError, 
   NotionErrorType, 
   ErrorSubscriber,
-  ReportErrorOptions 
+  ReportErrorOptions,
+  NotionErrorSeverity,
+  NotionErrorOptions
 } from './types';
 import { notionErrorUtils } from './utils';
 
@@ -37,7 +39,12 @@ class NotionErrorService {
       details: options.details,
       retryable: options.retryable !== undefined 
         ? options.retryable 
-        : notionErrorUtils.isRetryableError(error)
+        : notionErrorUtils.isRetryableError(error),
+      name: originError.name,
+      stack: originError.stack,
+      severity: options.severity || NotionErrorSeverity.ERROR,
+      recoverable: options.recoverable || false,
+      recoveryActions: options.recoveryActions || []
     };
     
     // Ajouter l'erreur à la liste
@@ -57,10 +64,31 @@ class NotionErrorService {
       type: notionError.type,
       operation: notionError.operation,
       context: notionError.context,
-      retryable: notionError.retryable
+      retryable: notionError.retryable,
+      severity: notionError.severity,
+      recoverable: notionError.recoverable
     });
     
     return notionError;
+  }
+  
+  /**
+   * Crée une erreur spécifique sans la reporter
+   */
+  createError(message: string, options: NotionErrorOptions = {}): NotionError {
+    return {
+      id: uuidv4(),
+      timestamp: Date.now(),
+      message,
+      type: options.type || NotionErrorType.UNKNOWN,
+      operation: options.operation,
+      context: options.context,
+      details: options.details,
+      retryable: options.retryable || false,
+      severity: options.severity || NotionErrorSeverity.ERROR,
+      recoverable: options.recoverable || false,
+      recoveryActions: options.recoveryActions || []
+    };
   }
   
   /**
@@ -108,6 +136,13 @@ class NotionErrorService {
       this.notifySubscribers();
     }
   }
+
+  /**
+   * Alias pour clearAllErrors - pour compatibilité
+   */
+  clearErrors(): void {
+    this.clearAllErrors();
+  }
   
   /**
    * S'abonne aux notifications d'erreurs
@@ -132,6 +167,31 @@ class NotionErrorService {
     this.subscribers.forEach(subscriber => {
       subscriber.callback([...this.errors]);
     });
+  }
+  
+  /**
+   * Génère un message utilisateur adapté au type d'erreur
+   */
+  createUserFriendlyMessage(error: NotionError): string {
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+        return "Erreur d'authentification Notion. Veuillez vérifier vos identifiants.";
+        
+      case NotionErrorType.PERMISSION:
+        return "Erreur de permission Notion. L'application n'a pas accès à cette ressource.";
+        
+      case NotionErrorType.RATE_LIMIT:
+        return "Limite de requêtes Notion atteinte. Veuillez réessayer dans quelques instants.";
+        
+      case NotionErrorType.CORS:
+        return "Erreur de connexion à l'API Notion. Vérifiez votre configuration CORS.";
+        
+      case NotionErrorType.DATABASE:
+        return "Erreur de base de données Notion. Vérifiez la structure de vos bases.";
+        
+      default:
+        return `Erreur Notion: ${error.message}`;
+    }
   }
 }
 

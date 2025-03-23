@@ -1,134 +1,124 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Database, Router, Clock, XCircle, Shield } from 'lucide-react';
+import { Database, AlertTriangle, KeyRound, ServerOff, RefreshCw } from 'lucide-react';
+import { NotionError, NotionErrorType } from '@/services/notion/errorHandling';
 
 interface ErrorDiagnosticsProps {
   error: NotionError;
   onRunDiagnostic?: () => void;
 }
 
-const ErrorDiagnostics: React.FC<ErrorDiagnosticsProps> = ({ 
+const ErrorDiagnostics: React.FC<ErrorDiagnosticsProps> = ({
   error,
-  onRunDiagnostic 
+  onRunDiagnostic
 }) => {
-  // Déterminer le type d'erreur
-  const getErrorInfo = () => {
+  // Déterminer les actions de diagnostic recommandées en fonction du type d'erreur
+  const getDiagnosticActions = () => {
     switch (error.type) {
       case NotionErrorType.AUTH:
         return {
-          title: "Problème d'authentification",
-          icon: <XCircle className="h-5 w-5 text-red-500" />,
-          description: "Votre clé API Notion semble être invalide ou expirée",
-          solutions: [
-            "Vérifiez que votre clé API est correctement configurée",
-            "Assurez-vous que votre intégration Notion est active",
-            "Générez une nouvelle clé API si nécessaire"
-          ]
-        };
-      
-      case NotionErrorType.NETWORK:
-        return {
-          title: "Problème de connexion réseau",
-          icon: <Router className="h-5 w-5 text-amber-500" />,
-          description: "Impossible de se connecter à l'API Notion",
-          solutions: [
-            "Vérifiez votre connexion internet",
-            "Assurez-vous que le proxy CORS fonctionne correctement",
-            "Réessayez dans quelques instants"
-          ]
-        };
-        
-      case NotionErrorType.RATE_LIMIT:
-        return {
-          title: "Limite de taux d'API dépassée",
-          icon: <Clock className="h-5 w-5 text-blue-500" />,
-          description: "Vous avez dépassé le nombre de requêtes autorisées",
-          solutions: [
-            "Attendez quelques minutes avant de réessayer",
-            "Réduisez la fréquence de vos requêtes",
-            "Optimisez vos opérations pour utiliser moins d'appels API"
-          ]
-        };
-        
-      case NotionErrorType.PERMISSION:
-        return {
-          title: "Problème de permission",
-          icon: <Shield className="h-5 w-5 text-red-500" />,
-          description: "Vous n'avez pas les permissions nécessaires",
-          solutions: [
-            "Vérifiez que votre intégration a accès aux ressources demandées",
-            "Assurez-vous que les bases de données sont partagées avec l'intégration",
-            "Configurez les capacités appropriées pour votre intégration"
+          title: "Erreur d'authentification",
+          description: "Vérifiez vos identifiants Notion et vos permissions d'intégration.",
+          actions: [
+            {
+              label: "Vérifier la clé API",
+              icon: <KeyRound className="h-4 w-4 mr-2" />,
+              action: onRunDiagnostic
+            },
+            {
+              label: "Tester la connexion",
+              icon: <RefreshCw className="h-4 w-4 mr-2" />,
+              action: onRunDiagnostic
+            }
           ]
         };
         
       case NotionErrorType.DATABASE:
         return {
-          title: "Problème de base de données",
-          icon: <Database className="h-5 w-5 text-purple-500" />,
-          description: "Problème avec la base de données Notion",
-          solutions: [
-            "Vérifiez que l'ID de base de données est correct",
-            "Assurez-vous que la base de données existe toujours",
-            "Configurez la structure correcte de la base de données"
+          title: "Erreur de structure de base de données",
+          description: "La structure de la base de données Notion ne correspond pas aux attentes.",
+          actions: [
+            {
+              label: "Analyser la structure",
+              icon: <Database className="h-4 w-4 mr-2" />,
+              action: onRunDiagnostic
+            }
+          ]
+        };
+        
+      case NotionErrorType.NETWORK:
+      case NotionErrorType.CORS:
+      case NotionErrorType.RATE_LIMIT:
+        return {
+          title: "Erreur de connectivité",
+          description: "Problème de connexion avec l'API Notion.",
+          actions: [
+            {
+              label: "Vérifier la connexion",
+              icon: <ServerOff className="h-4 w-4 mr-2" />,
+              action: onRunDiagnostic
+            }
+          ]
+        };
+        
+      case NotionErrorType.PERMISSION:
+        return {
+          title: "Erreur de permissions",
+          description: "L'intégration n'a pas les permissions nécessaires sur cette ressource Notion.",
+          actions: [
+            {
+              label: "Vérifier les permissions",
+              icon: <KeyRound className="h-4 w-4 mr-2" />,
+              action: onRunDiagnostic
+            }
           ]
         };
         
       default:
         return {
-          title: "Erreur Notion",
-          icon: <AlertTriangle className="h-5 w-5 text-slate-500" />,
-          description: "Une erreur s'est produite lors de l'interaction avec Notion",
-          solutions: [
-            "Vérifiez les détails de l'erreur pour plus d'informations",
-            "Consultez la documentation Notion API",
-            "Essayez à nouveau plus tard"
+          title: "Diagnostic général",
+          description: "Exécutez un diagnostic complet pour identifier le problème.",
+          actions: [
+            {
+              label: "Diagnostic complet",
+              icon: <AlertTriangle className="h-4 w-4 mr-2" />,
+              action: onRunDiagnostic
+            }
           ]
         };
     }
   };
   
-  const errorInfo = getErrorInfo();
+  const { title, description, actions } = getDiagnosticActions();
   
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center">
-          {errorInfo.icon}
-          <CardTitle className="ml-2 text-lg">{errorInfo.title}</CardTitle>
-        </div>
-        <CardDescription>
-          {errorInfo.description}
-        </CardDescription>
-      </CardHeader>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium">{title}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{description}</p>
+      </div>
       
-      <CardContent>
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium mb-2">Solutions possibles :</h4>
-            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
-              {errorInfo.solutions.map((solution, index) => (
-                <li key={index}>{solution}</li>
-              ))}
-            </ul>
-          </div>
-          
-          {onRunDiagnostic && (
-            <Button 
-              variant="outline" 
-              onClick={onRunDiagnostic}
-              className="w-full"
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Exécuter un diagnostic
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex flex-col space-y-2">
+        {actions.map((action, index) => (
+          <Button
+            key={index}
+            variant="outline"
+            onClick={action.action}
+            className="justify-start"
+          >
+            {action.icon}
+            {action.label}
+          </Button>
+        ))}
+      </div>
+      
+      <div className="text-xs text-muted-foreground mt-4">
+        <p>ID de l'erreur: {error.id}</p>
+        <p>Type: {error.type}</p>
+        {error.operation && <p>Opération: {error.operation}</p>}
+      </div>
+    </div>
   );
 };
 

@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { notionErrorService } from '@/services/notion/errorHandling/errorService';
-import { NotionError } from '@/services/notion/errorHandling/types';
+import { notionErrorService, NotionError, NotionErrorSeverity } from '@/services/notion/errorHandling';
 import { toast } from 'sonner';
 
 /**
@@ -12,8 +11,8 @@ export function useNotionErrorService() {
   
   // S'abonner aux erreurs
   useEffect(() => {
-    const unsubscribe = notionErrorService.subscribe((error) => {
-      setErrors(notionErrorService.getRecentErrors());
+    const unsubscribe = notionErrorService.subscribe((updatedErrors) => {
+      setErrors(updatedErrors);
     });
     
     // Charger les erreurs initiales
@@ -25,13 +24,18 @@ export function useNotionErrorService() {
   /**
    * Signale une erreur au service
    */
-  const reportError = (error: Error, context: string = 'Opération Notion', options: { showToast?: boolean } = {}) => {
-    const notionError = notionErrorService.reportError(error, context);
+  const reportError = (error: Error | string, context: string = 'Opération Notion', options: { 
+    showToast?: boolean,
+    severity?: NotionErrorSeverity
+  } = {}) => {
+    const notionError = notionErrorService.reportError(error, context, {
+      severity: options.severity
+    });
     
     // Afficher un toast si demandé
     if (options.showToast !== false) {
       toast.error(`Erreur: ${context}`, {
-        description: error.message
+        description: typeof error === 'string' ? error : error.message
       });
     }
     
@@ -43,7 +47,6 @@ export function useNotionErrorService() {
    */
   const clearErrors = () => {
     notionErrorService.clearErrors();
-    setErrors([]);
   };
   
   return {

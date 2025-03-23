@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { NotionError } from '@/services/notion/errorHandling';
-import { ErrorHeader } from '@/components/notion/error';
-import { ErrorActions } from '@/components/notion/error';
-import { ErrorDiagnostics } from '@/components/notion/error';
-import { RetryQueueStatus } from '@/components/notion/error';
+import ErrorHeader from './ErrorHeader';
+import ErrorActions from './ErrorActions';
+import ErrorDiagnostics from './ErrorDiagnostics';
+import RetryQueueStatus from './RetryQueueStatus';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NotionErrorDetails from './NotionErrorDetails';
@@ -28,6 +28,7 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
   showRetryQueue = true
 }) => {
   const [isRetrying, setIsRetrying] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   
   // Gérer le retry avec gestion de l'état
   const handleRetry = async () => {
@@ -39,6 +40,14 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
     } finally {
       setIsRetrying(false);
     }
+  };
+  
+  const handleShowDetails = () => {
+    setShowDetails(true);
+  };
+  
+  const handleCloseDetails = () => {
+    setShowDetails(false);
   };
   
   return (
@@ -77,11 +86,23 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
             </TabsContent>
             
             <TabsContent value="details">
-              <NotionErrorDetails 
-                error={error}
-                onRetry={handleRetry}
-                onClose={onClose}
-              />
+              <div className="space-y-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleShowDetails}
+                >
+                  Afficher les détails complets
+                </Button>
+                
+                <div className="text-sm">
+                  <p><strong>Type:</strong> {error.type}</p>
+                  {error.operation && <p><strong>Opération:</strong> {error.operation}</p>}
+                  {error.context && <p><strong>Contexte:</strong> {error.context}</p>}
+                  <p><strong>Timestamp:</strong> {new Date(error.timestamp).toLocaleString()}</p>
+                  <p><strong>ID:</strong> {error.id}</p>
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="diagnostic">
@@ -93,8 +114,19 @@ const NotionErrorManager: React.FC<NotionErrorManagerProps> = ({
           </Tabs>
         </div>
       </CardContent>
+      
+      <NotionErrorDetails 
+        error={error}
+        context={error.context}
+        isOpen={showDetails}
+        onClose={handleCloseDetails}
+        onRetry={handleRetry}
+      />
     </Card>
   );
 };
 
 export default NotionErrorManager;
+
+// Import Button component
+import { Button } from '@/components/ui/button';

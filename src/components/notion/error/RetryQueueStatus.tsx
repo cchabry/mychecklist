@@ -1,88 +1,69 @@
 
 import React from 'react';
-import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
+import { RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { useRetryQueue } from '@/services/notion/errorHandling';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, PlayCircle } from 'lucide-react';
 
 interface RetryQueueStatusProps {
   compact?: boolean;
-  showButton?: boolean;
+  onProcess?: () => void;
 }
 
 const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
   compact = false,
-  showButton = true
+  onProcess
 }) => {
   const { stats, processQueue } = useRetryQueue();
-  const [isProcessing, setIsProcessing] = React.useState(false);
-  
-  const hasOperations = stats.pendingOperations > 0;
+  const hasPendingOperations = stats.pendingOperations > 0;
   
   const handleProcess = async () => {
-    setIsProcessing(true);
-    await processQueue();
-    setIsProcessing(false);
+    if (onProcess) {
+      onProcess();
+    } else {
+      await processQueue();
+    }
   };
   
-  // Version compacte pour les barres d'état
   if (compact) {
-    if (!hasOperations) return null;
+    if (!hasPendingOperations) return null;
     
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+      <div className="flex items-center gap-2 text-xs">
+        <RefreshCw className="h-3 w-3 text-amber-500" />
+        <span className="text-amber-700">
           {stats.pendingOperations} opération{stats.pendingOperations > 1 ? 's' : ''} en attente
         </span>
-        
-        {showButton && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleProcess}
-            disabled={isProcessing}
-            className="h-6 px-2"
-          >
-            <RefreshCw className={`h-3 w-3 ${isProcessing ? 'animate-spin' : ''}`} />
-          </Button>
-        )}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-6 px-2 text-[10px]"
+          onClick={handleProcess}
+        >
+          Traiter
+        </Button>
       </div>
     );
   }
   
-  // Version standard
-  if (!hasOperations) {
+  if (!hasPendingOperations) {
     return (
-      <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200 inline-flex items-center">
-        <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
-        File d'attente vide
+      <div className="flex items-center gap-2 text-sm">
+        <CheckCircle className="h-4 w-4 text-green-500" />
+        <span className="text-green-700">File d'attente vide</span>
       </div>
     );
   }
   
   return (
-    <div className="flex items-center gap-2">
-      <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200 inline-flex items-center">
-        <span className="w-2 h-2 bg-amber-500 rounded-full mr-1.5"></span>
-        {stats.pendingOperations} opération{stats.pendingOperations > 1 ? 's' : ''} en attente
-      </div>
-      
-      {showButton && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleProcess}
-          disabled={isProcessing}
-          className="h-7 px-2"
-        >
-          {isProcessing ? (
-            <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
-          ) : (
-            <PlayCircle className="h-3.5 w-3.5 mr-1" />
-          )}
-          Exécuter
-        </Button>
-      )}
-    </div>
+    <Button 
+      variant="outline" 
+      size="sm" 
+      className="text-xs"
+      onClick={handleProcess}
+    >
+      <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
+      {stats.pendingOperations} opération{stats.pendingOperations > 1 ? 's' : ''} en attente
+    </Button>
   );
 };
 

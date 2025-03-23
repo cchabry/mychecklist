@@ -8,7 +8,12 @@ export enum NotionErrorType {
   DATABASE = 'database',
   AUTHENTICATION = 'authentication',
   NETWORK = 'network',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
+  AUTH = 'auth',
+  PERMISSION = 'permission',
+  RATE_LIMIT = 'rate_limit',
+  TIMEOUT = 'timeout',
+  NOT_FOUND = 'notFound'
 }
 
 /**
@@ -24,6 +29,34 @@ export interface NotionError {
   originError?: Error;
   details?: any;
   retryable?: boolean;
+  name?: string; // Pour compatibilité avec Error
+  stack?: string; // Pour compatibilité avec Error
+  recoverable?: boolean;
+  recoveryActions?: any[];
+}
+
+/**
+ * Niveaux de sévérité des erreurs
+ */
+export enum NotionErrorSeverity {
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical'
+}
+
+/**
+ * Options pour la création d'erreurs
+ */
+export interface NotionErrorOptions {
+  type?: NotionErrorType;
+  operation?: string;
+  context?: string;
+  details?: any;
+  retryable?: boolean;
+  severity?: NotionErrorSeverity;
+  recoverable?: boolean;
+  recoveryActions?: any[];
 }
 
 /**
@@ -35,6 +68,9 @@ export interface ReportErrorOptions {
   type?: NotionErrorType;
   details?: any;
   retryable?: boolean;
+  severity?: NotionErrorSeverity;
+  recoverable?: boolean;
+  recoveryActions?: any[];
 }
 
 /**
@@ -79,4 +115,14 @@ export interface RetryQueueCallbacks {
   onFailure?: (operation: RetryOperation, error: Error) => void;
   onProcessingStart?: () => void;
   onProcessingComplete?: (stats: RetryQueueStats) => void;
+}
+
+/**
+ * Configuration du service d'auto-retry
+ */
+export interface AutoRetryConfig {
+  enabled: boolean;
+  maxRetries: number;
+  delayMs: number;
+  typesToRetry: NotionErrorType[];
 }

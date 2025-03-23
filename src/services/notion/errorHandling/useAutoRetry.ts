@@ -1,14 +1,21 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { autoRetryHandler } from './autoRetry';
-import { NotionError, NotionErrorType } from './types';
+import { NotionError, NotionErrorType, AutoRetryConfig } from './types';
 
 /**
  * Hook pour utiliser le service de retry automatique
  */
 export function useAutoRetry() {
   const [isEnabled, setIsEnabled] = useState(autoRetryHandler.isEnabled());
-  const [config, setConfig] = useState(autoRetryHandler.getConfig());
+  const [config, setConfig] = useState<AutoRetryConfig>(autoRetryHandler.getConfig());
+  
+  // Suivre les changements de configuration
+  useEffect(() => {
+    // Synchroniser l'état local avec la configuration du service
+    setIsEnabled(autoRetryHandler.isEnabled());
+    setConfig(autoRetryHandler.getConfig());
+  }, []);
   
   /**
    * Activer le retry automatique
@@ -29,7 +36,7 @@ export function useAutoRetry() {
   /**
    * Configurer le retry automatique
    */
-  const configure = (newConfig: Partial<typeof config>) => {
+  const configure = (newConfig: Partial<AutoRetryConfig>) => {
     autoRetryHandler.configure(newConfig);
     setConfig(autoRetryHandler.getConfig());
   };
@@ -82,21 +89,25 @@ export function useAutoRetry() {
     } = {}
   ): Promise<T> => {
     // Convertir en NotionError si nécessaire
-    const notionError = (error as NotionError).type !== undefined 
+    const notionError: NotionError = (error as NotionError).type !== undefined 
       ? (error as NotionError)
       : {
-          ...error,
+          id: Math.random().toString(36).substring(2, 9),
+          timestamp: Date.now(),
           type: NotionErrorType.UNKNOWN,
-          name: 'NotionError',
           message: error.message,
-          recoverable: false,
-          recoveryActions: [],
-          timestamp: new Date(),
-          context: {},
-          severity: null
-        } as NotionError;
+          name: error.name,
+          stack: error.stack,
+          retryable: false,
+          context: options.context
+        };
     
-    return autoRetryHandler.handleError(notionError, operation, options);
+    try {
+      return await autoRetryHandler.handleError(notionError, operation, options);
+    } catch (err) {
+      // Si l'erreur est déjà gérée par le retryHandler, la propager
+      throw err;
+    }
   };
   
   return {

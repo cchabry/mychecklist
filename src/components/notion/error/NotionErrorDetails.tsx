@@ -22,8 +22,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { notionErrorService, NotionErrorType } from '@/services/notion/errorHandling';
-import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
+import { notionErrorService, NotionErrorType, useRetryQueue } from '@/services/notion/errorHandling';
 
 interface NotionErrorDetailsProps {
   error?: string | Error;
@@ -46,7 +45,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   onRetry,
   actions = []
 }) => {
-  const { enqueueOperation } = useRetryQueue();
+  const { enqueue } = useRetryQueue();
   const [showDetails, setShowDetails] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   
