@@ -82,16 +82,18 @@ if (!existingMockData.deleteAction) {
   };
 }
 
-// Define generateMockExigence directly on the existingMockData object
-existingMockData.generateMockExigence = existingMockData.generateMockExigence || function(projectId: string, itemId: string) {
-  return {
-    id: `exigence_${Date.now()}`,
-    projectId,
-    itemId,
-    importance: ImportanceLevel.Moyen,
-    comment: 'Exigence générée automatiquement'
+// Add the generateMockExigence function if it doesn't exist
+if (!existingMockData.generateMockExigence) {
+  existingMockData.generateMockExigence = function(projectId: string, itemId: string) {
+    return {
+      id: `exigence_${Date.now()}`,
+      projectId,
+      itemId,
+      importance: ImportanceLevel.Moyen,
+      comment: 'Exigence générée automatiquement'
+    };
   };
-};
+}
 
 // Create a new object with all the properties from existingMockData
 const mockDataExtensions = {
