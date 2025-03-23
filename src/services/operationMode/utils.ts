@@ -1,88 +1,75 @@
 
+/**
+ * Utilitaires pour le mode opérationnel
+ */
+
 import { operationMode } from './operationModeService';
 
 /**
- * Utilitaires complémentaires pour le service operationMode
+ * Delay minimum pour les opérations simulées (ms)
  */
+const MIN_DELAY = 200;
+
+/**
+ * Delay maximum pour les opérations simulées (ms)
+ */
+const MAX_DELAY = 800;
+
 export const operationModeUtils = {
   /**
-   * Applique un délai simulé (pour mieux simuler le comportement réseau)
-   * @param delay Délai en millisecondes (par défaut: utilise la config)
+   * Applique un délai simulé pour les opérations en mode démo
+   * @param customDelay Délai personnalisé (optionnel)
+   * @returns Promesse résolue après le délai
    */
-  applySimulatedDelay: async (delay?: number): Promise<void> => {
-    const actualDelay = delay ?? operationMode.getSettings().simulatedNetworkDelay;
-    if (actualDelay > 0) {
-      await new Promise(resolve => setTimeout(resolve, actualDelay));
+  applySimulatedDelay: async (customDelay?: number): Promise<void> => {
+    if (operationMode.isDemoMode) {
+      const settings = operationMode.getSettings();
+      const delay = customDelay || settings.simulatedNetworkDelay || 300;
+      
+      // Ajouter une variation aléatoire de ±20% pour plus de réalisme
+      const variation = delay * 0.2;
+      const finalDelay = delay + (Math.random() * variation * 2 - variation);
+      
+      // Limiter le délai entre MIN_DELAY et MAX_DELAY
+      const cappedDelay = Math.max(MIN_DELAY, Math.min(MAX_DELAY, finalDelay));
+      
+      await new Promise(resolve => setTimeout(resolve, cappedDelay));
     }
   },
   
   /**
-   * Détermine si une erreur doit être simulée (pour tester la robustesse)
-   * @param rate Taux d'erreur en pourcentage (par défaut: utilise la config)
+   * Détermine si une erreur doit être simulée en fonction du taux d'erreur
+   * @returns true si une erreur doit être simulée
    */
-  shouldSimulateError: (rate?: number): boolean => {
-    const errorRate = rate ?? operationMode.getSettings().errorSimulationRate;
-    return Math.random() * 100 < errorRate;
-  },
-  
-  /**
-   * Force temporairement le mode réel et retourne l'état précédent
-   * @returns L'état précédent pour être utilisé avec restoreAfterForceReal
-   */
-  temporarilyForceReal: (): boolean => {
-    const wasDemoMode = operationMode.isDemoMode;
-    if (wasDemoMode) {
-      operationMode.enableRealMode();
-    }
-    return wasDemoMode;
-  },
-  
-  /**
-   * Vérifie si le mode a été temporairement forcé en réel
-   * @param previousState État retourné par temporarilyForceReal
-   */
-  isTemporarilyForcedReal: (previousState: boolean): boolean => {
-    return previousState && operationMode.isRealMode;
-  },
-  
-  /**
-   * Restaure l'état précédent après un forçage temporaire
-   * @param wasDemoMode État précédent retourné par temporarilyForceReal
-   */
-  restoreAfterForceReal: (wasDemoMode: boolean): void => {
-    if (wasDemoMode) {
-      operationMode.enableDemoMode('Restauration après forçage temporaire');
-    }
-  },
-  
-  /**
-   * Génère une erreur simulée pour tester la gestion d'erreur
-   * @param message Message d'erreur personnalisé
-   */
-  createSimulatedError: (message: string = "Erreur simulée"): Error => {
-    return new Error(`[Simulé] ${message}`);
-  },
-  
-  /**
-   * Simule une opération réseau avec possibilité d'échec aléatoire
-   * @param successData Données à retourner en cas de succès
-   * @param errorMessage Message d'erreur en cas d'échec
-   * @param errorRate Taux d'erreur en pourcentage
-   */
-  simulateNetworkOperation: async <T>(
-    successData: T,
-    errorMessage: string = "Erreur réseau simulée",
-    errorRate: number = operationMode.getSettings().errorSimulationRate
-  ): Promise<T> => {
-    // Simuler un délai réseau
-    await operationModeUtils.applySimulatedDelay();
-    
-    // Simuler une erreur selon le taux configuré
-    if (operationModeUtils.shouldSimulateError(errorRate)) {
-      throw new Error(`[Simulé] ${errorMessage}`);
+  shouldSimulateError: (): boolean => {
+    if (operationMode.isDemoMode) {
+      const settings = operationMode.getSettings();
+      const errorRate = settings.errorSimulationRate || 0;
+      
+      if (errorRate > 0) {
+        // Générer un nombre aléatoire entre 0 et 100
+        const random = Math.random() * 100;
+        return random < errorRate;
+      }
     }
     
-    // Retourner les données de succès
-    return successData;
+    return false;
+  },
+  
+  /**
+   * Simule une erreur de connexion pour tester le système de gestion des erreurs
+   */
+  simulateConnectionError: (): never => {
+    throw new Error('Erreur de connexion simulée pour tester le système');
+  },
+  
+  /**
+   * Récupère le scénario de démo spécifié
+   * @param name Nom du scénario
+   * @returns Valeur du scénario ou null si non trouvé
+   */
+  getScenario: (name: string): any => {
+    // Cette fonction sera implémentée plus tard pour les scénarios de démo
+    return null;
   }
 };

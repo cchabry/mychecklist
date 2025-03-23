@@ -1,234 +1,235 @@
 
-import { Project, Audit, ChecklistItem, Exigence, Page, Evaluation, Action, Progress } from '@/lib/types';
+import { 
+  Project, Audit, ChecklistItem, Exigence, 
+  SamplePage, Evaluation, CorrectiveAction, ActionProgress,
+  ComplianceStatus, ImportanceLevel, ActionStatus, ActionPriority 
+} from '@/lib/types';
 
-// Projets de démonstration
+// Mock projects data
 export const mockProjects: Project[] = [
   {
-    id: "1",
-    name: "Site e-commerce Acme",
-    url: "https://acme-demo.com",
-    createdAt: "2023-01-15T10:30:00.000Z",
-    updatedAt: "2023-04-20T14:45:00.000Z",
-    progress: 75
+    id: 'project-1',
+    name: 'Site corporate',
+    url: 'https://www.example.com',
+    description: 'Site vitrine de l\'entreprise',
+    status: 'En cours',
+    createdAt: '2023-01-15T10:30:00Z',
+    updatedAt: '2023-02-20T14:45:00Z',
+    progress: 65,
+    itemsCount: 42,
+    pagesCount: 5
   },
   {
-    id: "2",
-    name: "Refonte Intranet XYZ Corp",
-    url: "https://intranet-xyz.demo",
-    createdAt: "2023-03-10T09:15:00.000Z",
-    updatedAt: "2023-05-05T11:20:00.000Z",
-    progress: 40
+    id: 'project-2',
+    name: 'Application mobile',
+    url: 'https://app.example.com',
+    description: 'Application pour les utilisateurs mobiles',
+    status: 'Planifié',
+    createdAt: '2023-03-10T09:15:00Z',
+    updatedAt: '2023-03-15T16:20:00Z',
+    progress: 25,
+    itemsCount: 38,
+    pagesCount: 3
   }
 ];
 
-// Audits de démonstration
+// Mock audits data
 export const mockAudits: Audit[] = [
   {
-    id: "a1",
-    name: "Audit initial",
-    projectId: "1",
-    createdAt: "2023-02-10T09:30:00.000Z",
-    updatedAt: "2023-02-12T15:45:00.000Z",
-    status: "Terminé"
+    id: 'audit-1',
+    name: 'Audit initial',
+    projectId: 'project-1',
+    createdAt: '2023-02-10T11:30:00Z',
+    updatedAt: '2023-02-15T16:45:00Z'
   },
   {
-    id: "a2",
-    name: "Audit de suivi",
-    projectId: "1",
-    createdAt: "2023-04-15T14:30:00.000Z",
-    updatedAt: "2023-04-16T10:45:00.000Z",
-    status: "En cours"
+    id: 'audit-2',
+    name: 'Audit de suivi',
+    projectId: 'project-1',
+    createdAt: '2023-03-25T10:00:00Z',
+    updatedAt: '2023-03-28T14:30:00Z'
   }
 ];
 
-// Checklist de démonstration
+// Mock checklist items
 export const mockChecklist: ChecklistItem[] = [
   {
-    id: "c1",
-    title: "Optimisation des images",
-    description: "Toutes les images doivent être optimisées pour le web avec un format adapté (WebP de préférence) et un poids raisonnable.",
-    category: "Médias",
-    subcategory: "Images",
-    references: ["RGESN 4.1", "OPQUAST 156"],
-    profiles: ["Développeur", "Contributeur"],
-    phases: ["Conception", "Développement"],
-    effort: "medium",
-    priority: "high"
+    id: 'item-1',
+    title: 'Images accessibles',
+    description: 'Toutes les images doivent avoir un attribut alt',
+    category: 'Accessibilité',
+    subcategory: 'Images',
+    reference: ['RGAA 1.1', 'WCAG 2.1'],
+    profile: ['Développeur', 'Intégrateur'],
+    phase: ['Développement', 'Recette'],
+    effort: 'low',
+    priority: 'high'
   },
   {
-    id: "c2",
-    title: "Accessibilité des liens",
-    description: "Tous les liens doivent avoir un texte explicite ou un attribut aria-label.",
-    category: "Accessibilité",
-    subcategory: "Navigation",
-    references: ["RGAA 6.1.1", "WCAG 2.4.4"],
-    profiles: ["Développeur", "UX Designer"],
-    phases: ["Conception", "Développement"],
-    effort: "low",
-    priority: "high"
+    id: 'item-2',
+    title: 'Contraste des textes',
+    description: 'Les textes doivent avoir un contraste suffisant avec le fond',
+    category: 'Accessibilité',
+    subcategory: 'Contrastes',
+    reference: ['RGAA 3.3', 'WCAG 2.1'],
+    profile: ['Designer', 'Développeur'],
+    phase: ['Conception', 'Développement'],
+    effort: 'medium',
+    priority: 'high'
   },
   {
-    id: "c3",
-    title: "Contraste des textes",
-    description: "Les textes doivent avoir un contraste suffisant avec leur arrière-plan (4.5:1 minimum).",
-    category: "Accessibilité",
-    subcategory: "Couleurs",
-    references: ["RGAA 3.3", "WCAG 1.4.3"],
-    profiles: ["UX Designer", "UI Designer"],
-    phases: ["Conception"],
-    effort: "medium",
-    priority: "high"
+    id: 'item-3',
+    title: 'Optimisation des images',
+    description: 'Les images doivent être optimisées pour le web',
+    category: 'Performance',
+    subcategory: 'Images',
+    reference: ['RGESN 1.2'],
+    profile: ['Développeur', 'Designer'],
+    phase: ['Développement'],
+    effort: 'medium',
+    priority: 'medium'
   }
 ];
 
-// Exigences de démonstration
+// Mock exigences data
 export const mockExigences: Exigence[] = [
   {
-    id: "e1",
-    projectId: "1",
-    itemId: "c1",
-    importance: "major",
-    comment: "Particulièrement important pour ce projet e-commerce avec beaucoup de produits"
+    id: 'exigence-1',
+    projectId: 'project-1',
+    itemId: 'item-1',
+    importance: ImportanceLevel.Major,
+    comment: 'Critique pour l\'accessibilité du site'
   },
   {
-    id: "e2",
-    projectId: "1",
-    itemId: "c2",
-    importance: "medium",
-    comment: "À vérifier sur toutes les pages"
+    id: 'exigence-2',
+    projectId: 'project-1',
+    itemId: 'item-2',
+    importance: ImportanceLevel.Medium,
+    comment: 'Important pour la lisibilité'
   },
   {
-    id: "e3",
-    projectId: "1",
-    itemId: "c3",
-    importance: "major",
-    comment: "Important sur les pages produits et le tunnel de commande"
+    id: 'exigence-3',
+    projectId: 'project-1',
+    itemId: 'item-3',
+    importance: ImportanceLevel.Major,
+    comment: 'Nécessaire pour la performance'
   }
 ];
 
-// Pages échantillon de démonstration
-export const mockPages: Page[] = [
+// Mock sample pages data
+export const mockPages: SamplePage[] = [
   {
-    id: "p1",
-    projectId: "1",
-    url: "https://acme-demo.com/",
-    title: "Page d'accueil",
-    description: "Page principale du site",
+    id: 'page-1',
+    projectId: 'project-1',
+    url: 'https://www.example.com',
+    title: 'Page d\'accueil',
+    description: 'Page principale du site',
     order: 0
   },
   {
-    id: "p2",
-    projectId: "1",
-    url: "https://acme-demo.com/category/electronics",
-    title: "Catégorie Électronique",
-    description: "Listing des produits électroniques",
+    id: 'page-2',
+    projectId: 'project-1',
+    url: 'https://www.example.com/services',
+    title: 'Services',
+    description: 'Présentation des services',
     order: 1
   },
   {
-    id: "p3",
-    projectId: "1",
-    url: "https://acme-demo.com/product/smartphone-x200",
-    title: "Page produit Smartphone X200",
-    description: "Fiche produit détaillée",
+    id: 'page-3',
+    projectId: 'project-1',
+    url: 'https://www.example.com/contact',
+    title: 'Contact',
+    description: 'Formulaire de contact',
     order: 2
-  },
-  {
-    id: "p4",
-    projectId: "1",
-    url: "https://acme-demo.com/cart",
-    title: "Panier",
-    description: "Page du panier d'achat",
-    order: 3
-  },
-  {
-    id: "p5",
-    projectId: "1",
-    url: "https://acme-demo.com/checkout",
-    title: "Tunnel de commande",
-    description: "Processus de finalisation d'achat",
-    order: 4
   }
 ];
 
-// Évaluations de démonstration
+// Mock evaluations data
 export const mockEvaluations: Evaluation[] = [
   {
-    id: "ev1",
-    auditId: "a1",
-    pageId: "p1",
-    exigenceId: "e1",
-    score: "compliant",
-    comment: "Toutes les images sont correctement optimisées",
-    attachments: [],
-    createdAt: "2023-02-10T10:15:00.000Z",
-    updatedAt: "2023-02-10T10:15:00.000Z"
+    id: 'eval-1',
+    auditId: 'audit-1',
+    pageId: 'page-1',
+    exigenceId: 'exigence-1',
+    score: ComplianceStatus.Compliant,
+    comment: 'Toutes les images ont des attributs alt',
+    attachments: ['capture1.png'],
+    createdAt: '2023-02-12T10:30:00Z',
+    updatedAt: '2023-02-12T10:30:00Z'
   },
   {
-    id: "ev2",
-    auditId: "a1",
-    pageId: "p2",
-    exigenceId: "e1",
-    score: "partially_compliant",
-    comment: "Quelques images de produits ne sont pas en WebP",
-    attachments: [],
-    createdAt: "2023-02-10T11:30:00.000Z",
-    updatedAt: "2023-02-10T11:30:00.000Z"
+    id: 'eval-2',
+    auditId: 'audit-1',
+    pageId: 'page-1',
+    exigenceId: 'exigence-2',
+    score: ComplianceStatus.PartiallyCompliant,
+    comment: 'Quelques textes n\'ont pas un contraste suffisant',
+    attachments: ['capture2.png', 'capture3.png'],
+    createdAt: '2023-02-12T11:15:00Z',
+    updatedAt: '2023-02-12T11:15:00Z'
   },
   {
-    id: "ev3",
-    auditId: "a1",
-    pageId: "p1",
-    exigenceId: "e2",
-    score: "non_compliant",
-    comment: "Plusieurs liens dans le footer n'ont pas de texte explicite",
-    attachments: [],
-    createdAt: "2023-02-10T14:20:00.000Z",
-    updatedAt: "2023-02-10T14:20:00.000Z"
+    id: 'eval-3',
+    auditId: 'audit-1',
+    pageId: 'page-2',
+    exigenceId: 'exigence-1',
+    score: ComplianceStatus.NonCompliant,
+    comment: 'Plusieurs images sans attribut alt',
+    attachments: ['capture4.png'],
+    createdAt: '2023-02-13T09:45:00Z',
+    updatedAt: '2023-02-13T09:45:00Z'
   }
 ];
 
-// Actions correctives de démonstration
-export const mockActions: Action[] = [
+// Mock actions data
+export const mockActions: CorrectiveAction[] = [
   {
-    id: "act1",
-    evaluationId: "ev2",
-    targetScore: "compliant",
-    priority: "medium",
-    dueDate: "2023-03-15T00:00:00.000Z",
-    responsible: "John Doe",
-    comment: "Convertir toutes les images de la catégorie en format WebP",
-    status: "done"
+    id: 'action-1',
+    evaluationId: 'eval-2',
+    pageId: 'page-1',
+    targetScore: ComplianceStatus.Compliant,
+    priority: ActionPriority.Medium,
+    dueDate: '2023-03-15',
+    responsible: 'Jean Dupont',
+    comment: 'Corriger le contraste des textes sur fond clair',
+    status: ActionStatus.InProgress,
+    progress: [
+      {
+        id: 'progress-1',
+        actionId: 'action-1',
+        date: '2023-02-20',
+        responsible: 'Jean Dupont',
+        comment: 'Correction en cours',
+        score: ComplianceStatus.PartiallyCompliant,
+        status: ActionStatus.InProgress
+      }
+    ],
+    createdAt: '2023-02-15T14:30:00Z',
+    updatedAt: '2023-02-20T11:45:00Z'
   },
   {
-    id: "act2",
-    evaluationId: "ev3",
-    targetScore: "compliant",
-    priority: "high",
-    dueDate: "2023-03-01T00:00:00.000Z",
-    responsible: "Jane Smith",
-    comment: "Ajouter des textes explicites à tous les liens du footer",
-    status: "in_progress"
+    id: 'action-2',
+    evaluationId: 'eval-3',
+    pageId: 'page-2',
+    targetScore: ComplianceStatus.Compliant,
+    priority: ActionPriority.High,
+    dueDate: '2023-03-10',
+    responsible: 'Sophie Martin',
+    comment: 'Ajouter des attributs alt à toutes les images',
+    status: ActionStatus.ToDo,
+    progress: [],
+    createdAt: '2023-02-16T10:15:00Z',
+    updatedAt: '2023-02-16T10:15:00Z'
   }
 ];
 
-// Progrès de démonstration
-export const mockProgress: Progress[] = [
-  {
-    id: "pr1",
-    actionId: "act1",
-    date: "2023-03-10T15:45:00.000Z",
-    responsible: "John Doe",
-    comment: "Conversion de 50% des images terminée",
-    score: "partially_compliant",
-    status: "in_progress"
-  },
-  {
-    id: "pr2",
-    actionId: "act1",
-    date: "2023-03-15T09:30:00.000Z",
-    responsible: "John Doe",
-    comment: "Toutes les images sont maintenant en WebP",
-    score: "compliant",
-    status: "done"
-  }
-];
+// Export all mock data for direct access
+export const mockData = {
+  projects: mockProjects,
+  audits: mockAudits,
+  checklist: mockChecklist,
+  exigences: mockExigences,
+  pages: mockPages,
+  evaluations: mockEvaluations,
+  actions: mockActions
+};

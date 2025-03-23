@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Menu, TestTube, Database, FileCode, Beaker } from 'lucide-react';
+import { Home, Menu, TestTube, Database, FileCode, Beaker, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +18,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NotionTestDataGenerator } from '@/components/notion';
-import MockModeToggle from './MockModeToggle';
 import { useState } from 'react';
+import OperationModeControl from './OperationModeControl';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -40,8 +40,8 @@ const Header: React.FC = () => {
         </Link>
         
         <div className="flex items-center space-x-4">
-          {/* Ajout du toggle de mode mock */}
-          <MockModeToggle />
+          {/* Remplacer MockModeToggle par OperationModeControl */}
+          <OperationModeControl simplified />
           
           {location.pathname !== "/" && (
             <Button variant="ghost" size="icon" asChild>
@@ -64,6 +64,12 @@ const Header: React.FC = () => {
           <Button variant="outline" size="icon" asChild>
             <Link to="/create-databases" className="transition-all duration-300">
               <Database size={20} />
+            </Link>
+          </Button>
+          
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/config" className="transition-all duration-300">
+              <Settings size={20} />
             </Link>
           </Button>
           
@@ -102,6 +108,13 @@ const Header: React.FC = () => {
               >
                 <Beaker size={16} />
                 <span>Générer données de test</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/config" className="flex items-center gap-2">
+                  <Settings size={16} />
+                  <span>Paramètres du mode opérationnel</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

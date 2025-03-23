@@ -1,34 +1,40 @@
 
-import { operationMode } from '@/services/operationMode';
+/**
+ * Utilitaires pour la compatibilité avec l'ancien système mockMode
+ */
+
+import { operationModeUtils } from '@/services/operationMode/utils';
 
 /**
- * Vérifie si le mode mock est actif (compatibilité)
- * @deprecated Utilisez operationMode.isDemoMode à la place
+ * Adaptateur pour la compatibilité avec l'ancien système mockMode
  */
-export function isMockActive(): boolean {
-  return operationMode.isDemoMode;
-}
+export const mockUtils = {
+  /**
+   * Applique un délai simulé
+   */
+  applyDelay: operationModeUtils.applySimulatedDelay,
+  
+  /**
+   * Simule une erreur de connexion (aléatoire selon le taux d'erreur configuré)
+   */
+  maybeSimulateError: () => {
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
+    }
+  },
+  
+  /**
+   * Force une erreur simulée
+   */
+  forceError: operationModeUtils.simulateConnectionError,
+  
+  /**
+   * Récupère un scénario de démo
+   */
+  getScenario: operationModeUtils.getScenario
+};
 
 /**
- * Désactive temporairement le mode mock (compatibilité)
- * @deprecated Utilisez operationMode.setDemoMode(false) à la place
+ * Pour compatibilité avec l'ancien mock.utils
  */
-export function temporarilyDisableMock(): void {
-  operationMode.setDemoMode(false);
-}
-
-/**
- * Active temporairement le mode mock (compatibilité)
- * @deprecated Utilisez operationMode.setDemoMode(true) à la place
- */
-export function temporarilyEnableMock(): void {
-  operationMode.setDemoMode(true);
-}
-
-/**
- * Active le mode mock (compatibilité)
- * @deprecated Utilisez operationMode.setDemoMode(true) à la place
- */
-export function enableMock(): void {
-  operationMode.setDemoMode(true);
-}
+export default mockUtils;

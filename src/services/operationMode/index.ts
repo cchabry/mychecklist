@@ -21,7 +21,7 @@ export type {
 // Exporter l'énumération OperationMode directement pour simplifier l'usage
 export { OperationMode } from './types';
 
-// Réexporter les utilitaires
+// Exporter les utilitaires
 export { operationModeUtils } from './utils';
 
 // Exporter les constantes pour les personnes qui en ont besoin

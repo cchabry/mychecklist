@@ -1,29 +1,33 @@
 
-// Hooks pour l'accès aux données
+// Exports for service hooks with caching
+export { useServiceWithCache } from './useServiceWithCache';
+
+// Export custom hooks for specific entities
 export { useActions } from './useActions';
 export { useAudits } from './useAudits';
-export { useChecklist } from './useChecklist';
+export { useChecklistItem } from './useChecklist';
 export { useEvaluations } from './useEvaluations';
 export { useExigences } from './useExigences';
 export { usePages } from './usePages';
 export { useProjects } from './useProjects';
 
-// Hooks utilitaires
-export { useServiceWithCache } from './useServiceWithCache';
-export { useServiceWithRetry } from './useServiceWithRetry';
-export { useErrorCategorization } from './useErrorCategorization';
+// Export types
+export type { 
+  QueryOptions, 
+  QueryFilters 
+} from './types';
 
-// Hooks pour la gestion des opérations
-export {
+// Export operation queue hook
+export { 
   useOperationQueue,
-  useOperationRetry,
   type Operation,
   type OperationQueueOptions,
   type RetryStatus
 } from './useOperationQueue';
 
-// Re-export non conflictuel de RetryQueue
+// Export operation retry hook
 export { 
-  type RetryQueueHook,
-  useRetryQueue 
+  useOperationRetry,
+  type RetryOptions,
+  type RetryStrategy
 } from './useOperationRetry';

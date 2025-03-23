@@ -1,86 +1,92 @@
 
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { notionApi } from '@/lib/notionProxy';
-import { handleNotionError } from '@/lib/notionProxy/errorHandling';
-
-interface RequestOptions<T, R> {
-  onSuccess?: (data: R) => void;
-  onError?: (error: Error) => void;
-  successMessage?: string;
-  errorMessage?: string;
-  mockResponse?: T;
-}
+import { useState, useEffect, useCallback } from 'react';
+import { operationMode } from '@/services/operationMode';
 
 /**
- * Hook optimisé pour effectuer des requêtes à l'API Notion
+ * Version mise à jour du Hook pour les requêtes à l'API Notion
+ * Compatible avec operationMode au lieu de mockMode
  */
-export function useNotionRequest<T = unknown>() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<T | null>(null);
+export const useNotionRequest = <T>(
+  requestFn: () => Promise<T>,
+  mockData: T | (() => T),
+  options: {
+    immediate?: boolean;
+    onSuccess?: (data: T) => void;
+    onError?: (error: Error) => void;
+    fetchKey?: string | string[];
+    cacheTTL?: number;
+  } = {}
+) => {
+  const { immediate = true, onSuccess, onError, fetchKey } = options;
 
-  /**
-   * Exécute une requête à l'API Notion
-   */
-  const executeRequest = useCallback(async <R = T>(
-    requestFn: () => Promise<R>,
-    options: RequestOptions<T, R> = {}
-  ): Promise<R | null> => {
-    const { onSuccess, onError, successMessage, errorMessage, mockResponse } = options;
-    
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState(immediate);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Fonction d'exécution de la requête
+  const execute = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Vérifier si nous sommes en mode démo et si une réponse mock est fournie
-      if (operationMode.isDemoMode && mockResponse !== undefined) {
-        // Simuler un délai pour l'expérience utilisateur
+      // Si nous sommes en mode démo, utiliser les données mockées
+      if (operationMode.isDemoMode) {
+        // Simuler un délai réseau
         await new Promise(resolve => setTimeout(resolve, 300));
         
+        // Utiliser la donnée mock (fonction ou valeur)
+        const mockResult = typeof mockData === 'function' ? (mockData as () => T)() : mockData;
+        setData(mockResult);
+        
         if (onSuccess) {
-          onSuccess(mockResponse as unknown as R);
+          onSuccess(mockResult);
         }
+      } else {
+        // Exécuter la requête réelle
+        const result = await requestFn();
+        setData(result);
         
-        setData(mockResponse as unknown as T);
-        setIsLoading(false);
+        // Signaler une opération réussie
+        operationMode.handleSuccessfulOperation();
         
-        return mockResponse as unknown as R;
+        if (onSuccess) {
+          onSuccess(result);
+        }
       }
+    } catch (error) {
+      // Gérer l'erreur
+      const formattedError = error instanceof Error ? error : new Error(String(error));
+      setError(formattedError);
       
-      const result = await requestFn();
-      
-      if (successMessage) {
-        toast.success(successMessage);
-      }
-      
-      if (onSuccess) {
-        onSuccess(result);
-      }
-      
-      setData(result as unknown as T);
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      
-      // Utiliser le service de gestion d'erreur
-      handleNotionError(error, errorMessage);
+      // Signaler l'erreur au système operationMode
+      operationMode.handleConnectionError(formattedError, 'Requête Notion');
       
       if (onError) {
-        onError(error);
+        onError(formattedError);
       }
       
-      return null;
+      // Essayer de récupérer en mode démo
+      if (!operationMode.isDemoMode) {
+        const mockResult = typeof mockData === 'function' ? (mockData as () => T)() : mockData;
+        setData(mockResult);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
+  }, [requestFn, mockData, onSuccess, onError]);
+
+  // Exécuter la requête immédiatement si demandé
+  useEffect(() => {
+    if (immediate) {
+      execute();
+    }
+  }, [immediate, execute, fetchKey].filter(Boolean));
+
   return {
+    data,
     isLoading,
     error,
-    data,
-    executeRequest
+    execute,
+    setData,
   };
-}
+};
