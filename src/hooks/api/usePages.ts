@@ -1,23 +1,23 @@
 
-import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { pagesService } from '@/services/api/pagesService';
 import { SamplePage } from '@/lib/types';
-import { QueryFilters } from '@/services/api/types';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer toutes les pages d'échantillon
  */
-export function usePages(filters?: QueryFilters, options = {}) {
+export function usePages(options = {}) {
   return useServiceWithCache<SamplePage[]>(
     pagesService.getAll.bind(pagesService),
-    [undefined, filters],
+    [],
     options
   );
 }
 
 /**
- * Hook pour récupérer une page par son ID
+ * Hook pour récupérer une page d'échantillon par son ID
  */
 export function usePage(id: string | undefined, options = {}) {
   return useServiceWithCache<SamplePage | null>(
@@ -31,11 +31,14 @@ export function usePage(id: string | undefined, options = {}) {
 }
 
 /**
- * Hook pour récupérer les pages pour un projet spécifique
+ * Hook pour récupérer les pages d'échantillon pour un projet spécifique
  */
 export function usePagesByProject(projectId: string | undefined, options = {}) {
   return useServiceWithCache<SamplePage[]>(
-    pagesService.getByProject.bind(pagesService),
+    async () => {
+      const pages = await pagesService.getAll();
+      return pages.filter(page => page.projectId === projectId);
+    },
     [projectId],
     {
       enabled: !!projectId,
@@ -45,105 +48,64 @@ export function usePagesByProject(projectId: string | undefined, options = {}) {
 }
 
 /**
- * Hook pour créer une nouvelle page
+ * Hook pour créer une nouvelle page d'échantillon
  */
 export function useCreatePage() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const createPage = async (data: Partial<SamplePage>) => {
-    setIsCreating(true);
-    setError(null);
-    
-    try {
-      const newPage = await pagesService.create(data);
-      return newPage;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<SamplePage, [Partial<SamplePage>]>(
+    pagesService.create.bind(pagesService),
+    'page',
+    'create',
+    (result) => {
+      toast.success('Page d\'échantillon créée avec succès');
     }
-  };
+  );
   
-  return { createPage, isCreating, error };
+  return { 
+    createPage: execute, 
+    isCreating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
- * Hook pour mettre à jour une page
+ * Hook pour mettre à jour une page d'échantillon
  */
 export function useUpdatePage() {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const updatePage = async (id: string, data: Partial<SamplePage>) => {
-    setIsUpdating(true);
-    setError(null);
-    
-    try {
-      const updatedPage = await pagesService.update(id, data);
-      return updatedPage;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsUpdating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<SamplePage, [string, Partial<SamplePage>]>(
+    pagesService.update.bind(pagesService),
+    'page',
+    'update',
+    (result) => {
+      toast.success('Page d\'échantillon mise à jour avec succès');
     }
-  };
+  );
   
-  return { updatePage, isUpdating, error };
+  return { 
+    updatePage: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
- * Hook pour supprimer une page
+ * Hook pour supprimer une page d'échantillon
  */
 export function useDeletePage() {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const deletePage = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    
-    try {
-      const success = await pagesService.delete(id);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsDeleting(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    pagesService.delete.bind(pagesService),
+    'page',
+    'delete',
+    (result) => {
+      toast.success('Page d\'échantillon supprimée avec succès');
     }
+  );
+  
+  return { 
+    deletePage: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
   };
-  
-  return { deletePage, isDeleting, error };
-}
-
-/**
- * Hook pour réorganiser les pages
- */
-export function useReorderPages() {
-  const [isReordering, setIsReordering] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const reorderPages = async (projectId: string, newOrder: string[]) => {
-    setIsReordering(true);
-    setError(null);
-    
-    try {
-      const success = await pagesService.reorderPages(projectId, newOrder);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsReordering(false);
-    }
-  };
-  
-  return { reorderPages, isReordering, error };
 }

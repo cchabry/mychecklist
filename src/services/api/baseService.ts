@@ -1,6 +1,7 @@
 
 import { ApiServiceOptions, QueryFilters } from './types';
 import { CacheFetchOptions } from '../cache/types';
+import { EntityCache } from '../cache/utils/entityCache';
 
 /**
  * Classe de service de base fournissant des fonctionnalités CRUD standard pour une entité donnée
@@ -9,22 +10,14 @@ import { CacheFetchOptions } from '../cache/types';
 export abstract class BaseService<T> {
   protected entityName: string;
   protected cacheTTL: number;
-  protected entityCache: any; // Simplifié pour l'exemple
+  protected entityCache: EntityCache<T>;
 
   constructor(entityName: string, options: ApiServiceOptions = {}) {
     this.entityName = entityName;
     this.cacheTTL = options.cacheTTL || 5 * 60 * 1000; // 5 minutes par défaut
     
     // Initialisation du cache pour cette entité
-    this.entityCache = {
-      getById: (id: string) => null,
-      getList: (listKey?: string) => [],
-      setById: (id: string, entity: T, ttl?: number) => {},
-      setList: (entities: T[], listKey?: string, ttl?: number) => {},
-      removeById: (id: string) => {},
-      removeList: (listKey?: string) => {},
-      invalidateAll: () => 0
-    };
+    this.entityCache = new EntityCache<T>(entityName, this.cacheTTL);
   }
   
   /**
@@ -35,7 +28,7 @@ export abstract class BaseService<T> {
   async getById(id: string, options?: Omit<CacheFetchOptions<T>, 'fetcher'>): Promise<T | null> {
     // Vérifier d'abord le cache, sauf si l'option skipCache est définie
     if (!options?.skipCache) {
-      const cached = await this.entityCache.getById(id);
+      const cached = this.entityCache.getById(id);
       if (cached) return cached;
     }
     
@@ -44,7 +37,7 @@ export abstract class BaseService<T> {
     
     // Mettre en cache si trouvé et si l'option skipCache n'est pas définie
     if (entity && !options?.skipCache) {
-      await this.entityCache.setById(id, entity, options?.ttl || this.cacheTTL);
+      this.entityCache.setById(id, entity, options?.ttl || this.cacheTTL);
     }
     
     return entity;
@@ -61,7 +54,7 @@ export abstract class BaseService<T> {
     
     // Vérifier d'abord le cache, sauf si l'option skipCache est définie
     if (!options?.skipCache && cacheKey) {
-      const cached = await this.entityCache.getList(cacheKey);
+      const cached = this.entityCache.getList(cacheKey);
       if (cached && cached.length > 0) return cached;
     }
     
@@ -70,7 +63,7 @@ export abstract class BaseService<T> {
     
     // Mettre en cache si trouvé et si l'option skipCache n'est pas définie
     if (entities.length > 0 && !options?.skipCache) {
-      await this.entityCache.setList(entities, cacheKey, options?.ttl || this.cacheTTL);
+      this.entityCache.setList(entities, cacheKey, options?.ttl || this.cacheTTL);
     }
     
     return entities;
@@ -98,7 +91,7 @@ export abstract class BaseService<T> {
     const entity = await this.updateItem(id, data);
     
     // Mettre à jour le cache et invalider la liste
-    await this.entityCache.setById(id, entity, this.cacheTTL);
+    this.entityCache.setById(id, entity, this.cacheTTL);
     this.invalidateList();
     
     return entity;

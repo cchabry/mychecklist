@@ -8,5 +8,6 @@ export * from './useChecklist';
 export * from './useEvaluations';
 export * from './useActions';
 
-// Hook de base générique
+// Hooks génériques pour les services
 export * from './useServiceWithCache';
+export * from './useServiceWithRetry';

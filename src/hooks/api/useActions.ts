@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { actionsService } from '@/services/api/actionsService';
 import { CorrectiveAction } from '@/lib/types';
 import { QueryFilters } from '@/services/api/types';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer toutes les actions correctives
@@ -48,8 +49,6 @@ export function useActionsByEvaluation(evaluationId: string | undefined, options
  * Hook pour récupérer les actions correctives pour un audit
  */
 export function useActionsByAudit(auditId: string | undefined, options = {}) {
-  // Note: Cette fonction devra être implémentée dans actionsService
-  // Pour l'instant, utilisons getAll avec un filtre
   return useServiceWithCache<CorrectiveAction[]>(
     actionsService.getAll.bind(actionsService),
     [undefined, { auditId }],
@@ -64,76 +63,61 @@ export function useActionsByAudit(auditId: string | undefined, options = {}) {
  * Hook pour créer une nouvelle action corrective
  */
 export function useCreateAction() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const createAction = async (data: Partial<CorrectiveAction>) => {
-    setIsCreating(true);
-    setError(null);
-    
-    try {
-      const newAction = await actionsService.create(data);
-      return newAction;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<CorrectiveAction, [Partial<CorrectiveAction>]>(
+    actionsService.create.bind(actionsService),
+    'action',
+    'create',
+    (result) => {
+      toast.success('Action corrective créée avec succès');
     }
-  };
+  );
   
-  return { createAction, isCreating, error };
+  return { 
+    createAction: execute, 
+    isCreating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour mettre à jour une action corrective
  */
 export function useUpdateAction() {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const updateAction = async (id: string, data: Partial<CorrectiveAction>) => {
-    setIsUpdating(true);
-    setError(null);
-    
-    try {
-      const updatedAction = await actionsService.update(id, data);
-      return updatedAction;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsUpdating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<CorrectiveAction, [string, Partial<CorrectiveAction>]>(
+    actionsService.update.bind(actionsService),
+    'action',
+    'update',
+    (result) => {
+      toast.success('Action corrective mise à jour avec succès');
     }
-  };
+  );
   
-  return { updateAction, isUpdating, error };
+  return { 
+    updateAction: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour supprimer une action corrective
  */
 export function useDeleteAction() {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const deleteAction = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    
-    try {
-      const success = await actionsService.delete(id);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsDeleting(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    actionsService.delete.bind(actionsService),
+    'action',
+    'delete',
+    (result) => {
+      toast.success('Action corrective supprimée avec succès');
     }
-  };
+  );
   
-  return { deleteAction, isDeleting, error };
+  return { 
+    deleteAction: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
+  };
 }

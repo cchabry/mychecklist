@@ -1,17 +1,17 @@
 
-import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { exigencesService } from '@/services/api/exigencesService';
-import { Exigence, ImportanceLevel } from '@/lib/types';
-import { QueryFilters } from '@/services/api/types';
+import { Exigence } from '@/lib/types';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer toutes les exigences
  */
-export function useExigences(filters?: QueryFilters, options = {}) {
+export function useExigences(options = {}) {
   return useServiceWithCache<Exigence[]>(
     exigencesService.getAll.bind(exigencesService),
-    [undefined, filters],
+    [],
     options
   );
 }
@@ -35,7 +35,10 @@ export function useExigence(id: string | undefined, options = {}) {
  */
 export function useExigencesByProject(projectId: string | undefined, options = {}) {
   return useServiceWithCache<Exigence[]>(
-    exigencesService.getByProject.bind(exigencesService),
+    async () => {
+      const exigences = await exigencesService.getAll();
+      return exigences.filter(exigence => exigence.projectId === projectId);
+    },
     [projectId],
     {
       enabled: !!projectId,
@@ -45,133 +48,64 @@ export function useExigencesByProject(projectId: string | undefined, options = {
 }
 
 /**
- * Hook pour récupérer une exigence spécifique par projet et item
- */
-export function useExigenceByProjectAndItem(
-  projectId: string | undefined, 
-  itemId: string | undefined, 
-  options = {}
-) {
-  return useServiceWithCache<Exigence | null>(
-    exigencesService.getByProjectAndItem.bind(exigencesService),
-    [projectId, itemId],
-    {
-      enabled: !!projectId && !!itemId,
-      ...options
-    }
-  );
-}
-
-/**
  * Hook pour créer une nouvelle exigence
  */
 export function useCreateExigence() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const createExigence = async (data: Partial<Exigence>) => {
-    setIsCreating(true);
-    setError(null);
-    
-    try {
-      const newExigence = await exigencesService.create(data);
-      return newExigence;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<Exigence, [Partial<Exigence>]>(
+    exigencesService.create.bind(exigencesService),
+    'exigence',
+    'create',
+    (result) => {
+      toast.success('Exigence créée avec succès');
     }
-  };
+  );
   
-  return { createExigence, isCreating, error };
+  return { 
+    createExigence: execute, 
+    isCreating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour mettre à jour une exigence
  */
 export function useUpdateExigence() {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const updateExigence = async (id: string, data: Partial<Exigence>) => {
-    setIsUpdating(true);
-    setError(null);
-    
-    try {
-      const updatedExigence = await exigencesService.update(id, data);
-      return updatedExigence;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsUpdating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<Exigence, [string, Partial<Exigence>]>(
+    exigencesService.update.bind(exigencesService),
+    'exigence',
+    'update',
+    (result) => {
+      toast.success('Exigence mise à jour avec succès');
     }
+  );
+  
+  return { 
+    updateExigence: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
   };
-  
-  return { updateExigence, isUpdating, error };
-}
-
-/**
- * Hook pour définir une exigence (créer ou mettre à jour)
- */
-export function useSetExigence() {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const setExigence = async (
-    projectId: string,
-    itemId: string,
-    importance: ImportanceLevel,
-    comment: string = ''
-  ) => {
-    setIsProcessing(true);
-    setError(null);
-    
-    try {
-      const result = await exigencesService.setExigence(
-        projectId,
-        itemId,
-        importance,
-        comment
-      );
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  return { setExigence, isProcessing, error };
 }
 
 /**
  * Hook pour supprimer une exigence
  */
 export function useDeleteExigence() {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const deleteExigence = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    
-    try {
-      const success = await exigencesService.delete(id);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsDeleting(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    exigencesService.delete.bind(exigencesService),
+    'exigence',
+    'delete',
+    (result) => {
+      toast.success('Exigence supprimée avec succès');
     }
-  };
+  );
   
-  return { deleteExigence, isDeleting, error };
+  return { 
+    deleteExigence: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
+  };
 }

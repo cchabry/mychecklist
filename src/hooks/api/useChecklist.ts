@@ -1,23 +1,23 @@
 
-import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { checklistService } from '@/services/api/checklistService';
 import { ChecklistItem } from '@/lib/types';
-import { QueryFilters } from '@/services/api/types';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer tous les items de checklist
  */
-export function useChecklistItems(filters?: QueryFilters, options = {}) {
+export function useChecklistItems(options = {}) {
   return useServiceWithCache<ChecklistItem[]>(
     checklistService.getAll.bind(checklistService),
-    [undefined, filters],
+    [],
     options
   );
 }
 
 /**
- * Hook pour récupérer un item de checklist par son ID
+ * Hook pour récupérer un item de la checklist par son ID
  */
 export function useChecklistItem(id: string | undefined, options = {}) {
   return useServiceWithCache<ChecklistItem | null>(
@@ -31,11 +31,14 @@ export function useChecklistItem(id: string | undefined, options = {}) {
 }
 
 /**
- * Hook pour récupérer les items de checklist par catégorie
+ * Hook pour récupérer des items de checklist par catégorie
  */
 export function useChecklistItemsByCategory(category: string | undefined, options = {}) {
   return useServiceWithCache<ChecklistItem[]>(
-    checklistService.getByCategory.bind(checklistService),
+    async () => {
+      const items = await checklistService.getAll();
+      return items.filter(item => item.category === category);
+    },
     [category],
     {
       enabled: !!category,
@@ -45,101 +48,64 @@ export function useChecklistItemsByCategory(category: string | undefined, option
 }
 
 /**
- * Hook pour récupérer les catégories distinctes
- */
-export function useChecklistCategories(options = {}) {
-  return useServiceWithCache<string[]>(
-    checklistService.getCategories.bind(checklistService),
-    [],
-    options
-  );
-}
-
-/**
- * Hook pour récupérer les sous-catégories distinctes pour une catégorie
- */
-export function useChecklistSubcategories(category?: string, options = {}) {
-  return useServiceWithCache<string[]>(
-    checklistService.getSubcategories.bind(checklistService),
-    [category],
-    options
-  );
-}
-
-/**
  * Hook pour créer un nouvel item de checklist
  */
 export function useCreateChecklistItem() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const createChecklistItem = async (data: Partial<ChecklistItem>) => {
-    setIsCreating(true);
-    setError(null);
-    
-    try {
-      const newItem = await checklistService.create(data);
-      return newItem;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<ChecklistItem, [Partial<ChecklistItem>]>(
+    checklistService.create.bind(checklistService),
+    'checklistItem',
+    'create',
+    (result) => {
+      toast.success('Item de checklist créé avec succès');
     }
-  };
+  );
   
-  return { createChecklistItem, isCreating, error };
+  return { 
+    createChecklistItem: execute, 
+    isCreating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour mettre à jour un item de checklist
  */
 export function useUpdateChecklistItem() {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const updateChecklistItem = async (id: string, data: Partial<ChecklistItem>) => {
-    setIsUpdating(true);
-    setError(null);
-    
-    try {
-      const updatedItem = await checklistService.update(id, data);
-      return updatedItem;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsUpdating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<ChecklistItem, [string, Partial<ChecklistItem>]>(
+    checklistService.update.bind(checklistService),
+    'checklistItem',
+    'update',
+    (result) => {
+      toast.success('Item de checklist mis à jour avec succès');
     }
-  };
+  );
   
-  return { updateChecklistItem, isUpdating, error };
+  return { 
+    updateChecklistItem: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour supprimer un item de checklist
  */
 export function useDeleteChecklistItem() {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const deleteChecklistItem = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    
-    try {
-      const success = await checklistService.delete(id);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsDeleting(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    checklistService.delete.bind(checklistService),
+    'checklistItem',
+    'delete',
+    (result) => {
+      toast.success('Item de checklist supprimé avec succès');
     }
-  };
+  );
   
-  return { deleteChecklistItem, isDeleting, error };
+  return { 
+    deleteChecklistItem: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
+  };
 }

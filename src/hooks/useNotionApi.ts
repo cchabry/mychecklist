@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { useOperationMode } from '@/services/operationMode';
 import { useErrorReporter } from './useErrorReporter';
 import { toast } from 'sonner';
+import { useCache } from './cache/useCache';
 
 export interface NotionAPIOptions<T> {
   // Données à utiliser en mode démonstration
@@ -26,6 +27,13 @@ export interface NotionAPIOptions<T> {
   
   // Contexte pour les rapports d'erreur
   errorContext?: string;
+  
+  // Options de mise en cache
+  cacheOptions?: {
+    enabled?: boolean;
+    ttl?: number;
+    key?: string;
+  };
 }
 
 /**
@@ -37,14 +45,16 @@ export function useNotionAPI() {
   const [error, setError] = useState<Error | null>(null);
   const { isDemoMode, settings } = useOperationMode();
   const { reportError, reportSuccess } = useErrorReporter();
+  const cache = useCache();
   
   /**
-   * Exécute une opération Notion avec gestion automatique du mode
-   * @param operation La fonction à exécuter en mode réel
-   * @param options Options de configuration
+   * Exécute une opération Notion avec gestion automatique du mode et du cache
    */
-  const executeOperation = useCallback(async <T>(
-    operation: () => Promise<T>,
+  const execute = useCallback(async <T>(
+    endpoint: string,
+    method: string = 'GET',
+    body?: any,
+    apiKey?: string,
     options: NotionAPIOptions<T> = {}
   ): Promise<T> => {
     // Extraire les options avec valeurs par défaut
@@ -54,8 +64,21 @@ export function useNotionAPI() {
       showLoadingToast = false,
       showErrorToast = true,
       messages = {},
-      errorContext = 'Opération Notion'
+      errorContext = 'Opération Notion',
+      cacheOptions = { enabled: true }
     } = options;
+    
+    // Générer une clé de cache
+    const cacheKey = cacheOptions.key || 
+      `notion:${method}:${endpoint}:${JSON.stringify(body || {})}`;
+    
+    // Vérifier s'il y a des données en cache
+    if (cacheOptions.enabled) {
+      const cachedData = cache.get<T>(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
+    }
     
     // Réinitialiser l'état
     setError(null);
@@ -96,10 +119,42 @@ export function useNotionAPI() {
         console.log('[NotionAPI] Mode démo - Utilisation des données simulées', demoData);
       } else {
         // En mode réel, on exécute l'opération
-        result = await operation();
+        const notionApiUrl = process.env.REACT_APP_NOTION_API_URL || '/api/notion-proxy';
+        
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (apiKey) {
+          headers['x-notion-token'] = apiKey;
+        }
+        
+        const requestOptions: RequestInit = {
+          method,
+          headers,
+          credentials: 'include'
+        };
+        
+        if (method !== 'GET' && body) {
+          requestOptions.body = JSON.stringify(body);
+        }
+        
+        const response = await fetch(`${notionApiUrl}${endpoint}`, requestOptions);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erreur Notion (${response.status}): ${errorText}`);
+        }
+        
+        result = await response.json();
         
         // Signaler une opération réussie
         reportSuccess();
+      }
+      
+      // Mettre en cache le résultat si le cache est activé
+      if (cacheOptions.enabled) {
+        cache.set(cacheKey, result, cacheOptions.ttl);
       }
       
       // Mettre à jour l'état et les toasts
@@ -133,9 +188,21 @@ export function useNotionAPI() {
       
       throw formattedError;
     }
-  }, [isDemoMode, settings, reportError, reportSuccess]);
+  }, [isDemoMode, settings, reportError, reportSuccess, cache]);
+  
+  // Les opérations spécifiques sont maintenant gérées par un exécuteur générique
+  const executeOperation = useCallback(<T>(
+    operation: () => Promise<T>,
+    options: NotionAPIOptions<T> = {}
+  ): Promise<T> => {
+    return execute<T>('', 'CUSTOM', undefined, undefined, {
+      ...options,
+      cacheOptions: { enabled: false }
+    });
+  }, [execute]);
   
   return {
+    execute,
     executeOperation,
     isLoading,
     error,
@@ -143,9 +210,3 @@ export function useNotionAPI() {
     clearError: () => setError(null)
   };
 }
-
-// Ajouter un avertissement de dépréciation pour l'ancien useNotionRequest
-console.warn(
-  "[Deprecated] useNotionRequest est déprécié et sera supprimé dans une future version. " +
-  "Veuillez utiliser useNotionAPI à la place."
-);

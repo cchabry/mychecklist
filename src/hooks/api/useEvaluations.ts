@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { evaluationsService } from '@/services/api/evaluationsService';
 import { Evaluation } from '@/lib/types';
 import { QueryFilters } from '@/services/api/types';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer toutes les évaluations
@@ -48,8 +49,6 @@ export function useEvaluationsByAudit(auditId: string | undefined, options = {})
  * Hook pour récupérer les évaluations pour une page spécifique dans un audit
  */
 export function useEvaluationsByPage(auditId: string | undefined, pageId: string | undefined, options = {}) {
-  // Note: Cette fonction devra être implémentée dans evaluationsService
-  // Pour l'instant, utilisons getByAuditId avec un filtrage local
   return useServiceWithCache<Evaluation[]>(
     async (auditId: string) => {
       const evaluations = await evaluationsService.getByAuditId(auditId);
@@ -67,76 +66,61 @@ export function useEvaluationsByPage(auditId: string | undefined, pageId: string
  * Hook pour créer une nouvelle évaluation
  */
 export function useCreateEvaluation() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const createEvaluation = async (data: Partial<Evaluation>) => {
-    setIsCreating(true);
-    setError(null);
-    
-    try {
-      const newEvaluation = await evaluationsService.create(data);
-      return newEvaluation;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<Evaluation, [Partial<Evaluation>]>(
+    evaluationsService.create.bind(evaluationsService),
+    'evaluation',
+    'create',
+    (result) => {
+      toast.success('Évaluation créée avec succès');
     }
-  };
+  );
   
-  return { createEvaluation, isCreating, error };
+  return { 
+    createEvaluation: execute, 
+    isCreating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour mettre à jour une évaluation
  */
 export function useUpdateEvaluation() {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const updateEvaluation = async (id: string, data: Partial<Evaluation>) => {
-    setIsUpdating(true);
-    setError(null);
-    
-    try {
-      const updatedEvaluation = await evaluationsService.update(id, data);
-      return updatedEvaluation;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsUpdating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<Evaluation, [string, Partial<Evaluation>]>(
+    evaluationsService.update.bind(evaluationsService),
+    'evaluation',
+    'update',
+    (result) => {
+      toast.success('Évaluation mise à jour avec succès');
     }
-  };
+  );
   
-  return { updateEvaluation, isUpdating, error };
+  return { 
+    updateEvaluation: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour supprimer une évaluation
  */
 export function useDeleteEvaluation() {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const deleteEvaluation = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    
-    try {
-      const success = await evaluationsService.delete(id);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsDeleting(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    evaluationsService.delete.bind(evaluationsService),
+    'evaluation',
+    'delete',
+    (result) => {
+      toast.success('Évaluation supprimée avec succès');
     }
-  };
+  );
   
-  return { deleteEvaluation, isDeleting, error };
+  return { 
+    deleteEvaluation: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
+  };
 }

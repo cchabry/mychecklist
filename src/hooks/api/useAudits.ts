@@ -1,17 +1,17 @@
 
-import { useState } from 'react';
 import { useServiceWithCache } from './useServiceWithCache';
+import { useServiceWithRetry } from './useServiceWithRetry';
 import { auditsService } from '@/services/api/auditsService';
 import { Audit } from '@/lib/types';
-import { QueryFilters } from '@/services/api/types';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer tous les audits
  */
-export function useAudits(filters?: QueryFilters, options = {}) {
+export function useAudits(options = {}) {
   return useServiceWithCache<Audit[]>(
     auditsService.getAll.bind(auditsService),
-    [undefined, filters],
+    [],
     options
   );
 }
@@ -35,21 +35,10 @@ export function useAudit(id: string | undefined, options = {}) {
  */
 export function useAuditsByProject(projectId: string | undefined, options = {}) {
   return useServiceWithCache<Audit[]>(
-    auditsService.getByProject.bind(auditsService),
-    [projectId],
-    {
-      enabled: !!projectId,
-      ...options
-    }
-  );
-}
-
-/**
- * Hook pour récupérer le dernier audit pour un projet
- */
-export function useLatestAuditByProject(projectId: string | undefined, options = {}) {
-  return useServiceWithCache<Audit | null>(
-    auditsService.getLatestByProject.bind(auditsService),
+    async () => {
+      const audits = await auditsService.getAll();
+      return audits.filter(audit => audit.projectId === projectId);
+    },
     [projectId],
     {
       enabled: !!projectId,
@@ -62,76 +51,61 @@ export function useLatestAuditByProject(projectId: string | undefined, options =
  * Hook pour créer un nouvel audit
  */
 export function useCreateAudit() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const createAudit = async (data: Partial<Audit>) => {
-    setIsCreating(true);
-    setError(null);
-    
-    try {
-      const newAudit = await auditsService.create(data);
-      return newAudit;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsCreating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<Audit, [Partial<Audit>]>(
+    auditsService.create.bind(auditsService),
+    'audit',
+    'create',
+    (result) => {
+      toast.success('Audit créé avec succès');
     }
-  };
+  );
   
-  return { createAudit, isCreating, error };
+  return { 
+    createAudit: execute, 
+    isCreating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour mettre à jour un audit
  */
 export function useUpdateAudit() {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const updateAudit = async (id: string, data: Partial<Audit>) => {
-    setIsUpdating(true);
-    setError(null);
-    
-    try {
-      const updatedAudit = await auditsService.update(id, data);
-      return updatedAudit;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsUpdating(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<Audit, [string, Partial<Audit>]>(
+    auditsService.update.bind(auditsService),
+    'audit',
+    'update',
+    (result) => {
+      toast.success('Audit mis à jour avec succès');
     }
-  };
+  );
   
-  return { updateAudit, isUpdating, error };
+  return { 
+    updateAudit: execute, 
+    isUpdating: isLoading, 
+    error,
+    result
+  };
 }
 
 /**
  * Hook pour supprimer un audit
  */
 export function useDeleteAudit() {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const deleteAudit = async (id: string) => {
-    setIsDeleting(true);
-    setError(null);
-    
-    try {
-      const success = await auditsService.delete(id);
-      return success;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      throw error;
-    } finally {
-      setIsDeleting(false);
+  const { execute, isLoading, error, result } = useServiceWithRetry<boolean, [string]>(
+    auditsService.delete.bind(auditsService),
+    'audit',
+    'delete',
+    (result) => {
+      toast.success('Audit supprimé avec succès');
     }
-  };
+  );
   
-  return { deleteAudit, isDeleting, error };
+  return { 
+    deleteAudit: execute, 
+    isDeleting: isLoading, 
+    error,
+    result
+  };
 }
