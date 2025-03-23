@@ -1,3 +1,4 @@
+
 import { CorrectiveAction, ActionPriority, ActionStatus, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
@@ -91,7 +92,7 @@ export async function getActionsByEvaluationId(evaluationId: string): Promise<Co
   
   // Implémentation réelle avec l'API Notion
   try {
-    const response = await notionApiRequest<{ results: any[] }>('/databases/actions/query', 'POST', {
+    const response = await notionApiRequest('/databases/actions/query', 'POST', {
       filter: {
         property: 'evaluationId',
         rich_text: {
@@ -281,7 +282,7 @@ export async function updateAction(id: string, data: Partial<CorrectiveAction>):
     }
     
     // Mettre à jour la page Notion
-    const response = await notionApiRequest(`/pages/${id}`, 'PATCH', {
+    await notionApiRequest(`/pages/${id}`, 'PATCH', {
       properties
     });
     

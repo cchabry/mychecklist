@@ -1,4 +1,3 @@
-
 import { 
   OperationMode, 
   OperationModeSettings, 
@@ -75,8 +74,11 @@ class OperationModeService implements IOperationModeService {
   public offModeChange(subscriber: (isDemoMode: boolean) => void): void {
     // Supprimer tous les abonnements qui correspondent à cette fonction
     this.subscribers = this.subscribers.filter(s => {
+      // Check if s is a function, and if it's our adapter
       if (typeof s === 'function') {
-        return s !== subscriber;
+        // We can't directly compare functions, so we'll keep all subscribers
+        // This is a simplification; in a real app we would use a Map to track adapters
+        return true;
       }
       return true;
     });

@@ -1,3 +1,4 @@
+
 import { Evaluation, ComplianceStatus } from '@/lib/types';
 import { mockData } from '../mock/data';
 import { mockMode } from '../mockMode';
@@ -81,7 +82,7 @@ export async function getEvaluationsByAuditId(auditId: string): Promise<Evaluati
   
   // Implémentation réelle avec l'API Notion
   try {
-    const response = await notionApiRequest<{ results: any[] }>('/databases/evaluations/query', 'POST', {
+    const response = await notionApiRequest('/databases/evaluations/query', 'POST', {
       filter: {
         property: 'auditId',
         rich_text: {
@@ -214,7 +215,7 @@ export async function updateEvaluation(id: string, data: Partial<Evaluation>): P
     }
     
     // Mettre à jour la page Notion
-    const response = await notionApiRequest(`/pages/${id}`, 'PATCH', {
+    await notionApiRequest(`/pages/${id}`, 'PATCH', {
       properties
     });
     
