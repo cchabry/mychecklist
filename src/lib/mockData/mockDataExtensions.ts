@@ -1,3 +1,4 @@
+
 import { mockData as existingMockData } from '@/lib/mockData/index';
 import { ComplianceStatus, ImportanceLevel } from '@/lib/types';
 
@@ -43,11 +44,7 @@ if (!existingMockData.updateEvaluation) {
 }
 
 if (!existingMockData.deleteEvaluation) {
-  existingMockData.deleteEvaluation = (id: string) => {
-    const index = existingMockData.evaluations.findIndex(e => e.id === id);
-    if (index >= 0) {
-      existingMockData.evaluations.splice(index, 1);
-    }
+  existingMockData.deleteEvaluation = () => {
     return true;
   };
 }
@@ -80,32 +77,25 @@ if (!existingMockData.updateAction) {
 }
 
 if (!existingMockData.deleteAction) {
-  existingMockData.deleteAction = (id: string) => {
-    const index = existingMockData.actions.findIndex(a => a.id === id);
-    if (index >= 0) {
-      existingMockData.actions.splice(index, 1);
-    }
+  existingMockData.deleteAction = () => {
     return true;
   };
 }
 
-// Add the generateMockExigence function if it doesn't exist
-if (!existingMockData.generateMockExigence) {
-  existingMockData.generateMockExigence = (projectId: string, itemId: string) => {
-    return {
-      id: `exigence_${Date.now()}`,
-      projectId,
-      itemId,
-      importance: ImportanceLevel.Moyen,
-      comment: 'Exigence générée automatiquement'
-    };
+// Define generateMockExigence directly on the existingMockData object
+existingMockData.generateMockExigence = existingMockData.generateMockExigence || function(projectId: string, itemId: string) {
+  return {
+    id: `exigence_${Date.now()}`,
+    projectId,
+    itemId,
+    importance: ImportanceLevel.Moyen,
+    comment: 'Exigence générée automatiquement'
   };
-}
+};
 
-// Ensure the mockData object has the generateMockExigence property
+// Create a new object with all the properties from existingMockData
 const mockDataExtensions = {
-  ...existingMockData,
-  generateMockExigence: existingMockData.generateMockExigence
+  ...existingMockData
 };
 
 export { mockDataExtensions };
