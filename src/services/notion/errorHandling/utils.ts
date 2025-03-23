@@ -2,225 +2,227 @@
 import { 
   NotionError, 
   NotionErrorType, 
-  NotionErrorSeverity,
+  NotionErrorSeverity, 
   NotionErrorOptions 
 } from './types';
 
 /**
- * Utilitaires pour la gestion des erreurs Notion
+ * Utilitaires pour le service de gestion d'erreurs Notion
  */
 export const notionErrorUtils = {
   /**
-   * Crée une erreur Notion enrichie
+   * Enrichit une erreur avec des informations supplémentaires
+   */
+  enhanceError(error: Error, context: Record<string, any> = {}): NotionError {
+    // Vérifier si l'erreur est déjà une erreur Notion
+    if ('type' in error && 'severity' in error && 'recoverable' in error) {
+      return error as NotionError;
+    }
+    
+    // Déterminer le type d'erreur
+    const errorType = this.determineErrorType(error);
+    
+    // Déterminer la gravité
+    const severity = this.determineErrorSeverity(errorType, error);
+    
+    // Déterminer si l'erreur est récupérable
+    const recoverable = this.isErrorRecoverable(errorType);
+    
+    // Déterminer les actions de récupération possibles
+    const recoveryActions = this.getRecoveryActions(errorType);
+    
+    // Créer l'erreur enrichie
+    const enhancedError = error as NotionError;
+    enhancedError.type = errorType;
+    enhancedError.severity = severity;
+    enhancedError.context = context;
+    enhancedError.recoverable = recoverable;
+    enhancedError.recoveryActions = recoveryActions;
+    enhancedError.timestamp = new Date();
+    enhancedError.originalError = error;
+    
+    return enhancedError;
+  },
+  
+  /**
+   * Crée une nouvelle erreur Notion
    */
   createError(message: string, options: NotionErrorOptions = {}): NotionError {
+    const {
+      type = NotionErrorType.UNKNOWN,
+      severity = NotionErrorSeverity.ERROR,
+      code,
+      context,
+      originalError,
+      recoveryActions = [],
+      recoverable = false
+    } = options;
+    
     const error = new Error(message) as NotionError;
-    
-    // Définir les propriétés de base
-    error.type = options.type || NotionErrorType.UNKNOWN;
-    error.severity = options.severity || NotionErrorSeverity.ERROR;
-    error.code = options.code;
-    error.context = options.context || {};
-    error.originalError = options.originalError;
-    error.recoveryActions = options.recoveryActions || [];
-    error.recoverable = options.recoverable !== undefined ? options.recoverable : true;
+    error.type = type;
+    error.severity = severity;
+    error.code = code;
+    error.context = context || {};
+    error.originalError = originalError;
+    error.recoveryActions = recoveryActions;
+    error.recoverable = recoverable;
     error.timestamp = new Date();
-    
-    // Définir la stack trace
-    if (options.originalError && options.originalError.stack) {
-      error.stack = `NotionError: ${message}\n${options.originalError.stack.split('\n').slice(1).join('\n')}`;
-    }
     
     return error;
   },
   
   /**
-   * Détermine le type d'erreur en fonction de l'erreur brute
+   * Détermine le type d'erreur
    */
-  detectErrorType(error: Error): NotionErrorType {
+  determineErrorType(error: Error): NotionErrorType {
     const message = error.message.toLowerCase();
-    const name = error.name.toLowerCase();
     
-    // Erreurs réseau
-    if (
-      message.includes('network') || 
-      message.includes('offline') || 
-      message.includes('failed to fetch') ||
-      message.includes('timeout')
-    ) {
+    if (message.includes('network') || 
+        message.includes('fetch') || 
+        message.includes('connection') ||
+        message.includes('timeout') ||
+        message.includes('cors')) {
       return NotionErrorType.NETWORK;
     }
     
-    // Erreurs d'authentification
-    if (
-      message.includes('unauthorized') || 
-      message.includes('auth') || 
-      message.includes('token') ||
-      message.includes('401')
-    ) {
+    if (message.includes('auth') || 
+        message.includes('token') || 
+        message.includes('401')) {
       return NotionErrorType.AUTH;
     }
     
-    // Erreurs de permissions
-    if (
-      message.includes('permission') || 
-      message.includes('forbidden') || 
-      message.includes('access denied') ||
-      message.includes('403')
-    ) {
+    if (message.includes('permission') || 
+        message.includes('access') || 
+        message.includes('403')) {
       return NotionErrorType.PERMISSION;
     }
     
-    // Erreurs de limite de taux
-    if (
-      message.includes('rate limit') || 
-      message.includes('too many requests') || 
-      message.includes('429')
-    ) {
+    if (message.includes('limit') || 
+        message.includes('rate') || 
+        message.includes('429')) {
       return NotionErrorType.RATE_LIMIT;
     }
     
-    // Erreurs de validation
-    if (
-      message.includes('validation') || 
-      message.includes('invalid') || 
-      message.includes('parameter') ||
-      message.includes('400')
-    ) {
+    if (message.includes('valid') || 
+        message.includes('schema') || 
+        message.includes('400')) {
       return NotionErrorType.VALIDATION;
     }
     
-    // Erreurs de base de données
-    if (
-      message.includes('database') || 
-      message.includes('not found') || 
-      message.includes('404')
-    ) {
+    if (message.includes('database') || 
+        message.includes('query') || 
+        message.includes('500')) {
       return NotionErrorType.DATABASE;
     }
     
-    // Par défaut
     return NotionErrorType.UNKNOWN;
   },
   
   /**
-   * Détermine la gravité en fonction du type d'erreur
+   * Détermine la gravité de l'erreur
    */
-  determineSeverity(type: NotionErrorType): NotionErrorSeverity {
+  determineErrorSeverity(type: NotionErrorType, error: Error): NotionErrorSeverity {
     switch (type) {
-      case NotionErrorType.NETWORK:
-        return NotionErrorSeverity.WARNING;
-        
       case NotionErrorType.AUTH:
       case NotionErrorType.PERMISSION:
+        return NotionErrorSeverity.ERROR;
+        
+      case NotionErrorType.NETWORK:
+        // Les erreurs réseau peuvent être temporaires
+        if (error.message.includes('timeout')) {
+          return NotionErrorSeverity.WARNING;
+        }
         return NotionErrorSeverity.ERROR;
         
       case NotionErrorType.RATE_LIMIT:
         return NotionErrorSeverity.WARNING;
         
       case NotionErrorType.VALIDATION:
-        return NotionErrorSeverity.ERROR;
+        return NotionErrorSeverity.WARNING;
         
       case NotionErrorType.DATABASE:
         return NotionErrorSeverity.ERROR;
         
       case NotionErrorType.UNKNOWN:
       default:
+        // Par défaut, considérer comme une erreur
         return NotionErrorSeverity.ERROR;
     }
   },
   
   /**
-   * Suggère des actions de récupération en fonction du type d'erreur
+   * Détermine si l'erreur est récupérable automatiquement
    */
-  suggestRecoveryActions(type: NotionErrorType): string[] {
+  isErrorRecoverable(type: NotionErrorType): boolean {
+    switch (type) {
+      case NotionErrorType.NETWORK:
+      case NotionErrorType.RATE_LIMIT:
+        // Ces erreurs sont généralement temporaires
+        return true;
+        
+      case NotionErrorType.AUTH:
+      case NotionErrorType.PERMISSION:
+      case NotionErrorType.VALIDATION:
+      case NotionErrorType.DATABASE:
+      case NotionErrorType.UNKNOWN:
+      default:
+        // Ces erreurs nécessitent généralement une intervention
+        return false;
+    }
+  },
+  
+  /**
+   * Obtient les actions de récupération possibles
+   */
+  getRecoveryActions(type: NotionErrorType): string[] {
     switch (type) {
       case NotionErrorType.NETWORK:
         return [
-          'Vérifier votre connexion internet',
+          'Vérifier la connexion Internet',
           'Réessayer ultérieurement',
-          'Passer en mode démonstration'
+          'Basculer en mode démonstration'
         ];
         
       case NotionErrorType.AUTH:
         return [
-          'Vérifier votre token d\'API Notion',
-          'Reconfigurer l\'intégration',
-          'Passer en mode démonstration'
+          'Vérifier la clé API Notion',
+          'Reconfigurer l\'intégration Notion',
+          'Basculer en mode démonstration'
         ];
         
       case NotionErrorType.PERMISSION:
         return [
           'Vérifier les permissions de l\'intégration Notion',
-          'Vérifier les accès aux bases de données',
-          'Reconfigurer l\'intégration'
+          'Partager la base de données avec l\'intégration',
+          'Basculer en mode démonstration'
         ];
         
       case NotionErrorType.RATE_LIMIT:
         return [
-          'Attendre quelques minutes avant de réessayer',
+          'Attendre et réessayer ultérieurement',
           'Réduire la fréquence des requêtes',
-          'Passer temporairement en mode démonstration'
+          'Basculer en mode démonstration'
         ];
         
       case NotionErrorType.VALIDATION:
         return [
-          'Vérifier les paramètres fournis',
+          'Vérifier les données envoyées',
           'Consulter la documentation de l\'API Notion'
         ];
         
       case NotionErrorType.DATABASE:
         return [
-          'Vérifier les identifiants de base de données',
-          'Vérifier que la base existe et est accessible',
-          'Reconfigurer les bases de données'
+          'Vérifier la structure de la base de données',
+          'Utiliser les outils de diagnostic',
+          'Basculer en mode démonstration'
         ];
         
       case NotionErrorType.UNKNOWN:
       default:
         return [
-          'Réessayer ultérieurement',
-          'Consulter les logs pour plus de détails',
-          'Passer en mode démonstration'
+          'Consulter les logs pour plus d\'informations',
+          'Basculer en mode démonstration'
         ];
     }
-  },
-  
-  /**
-   * Détermine si une erreur est récupérable
-   */
-  isRecoverable(type: NotionErrorType): boolean {
-    // La plupart des erreurs sont récupérables sauf certaines
-    return ![
-      NotionErrorType.AUTH,
-      NotionErrorType.PERMISSION
-    ].includes(type);
-  },
-  
-  /**
-   * Enrichit une erreur brute avec des informations détaillées
-   */
-  enhanceError(error: Error, context: Record<string, any> = {}): NotionError {
-    // Déterminer le type d'erreur
-    const type = this.detectErrorType(error);
-    
-    // Déterminer la gravité
-    const severity = this.determineSeverity(type);
-    
-    // Suggérer des actions de récupération
-    const recoveryActions = this.suggestRecoveryActions(type);
-    
-    // Déterminer si l'erreur est récupérable
-    const recoverable = this.isRecoverable(type);
-    
-    // Créer l'erreur enrichie
-    return this.createError(error.message, {
-      type,
-      severity,
-      originalError: error,
-      context,
-      recoveryActions,
-      recoverable
-    });
   }
 };

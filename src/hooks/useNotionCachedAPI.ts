@@ -1,79 +1,59 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNotionApi } from './useNotionApi';
-import { useCache } from './useCache';
+import { useState, useEffect } from 'react';
+import { useCache } from './cache/useCache';
+import { useNotionAPI, NotionAPIOptions } from './notion/useNotionAPI';
 import { CacheOptions } from '@/services/cache/types';
 
-interface NotionAPIOptions<T> {
-  // Données à utiliser en mode démonstration
-  demoData?: T;
-  
-  // Simuler un délai en mode démonstration (ms)
-  simulatedDelay?: number;
-  
-  // Messages personnalisés
-  messages?: {
-    loading?: string;
-    success?: string;
-    error?: string;
-  };
-  
-  // Contexte pour les rapports d'erreur
-  errorContext?: string;
+interface NotionCachedAPIOptions<T> extends NotionAPIOptions<T>, Partial<CacheOptions> {
+  // Options spécifiques au cache
+  ttl?: number;
+  staleTime?: number;
+  revalidateOnMount?: boolean;
 }
 
 /**
- * Hook combinant le système de cache et le nouveau système operationMode
- * pour les requêtes API Notion avec mise en cache
+ * Hook pour utiliser l'API Notion avec mise en cache des résultats
  */
-export function useNotionCachedAPI<T>(
-  cacheKey: string,
-  apiFn: () => Promise<T>,
-  options: NotionAPIOptions<T> & CacheOptions = {}
+export function useNotionCachedAPI<T = any>(
+  endpoint: string,
+  method: string = 'GET',
+  body?: any,
+  options: NotionCachedAPIOptions<T> = {}
 ) {
-  const {
-    ttl = 5 * 60 * 1000, // 5 minutes par défaut
+  const { 
+    // Options de cache
+    ttl,
     staleTime = 60 * 1000, // 1 minute par défaut
     revalidateOnMount = true,
-    keyPrefix = 'notion:',
-    ...apiOptions
+    
+    // Autres options
+    ...notionOptions 
   } = options;
   
-  const { executeOperation, isLoading: isOperationLoading, error: operationError } = useNotionApi();
-  const cacheManager = useCache();
+  const cacheKey = `notion:${method}:${endpoint}:${JSON.stringify(body || {})}`;
+  const cache = useCache();
+  const { execute, isLoading: isNotionLoading } = useNotionAPI();
   
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [isStale, setIsStale] = useState(false);
-  
-  // Générer la clé complète
-  const fullCacheKey = `${keyPrefix}${cacheKey}`;
-  
-  // Fonction pour charger les données de l'API
-  const fetchData = useCallback(async (options: { loadSilently?: boolean } = {}) => {
+  const [error, setError] = useState<Error | null>(null);
+  const [timestamp, setTimestamp] = useState<number | null>(null);
+
+  // Fonction pour charger les données depuis l'API
+  const fetchFromAPI = async (): Promise<T> => {
     try {
-      if (!options.loadSilently) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
+      const result = await execute<T>(endpoint, method, body, undefined, notionOptions);
       
-      const result = await executeOperation<T>(
-        () => apiFn(),
-        {
-          ...apiOptions,
-          demoData: apiOptions.demoData
-        }
-      );
-      
-      // Stocker dans le cache
-      const cacheData = {
+      // Sauvegarder dans le cache
+      cache.set(cacheKey, {
         data: result,
         timestamp: Date.now()
-      };
-      
-      cacheManager.set(fullCacheKey, cacheData, ttl);
+      }, ttl);
       
       setData(result);
+      setTimestamp(Date.now());
       setIsStale(false);
       setError(null);
       
@@ -81,55 +61,46 @@ export function useNotionCachedAPI<T>(
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
-      return null;
+      throw error;
     } finally {
-      if (!options.loadSilently) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
-  }, [apiFn, fullCacheKey, ttl, cacheManager, executeOperation, apiOptions]);
-  
-  // Fonction pour recharger les données
-  const refresh = useCallback(() => {
-    return fetchData();
-  }, [fetchData]);
-  
-  // Fonction pour recharger en arrière-plan
-  const silentRefresh = useCallback(() => {
-    return fetchData({ loadSilently: true });
-  }, [fetchData]);
-  
-  // Effet initial pour charger les données
+  };
+
+  // Charger les données initiales
   useEffect(() => {
-    // Vérifier si nous avons des données en cache
-    const cachedEntry = cacheManager.get(fullCacheKey);
+    // Vérifier le cache
+    const cachedData = cache.get<{ data: T; timestamp: number }>(cacheKey);
     
-    if (cachedEntry && typeof cachedEntry === 'object' && cachedEntry !== null && 'data' in cachedEntry && 'timestamp' in cachedEntry) {
-      // Vérifier si les données sont périmées
-      const entry = cachedEntry as { data: T, timestamp: number };
-      const isDataStale = Date.now() - entry.timestamp > staleTime;
+    if (cachedData && 'data' in cachedData) {
+      // Déterminer si les données sont périmées
+      const isDataStale = staleTime && Date.now() - cachedData.timestamp > staleTime;
       
-      // Définir les données du cache
-      setData(entry.data);
+      // Utiliser les données du cache
+      setData(cachedData.data);
+      setTimestamp(cachedData.timestamp);
       setIsStale(isDataStale);
       setIsLoading(false);
       
-      // Recharger en arrière-plan si nécessaire
+      // Recharger en arrière-plan si les données sont périmées et revalidateOnMount est activé
       if (isDataStale && revalidateOnMount) {
-        silentRefresh();
+        fetchFromAPI().catch(console.error);
       }
+    } else if (revalidateOnMount) {
+      // Rien en cache ou revalidation forcée
+      fetchFromAPI().catch(console.error);
     } else {
-      // Pas de cache, charger les données
-      fetchData();
+      // Rien en cache, pas de revalidation automatique
+      setIsLoading(false);
     }
-  }, [fullCacheKey, staleTime, revalidateOnMount, cacheManager, fetchData, silentRefresh]);
-  
+  }, [cacheKey]);
+
   return {
     data,
     isLoading,
-    error: error || operationError,
     isStale,
-    refresh,
-    silentRefresh
+    error,
+    timestamp,
+    refetch: fetchFromAPI
   };
 }

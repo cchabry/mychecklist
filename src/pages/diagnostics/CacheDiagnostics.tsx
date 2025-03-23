@@ -1,209 +1,92 @@
 
-import React, { useState, useCallback } from 'react';
-import { useCache, useStaleWhileRevalidate } from '@/hooks/cache';
-import { cacheManager } from '@/services/cache/managers/defaultManager';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import CacheManagerComponent from '@/components/cache/CacheManager';
-import { RefreshCw, Clock, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCache } from '@/hooks/cache/useCache';
+import { useStaleWhileRevalidate } from '@/hooks/cache/useStaleWhileRevalidate';
 
-/**
- * Composant pour tester le système de cache
- */
+const testData = {
+  timestamp: new Date().toISOString(),
+  random: Math.random(),
+  counter: 0
+};
+
 const CacheDiagnostics: React.FC = () => {
+  const cache = useCache();
   const [counter, setCounter] = useState(0);
-  
-  // Définir une fonction de récupération qui simule un appel API
-  const fetchData = useCallback(async () => {
-    // Simuler un délai réseau
-    await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Fetch function pour le hook StaleWhileRevalidate
+  const fetchTestData = async () => {
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulation de latence
     return {
       timestamp: new Date().toISOString(),
       random: Math.random(),
       counter: counter
     };
-  }, [counter]);
-  
-  // Utiliser notre hook useCache
-  const { 
-    data: normalCacheData, 
-    isLoading: normalCacheLoading,
-    isStale: normalCacheStale,
-    refetch: normalCacheRefetch,
-    setData: setNormalCacheData
-  } = useCache('test-cache-key', fetchData, 10000);
-  
-  // Utiliser notre hook useStaleWhileRevalidate
-  const { 
-    data: staleData, 
-    isLoading: staleLoading,
-    isStale: isStaleData,
-    refetch: staleRefetch,
-    setData: setStaleData
-  } = useStaleWhileRevalidate('test-stale-key', fetchData, 5000);
-  
-  // Incrémenter le compteur et invalider le cache
-  const handleIncrement = () => {
+  };
+
+  // Utiliser le hook staleWhileRevalidate
+  const {
+    data,
+    isLoading,
+    isStale,
+    error,
+    refetch
+  } = useStaleWhileRevalidate('cache-diagnostics', fetchTestData, { 
+    ttl: 5000,
+    staleTime: 3000
+  });
+
+  const incrementCounter = () => {
     setCounter(prev => prev + 1);
-    cacheManager.invalidate('test-cache-key');
-    cacheManager.invalidate('test-stale-key');
-    toast.info('Cache invalidé');
   };
-  
-  // Mettre à jour directement le cache
-  const handleDirectUpdate = () => {
-    const newData = {
-      timestamp: new Date().toISOString(),
-      random: Math.random(),
-      counter: counter,
-      directUpdate: true
-    };
-    
-    setNormalCacheData(newData);
-    toast.success('Données mises à jour directement');
-  };
-  
+
   return (
-    <div className="container py-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Diagnostics du cache</h1>
-        <p className="text-muted-foreground">
-          Testez les différentes fonctionnalités du système de cache
-        </p>
-      </div>
-      
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cache standard</CardTitle>
-            <CardDescription>
-              Mise en cache simple avec durée de vie
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-1">État:</h3>
-                <div className="flex gap-2">
-                  <Badge variant={normalCacheLoading ? "secondary" : "outline"}>
-                    {normalCacheLoading ? "Chargement..." : "Prêt"}
-                  </Badge>
-                  
-                  {normalCacheStale && (
-                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
-                      Périmé
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              
-              {normalCacheData && (
-                <div className="bg-muted p-4 rounded-md">
-                  <pre className="text-xs overflow-auto">
-                    {JSON.stringify(normalCacheData, null, 2)}
-                  </pre>
-                </div>
-              )}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagnostics du Cache</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Button onClick={refetch} disabled={isLoading}>
+                {isLoading ? 'Chargement...' : 'Recharger les données'}
+              </Button>
+              <Button onClick={incrementCounter} variant="outline">
+                Incrémenter ({counter})
+              </Button>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => normalCacheRefetch()}
-              disabled={normalCacheLoading}
-              className="mr-2"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Rafraîchir
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => cacheManager.invalidate('test-cache-key')}
-              className="mr-2"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Invalider
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleDirectUpdate}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Mise à jour directe
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Cache avec stratégie stale-while-revalidate</CardTitle>
-            <CardDescription>
-              Retourne les données périmées pendant le rafraîchissement
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-1">État:</h3>
-                <div className="flex gap-2">
-                  <Badge variant={staleLoading ? "secondary" : "outline"}>
-                    {staleLoading ? "Chargement..." : "Prêt"}
-                  </Badge>
-                  
-                  {isStaleData && (
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-                      Revalidation en cours
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              
-              {staleData && (
-                <div className="bg-muted p-4 rounded-md">
-                  <pre className="text-xs overflow-auto">
-                    {JSON.stringify(staleData, null, 2)}
-                  </pre>
-                </div>
-              )}
+
+            <div className="p-4 bg-slate-50 rounded-md">
+              <h3 className="font-semibold mb-2">État du cache</h3>
+              <p><span className="font-medium">Chargement:</span> {isLoading ? 'Oui' : 'Non'}</p>
+              <p><span className="font-medium">Données périmées:</span> {isStale ? 'Oui' : 'Non'}</p>
+              <p><span className="font-medium">Erreur:</span> {error ? error.message : 'Aucune'}</p>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => staleRefetch()}
-              disabled={staleLoading}
-              className="mr-2"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Rafraîchir
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => cacheManager.invalidate('test-stale-key')}
-              className="mr-2"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Invalider
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-      
-      <div className="flex justify-center my-8">
-        <Button onClick={handleIncrement}>
-          Incrémenter compteur et invalider le cache: {counter}
-        </Button>
-      </div>
-      
-      <Separator className="my-8" />
-      
-      <CacheManagerComponent />
+
+            {data && (
+              <div className="p-4 bg-blue-50 rounded-md">
+                <h3 className="font-semibold mb-2">Données</h3>
+                <p><span className="font-medium">Timestamp:</span> {data.timestamp}</p>
+                <p><span className="font-medium">Nombre aléatoire:</span> {data.random}</p>
+                <p><span className="font-medium">Compteur:</span> {data.counter}</p>
+              </div>
+            )}
+
+            <div className="p-4 bg-amber-50 rounded-md">
+              <h3 className="font-semibold mb-2">Info</h3>
+              <p className="text-sm">
+                Ce composant utilise le hook <code>useStaleWhileRevalidate</code> qui affiche les données du cache
+                même si elles sont périmées pendant qu'il recharge les données fraîches en arrière-plan.
+              </p>
+              <p className="text-sm mt-2">
+                Les données sont considérées "périmées" après 3 secondes et expirées après 5 secondes.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

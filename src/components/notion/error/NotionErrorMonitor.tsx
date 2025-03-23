@@ -1,138 +1,133 @@
 
-import React, { useState } from 'react';
-import { useNotionErrorService } from '@/hooks/notion/useNotionErrorService';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, XCircle, Clock, Trash2 } from 'lucide-react';
-import { NotionError, NotionErrorSeverity, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { AlertTriangle, RefreshCw, XCircle } from 'lucide-react';
+import { useNotionErrorService } from '@/hooks/notion/useNotionErrorService';
+import { NotionError } from '@/services/notion/errorHandling/types';
+import NotionErrorDetails from './NotionErrorDetails';
 
 const NotionErrorMonitor: React.FC = () => {
   const { errors, clearErrors } = useNotionErrorService();
-  const [expanded, setExpanded] = useState(false);
-  
-  if (errors.length === 0) {
-    return null;
-  }
-  
-  const getSeverityIcon = (severity: NotionErrorSeverity) => {
+  const [selectedError, setSelectedError] = useState<NotionError | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Rafraîchir la liste des erreurs
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  useEffect(() => {
+    // Configurer un intervalle de rafraîchissement
+    const interval = setInterval(handleRefresh, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Afficher les détails d'une erreur
+  const handleViewDetails = (error: NotionError) => {
+    setSelectedError(error);
+  };
+
+  // Fermer les détails
+  const handleCloseDetails = () => {
+    setSelectedError(null);
+  };
+
+  // Effacer toutes les erreurs
+  const handleClearErrors = () => {
+    clearErrors();
+    setSelectedError(null);
+  };
+
+  // Adapter la couleur en fonction de la gravité
+  const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case NotionErrorSeverity.CRITICAL:
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case NotionErrorSeverity.ERROR:
-        return <AlertCircle className="h-4 w-4 text-amber-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'critical': return 'text-red-600 bg-red-50';
+      case 'error': return 'text-red-500 bg-red-50';
+      case 'warning': return 'text-amber-600 bg-amber-50';
+      default: return 'text-blue-600 bg-blue-50';
     }
   };
-  
-  const getSeverityColor = (severity: NotionErrorSeverity) => {
-    switch (severity) {
-      case NotionErrorSeverity.CRITICAL:
-        return "bg-red-100 text-red-800";
-      case NotionErrorSeverity.ERROR:
-        return "bg-amber-100 text-amber-800";
-      case NotionErrorSeverity.WARNING:
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-blue-100 text-blue-800";
-    }
-  };
-  
-  const getErrorTypeName = (type: NotionErrorType) => {
-    switch (type) {
-      case NotionErrorType.NETWORK:
-        return "Réseau";
-      case NotionErrorType.AUTH:
-        return "Authentification";
-      case NotionErrorType.PERMISSION:
-        return "Permission";
-      case NotionErrorType.RATE_LIMIT:
-        return "Limite d'API";
-      case NotionErrorType.VALIDATION:
-        return "Validation";
-      case NotionErrorType.DATABASE:
-        return "Base de données";
-      default:
-        return "Inconnue";
-    }
-  };
-  
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-500" />
-          Erreurs Notion
-          <Badge variant="destructive" className="ml-2">
-            {errors.length}
-          </Badge>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="ml-auto h-8 px-2"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? "Réduire" : "Voir tout"}
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent>
-        <ScrollArea className="h-full max-h-[300px]">
-          <div className="space-y-2">
-            {(expanded ? errors : errors.slice(0, 3)).map((error, index) => (
-              <div key={index} className="p-2 bg-gray-50 rounded-md">
-                <div className="flex items-start gap-2">
-                  {getSeverityIcon(error.severity)}
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AlertTriangle size={18} className="text-amber-500" />
+                Erreurs Notion
+              </CardTitle>
+              <CardDescription>
+                {errors.length === 0
+                  ? "Aucune erreur récente avec l'API Notion"
+                  : `${errors.length} erreur(s) récente(s) avec l'API Notion`}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                className="h-8 px-2"
+              >
+                <RefreshCw size={16} />
+              </Button>
+              {errors.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearErrors}
+                  className="h-8 px-2"
+                >
+                  Effacer
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {errors.length === 0 ? (
+            <div className="py-6 text-center text-muted-foreground">
+              <XCircle className="mx-auto h-12 w-12 text-muted-foreground/30" />
+              <p className="mt-2">Aucune erreur à afficher</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {errors.map((error, index) => (
+                <div
+                  key={index}
+                  className="flex items-start justify-between p-3 rounded-md border cursor-pointer hover:border-muted-foreground/40"
+                  onClick={() => handleViewDetails(error)}
+                >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <Badge className={`${getSeverityColor(error.severity)}`}>
-                        {getErrorTypeName(error.type)}
-                      </Badge>
-                      <span className="text-xs text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getSeverityColor(error.severity)}`}>
+                        {error.type}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
                         {error.timestamp.toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-sm font-medium mt-1">{error.message}</p>
-                    {error.context && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Contexte: {JSON.stringify(error.context)}
-                      </p>
-                    )}
+                    <p className="mt-1 text-sm truncate">{error.message}</p>
                   </div>
                 </div>
-              </div>
-            ))}
-            
-            {!expanded && errors.length > 3 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-xs"
-                onClick={() => setExpanded(true)}
-              >
-                Voir {errors.length - 3} erreurs supplémentaires
-              </Button>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-      
-      <CardFooter className="pt-0">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={clearErrors}
-          className="w-full gap-1"
-        >
-          <Trash2 className="h-4 w-4" />
-          Effacer toutes les erreurs
-        </Button>
-      </CardFooter>
-    </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedError && (
+        <NotionErrorDetails
+          isOpen={!!selectedError}
+          onClose={handleCloseDetails}
+          error={selectedError.message}
+          context={selectedError.context ? JSON.stringify(selectedError.context) : undefined}
+        />
+      )}
+    </>
   );
 };
 

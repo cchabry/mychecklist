@@ -1,281 +1,360 @@
 
-import { operationMode } from '@/services/operationMode';
-import { NotionErrorType } from './types';
+import { v4 as uuidv4 } from 'uuid';
 import { notionErrorService } from './notionErrorService';
 
-// Type pour une opération en attente
-interface PendingOperation<T = any> {
+// Types pour les opérations dans la file d'attente
+interface QueuedOperation {
   id: string;
-  operation: () => Promise<T>;
+  operation: () => Promise<any>;
   context: string;
+  timestamp: number;
   attempts: number;
   maxAttempts: number;
-  lastAttempt: Date;
   backoffFactor: number;
   initialDelay: number;
-  onSuccess?: (result: T) => void;
+  nextRetry: number | null;
+  status: 'pending' | 'processing' | 'success' | 'failed';
+  error: Error | null;
+  onSuccess?: (result: any) => void;
+  onFailure?: (error: Error) => void;
+}
+
+// Type pour les statistiques de la file d'attente
+interface QueueStats {
+  total: number;
+  pending: number;
+  processing: number;
+  successful: number;
+  failed: number;
+  successRate: number;
+}
+
+// Options pour l'enqueue d'opérations
+interface EnqueueOptions {
+  maxAttempts?: number;
+  backoffFactor?: number;
+  initialDelay?: number;
+  onSuccess?: (result: any) => void;
   onFailure?: (error: Error) => void;
 }
 
 /**
- * Service de file d'attente pour les opérations Notion avec nouvelles tentatives automatiques
+ * Service gérant une file d'attente d'opérations à réessayer
  */
-export class RetryQueueService {
-  private static instance: RetryQueueService;
-  private queue: PendingOperation[] = [];
-  private isProcessing: boolean = false;
-  private processingInterval: number | null = null;
-  private maxQueueSize: number = 100;
-  private defaultMaxAttempts: number = 3;
-
-  private constructor() {}
-
+class RetryQueueService {
+  private queue: QueuedOperation[] = [];
+  private processingTimer: number | null = null;
+  private stats: QueueStats = {
+    total: 0,
+    pending: 0,
+    processing: 0,
+    successful: 0,
+    failed: 0,
+    successRate: 100
+  };
+  private subscribers: Array<() => void> = [];
+  
   /**
-   * Obtenir l'instance unique du service
-   */
-  public static getInstance(): RetryQueueService {
-    if (!RetryQueueService.instance) {
-      RetryQueueService.instance = new RetryQueueService();
-    }
-    return RetryQueueService.instance;
-  }
-
-  /**
-   * Démarrer le traitement automatique de la file d'attente
-   */
-  public startProcessing(intervalMs: number = 10000): void {
-    if (this.processingInterval !== null) {
-      this.stopProcessing();
-    }
-    
-    console.info('[RetryQueue] Traitement automatique démarré');
-    
-    this.processingInterval = window.setInterval(() => {
-      this.processQueue();
-    }, intervalMs);
-  }
-
-  /**
-   * Arrêter le traitement automatique
-   */
-  public stopProcessing(): void {
-    if (this.processingInterval !== null) {
-      clearInterval(this.processingInterval);
-      this.processingInterval = null;
-      
-      console.info('[RetryQueue] Traitement automatique arrêté');
-    }
-  }
-
-  /**
-   * Ajouter une opération à la file d'attente
+   * Ajoute une opération à la file d'attente
    */
   public enqueue<T>(
     operation: () => Promise<T>,
     context: string,
-    options: {
-      maxAttempts?: number;
-      backoffFactor?: number;
-      initialDelay?: number;
-      onSuccess?: (result: T) => void;
-      onFailure?: (error: Error) => void;
-    } = {}
+    options: EnqueueOptions = {}
   ): string {
-    // Vérifier si la file d'attente est pleine
-    if (this.queue.length >= this.maxQueueSize) {
-      console.warn('[RetryQueue] File d\'attente pleine, suppression de l\'opération la plus ancienne');
-      this.queue.shift();
-    }
-    
     const {
-      maxAttempts = this.defaultMaxAttempts,
+      maxAttempts = 3,
       backoffFactor = 2,
-      initialDelay = 5000,
+      initialDelay = 1000,
       onSuccess,
       onFailure
     } = options;
     
-    const id = `op-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const operationId = uuidv4();
     
     this.queue.push({
-      id,
+      id: operationId,
       operation,
       context,
+      timestamp: Date.now(),
       attempts: 0,
       maxAttempts,
-      lastAttempt: new Date(0), // Date initiale dans le passé
       backoffFactor,
       initialDelay,
+      nextRetry: Date.now() + initialDelay,
+      status: 'pending',
+      error: null,
       onSuccess,
       onFailure
     });
     
-    console.info(`[RetryQueue] Opération ajoutée: ${id}, contexte: ${context}`);
+    this.updateStats();
+    this.notifySubscribers();
     
-    // Déclencher un traitement si aucun n'est en cours
-    if (!this.isProcessing) {
-      setTimeout(() => this.processQueue(), 0);
+    // Si aucun timer n'est en cours, démarrer le traitement
+    if (this.processingTimer === null) {
+      this.startProcessingTimer();
     }
     
-    return id;
+    return operationId;
   }
-
+  
   /**
-   * Traiter la file d'attente
-   */
-  public async processQueue(): Promise<void> {
-    // Si déjà en cours de traitement ou file vide, ne rien faire
-    if (this.isProcessing || this.queue.length === 0) {
-      return;
-    }
-    
-    this.isProcessing = true;
-    
-    try {
-      // Traiter chaque opération
-      const now = new Date();
-      const operationsToProcess = this.queue.filter(op => {
-        const timeToWait = op.initialDelay * Math.pow(op.backoffFactor, op.attempts);
-        const nextAttemptTime = new Date(op.lastAttempt.getTime() + timeToWait);
-        return nextAttemptTime <= now;
-      });
-      
-      if (operationsToProcess.length === 0) {
-        return;
-      }
-      
-      console.info(`[RetryQueue] Traitement de ${operationsToProcess.length} opérations`);
-      
-      // Traiter toutes les opérations éligibles
-      for (const op of operationsToProcess) {
-        // Si en mode démo, ne pas réessayer les opérations
-        if (operationMode.isDemoMode) {
-          console.info(`[RetryQueue] Mode démo actif, suppression de l'opération ${op.id}`);
-          this.queue = this.queue.filter(o => o.id !== op.id);
-          continue;
-        }
-        
-        // Incrémenter le compteur de tentatives
-        op.attempts++;
-        op.lastAttempt = new Date();
-        
-        try {
-          console.info(`[RetryQueue] Tentative ${op.attempts}/${op.maxAttempts} pour l'opération ${op.id}`);
-          
-          // Exécuter l'opération
-          const result = await op.operation();
-          
-          // Succès, retirer de la file d'attente
-          this.queue = this.queue.filter(o => o.id !== op.id);
-          
-          console.info(`[RetryQueue] Opération ${op.id} réussie`);
-          
-          // Appeler le callback de succès
-          if (op.onSuccess) {
-            op.onSuccess(result);
-          }
-          
-          // Notifier le système operationMode d'une opération réussie
-          operationMode.handleSuccessfulOperation();
-        } catch (error) {
-          console.error(`[RetryQueue] Échec de l'opération ${op.id}:`, error);
-          
-          // Convertir en erreur Notion enrichie
-          const notionError = notionErrorService.reportError(
-            error instanceof Error ? error : new Error(String(error)),
-            op.context
-          );
-          
-          // Si nombre max de tentatives atteint ou erreur non récupérable, retirer de la file
-          if (op.attempts >= op.maxAttempts || 
-              notionError.type === NotionErrorType.AUTH || 
-              notionError.type === NotionErrorType.PERMISSION) {
-            
-            console.warn(`[RetryQueue] Abandon de l'opération ${op.id} après ${op.attempts} tentatives`);
-            
-            this.queue = this.queue.filter(o => o.id !== op.id);
-            
-            // Appeler le callback d'échec
-            if (op.onFailure) {
-              op.onFailure(error instanceof Error ? error : new Error(String(error)));
-            }
-            
-            // Notifier le système operationMode d'une erreur de connexion
-            operationMode.handleConnectionError(
-              error instanceof Error ? error : new Error(String(error)),
-              op.context
-            );
-          }
-        }
-      }
-    } finally {
-      this.isProcessing = false;
-      
-      // Si d'autres opérations sont en attente, programmer un nouveau traitement
-      if (this.queue.length > 0) {
-        setTimeout(() => this.processQueue(), 1000);
-      }
-    }
-  }
-
-  /**
-   * Supprimer une opération de la file d'attente
+   * Annule une opération en attente
    */
   public cancel(operationId: string): boolean {
     const initialLength = this.queue.length;
     this.queue = this.queue.filter(op => op.id !== operationId);
-    return this.queue.length < initialLength;
+    
+    const removed = initialLength > this.queue.length;
+    
+    if (removed) {
+      this.updateStats();
+      this.notifySubscribers();
+    }
+    
+    return removed;
   }
-
+  
   /**
-   * Vider la file d'attente
+   * Traite immédiatement la file d'attente
+   */
+  public processQueue(): void {
+    // Arrêter le timer actuel
+    if (this.processingTimer !== null) {
+      window.clearTimeout(this.processingTimer);
+      this.processingTimer = null;
+    }
+    
+    this.processNextOperation();
+  }
+  
+  /**
+   * Vide la file d'attente
    */
   public clearQueue(): number {
     const count = this.queue.length;
     this.queue = [];
+    
+    // Arrêter le timer
+    if (this.processingTimer !== null) {
+      window.clearTimeout(this.processingTimer);
+      this.processingTimer = null;
+    }
+    
+    this.updateStats();
+    this.notifySubscribers();
+    
     return count;
   }
-
+  
   /**
-   * Obtenir toutes les opérations en attente
+   * Récupère les opérations en file d'attente
    */
-  public getQueuedOperations(): Array<{
-    id: string;
-    context: string;
-    attempts: number;
-    maxAttempts: number;
-    lastAttempt: Date;
-  }> {
-    return this.queue.map(op => ({
-      id: op.id,
-      context: op.context,
-      attempts: op.attempts,
-      maxAttempts: op.maxAttempts,
-      lastAttempt: op.lastAttempt
-    }));
+  public getQueuedOperations(): QueuedOperation[] {
+    return [...this.queue];
   }
-
+  
   /**
-   * Obtenir les statistiques de la file d'attente
+   * Récupère les statistiques de la file d'attente
    */
-  public getStats(): {
-    queueSize: number;
-    maxQueueSize: number;
-    pendingOperations: number;
-    isProcessing: boolean;
-  } {
-    return {
-      queueSize: this.queue.length,
-      maxQueueSize: this.maxQueueSize,
-      pendingOperations: this.queue.length,
-      isProcessing: this.isProcessing
+  public getStats(): QueueStats {
+    return { ...this.stats };
+  }
+  
+  /**
+   * S'abonne aux changements de la file d'attente
+   */
+  public subscribe(callback: () => void): () => void {
+    this.subscribers.push(callback);
+    
+    // Appeler immédiatement avec l'état actuel
+    callback();
+    
+    // Retourner la fonction de désabonnement
+    return () => {
+      const index = this.subscribers.indexOf(callback);
+      if (index !== -1) {
+        this.subscribers.splice(index, 1);
+      }
     };
+  }
+  
+  /**
+   * Démarre le timer de traitement
+   */
+  private startProcessingTimer(): void {
+    // Vérifier s'il y a des opérations en attente
+    if (this.queue.length === 0) {
+      this.processingTimer = null;
+      return;
+    }
+    
+    // Trouver la prochaine opération à traiter
+    const now = Date.now();
+    const nextOp = this.queue
+      .filter(op => op.status === 'pending' && op.nextRetry !== null && op.nextRetry <= now)
+      .sort((a, b) => (a.nextRetry || 0) - (b.nextRetry || 0))[0];
+    
+    if (nextOp) {
+      // Si une opération est prête à être traitée, la traiter immédiatement
+      this.processNextOperation();
+    } else {
+      // Sinon, programmer le prochain traitement
+      const nextRetryTime = Math.min(
+        ...this.queue
+          .filter(op => op.status === 'pending' && op.nextRetry !== null)
+          .map(op => op.nextRetry || Infinity)
+      );
+      
+      const delay = nextRetryTime - now;
+      
+      if (delay < Infinity) {
+        this.processingTimer = window.setTimeout(() => {
+          this.processingTimer = null;
+          this.processNextOperation();
+        }, Math.max(100, delay)); // Au moins 100ms pour éviter les boucles trop rapides
+      } else {
+        this.processingTimer = null;
+      }
+    }
+  }
+  
+  /**
+   * Traite la prochaine opération en attente
+   */
+  private async processNextOperation(): Promise<void> {
+    // Trouver la prochaine opération à traiter
+    const now = Date.now();
+    const nextOpIndex = this.queue.findIndex(
+      op => op.status === 'pending' && op.nextRetry !== null && op.nextRetry <= now
+    );
+    
+    if (nextOpIndex === -1) {
+      // Aucune opération prête, programmer le prochain traitement
+      this.startProcessingTimer();
+      return;
+    }
+    
+    // Mettre à jour le statut de l'opération
+    this.queue[nextOpIndex].status = 'processing';
+    this.queue[nextOpIndex].attempts++;
+    this.updateStats();
+    this.notifySubscribers();
+    
+    try {
+      // Exécuter l'opération
+      const result = await this.queue[nextOpIndex].operation();
+      
+      // Succès
+      this.queue[nextOpIndex].status = 'success';
+      
+      // Appeler le callback de succès
+      if (this.queue[nextOpIndex].onSuccess) {
+        try {
+          this.queue[nextOpIndex].onSuccess(result);
+        } catch (callbackError) {
+          console.error('Erreur dans le callback de succès:', callbackError);
+        }
+      }
+      
+      // Supprimer l'opération de la file d'attente après un certain délai
+      // pour permettre à l'interface de montrer le succès
+      setTimeout(() => {
+        this.queue = this.queue.filter(op => op.id !== this.queue[nextOpIndex].id);
+        this.updateStats();
+        this.notifySubscribers();
+        
+        // Continuer avec la prochaine opération
+        this.startProcessingTimer();
+      }, 5000);
+    } catch (error) {
+      // Échec
+      this.queue[nextOpIndex].error = error instanceof Error ? error : new Error(String(error));
+      
+      // Enrichir l'erreur avec le service d'erreur
+      notionErrorService.handleError(this.queue[nextOpIndex].error, {
+        context: this.queue[nextOpIndex].context,
+        attempt: this.queue[nextOpIndex].attempts,
+        maxAttempts: this.queue[nextOpIndex].maxAttempts
+      });
+      
+      // Vérifier si l'opération a atteint le nombre maximum de tentatives
+      if (this.queue[nextOpIndex].attempts >= this.queue[nextOpIndex].maxAttempts) {
+        this.queue[nextOpIndex].status = 'failed';
+        
+        // Appeler le callback d'échec
+        if (this.queue[nextOpIndex].onFailure) {
+          try {
+            this.queue[nextOpIndex].onFailure(this.queue[nextOpIndex].error!);
+          } catch (callbackError) {
+            console.error('Erreur dans le callback d\'échec:', callbackError);
+          }
+        }
+        
+        // Garder l'opération échouée dans la file d'attente pour affichage
+        // mais la supprimer après un certain délai
+        setTimeout(() => {
+          this.queue = this.queue.filter(op => op.id !== this.queue[nextOpIndex].id);
+          this.updateStats();
+          this.notifySubscribers();
+        }, 30000);
+      } else {
+        // Programmer une nouvelle tentative avec backoff exponentiel
+        const delay = this.queue[nextOpIndex].initialDelay * 
+          Math.pow(this.queue[nextOpIndex].backoffFactor, this.queue[nextOpIndex].attempts - 1);
+        
+        this.queue[nextOpIndex].status = 'pending';
+        this.queue[nextOpIndex].nextRetry = Date.now() + delay;
+      }
+      
+      this.updateStats();
+      this.notifySubscribers();
+    }
+    
+    // Passer à la prochaine opération
+    setTimeout(() => {
+      this.startProcessingTimer();
+    }, 500);
+  }
+  
+  /**
+   * Met à jour les statistiques de la file d'attente
+   */
+  private updateStats(): void {
+    const total = this.queue.length;
+    const pending = this.queue.filter(op => op.status === 'pending').length;
+    const processing = this.queue.filter(op => op.status === 'processing').length;
+    const successful = this.queue.filter(op => op.status === 'success').length;
+    const failed = this.queue.filter(op => op.status === 'failed').length;
+    
+    // Calculer le taux de réussite (éviter la division par zéro)
+    const attempted = successful + failed;
+    const successRate = attempted > 0 ? (successful / attempted) * 100 : 100;
+    
+    this.stats = {
+      total,
+      pending,
+      processing,
+      successful,
+      failed,
+      successRate
+    };
+  }
+  
+  /**
+   * Notifie tous les abonnés des changements
+   */
+  private notifySubscribers(): void {
+    this.subscribers.forEach(subscriber => {
+      try {
+        subscriber();
+      } catch (e) {
+        console.error('Erreur lors de la notification d\'un abonné de la file d\'attente:', e);
+      }
+    });
   }
 }
 
-// Exporter une instance singleton
-export const retryQueueService = RetryQueueService.getInstance();
-
-// Démarrer le traitement automatique
-console.info('[RetryQueue] Traitement automatique démarré');
-retryQueueService.startProcessing();
+// Créer et exporter l'instance du service
+export const retryQueueService = new RetryQueueService();

@@ -16,7 +16,9 @@ export * from './useNotionIntegrationUpdated';
 export * from './useNotionRequest';
 export * from './useNotionStorage';
 export * from './useMockMode';
-export { useNotionApi } from './useNotionApi';
+export * from './useNotionErrorService';
+export * from './useRetryQueue';
+export { useNotionAPI } from './useNotionAPI';
 
 // Avertissement de dépréciation
 console.warn('Les hooks Notion sont en cours de migration vers le nouveau système operationMode.');
