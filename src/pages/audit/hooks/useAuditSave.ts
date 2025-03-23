@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Audit } from '@/lib/types';
 import { saveAuditToNotion } from '@/lib/notion';
-import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Hook pour gérer la sauvegarde des audits
@@ -21,7 +21,7 @@ export const useAuditSave = (usingNotion: boolean) => {
     try {
       let success = false;
       
-      if (usingNotion && !notionApi.mockMode.isActive()) {
+      if (usingNotion && !operationMode.isDemoMode) {
         // Vérifier si la base de données des checklists est configurée
         const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
         
@@ -42,8 +42,8 @@ export const useAuditSave = (usingNotion: boolean) => {
             
             // Gérer l'erreur CORS "Failed to fetch"
             if (error.message?.includes('Failed to fetch')) {
-              // Activer le mode mock
-              notionApi.mockMode.activate();
+              // Activer le mode démonstration
+              operationMode.enableDemoMode('Sauvegarde impossible - problème de connexion à l\'API');
               
               toast.warning('Mode démonstration activé', {
                 description: 'Sauvegarde en mode local uniquement car l\'API Notion n\'est pas accessible directement',

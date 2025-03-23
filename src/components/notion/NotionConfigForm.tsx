@@ -1,130 +1,181 @@
 
 import React, { useState, useEffect } from 'react';
-import { notionApi } from '@/lib/notionProxy';
-import { getNotionConfig } from '@/lib/notion';
-import {
-  NotionApiKeyField,
-  NotionDatabaseField,
-  NotionIntegrationGuide,
-  NotionFormActions,
-  NotionConnectionTests,
-  NotionLastSavedInfo
-} from './form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import { NotionApiKeyField } from '@/components/notion/form/NotionApiKeyField';
+import { NotionDatabaseField } from '@/components/notion/form/NotionDatabaseField';
+import { NotionConnectionTests } from '@/components/notion/form/NotionConnectionTests';
+import { NotionFormActions } from '@/components/notion/form/NotionFormActions';
+import { useNotion } from '@/contexts/NotionContext';
+import { useNotionStorage } from '@/hooks/notion/useNotionStorage';
+import { operationMode } from '@/services/operationMode';
+import OperationModeStatus from '@/components/OperationModeStatus';
+import { useOperationMode } from '@/services/operationMode';
 
 interface NotionConfigFormProps {
-  onSubmit: (apiKey: string, projectsDbId: string, checklistsDbId: string) => void;
-  onCancel: () => void;
-  initialApiKey?: string;
-  initialProjectsDbId?: string;
-  initialChecklistsDbId?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-const NotionConfigForm: React.FC<NotionConfigFormProps> = ({ 
-  onSubmit, 
-  onCancel, 
-  initialApiKey = '', 
-  initialProjectsDbId = '',
-  initialChecklistsDbId = ''
+export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
+  onSuccess,
+  onCancel
 }) => {
-  const [apiKey, setApiKey] = useState(initialApiKey);
-  const [projectsDbId, setProjectsDbId] = useState(initialProjectsDbId);
-  const [checklistsDbId, setChecklistsDbId] = useState(initialChecklistsDbId);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  // Hooks pour accéder aux données et fonctions
+  const { status, testConnection } = useNotion();
+  const { loadKeys, saveKeys, clearKeys } = useNotionStorage();
+  const { enableRealMode } = useOperationMode();
   
-  // Charger la date de dernière sauvegarde et s'assurer que les champs sont bien remplis
+  // État local pour les champs du formulaire
+  const [apiKey, setApiKey] = useState('');
+  const [databaseId, setDatabaseId] = useState('');
+  const [additionalDatabases, setAdditionalDatabases] = useState({
+    checklists: '',
+    projects: '',
+    audits: '',
+    exigences: '',
+    samplePages: '',
+    evaluations: '',
+    actions: ''
+  });
+  
+  // Charger les valeurs sauvegardées au démarrage
   useEffect(() => {
-    const { lastConfigDate, apiKey: savedApiKey, databaseId: savedProjectsDbId, checklistsDbId: savedChecklistsDbId } = getNotionConfig();
+    const keys = loadKeys();
+    if (keys.apiKey) setApiKey(keys.apiKey);
+    if (keys.databaseId) setDatabaseId(keys.databaseId);
     
-    // S'assurer que les champs sont remplis avec les valeurs du localStorage si disponibles
-    if (savedApiKey && (!apiKey || apiKey !== savedApiKey)) {
-      setApiKey(savedApiKey);
-    }
-    
-    if (savedProjectsDbId && (!projectsDbId || projectsDbId !== savedProjectsDbId)) {
-      setProjectsDbId(savedProjectsDbId);
-    }
-    
-    if (savedChecklistsDbId && (!checklistsDbId || checklistsDbId !== savedChecklistsDbId)) {
-      setChecklistsDbId(savedChecklistsDbId);
-    }
-    
-    if (lastConfigDate) {
-      try {
-        const date = new Date(lastConfigDate);
-        setLastSaved(date.toLocaleString());
-      } catch (e) {
-        console.error('Erreur de format de date:', e);
-      }
-    }
-  }, [apiKey, projectsDbId, checklistsDbId]);
+    // Charger les bases de données additionnelles
+    if (keys.checklistsDbId) setAdditionalDatabases(prev => ({ ...prev, checklists: keys.checklistsDbId }));
+    if (keys.projectsDbId) setAdditionalDatabases(prev => ({ ...prev, projects: keys.projectsDbId }));
+    if (keys.auditsDbId) setAdditionalDatabases(prev => ({ ...prev, audits: keys.auditsDbId }));
+    if (keys.exigencesDbId) setAdditionalDatabases(prev => ({ ...prev, exigences: keys.exigencesDbId }));
+    if (keys.samplePagesDbId) setAdditionalDatabases(prev => ({ ...prev, samplePages: keys.samplePagesDbId }));
+    if (keys.evaluationsDbId) setAdditionalDatabases(prev => ({ ...prev, evaluations: keys.evaluationsDbId }));
+    if (keys.actionsDbId) setAdditionalDatabases(prev => ({ ...prev, actions: keys.actionsDbId }));
+  }, [loadKeys]);
   
-  // Déterminer si les tests de connexion peuvent être affichés
-  const storedApiKey = localStorage.getItem('notion_api_key');
-  const storedDbId = localStorage.getItem('notion_database_id');
-  
-  const canShowTests = (apiKey && projectsDbId) || (storedApiKey && storedDbId);
-  
+  // Gérer la soumission du formulaire
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    // Soumettre après un court délai pour montrer l'état de loading
-    setTimeout(() => {
-      onSubmit(apiKey.trim(), projectsDbId.trim(), checklistsDbId.trim());
-      setIsSubmitting(false);
-    }, 500);
+    // Enregistrer les clés
+    saveKeys({
+      apiKey,
+      databaseId,
+      checklistsDbId: additionalDatabases.checklists,
+      projectsDbId: additionalDatabases.projects,
+      auditsDbId: additionalDatabases.audits,
+      exigencesDbId: additionalDatabases.exigences,
+      samplePagesDbId: additionalDatabases.samplePages,
+      evaluationsDbId: additionalDatabases.evaluations,
+      actionsDbId: additionalDatabases.actions
+    });
+    
+    // Réinitialiser le mode et tester la connexion
+    enableRealMode();
+    
+    // Tester la connexion
+    testConnection();
+    
+    // Appeler le callback de succès si fourni
+    if (onSuccess) onSuccess();
   };
   
-  const resetMockMode = () => {
-    // Utiliser forceReset au lieu de reset
-    notionApi.mockMode.forceReset();
-    // Réinitialiser les champs du formulaire après la réinitialisation du mode mock
+  // Gérer le reset complet
+  const handleReset = () => {
+    clearKeys();
     setApiKey('');
-    setProjectsDbId('');
-    setChecklistsDbId('');
+    setDatabaseId('');
+    setAdditionalDatabases({
+      checklists: '',
+      projects: '',
+      audits: '',
+      exigences: '',
+      samplePages: '',
+      evaluations: '',
+      actions: ''
+    });
+  };
+  
+  // Mise à jour des champs additionnels
+  const handleDatabaseChange = (name: string, value: string) => {
+    setAdditionalDatabases(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-      <NotionLastSavedInfo lastSaved={lastSaved} />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Configuration de Notion</h2>
+        <OperationModeStatus showToggle={true} />
+      </div>
       
-      <NotionApiKeyField 
-        apiKey={apiKey} 
-        onChange={setApiKey} 
+      <Separator className="my-4" />
+      
+      <NotionApiKeyField
+        value={apiKey}
+        onChange={setApiKey}
+        className="mb-6"
       />
       
-      <NotionDatabaseField 
-        id="projectsDbId"
-        label="ID de la base de données Projets"
-        value={projectsDbId}
-        onChange={setProjectsDbId}
-        description="URL ou ID de votre base de données Notion contenant les projets"
+      <NotionDatabaseField
+        label="Base de données principale"
+        value={databaseId}
+        onChange={setDatabaseId}
+        id="main-database"
+        required
       />
       
-      <NotionDatabaseField 
-        id="checklistsDbId"
-        label="ID de la base de données Checklists"
-        value={checklistsDbId}
-        onChange={setChecklistsDbId}
-        description="URL ou ID de votre base de données Notion contenant les checklists d'audit"
+      <Separator className="my-6" />
+      
+      <div>
+        <h3 className="text-lg font-medium mb-4">Bases de données spécifiques (optionnel)</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Vous pouvez spécifier des bases de données dédiées pour chaque type de contenu.
+          Si non spécifiées, la base de données principale sera utilisée.
+        </p>
+        
+        <Card>
+          <CardContent className="pt-6 grid gap-4 sm:grid-cols-2">
+            {Object.entries({
+              checklists: 'Checklist',
+              projects: 'Projets',
+              audits: 'Audits',
+              exigences: 'Exigences',
+              samplePages: 'Pages échantillon',
+              evaluations: 'Évaluations',
+              actions: 'Actions correctives'
+            }).map(([key, label]) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={`db-${key}`}>{label}</Label>
+                <Input
+                  id={`db-${key}`}
+                  value={additionalDatabases[key as keyof typeof additionalDatabases]}
+                  onChange={(e) => handleDatabaseChange(key, e.target.value)}
+                  placeholder="ID de base de données"
+                />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+      
+      <NotionConnectionTests
+        className="my-6"
+        apiKey={apiKey}
+        databaseId={databaseId}
       />
       
-      <NotionIntegrationGuide />
-      
-      {canShowTests && (
-        <NotionConnectionTests 
-          onSuccess={() => {
-            // Rafraîchir la page après un test réussi
-            setTimeout(() => window.location.reload(), 1000);
-          }} 
-        />
-      )}
-      
-      <NotionFormActions 
+      <NotionFormActions
+        onSubmit={handleSubmit}
+        onReset={handleReset}
         onCancel={onCancel}
-        onReset={resetMockMode}
-        isSubmitting={isSubmitting}
       />
     </form>
   );
