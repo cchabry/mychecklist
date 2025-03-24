@@ -1,12 +1,12 @@
 
-import { OperationModeSettings } from './types';
+import { OperationMode, OperationModeSettings } from './types';
 
 /**
  * Paramètres par défaut pour le système operationMode
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
   // Mode opérationnel actuel
-  mode: 'real',
+  mode: OperationMode.REAL,
   
   // Bascule automatique en mode démo après un certain nombre d'échecs
   autoSwitchEnabled: true,

@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import { Separator } from '@/components/ui/separator';
 import { isNotionConfigured } from '@/lib/notion';
 import NotionGuide from '@/components/NotionGuide';
-import { NotionConfig } from '@/components/notion';
+import { NotionConfigForm } from '@/components/notion';
 import { getProjectsFromNotion } from '@/lib/notion';
 import { Project } from '@/lib/types';
 import { toast } from 'sonner';
@@ -185,7 +185,7 @@ const IndexPage = () => {
         )}
       </main>
       
-      <NotionConfig
+      <NotionConfigForm
         isOpen={notionConfigOpen}
         onClose={handleNotionConfigClose}
         onSuccess={handleNotionConfigSuccess}

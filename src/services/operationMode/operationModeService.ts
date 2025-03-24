@@ -21,11 +21,11 @@ class OperationModeService {
   private listeners: Function[] = [];
   
   private settings: OperationModeSettings = {
-    mode: OperationMode.REAL,
-    autoSwitchEnabled: false, // Désactivé par défaut maintenant
+    mode: OperationMode.REAL, // Changed string to enum
+    autoSwitchEnabled: false,
     failuresThreshold: 3,
-    errorHandling: 'manual', // Mode manuel par défaut
-    autoSwitchOnErrors: false // Nouvelle option pour contrôler si on bascule automatiquement ou non
+    errorHandling: 'manual',
+    autoSwitchOnErrors: false
   };
 
   /**
