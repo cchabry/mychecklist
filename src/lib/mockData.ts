@@ -351,70 +351,70 @@ const exigences: Exigence[] = [
     id: 'exigence-1-1',
     projectId: 'project-1',
     itemId: 'item-1',
-    importance: 'majeur',
+    importance: ImportanceLevel.Important,
     comment: 'Toutes les images doivent être responsives, particulièrement sur la page d\'accueil'
   },
   {
     id: 'exigence-1-2',
     projectId: 'project-1',
     itemId: 'item-2',
-    importance: 'majeur',
+    importance: ImportanceLevel.Important,
     comment: 'Attention particulière aux textes sur fond coloré'
   },
   {
     id: 'exigence-1-3',
     projectId: 'project-1',
     itemId: 'item-3',
-    importance: 'important',
+    importance: ImportanceLevel.Important,
     comment: 'Formulaire de contact particulièrement concerné'
   },
   {
     id: 'exigence-1-4',
     projectId: 'project-1',
     itemId: 'item-4',
-    importance: 'moyen',
+    importance: ImportanceLevel.Important,
     comment: 'Focus sur l\'optimisation des images de la page d\'accueil'
   },
   {
     id: 'exigence-1-5',
     projectId: 'project-1',
     itemId: 'item-5',
-    importance: 'important',
+    importance: ImportanceLevel.Important,
     comment: 'Toutes les fonctionnalités doivent être accessibles au clavier'
   },
   {
     id: 'exigence-1-6',
     projectId: 'project-1',
     itemId: 'item-6',
-    importance: 'majeur',
+    importance: ImportanceLevel.Important,
     comment: 'Particulièrement pour les images du carrousel et des services'
   },
   {
     id: 'exigence-1-7',
     projectId: 'project-1',
     itemId: 'item-7',
-    importance: 'important',
+    importance: ImportanceLevel.Important,
     comment: 'Utiliser le format WebP avec fallback'
   },
   {
     id: 'exigence-1-8',
     projectId: 'project-1',
     itemId: 'item-10',
-    importance: 'majeur',
+    importance: ImportanceLevel.Important,
     comment: 'Design mobile-first obligatoire'
   },
   {
     id: 'exigence-1-9',
     projectId: 'project-1',
     itemId: 'item-11',
-    importance: 'important',
+    importance: ImportanceLevel.Important,
     comment: 'Support d\'Internet Explorer non requis'
   },
   {
     id: 'exigence-1-10',
     projectId: 'project-1',
     itemId: 'item-12',
-    importance: 'majeur',
+    importance: ImportanceLevel.Important,
     comment: 'HTTPS obligatoire sur tout le site'
   }
 ];
@@ -450,7 +450,8 @@ const evaluations: Evaluation[] = [
     auditId: 'audit-1',
     pageId: 'page-1-1',
     exigenceId: 'exigence-1-1',
-    status: 'non-conforme',
+    status: ComplianceStatus.NonCompliant,
+    score: ComplianceStatus.NonCompliant,
     comment: 'Les images du carrousel ne sont pas responsives',
     attachments: [],
     createdAt: '2023-06-02T11:00:00Z',
@@ -461,7 +462,8 @@ const evaluations: Evaluation[] = [
     auditId: 'audit-1',
     pageId: 'page-1-2',
     exigenceId: 'exigence-1-1',
-    status: 'conforme',
+    status: ComplianceStatus.Compliant,
+    score: ComplianceStatus.Compliant,
     comment: 'Images bien configurées',
     attachments: [],
     createdAt: '2023-06-02T11:15:00Z',
@@ -472,7 +474,8 @@ const evaluations: Evaluation[] = [
     auditId: 'audit-1',
     pageId: 'page-1-3',
     exigenceId: 'exigence-1-1',
-    status: 'partiellement-conforme',
+    status: ComplianceStatus.PartiallyCompliant,
+    score: ComplianceStatus.PartiallyCompliant,
     comment: 'Images des services pas toutes responsives',
     attachments: [],
     createdAt: '2023-06-02T11:30:00Z',
@@ -483,7 +486,8 @@ const evaluations: Evaluation[] = [
     auditId: 'audit-1',
     pageId: 'page-1-4',
     exigenceId: 'exigence-1-1',
-    status: 'conforme',
+    status: ComplianceStatus.Compliant,
+    score: ComplianceStatus.Compliant,
     comment: 'Pas d\'images significatives sur cette page',
     attachments: [],
     createdAt: '2023-06-02T11:45:00Z',
@@ -494,7 +498,8 @@ const evaluations: Evaluation[] = [
     auditId: 'audit-1',
     pageId: 'page-1-1',
     exigenceId: 'exigence-1-2',
-    status: 'non-conforme',
+    status: ComplianceStatus.NonCompliant,
+    score: ComplianceStatus.NonCompliant,
     comment: 'Contraste insuffisant pour les textes sur l\'image d\'en-tête',
     attachments: [],
     createdAt: '2023-06-03T10:00:00Z',
@@ -505,7 +510,8 @@ const evaluations: Evaluation[] = [
     auditId: 'audit-1',
     pageId: 'page-1-2',
     exigenceId: 'exigence-1-2',
-    status: 'conforme',
+    status: ComplianceStatus.Compliant,
+    score: ComplianceStatus.Compliant,
     comment: 'Contraste suffisant sur toute la page',
     attachments: [],
     createdAt: '2023-06-03T10:15:00Z',
@@ -518,29 +524,38 @@ const actions: CorrectiveAction[] = [
   {
     id: 'action-1',
     evaluationId: 'eval-1-1-1',
-    description: 'Mettre à jour les images du carrousel avec srcset et sizes',
-    priority: 'haute',
-    status: 'à faire',
+    pageId: 'page-1-1',
+    targetScore: ComplianceStatus.Compliant,
+    priority: ActionPriority.High,
     dueDate: '2023-06-15T00:00:00Z',
-    assignee: 'dev@example.com'
+    responsible: 'dev@example.com',
+    comment: 'Mettre à jour les images du carrousel avec srcset et sizes',
+    status: ActionStatus.ToDo,
+    progress: []
   },
   {
     id: 'action-2',
     evaluationId: 'eval-1-1-3',
-    description: 'Rendre responsives les images des services',
-    priority: 'moyenne',
-    status: 'à faire',
+    pageId: 'page-1-3',
+    targetScore: ComplianceStatus.Compliant,
+    priority: ActionPriority.Medium,
     dueDate: '2023-06-20T00:00:00Z',
-    assignee: 'dev@example.com'
+    responsible: 'dev@example.com',
+    comment: 'Rendre responsives les images des services',
+    status: ActionStatus.ToDo,
+    progress: []
   },
   {
     id: 'action-3',
     evaluationId: 'eval-1-2-1',
-    description: 'Améliorer le contraste des textes sur l\'image d\'en-tête',
-    priority: 'haute',
-    status: 'en-cours',
+    pageId: 'page-1-1',
+    targetScore: ComplianceStatus.Compliant,
+    priority: ActionPriority.High,
     dueDate: '2023-06-10T00:00:00Z',
-    assignee: 'design@example.com'
+    responsible: 'design@example.com',
+    comment: 'Améliorer le contraste des textes sur l\'image d\'en-tête',
+    status: ActionStatus.InProgress,
+    progress: []
   }
 ];
 
@@ -597,36 +612,68 @@ export const mockData = {
   getMockAuditHistory: (projectId: string) => audits.filter(audit => audit.projectId === projectId),
   getMockActionHistory: (evaluationId: string) => actions.filter(action => action.evaluationId === evaluationId),
   
-  // Méthodes pour créer de nouvelles données
-  createProject: (data: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newProject = {
-      id: `project-${generateId()}`,
+  // Added missing CRUD methods for evaluations and actions
+  createEvaluation: (data: any) => {
+    const newEvaluation = {
+      id: `eval_${Date.now()}`,
       ...data,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    MOCK_PROJECTS.push(newProject);
-    return newProject;
+    evaluations.push(newEvaluation);
+    return newEvaluation;
   },
   
-  updateProject: (id: string, data: Partial<Project>) => {
-    const index = MOCK_PROJECTS.findIndex(project => project.id === id);
+  updateEvaluation: (id: string, data: any) => {
+    const index = evaluations.findIndex(e => e.id === id);
     if (index === -1) return null;
     
-    MOCK_PROJECTS[index] = {
-      ...MOCK_PROJECTS[index],
+    evaluations[index] = {
+      ...evaluations[index],
       ...data,
       updatedAt: new Date().toISOString()
     };
     
-    return MOCK_PROJECTS[index];
+    return evaluations[index];
   },
   
-  deleteProject: (id: string) => {
-    const index = MOCK_PROJECTS.findIndex(project => project.id === id);
+  deleteEvaluation: (id: string) => {
+    const index = evaluations.findIndex(e => e.id === id);
     if (index === -1) return false;
     
-    MOCK_PROJECTS.splice(index, 1);
+    evaluations.splice(index, 1);
+    return true;
+  },
+  
+  createAction: (data: any) => {
+    const newAction = {
+      id: `action_${Date.now()}`,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    actions.push(newAction);
+    return newAction;
+  },
+  
+  updateAction: (id: string, data: any) => {
+    const index = actions.findIndex(a => a.id === id);
+    if (index === -1) return null;
+    
+    actions[index] = {
+      ...actions[index],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return actions[index];
+  },
+  
+  deleteAction: (id: string) => {
+    const index = actions.findIndex(a => a.id === id);
+    if (index === -1) return false;
+    
+    actions.splice(index, 1);
     return true;
   },
   
@@ -690,71 +737,6 @@ export const mockData = {
     SAMPLE_PAGES.splice(pageIndex, 1);
     return { success: true, id: pageId };
   },
-  
-  // Add missing functions for evaluations and actions
-  createEvaluation: (data: any) => {
-    const newEvaluation = {
-      id: `eval_${Date.now()}`,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    evaluations.push(newEvaluation);
-    return newEvaluation;
-  },
-  
-  updateEvaluation: (id: string, data: any) => {
-    const index = evaluations.findIndex(e => e.id === id);
-    if (index === -1) return null;
-    
-    evaluations[index] = {
-      ...evaluations[index],
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-    
-    return evaluations[index];
-  },
-  
-  deleteEvaluation: (id: string) => {
-    const index = evaluations.findIndex(e => e.id === id);
-    if (index === -1) return false;
-    
-    evaluations.splice(index, 1);
-    return true;
-  },
-  
-  createAction: (data: any) => {
-    const newAction = {
-      id: `action_${Date.now()}`,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    actions.push(newAction);
-    return newAction;
-  },
-  
-  updateAction: (id: string, data: any) => {
-    const index = actions.findIndex(a => a.id === id);
-    if (index === -1) return null;
-    
-    actions[index] = {
-      ...actions[index],
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-    
-    return actions[index];
-  },
-  
-  deleteAction: (id: string) => {
-    const index = actions.findIndex(a => a.id === id);
-    if (index === -1) return false;
-    
-    actions.splice(index, 1);
-    return true;
-  }
 };
 
 // Create a utility function to create a mock audit - used in multiple places
@@ -787,7 +769,7 @@ export const getMockAuditHistory = (projectId: string) => audits.filter(audit =>
 export const getMockActionHistory = (evaluationId: string) => actions.filter(action => action.evaluationId === evaluationId);
 
 // Export some commonly used mock data directly
-export { MOCK_PROJECTS, CHECKLIST_ITEMS as CATEGORIES };
+export { CHECKLIST_ITEMS as CATEGORIES };
 
 // Default export
 export default mockData;
