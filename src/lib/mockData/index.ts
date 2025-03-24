@@ -2,50 +2,31 @@
 import { mockData } from './mockData';
 import { mockDataExtensions } from './mockDataExtensions';
 import { mockData as mockDataWithPages } from './mockDataExtraSamplePages';
+import { consolidatedMockData } from './mockDataLoader';
 import { Project, Audit, ChecklistItem, Exigence, Evaluation, CorrectiveAction, SamplePage } from '@/lib/types';
 
-// Export mockData and its extensions
-export { mockData, mockDataExtensions, mockDataWithPages };
+// Export mock data collections
+export { 
+  mockData, 
+  mockDataExtensions, 
+  mockDataWithPages, 
+  consolidatedMockData 
+};
 
-// Export utility functions from mockData
-export const getAllProjects = () => mockData.projects;
-export const getProjectById = (id: string) => mockData.projects.find(p => p.id === id);
-export const getPageById = (id: string) => mockData.pages.find(p => p.id === id);
-export const getPagesByProjectId = (projectId: string) => mockData.pages.filter(p => p.projectId === projectId);
-export const createNewAudit = (projectId: string) => mockData.createNewAudit(projectId);
-export const getMockAuditHistory = (projectId: string) => mockData.audits.filter(a => a.projectId === projectId);
-export const getMockActionHistory = (evaluationId: string) => mockData.actions.filter(a => a.evaluationId === evaluationId);
+// Expose the audits from mockData for direct import
+export const mockAudits = mockData.audits;
 
-// Export collections from mockData
-export const MOCK_PROJECTS = mockData.projects;
-export const CATEGORIES = Array.from(new Set(mockData.checklist.map(item => item.category)));
-export const CHECKLIST_ITEMS = mockData.checklist;
-export const SAMPLE_PAGES = mockData.pages;
+// Export utility functions
+export const getAllProjects = consolidatedMockData.getProjects;
+export const getProjectById = consolidatedMockData.getProject;
+export const getPagesByProjectId = consolidatedMockData.getProjectPages;
+export const getPageById = consolidatedMockData.getPage;
+export const createNewAudit = consolidatedMockData.createNewAudit;
+export const getMockAuditHistory = consolidatedMockData.getMockAuditHistory;
+export const getMockActionHistory = consolidatedMockData.getMockActionHistory;
+export const createSamplePage = consolidatedMockData.createSamplePage;
+export const updateSamplePage = consolidatedMockData.updateSamplePage;
+export const deleteSamplePage = consolidatedMockData.deleteSamplePage;
 
-// Export type-safe creator functions
-export const createMockProject = (data: Partial<Project>): Project => ({
-  id: `proj_${Date.now()}`,
-  name: 'New Project',
-  url: '',
-  description: '',
-  status: 'en-cours',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  progress: 0,
-  ...data
-});
-
-export const createMockSamplePage = (data: Partial<SamplePage>): SamplePage => ({
-  id: `page_${Date.now()}`,
-  projectId: '',
-  url: '',
-  title: '',
-  description: '',
-  order: 0,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  ...data
-});
-
-// Export by default
-export default mockData;
+// Export default
+export default consolidatedMockData;

@@ -6,11 +6,11 @@ import { mockDataExtensions } from '@/lib/mockData/mockDataExtensions';
 const mergedMockData = {
   ...originalMockData,
   ...mockDataExtensions,
-  getAllProjects: originalMockData.getAllProjects,
+  getAllProjects: originalMockData.getProjects,
   getProjectById: originalMockData.getProject, 
   getPageById: originalMockData.getPage,
-  getMockAuditHistory: originalMockData.getMockAuditHistory,
-  getMockActionHistory: originalMockData.getMockActionHistory
+  getMockAuditHistory: originalMockData.audits.filter(a => a.projectId),
+  getMockActionHistory: originalMockData.actions.filter(a => a.evaluationId)
 };
 
 // Export the merged mock data

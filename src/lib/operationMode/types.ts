@@ -22,7 +22,7 @@ export enum SwitchReason {
   MANUAL_API = 'Activation manuelle via API',
   ADAPTER_ACTIVATION = 'Activation via adaptateur (mockMode.activate)',
   PROJECTS_ERROR = 'Erreur lors du chargement des projets',
-  CONNECTION_PROBLEM = 'Sauvegarde impossible - problème de connexion à l'API',
+  CONNECTION_PROBLEM = 'Sauvegarde impossible - problème de connexion à l\'API',
   CONNECTION_RESTORED = 'Mode restauré après test de connexion réussi',
   MANUAL_TEST = 'Test manuel depuis diagnostics',
   MANUAL_CHANGE = 'Changement manuel'
