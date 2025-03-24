@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import { NotionConfig as NotionConfigComponent } from '@/components/notion';
@@ -16,15 +15,7 @@ const NotionConfigPage: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6">
-        <NotionConfigComponent 
-          isOpen={isConfigOpen} 
-          onClose={handleClose}
-          onSuccess={() => {
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 500);
-          }}
-        />
+        <NotionConfigComponent />
       </main>
     </div>
   );

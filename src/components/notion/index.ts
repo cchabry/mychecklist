@@ -1,9 +1,9 @@
 
-export { default as NotionConfig } from './NotionConfig';
+export { default as NotionConfig } from './NotionConfigForm';
 export { default as NotionConfigForm } from './NotionConfigForm';
 export { NotionDiagnosticTool } from './diagnostic';
 export { default as NotionTestDataGenerator } from './NotionTestDataGenerator';
-export { default as NotionConfigComponent } from './config/NotionConfig';
+export { NotionConfig as NotionConfigComponent } from './config';
 export { default as NotionErrorDetails } from './NotionErrorDetails';
 export { default as NotionDiagnosticReport } from './NotionDiagnosticReport';
 export { default as NotionCSVExporter } from './NotionCSVExporter';

@@ -11,8 +11,8 @@ import { notionApi } from '@/lib/notionProxy';
 import { Info, Database, Key, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
-import NotionDatabaseDiscovery from '../NotionDatabaseDiscovery';
-import type { NotionDatabaseTarget } from '../NotionDatabaseDiscovery';
+import NotionDatabaseDiscovery from '../../notion/NotionDatabaseDiscovery';
+import type { NotionDatabaseTarget } from '../../notion/NotionDatabaseDiscovery';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
