@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { NotionConfigComponent } from './config';
+import { NotionConfig } from '@/components/notion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface NotionConfigFormProps {
@@ -28,7 +28,7 @@ const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       if (!open) onClose();
     }}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <NotionConfigComponent />
+        <NotionConfig />
       </DialogContent>
     </Dialog>
   );
