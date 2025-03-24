@@ -20,7 +20,7 @@ export const consolidatedMockData = {
   getProject: mockData.getProject,
   getAudits: mockData.getAudits,
   getAudit: mockData.getAudit,
-  getChecklistItems: mockData.getChecklistItems,
+  getChecklistItems: mockData.getChecklistItems || mockData.getChecklist,
   getChecklistItem: mockData.getChecklistItem,
   getPages: mockData.getPages,
   getPage: mockData.getPage,
@@ -28,19 +28,40 @@ export const consolidatedMockData = {
   getExigences: mockData.getExigences,
   getExigence: mockData.getExigence,
   getEvaluations: mockData.getEvaluations,
-  getEvaluation: mockData.getEvaluation,
+  getEvaluation: mockData.getEvaluation || mockData.getEvaluations,
   getActions: mockData.getActions,
   getAction: mockData.getAction,
   
   // Méthodes CRUD
   createProject: mockData.createProject,
   updateProject: mockData.updateProject,
-  createEvaluation: mockData.createEvaluation,
-  updateEvaluation: mockData.updateEvaluation,
-  deleteEvaluation: mockData.deleteEvaluation,
-  createAction: mockData.createAction,
-  updateAction: mockData.updateAction,
-  deleteAction: mockData.deleteAction,
+  createEvaluation: mockData.createEvaluation || ((data) => {
+    const now = new Date().toISOString();
+    return {
+      id: `eval_${Date.now()}`,
+      ...data,
+      createdAt: now,
+      updatedAt: now
+    };
+  }),
+  updateEvaluation: mockData.updateEvaluation || ((id, data) => {
+    return { id, ...data, updatedAt: new Date().toISOString() };
+  }),
+  deleteEvaluation: mockData.deleteEvaluation || ((id) => true),
+  createAction: mockData.createAction || ((data) => {
+    const now = new Date().toISOString();
+    return {
+      id: `action_${Date.now()}`,
+      progress: [],
+      ...data,
+      createdAt: now,
+      updatedAt: now
+    };
+  }),
+  updateAction: mockData.updateAction || ((id, data) => {
+    return { id, ...data, updatedAt: new Date().toISOString() };
+  }),
+  deleteAction: mockData.deleteAction || ((id) => true),
   
   // Méthodes pour les pages d'échantillon
   createSamplePage: mockData.createSamplePage,

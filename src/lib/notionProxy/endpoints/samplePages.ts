@@ -1,5 +1,7 @@
+
 import { notionApi } from '@/lib/notionProxy';
 import { Project, SamplePage } from '@/lib/types';
+import { mockData, consolidatedMockData } from '@/lib/mockData';
 
 // Add this helper at the top of the file
 const addTimestamps = (obj: any) => {
@@ -22,7 +24,8 @@ export const samplePagesEndpoints = {
    */
   getSamplePages: async (projectId: string): Promise<SamplePage[]> => {
     try {
-      const pages = await notionApi.proxy.getSamplePages(projectId);
+      // Get sample pages using mockData
+      const pages = consolidatedMockData.getProjectPages(projectId);
       return pages.map(page => addTimestamps(page));
     } catch (error: any) {
       console.error("Error fetching sample pages:", error);
@@ -37,7 +40,8 @@ export const samplePagesEndpoints = {
    */
   getSamplePage: async (id: string): Promise<SamplePage> => {
     try {
-      const page = await notionApi.proxy.getSamplePage(id);
+      // Get sample page using mockData
+      const page = consolidatedMockData.getPage(id);
       return addTimestamps(page);
     } catch (error: any) {
       console.error("Error fetching sample page:", error);
@@ -52,7 +56,8 @@ export const samplePagesEndpoints = {
    */
   createSamplePage: async (data: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>): Promise<SamplePage> => {
     try {
-      const newPage = await notionApi.proxy.createSamplePage(data);
+      // Create sample page using mockData
+      const newPage = consolidatedMockData.createSamplePage(data);
       return addTimestamps(newPage);
     } catch (error: any) {
       console.error("Error creating sample page:", error);
@@ -68,7 +73,8 @@ export const samplePagesEndpoints = {
    */
   updateSamplePage: async (id: string, data: Partial<SamplePage>): Promise<SamplePage> => {
     try {
-      const updatedPage = await notionApi.proxy.updateSamplePage(id, data);
+      // Update sample page using mockData
+      const updatedPage = consolidatedMockData.updateSamplePage(id, data);
       return addTimestamps(updatedPage);
     } catch (error: any) {
       console.error("Error updating sample page:", error);
@@ -83,8 +89,9 @@ export const samplePagesEndpoints = {
    */
   deleteSamplePage: async (id: string): Promise<{ success: boolean }> => {
     try {
-      await notionApi.proxy.deleteSamplePage(id);
-      return { success: true };
+      // Delete sample page using mockData
+      const result = consolidatedMockData.deleteSamplePage(id);
+      return result;
     } catch (error: any) {
       console.error("Error deleting sample page:", error);
       return { success: false };
@@ -98,7 +105,8 @@ export const samplePagesEndpoints = {
    */
   createSamplePages: async (pages: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<SamplePage[]> => {
     try {
-      const newPages = await Promise.all(pages.map(page => notionApi.proxy.createSamplePage(page)));
+      // Create multiple sample pages using mockData
+      const newPages = await Promise.all(pages.map(page => consolidatedMockData.createSamplePage(page)));
       return newPages.map(page => addTimestamps(page));
     } catch (error: any) {
       console.error("Error creating sample pages:", error);
@@ -113,7 +121,8 @@ export const samplePagesEndpoints = {
    */
   updateSamplePages: async (pages: SamplePage[]): Promise<SamplePage[]> => {
     try {
-      const updatedPages = await Promise.all(pages.map(page => notionApi.proxy.updateSamplePage(page.id, page)));
+      // Update multiple sample pages using mockData
+      const updatedPages = await Promise.all(pages.map(page => consolidatedMockData.updateSamplePage(page.id, page)));
       return updatedPages.map(page => addTimestamps(page));
     } catch (error: any) {
       console.error("Error updating sample pages:", error);
@@ -128,7 +137,8 @@ export const samplePagesEndpoints = {
    */
   deleteSamplePages: async (ids: string[]): Promise<{ success: boolean }> => {
     try {
-      await Promise.all(ids.map(id => notionApi.proxy.deleteSamplePage(id)));
+      // Delete multiple sample pages using mockData
+      await Promise.all(ids.map(id => consolidatedMockData.deleteSamplePage(id)));
       return { success: true };
     } catch (error: any) {
       console.error("Error deleting sample pages:", error);
@@ -143,14 +153,15 @@ export const samplePagesEndpoints = {
    */
   getProjectFromSamplePageId: async (pageId: string): Promise<Project | null> => {
     try {
-      const page = await notionApi.proxy.getSamplePage(pageId);
+      // Get sample page using mockData
+      const page = consolidatedMockData.getPage(pageId);
       if (!page) return null;
 
       // Ensure the page has timestamps
       const timestampedPage = addTimestamps(page);
 
       // Now you can safely access projectId
-      const project = await notionApi.proxy.getProject(timestampedPage.projectId);
+      const project = consolidatedMockData.getProject(timestampedPage.projectId);
       return project || null;
     } catch (error: any) {
       console.error("Error getting project from sample page ID:", error);

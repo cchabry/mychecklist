@@ -15,11 +15,15 @@ if (!mockData.getProjectPages) {
 }
 
 if (!mockData.createSamplePage) {
-  mockData.createSamplePage = (data: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>) => {
+  mockData.createSamplePage = (data: Partial<SamplePage>) => {
     const now = new Date().toISOString();
     const newPage: SamplePage = {
       id: `page_${Date.now()}`,
-      ...data,
+      projectId: data.projectId || '',
+      url: data.url || '',
+      title: data.title || '',
+      description: data.description || '',
+      order: data.order || 0,
       createdAt: now,
       updatedAt: now
     };

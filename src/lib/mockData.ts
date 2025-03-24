@@ -520,6 +520,7 @@ const evaluations: Evaluation[] = [
 ];
 
 // Actions correctives
+const now = new Date().toISOString();
 const actions: CorrectiveAction[] = [
   {
     id: 'action-1',
@@ -531,7 +532,9 @@ const actions: CorrectiveAction[] = [
     responsible: 'dev@example.com',
     comment: 'Mettre à jour les images du carrousel avec srcset et sizes',
     status: ActionStatus.ToDo,
-    progress: []
+    progress: [],
+    createdAt: now,
+    updatedAt: now
   },
   {
     id: 'action-2',
@@ -543,7 +546,9 @@ const actions: CorrectiveAction[] = [
     responsible: 'dev@example.com',
     comment: 'Rendre responsives les images des services',
     status: ActionStatus.ToDo,
-    progress: []
+    progress: [],
+    createdAt: now,
+    updatedAt: now
   },
   {
     id: 'action-3',
@@ -555,7 +560,9 @@ const actions: CorrectiveAction[] = [
     responsible: 'design@example.com',
     comment: 'Améliorer le contraste des textes sur l\'image d\'en-tête',
     status: ActionStatus.InProgress,
-    progress: []
+    progress: [],
+    createdAt: now,
+    updatedAt: now
   }
 ];
 
@@ -613,67 +620,70 @@ export const mockData = {
   getMockActionHistory: (evaluationId: string) => actions.filter(action => action.evaluationId === evaluationId),
   
   // Added missing CRUD methods for evaluations and actions
-  createEvaluation: (data: any) => {
+  createEvaluation: function(data) {
+    const now = new Date().toISOString();
     const newEvaluation = {
       id: `eval_${Date.now()}`,
       ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
     };
-    evaluations.push(newEvaluation);
+    this.evaluations.push(newEvaluation);
     return newEvaluation;
   },
   
-  updateEvaluation: (id: string, data: any) => {
-    const index = evaluations.findIndex(e => e.id === id);
+  updateEvaluation: function(id, data) {
+    const index = this.evaluations.findIndex(e => e.id === id);
     if (index === -1) return null;
     
-    evaluations[index] = {
-      ...evaluations[index],
+    this.evaluations[index] = {
+      ...this.evaluations[index],
       ...data,
       updatedAt: new Date().toISOString()
     };
     
-    return evaluations[index];
+    return this.evaluations[index];
   },
   
-  deleteEvaluation: (id: string) => {
-    const index = evaluations.findIndex(e => e.id === id);
+  deleteEvaluation: function(id) {
+    const index = this.evaluations.findIndex(e => e.id === id);
     if (index === -1) return false;
     
-    evaluations.splice(index, 1);
+    this.evaluations.splice(index, 1);
     return true;
   },
   
-  createAction: (data: any) => {
+  createAction: function(data) {
+    const now = new Date().toISOString();
     const newAction = {
       id: `action_${Date.now()}`,
+      progress: [],
       ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
     };
-    actions.push(newAction);
+    this.actions.push(newAction);
     return newAction;
   },
   
-  updateAction: (id: string, data: any) => {
-    const index = actions.findIndex(a => a.id === id);
+  updateAction: function(id, data) {
+    const index = this.actions.findIndex(a => a.id === id);
     if (index === -1) return null;
     
-    actions[index] = {
-      ...actions[index],
+    this.actions[index] = {
+      ...this.actions[index],
       ...data,
       updatedAt: new Date().toISOString()
     };
     
-    return actions[index];
+    return this.actions[index];
   },
   
-  deleteAction: (id: string) => {
-    const index = actions.findIndex(a => a.id === id);
+  deleteAction: function(id) {
+    const index = this.actions.findIndex(a => a.id === id);
     if (index === -1) return false;
     
-    actions.splice(index, 1);
+    this.actions.splice(index, 1);
     return true;
   },
   

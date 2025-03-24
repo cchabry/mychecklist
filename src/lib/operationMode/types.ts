@@ -1,4 +1,5 @@
 
+// Import the constants
 import { DEFAULT_SETTINGS } from './constants';
 
 // Change from type to enum
