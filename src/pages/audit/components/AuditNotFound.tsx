@@ -2,82 +2,62 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
-import { operationMode } from '@/services/operationMode';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileQuestion, ArrowLeft, Plus } from 'lucide-react';
 
-interface AuditNotFoundProps {
+export interface AuditNotFoundProps {
   projectId?: string;
-  auditId?: string;
-  reason?: string;
-  onRetry?: () => void;
+  error?: string;
 }
 
-/**
- * Affiche un message d'erreur lorsqu'un audit n'est pas trouvé
- */
-const AuditNotFound: React.FC<AuditNotFoundProps> = ({
-  projectId,
-  auditId,
-  reason = "L'audit demandé n'a pas été trouvé",
-  onRetry
-}) => {
+const AuditNotFound: React.FC<AuditNotFoundProps> = ({ projectId, error }) => {
   const navigate = useNavigate();
   
-  const handleRetry = () => {
-    // Réinitialiser le mode pour forcer une nouvelle tentative
-    operationMode.enableRealMode();
-    
-    // Appeler le callback de retry si fourni
-    if (onRetry) {
-      onRetry();
-    }
+  const goBack = () => {
+    navigate('/');
   };
   
-  const handleBackToProject = () => {
+  const createNewAudit = () => {
     if (projectId) {
-      navigate(`/project/${projectId}`);
+      navigate(`/projet/${projectId}/audit/new`);
     } else {
       navigate('/');
     }
   };
   
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">Audit introuvable</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>
-            {reason}
-            {auditId && (
-              <div className="mt-2 text-sm text-muted-foreground">
-                ID d'audit: <code className="text-xs bg-muted p-1 rounded">{auditId}</code>
-              </div>
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-1 container mx-auto px-4 py-12 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <FileQuestion className="h-16 w-16 text-gray-400" />
+            </div>
+            <CardTitle className="text-center text-xl">Audit non trouvé</CardTitle>
+            <CardDescription className="text-center">
+              {error || "L'audit que vous recherchez n'existe pas ou n'est plus disponible."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-sm text-muted-foreground">
+              Vous pouvez revenir à l'accueil ou créer un nouvel audit pour ce projet.
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={goBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour à l'accueil
+            </Button>
+            {projectId && (
+              <Button onClick={createNewAudit}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouvel audit
+              </Button>
             )}
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          variant="outline" 
-          onClick={handleBackToProject}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au projet
-        </Button>
-        <Button 
-          onClick={handleRetry}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Réessayer
-        </Button>
-      </CardFooter>
-    </Card>
+          </CardFooter>
+        </Card>
+      </main>
+    </div>
   );
 };
 

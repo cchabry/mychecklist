@@ -3,8 +3,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 
 interface NotionFormActionsProps {
-  onCancel: () => void;
-  onReset: () => void;
+  onCancel?: () => void;
+  onReset?: () => void;
   isSubmitting: boolean;
 }
 
@@ -16,18 +16,23 @@ const NotionFormActions: React.FC<NotionFormActionsProps> = ({
   return (
     <div className="flex justify-between pt-4">
       <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-          Annuler
-        </Button>
-        <Button 
-          type="button" 
-          variant="outline" 
-          size="sm"
-          className="text-amber-600 border-amber-200 hover:bg-amber-50" 
-          onClick={onReset}
-        >
-          Réinitialiser
-        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            Annuler
+          </Button>
+        )}
+        {onReset && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            className="text-amber-600 border-amber-200 hover:bg-amber-50" 
+            onClick={onReset}
+            disabled={isSubmitting}
+          >
+            Réinitialiser
+          </Button>
+        )}
       </div>
       <Button type="submit" disabled={isSubmitting} className="bg-tmw-teal hover:bg-tmw-teal/90">
         {isSubmitting ? (

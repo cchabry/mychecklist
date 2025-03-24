@@ -27,7 +27,7 @@ export const useAuditProject = (projectId: string | undefined) => {
 
       try {
         // Récupérer le projet
-        const fetchedProject = await notionApi.getProjectById(projectId);
+        const fetchedProject = await notionApi.getProject(projectId);
         
         if (!fetchedProject) {
           setError('Projet non trouvé');
@@ -56,10 +56,42 @@ export const useAuditProject = (projectId: string | undefined) => {
     fetchProject();
   }, [projectId, isDemoMode]);
 
+  const loadProject = async () => {
+    if (!projectId) {
+      setError('ID de projet manquant');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Récupérer le projet
+      const fetchedProject = await notionApi.getProject(projectId);
+      
+      if (!fetchedProject) {
+        setError('Projet non trouvé');
+        return;
+      }
+      
+      setProject(fetchedProject);
+    } catch (err) {
+      console.error('Erreur lors de la récupération du projet:', err);
+      setError('Impossible de récupérer le projet');
+      
+      toast.error('Erreur lors de la récupération du projet', {
+        description: 'Vérifiez votre connexion ou la configuration Notion'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     project,
     loading,
-    error
+    error,
+    loadProject
   };
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { configureNotion, extractNotionDatabaseId } from '@/lib/notion';
@@ -22,7 +21,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
   const [initialProjectsDbId, setInitialProjectsDbId] = useState<string>('');
   const [initialChecklistsDbId, setInitialChecklistsDbId] = useState<string>('');
   
-  // Charger les valeurs sauvegardées dès que le composant est monté
   useEffect(() => {
     const savedApiKey = localStorage.getItem('notion_api_key') || '';
     const savedProjectsDbId = localStorage.getItem('notion_database_id') || '';
@@ -33,7 +31,6 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
     setInitialChecklistsDbId(savedChecklistsDbId);
   }, []);
   
-  // Recharger les valeurs quand le modal s'ouvre
   useEffect(() => {
     if (isOpen) {
       const savedApiKey = localStorage.getItem('notion_api_key') || '';
@@ -187,7 +184,10 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
           )}
           
           <NotionConfigForm 
-            onSubmit={handleFormSubmit}
+            onSuccess={() => {
+              if (onSuccess) onSuccess();
+              onClose();
+            }}
             onCancel={onClose}
             initialApiKey={initialApiKey}
             initialProjectsDbId={initialProjectsDbId}

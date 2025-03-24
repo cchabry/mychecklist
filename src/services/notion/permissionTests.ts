@@ -63,16 +63,33 @@ export async function runPermissionTests(
       }
     };
     
-    const createdPage = await notionApi.pages.create(createData, apiKey);
+    // Utiliser l'API request générique au lieu des méthodes spécifiques
+    const createdPage = await notionApi.request('pages', {
+      method: 'POST',
+      body: JSON.stringify(createData),
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28'
+      }
+    });
     
     if (createdPage && createdPage.id) {
       let successMessage = `Test d'écriture réussi: Page créée avec ID ${createdPage.id.substring(0, 8)}...`;
       
       if (!persistCreatedPage) {
         try {
-          await notionApi.pages.update(createdPage.id, {
-            archived: true
-          }, apiKey);
+          await notionApi.request(`pages/${createdPage.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              archived: true
+            }),
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'Notion-Version': '2022-06-28'
+            }
+          });
           successMessage += " (page archivée)";
         } catch (archiveError) {
           successMessage += " (impossible d'archiver la page)";

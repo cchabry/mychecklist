@@ -1,23 +1,28 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RotateCw, Check } from 'lucide-react';
-import { notionApi } from '@/lib/notionProxy';
-import { isNotionConfigured } from '@/lib/notion';
+import { RotateCw, Check, XCircle, AlertCircle } from 'lucide-react';
+import { testNotionConnection } from '@/lib/notion/notionClient';
 import { toast } from 'sonner';
 
 interface NotionTestButtonProps {
   onSuccess?: () => void;
+  apiKey?: string;
+  databaseId?: string;
 }
 
-const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
+const NotionTestButton: React.FC<NotionTestButtonProps> = ({ 
+  onSuccess,
+  apiKey: propApiKey,
+  databaseId: propDatabaseId
+}) => {
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const handleTestConnection = async () => {
-    // Vérifier d'abord les valeurs dans localStorage
-    const apiKey = localStorage.getItem('notion_api_key');
-    const dbId = localStorage.getItem('notion_database_id');
+    // Utiliser les props ou les valeurs dans localStorage
+    const apiKey = propApiKey || localStorage.getItem('notion_api_key');
+    const dbId = propDatabaseId || localStorage.getItem('notion_database_id');
     
     if (!apiKey || !dbId) {
       toast.error('Configuration Notion requise', {
@@ -29,30 +34,35 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
     setIsTesting(true);
     setTestStatus('idle');
     
+    // Stockage temporaire pour le test
+    localStorage.setItem('notion_api_key', apiKey);
+    localStorage.setItem('notion_database_id', dbId);
+    
     try {
-      console.log('🔄 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
+      const result = await testNotionConnection();
       
-      // Tenter de récupérer l'utilisateur Notion (me)
-      const user = await notionApi.users.me(apiKey);
-      console.log('✅ Notion API connection successful, user:', user.name);
-      
-      // Test réussi
-      setTestStatus('success');
-      toast.success('Connexion à Notion réussie', {
-        description: `Connecté en tant que ${user.name}`
-      });
-      
-      // Si un callback onSuccess est fourni, l'appeler
-      if (onSuccess) {
-        onSuccess();
+      if (result.success) {
+        setTestStatus('success');
+        
+        toast.success('Connexion Notion réussie', {
+          description: `Connecté en tant que ${result.user} avec accès à ${result.projectsDbName}`
+        });
+        
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        setTestStatus('error');
+        
+        toast.error(result.error || 'Échec de la connexion', {
+          description: result.details || 'Vérifiez votre clé API et vos ID de base de données'
+        });
       }
     } catch (error) {
-      console.error('❌ Notion API connection test failed:', error);
       setTestStatus('error');
       
-      // Afficher une erreur détaillée
-      toast.error('Erreur de connexion à Notion', {
-        description: error.message || 'Vérifiez votre configuration Notion'
+      toast.error('Erreur de test', {
+        description: error.message || 'Une erreur s\'est produite lors du test'
       });
     } finally {
       setIsTesting(false);
@@ -77,10 +87,12 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
         <RotateCw size={16} className="animate-spin" />
       ) : testStatus === 'success' ? (
         <Check size={16} />
+      ) : testStatus === 'error' ? (
+        <XCircle size={16} />
       ) : (
-        <RotateCw size={16} />
+        <AlertCircle size={16} />
       )}
-      Tester Notion
+      Test de connexion
     </Button>
   );
 };

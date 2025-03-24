@@ -22,15 +22,15 @@ const OperationModeStatus: React.FC<OperationModeStatusProps> = ({
   className = '',
   size = 'md'
 }) => {
-  const { mode, toggle, switchReason } = useOperationMode();
+  const { isDemoMode, toggle, switchReason } = useOperationMode();
   
   const handleToggle = () => {
     toggle();
     
     toast.info(
-      mode === OperationMode.REAL ? 'Mode démonstration activé' : 'Mode réel activé',
+      isDemoMode ? 'Mode démonstration activé' : 'Mode réel activé',
       {
-        description: mode === OperationMode.REAL 
+        description: isDemoMode 
           ? 'Utilisation de données simulées' 
           : 'Connexion à l\'API Notion',
         duration: 3000
@@ -41,7 +41,7 @@ const OperationModeStatus: React.FC<OperationModeStatusProps> = ({
   return (
     <div className={`flex items-center gap-1.5 ${className}`}>
       <OperationModeStatusBadge 
-        mode={mode}
+        mode={isDemoMode ? 'demo' : 'real'}
         switchReason={switchReason}
         size={size}
         showLabel={showLabel}

@@ -13,16 +13,22 @@ import {
 
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
+  apiKey?: string;
+  databaseId?: string;
 }
 
-const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess }) => {
+const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ 
+  onSuccess,
+  apiKey: propApiKey,
+  databaseId: propDatabaseId
+}) => {
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const handleTestWrite = async () => {
-    // Vérifier les valeurs dans localStorage
-    const apiKey = localStorage.getItem('notion_api_key');
-    const dbId = localStorage.getItem('notion_database_id');
+    // Vérifier les valeurs dans localStorage ou utiliser les props
+    const apiKey = propApiKey || localStorage.getItem('notion_api_key');
+    const dbId = propDatabaseId || localStorage.getItem('notion_database_id');
     
     console.log('🔍 Démarrage du test d\'écriture avec:', {
       'API Key présente': !!apiKey,
@@ -62,14 +68,29 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       
       console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
       
+      // Implémentons directement les méthodes manquantes pour pages
       // Tenter de créer la page
-      const response = await notionApi.pages.create(createData, apiKey);
+      const response = await notionApi.request('pages', {
+        method: 'POST',
+        body: JSON.stringify(createData),
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28'
+        }
+      });
       
       if (response && response.id) {
         console.log('✅ Test d\'écriture réussi! ID de la page créée:', response.id);
         
         // Vérifier en lisant la page créée
-        const pageData = await notionApi.pages.retrieve(response.id, apiKey);
+        const pageData = await notionApi.request(`pages/${response.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Notion-Version': '2022-06-28'
+          }
+        });
         
         if (pageData && pageData.id === response.id) {
           console.log('✅ Lecture de la page créée réussie!');
@@ -80,9 +101,17 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
           
           // Tentative d'archivage de la page de test
           try {
-            await notionApi.pages.update(response.id, {
-              archived: true
-            }, apiKey);
+            await notionApi.request(`pages/${response.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                archived: true
+              }),
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'Notion-Version': '2022-06-28'
+              }
+            });
             console.log('🧹 Nettoyage: Page de test archivée');
           } catch (cleanupError) {
             console.log('⚠️ Impossible d\'archiver la page de test:', cleanupError);
