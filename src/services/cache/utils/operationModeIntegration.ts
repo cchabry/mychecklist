@@ -85,9 +85,9 @@ export const operationModeIntegration = {
   },
   
   /**
-   * Détermine si le cache doit être utilisé
+   * Détermine si le cache doit être utilisé (fonction interne)
    */
-  _shouldUseCache: function() {
+  _internalShouldUseCache: function() {
     return !this.isCacheDisabled();
   },
   
@@ -117,7 +117,7 @@ export const operationModeIntegration = {
 
 // Exporter les fonctions individuellement pour l'usage dans d'autres modules
 export const { 
-  _shouldUseCache: shouldUseCache, 
+  shouldUseCache, 
   getEffectiveTTL, 
   reportCacheError, 
   reportCacheSuccess 

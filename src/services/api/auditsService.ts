@@ -153,7 +153,7 @@ class AuditsService extends BaseServiceAbstract<Audit> {
       }
       
       // Appeler l'API pour créer l'audit
-      const audit = await notionApi.createAudit({
+      const audit = await this.createItem({
         name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
         projectId: data.projectId
       });
@@ -161,7 +161,7 @@ class AuditsService extends BaseServiceAbstract<Audit> {
       console.log("Audit créé:", audit);
       
       // Invalider le cache
-      this.invalidateCache();
+      this.clearCache();
       
       return audit;
     } catch (error) {
@@ -180,14 +180,14 @@ class AuditsService extends BaseServiceAbstract<Audit> {
       }
       
       // Appeler l'API pour mettre à jour l'audit
-      const updatedAudit = await notionApi.updateAudit(id, data);
+      const updatedAudit = await this.updateItem(id, data);
       
       if (!updatedAudit) {
         throw new Error(`Impossible de mettre à jour l'audit #${id}`);
       }
       
       // Invalider le cache
-      this.invalidateCache();
+      this.clearCache();
       
       return updatedAudit;
     } catch (error) {
@@ -210,14 +210,14 @@ class AuditsService extends BaseServiceAbstract<Audit> {
       const projectId = audit?.projectId;
       
       // Appeler l'API pour supprimer l'audit
-      const success = await notionApi.deleteAudit(id);
+      const success = await this.deleteItem(id);
       
       if (!success) {
         throw new Error(`Impossible de supprimer l'audit #${id}`);
       }
       
       // Invalider le cache
-      this.invalidateCache();
+      this.clearCache();
       
       return true;
     } catch (error) {
@@ -230,7 +230,7 @@ class AuditsService extends BaseServiceAbstract<Audit> {
    * Méthode pour vider le cache
    */
   invalidateCache(): void {
-    super.clearCache();
+    this.clearCache();
   }
   
   /**
