@@ -21,7 +21,7 @@ export function useNotionStorage() {
     return {
       apiKey: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
       databaseId: localStorage.getItem(STORAGE_KEYS.DATABASE_ID) || '',
-      checklistsDbId: localStorage.getItem(STORAGE_KEYS.CHECKLISTS_DB_ID) || '',
+      checklistsDbId: localStorage.getItem(STORAGE_KEYS.CHECKLISTS_DATABASE_ID) || '',
       lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_CONFIG_DATE)
     };
   }, []);
@@ -46,7 +46,7 @@ export function useNotionStorage() {
     }
     
     if (config.checklistsDbId !== undefined) {
-      localStorage.setItem(STORAGE_KEYS.CHECKLISTS_DB_ID, config.checklistsDbId);
+      localStorage.setItem(STORAGE_KEYS.CHECKLISTS_DATABASE_ID, config.checklistsDbId);
     }
     
     localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
@@ -58,7 +58,7 @@ export function useNotionStorage() {
   const clearStoredConfig = useCallback((): void => {
     localStorage.removeItem(STORAGE_KEYS.API_KEY);
     localStorage.removeItem(STORAGE_KEYS.DATABASE_ID);
-    localStorage.removeItem(STORAGE_KEYS.CHECKLISTS_DB_ID);
+    localStorage.removeItem(STORAGE_KEYS.CHECKLISTS_DATABASE_ID);
     localStorage.removeItem(STORAGE_KEYS.LAST_CONFIG_DATE);
   }, []);
 
