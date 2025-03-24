@@ -1,98 +1,84 @@
 
 import React from 'react';
-import { AlertCircle, Code, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Database, Key, Globe } from 'lucide-react';
 
 interface NotionSolutionsSectionProps {
-  errorType?: string;
   showApiKey?: boolean;
   showCorsProxy?: boolean;
   showMockMode?: boolean;
 }
 
 const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({ 
-  errorType,
-  showApiKey = false,
-  showCorsProxy = false,
+  showApiKey = true, 
+  showCorsProxy = true,
   showMockMode = false
 }) => {
   return (
-    <div className="mt-4 border rounded-md p-4 bg-blue-50 border-blue-200">
-      <h3 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
-        <AlertCircle size={16} />
-        Solutions recommandées
-      </h3>
-      
-      <div className="space-y-2 text-sm">
-        {errorType === 'auth' && (
-          <>
-            <p>Problème d'authentification détecté. Essayez de :</p>
-            <ul className="list-disc list-inside pl-2 space-y-1 text-blue-700">
-              <li>Vérifier que votre clé d'API est correcte</li>
-              <li>Régénérer une nouvelle clé d'API dans Notion</li>
-            </ul>
-          </>
-        )}
-        
-        {errorType === 'permission' && (
-          <>
-            <p>Problème de permissions détecté. Essayez de :</p>
-            <ul className="list-disc list-inside pl-2 space-y-1 text-blue-700">
-              <li>Vérifier que votre intégration a accès à la base de données</li>
-              <li>Ajouter l'intégration à la base de données depuis Notion</li>
-            </ul>
-          </>
-        )}
-        
-        {showCorsProxy && (
-          <div className="mt-3">
-            <p className="font-medium">Utiliser un proxy CORS:</p>
-            <p className="text-blue-700">
-              Si vous rencontrez des erreurs CORS, activez l'option de proxy dans les paramètres.
-            </p>
-          </div>
-        )}
-        
-        {showApiKey && (
-          <div className="mt-3">
-            <p className="font-medium">Vérifier la clé API:</p>
-            <p className="text-blue-700">
-              Assurez-vous que votre clé d'API est correcte et que l'intégration a les permissions nécessaires.
-            </p>
-          </div>
-        )}
-        
-        {showMockMode && (
-          <div className="mt-3">
-            <p className="font-medium">Activer le mode démonstration:</p>
-            <p className="text-blue-700">
-              Pour tester l'application sans connexion à Notion, activez le mode démonstration.
-            </p>
-          </div>
-        )}
-        
-        {(!errorType || errorType === 'network' || errorType === 'cors') && (
-          <>
-            <p>Problème de connexion détecté. Essayez de :</p>
-            <ul className="list-disc list-inside pl-2 space-y-1 text-blue-700">
-              <li>Vérifier votre connexion internet</li>
-              <li>Activer le mode de démonstration temporairement</li>
-              <li>Utiliser un proxy CORS pour les requêtes</li>
-            </ul>
-            
-            <div className="flex items-center gap-2 mt-2">
-              <Code size={14} className="text-blue-500" />
-              <a 
-                href="https://developers.notion.com/docs/getting-started" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline inline-flex items-center gap-1"
-              >
-                Documentation Notion <ExternalLink size={12} />
-              </a>
+    <div className="space-y-4">
+      {showApiKey && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <Key className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-lg mb-1">Problème de clé API</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Si vous rencontrez des erreurs d'authentification, votre clé API pourrait être invalide ou expirée.
+                </p>
+                <Button variant="outline" size="sm">
+                  Vérifier la clé API
+                </Button>
+              </div>
             </div>
-          </>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {showCorsProxy && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <Globe className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-lg mb-1">Problème de proxy CORS</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Les erreurs CORS peuvent empêcher la connexion à l'API Notion depuis votre navigateur.
+                </p>
+                <Button variant="outline" size="sm">
+                  Configurer le proxy CORS
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {showMockMode && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <Database className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-lg mb-1">Utiliser le mode démo</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Si vous ne pouvez pas configurer Notion, vous pouvez utiliser le mode démo pour tester l'application.
+                </p>
+                <Button variant="outline" size="sm">
+                  Activer le mode démo
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

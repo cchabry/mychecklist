@@ -1,45 +1,75 @@
 
-import React from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { notionDiagnostic } from '@/lib/notion/diagnosticHelper';
 
 export interface NotionDiagnosticReportProps {
-  results?: {
-    success: boolean;
-    message: string;
-    details?: string;
-    items?: Array<{
-      name: string;
-      status: 'success' | 'error' | 'warning' | 'info';
-      message: string;
-    }>;
-  };
-  showDetails?: boolean;
   buttonLabel?: string;
   buttonClassName?: string;
+  showDetails?: boolean;
   onDiagnosticComplete?: (success: boolean) => void;
 }
 
 const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({ 
-  results, 
-  showDetails = false,
-  buttonLabel = "Détails techniques",
+  buttonLabel = "Diagnostic Notion",
   buttonClassName = "",
+  showDetails = false,
   onDiagnosticComplete
 }) => {
-  const [isOpen, setIsOpen] = React.useState(showDetails);
+  const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState<any>(null);
+  const [isOpen, setIsOpen] = useState(showDetails);
+  
+  const runDiagnostic = async () => {
+    setIsLoading(true);
+    
+    try {
+      const diagnosticResults = await notionDiagnostic.runFullDiagnostic();
+      setResults(diagnosticResults);
+      
+      if (onDiagnosticComplete) {
+        onDiagnosticComplete(diagnosticResults.success);
+      }
+    } catch (error) {
+      setResults({
+        success: false,
+        message: "Erreur lors du diagnostic",
+        details: error.message
+      });
+      
+      if (onDiagnosticComplete) {
+        onDiagnosticComplete(false);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   if (!results) {
-    return null;
+    return (
+      <Button 
+        variant="outline" 
+        onClick={runDiagnostic} 
+        disabled={isLoading}
+        className={`gap-2 ${buttonClassName}`}
+      >
+        {isLoading ? (
+          <>
+            <Activity className="h-4 w-4 animate-spin" />
+            Diagnostic en cours...
+          </>
+        ) : (
+          <>
+            <Activity className="h-4 w-4" />
+            {buttonLabel}
+          </>
+        )}
+      </Button>
+    );
   }
   
   const { success, message, details, items } = results;
-  
-  // Appel du callback si présent
-  React.useEffect(() => {
-    if (results && onDiagnosticComplete) {
-      onDiagnosticComplete(success);
-    }
-  }, [results, onDiagnosticComplete, success]);
   
   return (
     <div className={`rounded-lg border ${success ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'} p-4 mb-4`}>
@@ -59,30 +89,30 @@ const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({
           
           {(details || (items && items.length > 0)) && (
             <button
-              className={`mt-2 flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 ${buttonClassName}`}
+              className="mt-2 flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800"
               onClick={() => setIsOpen(!isOpen)}
             >
               {isOpen ? (
                 <>
                   <ChevronUp size={14} />
-                  Masquer les {buttonLabel.toLowerCase()}
+                  Masquer les détails
                 </>
               ) : (
                 <>
                   <ChevronDown size={14} />
-                  Afficher les {buttonLabel.toLowerCase()}
+                  Afficher les détails
                 </>
               )}
             </button>
           )}
           
-          {isOpen && (
+          {isOpen && details && (
             <div className="mt-3 text-sm">
-              {details && (
-                <div className="p-2 bg-white bg-opacity-50 rounded border border-gray-200 mb-2 whitespace-pre-wrap font-mono text-xs">
-                  {details}
-                </div>
-              )}
+              <div className="p-2 bg-white bg-opacity-50 rounded border border-gray-200 mb-2 whitespace-pre-wrap font-mono text-xs">
+                {typeof details === 'object' 
+                  ? JSON.stringify(details, null, 2) 
+                  : details}
+              </div>
               
               {items && items.length > 0 && (
                 <ul className="space-y-2">
@@ -104,6 +134,28 @@ const NotionDiagnosticReport: React.FC<NotionDiagnosticReportProps> = ({
               )}
             </div>
           )}
+          
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runDiagnostic}
+              disabled={isLoading}
+              className="gap-1"
+            >
+              {isLoading ? (
+                <>
+                  <Activity className="h-3 w-3 animate-spin" />
+                  Diagnostic en cours...
+                </>
+              ) : (
+                <>
+                  <Activity className="h-3 w-3" />
+                  Relancer le diagnostic
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

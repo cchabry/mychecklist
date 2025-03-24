@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { extractNotionDatabaseId } from '@/lib/notion';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
-import { InfoCircle, Database, Key, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Info, Database, Key, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
 
@@ -72,7 +72,7 @@ const NotionConfig: React.FC = () => {
         action: {
           label: 'Oui',
           onClick: () => {
-            operationMode.enableRealMode('Test après configuration Notion');
+            operationMode.enableRealMode();
             testConnection();
           }
         }
@@ -159,7 +159,7 @@ const NotionConfig: React.FC = () => {
       
       // Passer en mode réel si le test a réussi
       if (isDemoMode) {
-        operationMode.enableRealMode('Test de connexion réussi');
+        operationMode.enableRealMode();
       }
       
     } catch (error) {
@@ -169,8 +169,7 @@ const NotionConfig: React.FC = () => {
       
       // Signaler l'erreur
       operationMode.handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)),
-        'Test de connexion Notion'
+        error instanceof Error ? error : new Error(String(error))
       );
     } finally {
       setIsTesting(false);
@@ -192,7 +191,7 @@ const NotionConfig: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {isDemoMode && (
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <AlertTitle className="text-amber-800">Mode démonstration actif</AlertTitle>
             <AlertDescription className="text-amber-700">
@@ -203,7 +202,7 @@ const NotionConfig: React.FC = () => {
         
         {lastSaved && (
           <div className="text-xs text-muted-foreground flex items-center">
-            <InfoCircle className="h-3 w-3 mr-1" />
+            <Info className="h-3 w-3 mr-1" />
             Dernière configuration: {lastSaved}
           </div>
         )}
@@ -260,8 +259,8 @@ const NotionConfig: React.FC = () => {
           </p>
         </div>
         
-        <Alert className="bg-blue-50 border-blue-200">
-          <InfoCircle className="h-4 w-4 text-blue-500" />
+        <Alert>
+          <Info className="h-4 w-4 text-blue-500" />
           <AlertDescription className="text-blue-700">
             N'oubliez pas de partager votre(s) base(s) de données avec votre intégration Notion.
           </AlertDescription>
