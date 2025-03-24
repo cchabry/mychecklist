@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +7,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { extractNotionDatabaseId } from '@/lib/notion';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
-import { Info, Database, Key, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Info, Database, Key, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
+import NotionDatabaseDiscovery from '../NotionDatabaseDiscovery';
 
 /**
  * Composant de configuration Notion pour la page de configuration
@@ -21,6 +21,7 @@ const NotionConfig: React.FC = () => {
   const [checklistsDbId, setChecklistsDbId] = useState(localStorage.getItem('notion_checklists_database_id') || '');
   const [isTesting, setIsTesting] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [showDatabaseDiscovery, setShowDatabaseDiscovery] = useState(false);
   const { isDemoMode } = useOperationMode();
 
   // Charger la date de dernière configuration
@@ -181,6 +182,17 @@ const NotionConfig: React.FC = () => {
     setter(url);
   };
 
+  const handleDiscoveryOpen = () => {
+    if (!apiKey) {
+      toast.error("Veuillez d'abord saisir une clé API Notion", {
+        description: "Une clé API est nécessaire pour découvrir les bases de données"
+      });
+      return;
+    }
+    
+    setShowDatabaseDiscovery(true);
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -223,6 +235,18 @@ const NotionConfig: React.FC = () => {
           <p className="text-xs text-muted-foreground">
             Créez une intégration dans <a href="https://www.notion.so/my-integrations" className="text-primary underline" target="_blank" rel="noopener noreferrer">Notion Developer</a> pour obtenir une clé API.
           </p>
+        </div>
+        
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1.5"
+            onClick={handleDiscoveryOpen}
+          >
+            <Search className="h-4 w-4" />
+            Découverte BDD Notion
+          </Button>
         </div>
         
         <div className="space-y-2">
@@ -296,6 +320,12 @@ const NotionConfig: React.FC = () => {
           Sauvegarder
         </Button>
       </CardFooter>
+      
+      <NotionDatabaseDiscovery 
+        open={showDatabaseDiscovery} 
+        onOpenChange={setShowDatabaseDiscovery}
+        apiKey={apiKey}
+      />
     </Card>
   );
 };
