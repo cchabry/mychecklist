@@ -1,5 +1,5 @@
 
-import { OperationMode } from '@/services/operationMode';
+import { OperationMode } from '@/services/operationMode/types';
 import { operationMode } from '@/services/operationMode';
 
 /**

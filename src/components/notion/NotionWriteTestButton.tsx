@@ -4,12 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RotateCw, Check, XCircle, AlertTriangle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
-import { 
-  prepareRealModeTest, 
-  createTestPageData, 
-  enrichWithRequiredProperties, 
-  NotionCreateData 
-} from '@/utils/notionWriteTest';
+import { operationMode } from '@/services/operationMode';
 
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
@@ -42,28 +37,34 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
     setTestStatus('idle');
     
     try {
-      // Forcer le mode réel pour ce test
-      prepareRealModeTest();
+      // Désactiver temporairement le mode démo pour ce test
+      const wasDemoMode = operationMode.isDemoMode;
+      if (wasDemoMode) {
+        operationMode.enableRealMode();
+      }
       
       // Créer un objet de test avec un timestamp pour garantir l'unicité
       const timestamp = new Date().toISOString();
       const testTitle = `Test d'écriture ${timestamp}`;
+      const testData = {
+        parent: { database_id: dbId },
+        properties: {
+          "Name": { 
+            title: [{ text: { content: testTitle } }] 
+          },
+          "URL": { 
+            url: "https://example.com/test" 
+          },
+          "Description": { 
+            rich_text: [{ text: { content: "Page créée pour tester l'API Notion" } }] 
+          }
+        }
+      };
       
       console.log(`📝 Tentative d'écriture dans Notion: "${testTitle}"`);
-      console.log(`📝 Utilisation de la base de données: "${dbId}"`);
-      console.log(`📝 Utilisation de la clé API: "${apiKey.substring(0, 8)}..."`);
-      
-      // Créer les données de test de base
-      let createData = createTestPageData(timestamp);
-      createData.parent.database_id = dbId;
-      
-      // Enrichir avec les propriétés requises
-      createData = await enrichWithRequiredProperties(createData, dbId, apiKey);
-      
-      console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
       
       // Tenter de créer la page
-      const response = await notionApi.pages.create(createData, apiKey);
+      const response = await notionApi.pages.create(testData, apiKey);
       
       if (response && response.id) {
         console.log('✅ Test d\'écriture réussi! ID de la page créée:', response.id);
@@ -97,6 +98,11 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       } else {
         throw new Error('La création a échoué (pas d\'ID retourné)');
       }
+      
+      // Restaurer le mode démo si nécessaire
+      if (wasDemoMode) {
+        operationMode.enableDemoMode("Restauration après test d'écriture");
+      }
     } catch (error) {
       console.error('❌ Test d\'écriture Notion échoué:', error);
       
@@ -127,14 +133,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       
       toast.error(errorMessage, {
         description: errorDescription,
-        duration: 8000,
-        action: {
-          label: 'Réinitialiser',
-          onClick: () => {
-            notionApi.mockMode.forceReset();
-            setTimeout(() => window.location.reload(), 500);
-          }
-        }
+        duration: 8000
       });
     } finally {
       setIsTesting(false);
