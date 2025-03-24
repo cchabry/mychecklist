@@ -1,139 +1,148 @@
-
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Database, 
-  BookOpen, 
-  Home, 
-  Plus, 
-  Settings, 
-  AlertTriangle, 
-  XCircle, 
-  Info, 
-  DatabaseIcon
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { toast } from 'sonner';
-import { useOperationMode } from '@/services/operationMode';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Home, Menu, TestTube, Database, FileCode, Beaker, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
   DialogDescription,
-  DialogFooter 
-} from './ui/dialog';
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { NotionTestDataGenerator } from '@/components/notion';
+import { useState } from 'react';
+import OperationModeControl from './OperationModeControl';
 
-const Header = () => {
-  const navigate = useNavigate();
-  const [showVersionInfo, setShowVersionInfo] = useState(false);
-  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
-
-  const handleNavigateTo = (path: string) => {
-    navigate(path);
-  };
-
-  const toggleDemoMode = () => {
-    if (isDemoMode) {
-      enableRealMode();
-      toast.success('Mode réel activé');
-    } else {
-      enableDemoMode('Activé manuellement via l\'interface');
-      toast.success('Mode démonstration activé');
-    }
-  };
-
+const Header: React.FC = () => {
+  const location = useLocation();
+  const [showTestGenerator, setShowTestGenerator] = useState(false);
+  
   return (
-    <header className="bg-slate-800 text-white shadow-lg">
-      <div className="container mx-auto flex flex-wrap justify-between items-center px-4 py-3">
-        {/* Logo et titre */}
-        <div className="flex items-center space-x-2">
-          <Link to="/" className="flex items-center space-x-2">
-            <Database size={24} className="text-primary" />
-            <h1 className="text-xl font-bold">AccessScan</h1>
-          </Link>
-          <span className="text-xs bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">
-            Beta
-          </span>
-        </div>
+    <header className="w-full bg-[#eeeeee]/90 backdrop-blur-lg border-b border-border sticky top-0 z-10 transition-all duration-300">
+      <div className="container flex items-center justify-between h-16 px-4 mx-auto">
+        <Link 
+          to="/" 
+          className="flex items-center transition-opacity duration-300 hover:opacity-80"
+        >
+          <img 
+            src="/lovable-uploads/466bc6e6-4040-4ea7-a953-45cf731a6d91.png" 
+            alt="myChecklist Logo" 
+            className="h-8 w-auto" 
+          />
+        </Link>
         
-        {/* Navigation principale */}
-        <nav className="hidden md:flex items-center space-x-1 flex-grow justify-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-white hover:text-primary hover:bg-slate-700"
-            onClick={() => handleNavigateTo('/')}
-          >
-            <Home size={18} className="mr-1" />
-            Dashboard
-          </Button>
+        <div className="flex items-center space-x-4">
+          {/* Utilisation de OperationModeControl */}
+          <OperationModeControl simplified />
+          
+          {location.pathname !== "/" && (
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/" className="transition-all duration-300 hover:text-tmw-teal">
+                <Home size={20} />
+              </Link>
+            </Button>
+          )}
           
           <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-white hover:text-primary hover:bg-slate-700"
-            onClick={() => handleNavigateTo('/new-project')}
+            variant="outline" 
+            size="icon" 
+            className="text-amber-600 border-amber-200 hover:bg-amber-50"
+            onClick={() => setShowTestGenerator(true)}
+            title="Générer des données de test"
           >
-            <Plus size={18} className="mr-1" />
-            Nouveau projet
+            <Beaker size={20} />
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-white hover:text-primary hover:bg-slate-700"
-            onClick={() => handleNavigateTo('/checklist')}
-          >
-            <BookOpen size={18} className="mr-1" />
-            Checklist
-          </Button>
-        </nav>
-        
-        {/* Boutons de configuration */}
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant={isDemoMode ? "default" : "outline"} 
-            size="sm" 
-            className={isDemoMode ? "bg-amber-600 hover:bg-amber-700" : "text-gray-300 border-gray-600 hover:text-white"}
-            onClick={toggleDemoMode}
-          >
-            {isDemoMode ? 'Mode démo actif' : 'Mode réel'}
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/create-databases" className="transition-all duration-300">
+              <Database size={20} />
+            </Link>
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-white hover:text-primary hover:bg-slate-700"
-            onClick={() => handleNavigateTo('/config')}
-          >
-            <Settings size={18} />
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/config" className="transition-all duration-300">
+              <Settings size={20} />
+            </Link>
           </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Menu size={20} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to="/diagnostics" className="flex items-center gap-2">
+                  <TestTube size={16} />
+                  <span>Diagnostics Notion</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/create-databases" className="flex items-center gap-2">
+                  <Database size={16} />
+                  <span>Créer les 8 BDD</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/" className="flex items-center gap-2" onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('notion-config-button')?.click();
+                }}>
+                  <Database size={16} />
+                  <span>Configurer Notion</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="flex items-center gap-2"
+                onClick={() => setShowTestGenerator(true)}
+              >
+                <Beaker size={16} />
+                <span>Générer données de test</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/config" className="flex items-center gap-2">
+                  <Settings size={16} />
+                  <span>Paramètres du mode opérationnel</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <a 
+                  href="/scriptsNotion.md" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-2"
+                >
+                  <FileCode size={16} />
+                  <span>Documentation Script Notion</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
-      {/* Dialogue d'information simplifiée */}
-      <Dialog open={showVersionInfo} onOpenChange={setShowVersionInfo}>
-        <DialogContent>
+      <Dialog open={showTestGenerator} onOpenChange={setShowTestGenerator}>
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Information sur l'application</DialogTitle>
+            <DialogTitle>Générateur de données de test Notion</DialogTitle>
             <DialogDescription>
-              Version Beta
+              Création et insertion des données de test dans les bases de données Notion
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Fonctionnalités incluses:</p>
-              <ul className="text-sm list-disc pl-5 space-y-1">
-                <li>Système de gestion des modes de fonctionnement</li>
-                <li>Test d'écriture Notion fonctionnel</li>
-                <li>Interface améliorée et plus informative</li>
-              </ul>
-            </div>
+          <div className="flex-1 overflow-y-auto">
+            <NotionTestDataGenerator onClose={() => setShowTestGenerator(false)} />
           </div>
-          <DialogFooter>
-            <Button onClick={() => setShowVersionInfo(false)}>Fermer</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </header>

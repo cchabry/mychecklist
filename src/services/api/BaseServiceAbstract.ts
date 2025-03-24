@@ -17,7 +17,6 @@ export interface ServiceOptions {
 export abstract class BaseServiceAbstract<T> {
   protected entityType: string;
   protected options: ServiceOptions;
-  private cachePrefix: string;
   
   constructor(entityType: string, options: ServiceOptions = {}) {
     this.entityType = entityType;
@@ -26,7 +25,6 @@ export abstract class BaseServiceAbstract<T> {
       allowCaching: true,
       ...options
     };
-    this.cachePrefix = `cache_${entityType}_`;
   }
   
   /**
@@ -99,30 +97,6 @@ export abstract class BaseServiceAbstract<T> {
   invalidateList(): void {
     // Méthode vide par défaut, à surcharger si besoin
     console.log(`Cache invalidé pour ${this.entityType}`);
-  }
-  
-  /**
-   * Vide complètement le cache de ce service
-   */
-  clearCache(): void {
-    try {
-      // Supprimer toutes les entrées de cache qui commencent par le préfixe
-      const keysToRemove = [];
-      
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(this.cachePrefix)) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      // Supprimer les clés
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      console.log(`Cache vidé pour ${this.entityType} (${keysToRemove.length} entrées)`);
-    } catch (error) {
-      console.error(`Erreur lors du vidage du cache pour ${this.entityType}:`, error);
-    }
   }
   
   /**

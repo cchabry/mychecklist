@@ -12,8 +12,8 @@ export const operationModeUtils = {
   async applySimulatedDelay(): Promise<void> {
     if (!operationMode.isDemoMode) return;
     
-    // Délai fixe simplifié
-    const delay = 300;
+    const settings = operationMode.getSettings();
+    const delay = settings.simulatedNetworkDelay || 300;
     
     if (delay > 0) {
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -24,8 +24,16 @@ export const operationModeUtils = {
    * Vérifie s'il faut simuler une erreur en fonction du taux configuré
    */
   shouldSimulateError(): boolean {
-    // Désactivé pour éviter les comportements aléatoires
-    return false;
+    if (!operationMode.isDemoMode) return false;
+    
+    const settings = operationMode.getSettings();
+    const errorRate = settings.errorSimulationRate || 0;
+    
+    if (errorRate <= 0) return false;
+    
+    // Générer un nombre aléatoire entre 0 et 100
+    const random = Math.random() * 100;
+    return random < errorRate;
   },
   
   /**
@@ -33,13 +41,31 @@ export const operationModeUtils = {
    */
   simulateConnectionError(): never {
     const errorMessages = [
-      "Erreur réseau simulée: impossible de se connecter au serveur"
+      "Erreur réseau simulée: impossible de se connecter au serveur",
+      "Temps d'attente dépassé pour la requête simulée",
+      "Erreur d'authentification simulée: accès refusé",
+      "Erreur de serveur simulée: service temporairement indisponible",
+      "Erreur de quota API simulée: limite de requêtes atteinte"
     ];
     
     // Choisir un message d'erreur aléatoire
-    const errorMessage = errorMessages[0];
+    const errorMessage = errorMessages[Math.floor(Math.random() * errorMessages.length)];
     
     throw new Error(`[ERREUR SIMULÉE] ${errorMessage}`);
+  },
+  
+  /**
+   * Récupère un scénario de démonstration pour un contexte donné
+   * (pour la compatibilité avec l'ancien système)
+   */
+  getScenario(context: string): any {
+    return {
+      context,
+      isDemo: true,
+      data: {
+        message: "Données de démonstration générées pour " + context
+      }
+    };
   },
   
   /**
@@ -58,17 +84,26 @@ export const operationModeUtils = {
   
   /**
    * Vérifie si un basculement automatique vers le mode démo est recommandé
-   * Désactivé pour éviter le basculement automatique
    */
-  shouldSuggestDemoMode(): boolean {
-    return false;
+  shouldSuggestDemoMode(currentFailures: number): boolean {
+    // Si on a déjà plusieurs échecs mais pas assez pour un basculement automatique
+    const settings = operationMode.getSettings();
+    const threshold = settings.maxConsecutiveFailures - 1;
+    
+    return currentFailures >= 2 && currentFailures === threshold;
   },
   
   /**
    * Suggère d'activer le mode démo après des erreurs répétées
-   * Simplifié pour ne pas suggérer automatiquement
    */
   suggestDemoMode(): void {
-    // Ne suggère plus automatiquement
+    toast.info('Problèmes de connexion détectés', {
+      description: 'Souhaitez-vous activer le mode démonstration?',
+      action: {
+        label: 'Activer',
+        onClick: () => operationMode.enableDemoMode('Activé suite à une suggestion')
+      },
+      duration: 8000
+    });
   }
 };

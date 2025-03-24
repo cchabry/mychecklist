@@ -1,457 +1,208 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { extractNotionDatabaseId } from '@/lib/notion';
-import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { configureNotion, extractNotionDatabaseId } from '@/lib/notion';
 import { notionApi } from '@/lib/notionProxy';
-import { Info, Database, Key, RefreshCw, AlertTriangle, Search } from 'lucide-react';
-import { useOperationMode } from '@/services/operationMode';
-import { operationMode } from '@/services/operationMode';
-import NotionDatabaseDiscovery from '@/components/notion/NotionDatabaseDiscovery';
-import type { NotionDatabaseTarget } from '@/components/notion/NotionDatabaseDiscovery';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import NotionErrorDetails from './NotionErrorDetails';
+import NotionConfigForm from './NotionConfigForm';
+import { isOAuthToken, isIntegrationKey } from '@/lib/notionProxy/config';
 
-interface DatabaseConfig {
-  id: string;
-  key: string;
-  label: string;
-  description: string;
-  required: boolean;
+interface NotionConfigProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
 }
 
-/**
- * Composant de configuration Notion pour la page de configuration
- */
-const NotionConfig: React.FC = () => {
-  const [apiKey, setApiKey] = useState(localStorage.getItem('notion_api_key') || '');
-  const [databaseConfigs, setDatabaseConfigs] = useState<Record<NotionDatabaseTarget, string>>({
-    projects: localStorage.getItem('notion_database_id') || '',
-    checklists: localStorage.getItem('notion_checklists_database_id') || '',
-    exigences: localStorage.getItem('notion_exigences_database_id') || '',
-    pages: localStorage.getItem('notion_pages_database_id') || '',
-    audits: localStorage.getItem('notion_audits_database_id') || '',
-    evaluations: localStorage.getItem('notion_evaluations_database_id') || '',
-    actions: localStorage.getItem('notion_actions_database_id') || '',
-    progress: localStorage.getItem('notion_progress_database_id') || ''
-  });
+const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess }) => {
+  const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [errorContext, setErrorContext] = useState<string>('');
+  const [initialApiKey, setInitialApiKey] = useState<string>('');
+  const [initialProjectsDbId, setInitialProjectsDbId] = useState<string>('');
+  const [initialChecklistsDbId, setInitialChecklistsDbId] = useState<string>('');
   
-  const [activeTab, setActiveTab] = useState<string>('core');
-  const [isTesting, setIsTesting] = useState(false);
-  const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [showDatabaseDiscovery, setShowDatabaseDiscovery] = useState(false);
-  const { isDemoMode } = useOperationMode();
-
-  const DATABASE_DEFINITIONS: Record<string, DatabaseConfig[]> = {
-    core: [
-      { 
-        id: 'projects', 
-        key: 'notion_database_id',
-        label: 'Base de données Projets', 
-        description: 'Contient les informations sur les sites web à auditer',
-        required: true
-      },
-      { 
-        id: 'checklists', 
-        key: 'notion_checklists_database_id',
-        label: 'Base de données Checklists', 
-        description: 'Référentiel de bonnes pratiques servant de critères d\'évaluation',
-        required: false
-      }
-    ],
-    advanced: [
-      { 
-        id: 'exigences', 
-        key: 'notion_exigences_database_id',
-        label: 'Base de données Exigences', 
-        description: 'Bonnes pratiques retenues pour un projet spécifique',
-        required: false
-      },
-      { 
-        id: 'pages', 
-        key: 'notion_pages_database_id',
-        label: 'Base de données Pages', 
-        description: 'Échantillon de pages à auditer pour chaque projet',
-        required: false
-      },
-      { 
-        id: 'audits', 
-        key: 'notion_audits_database_id',
-        label: 'Base de données Audits', 
-        description: 'Informations générales sur les audits réalisés',
-        required: false
-      },
-      { 
-        id: 'evaluations', 
-        key: 'notion_evaluations_database_id',
-        label: 'Base de données Évaluations', 
-        description: 'Résultats d\'évaluation pour chaque page et exigence',
-        required: false
-      },
-      { 
-        id: 'actions', 
-        key: 'notion_actions_database_id',
-        label: 'Base de données Actions correctives', 
-        description: 'Actions correctives à réaliser suite aux évaluations',
-        required: false
-      },
-      { 
-        id: 'progress', 
-        key: 'notion_progress_database_id',
-        label: 'Base de données Progrès', 
-        description: 'Suivi de l\'avancement des actions correctives',
-        required: false
-      }
-    ]
-  };
-
+  // Charger les valeurs sauvegardées dès que le composant est monté
   useEffect(() => {
-    const lastConfigDate = localStorage.getItem('notion_last_config_date');
-    if (lastConfigDate) {
-      try {
-        const date = new Date(lastConfigDate);
-        setLastSaved(date.toLocaleString());
-      } catch (e) {
-        console.error('Erreur de format de date:', e);
-      }
-    }
+    const savedApiKey = localStorage.getItem('notion_api_key') || '';
+    const savedProjectsDbId = localStorage.getItem('notion_database_id') || '';
+    const savedChecklistsDbId = localStorage.getItem('notion_checklists_database_id') || '';
+    
+    setInitialApiKey(savedApiKey);
+    setInitialProjectsDbId(savedProjectsDbId);
+    setInitialChecklistsDbId(savedChecklistsDbId);
   }, []);
+  
+  // Recharger les valeurs quand le modal s'ouvre
+  useEffect(() => {
+    if (isOpen) {
+      const savedApiKey = localStorage.getItem('notion_api_key') || '';
+      const savedProjectsDbId = localStorage.getItem('notion_database_id') || '';
+      const savedChecklistsDbId = localStorage.getItem('notion_checklists_database_id') || '';
+      
+      setInitialApiKey(savedApiKey);
+      setInitialProjectsDbId(savedProjectsDbId);
+      setInitialChecklistsDbId(savedChecklistsDbId);
+      
+      console.log('📝 Modal Notion ouverte, chargement des valeurs:', {
+        apiKey: savedApiKey ? `${savedApiKey.substring(0, 8)}...` : 'vide',
+        projectsDbId: savedProjectsDbId || 'vide',
+        checklistsDbId: savedChecklistsDbId || 'vide'
+      });
 
-  const saveConfig = () => {
-    if (!apiKey.trim()) {
-      toast.error('La clé API est requise');
-      return;
+      setError('');
+      setErrorContext('');
     }
-    
-    if (!databaseConfigs.projects.trim()) {
-      toast.error('L\'ID de base de données de projets est requis');
-      return;
-    }
-    
-    localStorage.setItem('notion_api_key', apiKey);
-    
-    Object.entries(databaseConfigs).forEach(([dbType, dbId]) => {
-      const storageKey = dbType === 'projects' 
-        ? 'notion_database_id' 
-        : `notion_${dbType}_database_id`;
-      
-      const cleanDbId = extractNotionDatabaseId(dbId);
-      
-      if (cleanDbId) {
-        localStorage.setItem(storageKey, cleanDbId);
-      } else {
-        localStorage.removeItem(storageKey);
-      }
-    });
-    
-    localStorage.setItem('notion_last_config_date', new Date().toISOString());
-    setLastSaved(new Date().toLocaleString());
-    
-    if (isDemoMode) {
-      toast.success('Configuration Notion sauvegardée', {
-        description: 'Souhaitez-vous essayer de passer en mode réel?',
-        action: {
-          label: 'Oui',
-          onClick: () => {
-            operationMode.enableRealMode();
-            testConnection();
-          }
-        }
-      });
-    } else {
-      toast.success('Configuration Notion sauvegardée');
-      testConnection();
-    }
-  };
+  }, [isOpen]);
   
-  const resetConfig = () => {
-    setApiKey('');
+  const handleFormSubmit = async (apiKey: string, projectsDbId: string, checklistsDbId: string) => {
+    setError('');
+    setErrorContext('');
     
-    const emptyConfigs = Object.keys(databaseConfigs).reduce(
-      (acc, key) => ({ ...acc, [key]: '' }), 
-      {} as Record<NotionDatabaseTarget, string>
-    );
-    setDatabaseConfigs(emptyConfigs);
-    
-    localStorage.removeItem('notion_api_key');
-    localStorage.removeItem('notion_database_id');
-    
-    Object.keys(databaseConfigs).forEach(dbType => {
-      if (dbType !== 'projects') {
-        localStorage.removeItem(`notion_${dbType}_database_id`);
-      }
-    });
-    
-    localStorage.removeItem('notion_last_config_date');
-    
-    setLastSaved(null);
-    
-    toast.info('Configuration Notion réinitialisée');
-  };
-  
-  const testConnection = async () => {
     if (!apiKey) {
-      toast.error('Clé API manquante', {
-        description: 'Veuillez renseigner une clé API pour tester la connexion'
-      });
+      setError('La clé API est requise');
       return;
     }
     
-    setIsTesting(true);
+    if (!isOAuthToken(apiKey) && !isIntegrationKey(apiKey)) {
+      setError('Format de clé API invalide');
+      setErrorContext('La clé doit commencer par "secret_" (intégration) ou "ntn_" (OAuth)');
+      return;
+    }
+    
+    const cleanProjectsDbId = extractNotionDatabaseId(projectsDbId);
+    if (!cleanProjectsDbId) {
+      setError('ID de base de données Projets invalide');
+      return;
+    }
+    
+    const cleanChecklistsDbId = checklistsDbId ? extractNotionDatabaseId(checklistsDbId) : '';
+    
+    console.log('🧹 Using database IDs:', {
+      projects: cleanProjectsDbId,
+      checklists: cleanChecklistsDbId || '(non fourni)'
+    });
+    
+    console.log('💾 Valeurs préparées pour la sauvegarde:', {
+      apiKey: `${apiKey.substring(0, 8)}...`,
+      projectsDbId: cleanProjectsDbId,
+      checklistsDbId: cleanChecklistsDbId || '(non fourni)',
+      tokenType: isOAuthToken(apiKey) ? 'OAuth (ntn_)' : 'Integration (secret_)'
+    });
+    
+    if (notionApi.mockMode.isActive()) {
+      console.log('🔄 Désactivation du mode mock avant test de connexion');
+      notionApi.mockMode.deactivate();
+    }
     
     try {
-      const wasMockMode = notionApi.mockMode.isActive();
-      if (wasMockMode) {
-        notionApi.mockMode.temporarilyForceReal();
-      }
+      console.log('🔄 Testing connection to Notion API with key:', apiKey.substring(0, 9) + '...');
       
-      const userResponse = await notionApi.users.me(apiKey);
+      configureNotion(apiKey, cleanProjectsDbId, cleanChecklistsDbId);
       
-      const dbTestResults: {id: string, name: string, success: boolean, error?: string}[] = [];
+      const user = await notionApi.users.me(apiKey);
+      console.log('✅ Notion API connection successful via proxy, user:', user.name);
       
-      for (const [dbType, dbId] of Object.entries(databaseConfigs)) {
-        if (!dbId) continue;
+      try {
+        console.log('🔄 Testing projects database access for ID:', cleanProjectsDbId);
+        const dbResponse = await notionApi.databases.retrieve(cleanProjectsDbId, apiKey);
+        console.log('✅ Projects database access successful via proxy:', dbResponse.title?.[0]?.plain_text || cleanProjectsDbId);
         
-        const cleanDbId = extractNotionDatabaseId(dbId);
-        if (!cleanDbId) continue;
-        
-        try {
-          const dbResponse = await notionApi.databases.retrieve(cleanDbId, apiKey);
-          const dbName = dbResponse.title?.[0]?.plain_text || 'Base de données';
-          
-          dbTestResults.push({
-            id: dbType,
-            name: dbName,
-            success: true
-          });
-        } catch (dbError: any) {
-          dbTestResults.push({
-            id: dbType,
-            name: `Base de données ${dbType}`,
-            success: false,
-            error: dbError.message || 'Erreur d\'accès à la base de données'
-          });
+        if (cleanChecklistsDbId) {
+          try {
+            console.log('🔄 Testing checklists database access for ID:', cleanChecklistsDbId);
+            const checklistDbResponse = await notionApi.databases.retrieve(cleanChecklistsDbId, apiKey);
+            console.log('✅ Checklists database access successful via proxy:', checklistDbResponse.title?.[0]?.plain_text || cleanChecklistsDbId);
+          } catch (checklistDbError) {
+            console.error('❌ Checklists database access failed:', checklistDbError);
+            setError('Erreur d\'accès à la base de données des checklists: ' + (checklistDbError.message || 'Vérifiez l\'ID'));
+            setErrorContext('Vérifiez que votre intégration a été ajoutée à la base de données des checklists dans Notion');
+            return;
+          }
         }
-      }
-      
-      const successCount = dbTestResults.filter(r => r.success).length;
-      const totalTests = dbTestResults.length;
-      
-      if (totalTests > 0) {
-        if (successCount === totalTests) {
-          toast.success(`Connexion réussie à toutes les bases de données (${successCount}/${totalTests})`, {
-            description: `Connecté en tant que ${userResponse.name}`
-          });
+      } catch (dbError) {
+        console.error('❌ Projects database access failed:', dbError);
+        
+        if (dbError.message?.includes('404') || dbError.message?.includes('not_found')) {
+          setError('Base de données des projets introuvable: ' + (dbError.message || 'Vérifiez l\'ID'));
+          setErrorContext('L\'ID de base de données fourni n\'existe pas ou n\'est pas accessible');
         } else {
-          toast.warning(`Connexion partielle aux bases de données (${successCount}/${totalTests})`, {
-            description: `Certaines bases de données ne sont pas accessibles`
-          });
-          
-          dbTestResults.filter(r => !r.success).forEach(result => {
-            toast.error(`Erreur d'accès: ${result.name}`, {
-              description: result.error
-            });
-          });
+          setError('Erreur d\'accès à la base de données des projets: ' + (dbError.message || 'Vérifiez l\'ID et les permissions'));
+          setErrorContext('Vérifiez que votre intégration a été ajoutée à la base de données dans Notion');
         }
-      } else {
-        toast.success('Connexion à l\'API Notion réussie', {
-          description: `Connecté en tant que ${userResponse.name}`
-        });
+        throw dbError;
       }
       
-      if (isDemoMode) {
-        operationMode.enableRealMode();
-      }
-      
-    } catch (error: any) {
-      toast.error('Erreur de connexion à Notion', {
-        description: error.message || 'Vérifiez votre clé API'
+      toast.success('Configuration Notion réussie', {
+        description: 'L\'intégration avec Notion est maintenant active'
       });
       
-      operationMode.handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)),
-        'Test connexion Notion'
-      );
-    } finally {
-      setIsTesting(false);
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (connectionError) {
+      console.error('❌ Connection test failed:', connectionError);
+      
+      if (connectionError.message?.includes('401') || connectionError.message?.includes('authentication')) {
+        setError('Erreur d\'authentification: Clé API invalide');
+        setErrorContext('Vérifiez que vous utilisez une clé d\'intégration valide et que votre intégration est correctement configurée');
+      } else if (connectionError.message?.includes('Failed to fetch')) {
+        setError('Échec de la connexion à Notion: ' + connectionError.message);
+        setErrorContext('Problème de connexion au proxy - Vérifiez que le proxy Vercel est correctement déployé');
+        
+        notionApi.mockMode.activate();
+        toast.warning('Mode démonstration activé', {
+          description: 'Impossible de se connecter à l\'API Notion. L\'application utilisera des données de test.'
+        });
+        
+        if (onSuccess) onSuccess();
+        
+        setShowErrorDetails(true);
+      } else {
+        setError('Échec de la connexion à Notion: ' + (connectionError.message || 'Vérifiez votre clé API'));
+        setErrorContext('Test de connexion à l\'API Notion');
+      }
     }
   };
   
-  const handleDatabaseUrlChange = (dbId: NotionDatabaseTarget, value: string) => {
-    setDatabaseConfigs(prev => ({
-      ...prev,
-      [dbId]: value
-    }));
-  };
-
-  const handleDiscoveryOpen = () => {
-    if (!apiKey) {
-      toast.error("Veuillez d'abord saisir une clé API Notion", {
-        description: "Une clé API est nécessaire pour découvrir les bases de données"
-      });
-      return;
-    }
-    
-    setShowDatabaseDiscovery(true);
-  };
-
-  const handleSelectDatabase = (id: string, target: NotionDatabaseTarget) => {
-    const cleanId = extractNotionDatabaseId(id);
-    
-    setDatabaseConfigs(prev => ({
-      ...prev,
-      [target]: cleanId
-    }));
-    
-    toast.success(`ID de base "${target}" mis à jour`, {
-      description: "N'oubliez pas d'enregistrer la configuration"
-    });
-  };
-
-  const renderDatabaseFields = (tabId: string) => {
-    return DATABASE_DEFINITIONS[tabId]?.map(db => (
-      <div key={db.id} className="space-y-2">
-        <Label htmlFor={db.id} className="flex items-center gap-1.5">
-          <Database className="h-4 w-4 text-muted-foreground" />
-          {db.label} {db.required && <span className="text-red-500">*</span>}
-        </Label>
-        <Input
-          id={db.id}
-          placeholder="ID ou URL de la base de données"
-          value={databaseConfigs[db.id as NotionDatabaseTarget] || ''}
-          onChange={(e) => handleDatabaseUrlChange(db.id as NotionDatabaseTarget, e.target.value)}
-          className="font-mono text-sm"
-        />
-        <p className="text-xs text-muted-foreground">
-          {db.description}
-        </p>
-      </div>
-    ));
-  };
-
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Configuration Notion</CardTitle>
-        <CardDescription>
-          Paramètres de connexion à vos bases Notion
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isDemoMode && (
-          <Alert variant="destructive" className="bg-amber-50 border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">Mode démonstration actif</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              L'application est en mode démonstration. Configurez Notion pour utiliser vos données réelles.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {lastSaved && (
-          <div className="text-xs text-muted-foreground flex items-center">
-            <Info className="h-3 w-3 mr-1" />
-            Dernière configuration: {lastSaved}
-          </div>
-        )}
-        
-        <div className="space-y-2">
-          <Label htmlFor="apiKey" className="flex items-center gap-1.5">
-            <Key className="h-4 w-4 text-muted-foreground" />
-            Clé API Notion
-          </Label>
-          <Input
-            id="apiKey"
-            type="password"
-            placeholder="secret_..."
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="font-mono text-sm"
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Configuration Notion</DialogTitle>
+            <DialogDescription>
+              Connectez vos bases de données Notion pour synchroniser vos audits
+            </DialogDescription>
+          </DialogHeader>
+          
+          {notionApi.mockMode.isActive() && (
+            <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mb-4">
+              <p className="text-sm text-amber-700 font-medium">
+                Mode démonstration actuellement actif
+              </p>
+              <p className="text-xs text-amber-600 mt-1">
+                En configurant Notion, vous tenterez de désactiver le mode démonstration.
+              </p>
+            </div>
+          )}
+          
+          <NotionConfigForm 
+            onSubmit={handleFormSubmit}
+            onCancel={onClose}
+            initialApiKey={initialApiKey}
+            initialProjectsDbId={initialProjectsDbId}
+            initialChecklistsDbId={initialChecklistsDbId}
           />
-          <p className="text-xs text-muted-foreground">
-            Créez une intégration dans <a href="https://www.notion.so/my-integrations" className="text-primary underline" target="_blank" rel="noopener noreferrer">Notion Developer</a> pour obtenir une clé API.
-          </p>
-        </div>
-        
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-1.5"
-            onClick={handleDiscoveryOpen}
-          >
-            <Search className="h-4 w-4" />
-            Découverte BDD Notion
-          </Button>
-        </div>
-        
-        <Separator className="my-4" />
-        
-        <Tabs defaultValue="core" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="core">Bases principales</TabsTrigger>
-            <TabsTrigger value="advanced">Bases avancées</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="core" className="space-y-4">
-            {renderDatabaseFields('core')}
-          </TabsContent>
-          
-          <TabsContent value="advanced" className="space-y-4">
-            {renderDatabaseFields('advanced')}
-          </TabsContent>
-        </Tabs>
-        
-        <Alert>
-          <Info className="h-4 w-4 text-blue-500" />
-          <AlertDescription className="text-blue-700">
-            N'oubliez pas de partager vos bases de données avec votre intégration Notion.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={resetConfig}>
-            Réinitialiser
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            onClick={testConnection} 
-            disabled={isTesting}
-            className="gap-1"
-          >
-            {isTesting ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Test en cours...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4" />
-                Tester la connexion
-              </>
-            )}
-          </Button>
-        </div>
-        
-        <Button onClick={saveConfig} disabled={isTesting}>
-          Sauvegarder
-        </Button>
-      </CardFooter>
+        </DialogContent>
+      </Dialog>
       
-      <NotionDatabaseDiscovery 
-        open={showDatabaseDiscovery} 
-        onOpenChange={setShowDatabaseDiscovery}
-        apiKey={apiKey}
-        onSelectDatabase={handleSelectDatabase}
-        autoClose={false}
+      <NotionErrorDetails
+        isOpen={showErrorDetails}
+        onClose={() => setShowErrorDetails(false)}
+        error={error}
+        context={errorContext}
       />
-    </Card>
+    </>
   );
 };
 

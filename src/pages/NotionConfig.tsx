@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Header from '@/components/Header';
-import { NotionConfigForm } from '@/components/notion';
+import { NotionConfig as NotionConfigComponent } from '@/components/notion';
 
 const NotionConfigPage: React.FC = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(true);
@@ -16,9 +16,14 @@ const NotionConfigPage: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6">
-        <NotionConfigForm 
+        <NotionConfigComponent 
           isOpen={isConfigOpen} 
-          onClose={handleClose} 
+          onClose={handleClose}
+          onSuccess={() => {
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 500);
+          }}
         />
       </main>
     </div>

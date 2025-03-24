@@ -1,20 +1,20 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { useOperationMode } from '@/services/operationMode';
+import { useOperationModeListener } from '@/hooks/useOperationModeListener';
 
 /**
  * Composant temporaire pour remplacer l'ancien MockModeToggle
  * (à remplacer par OperationModeControl)
  */
 const MockModeToggle = () => {
-  const { isDemoMode, toggle } = useOperationMode();
+  const { isDemoMode, toggleMode } = useOperationModeListener();
   
   return (
     <Button 
       variant="outline"
       size="sm"
-      onClick={toggle}
+      onClick={() => toggleMode()}
       className="text-xs"
     >
       {isDemoMode ? 'Mode Démo' : 'Mode Réel'}

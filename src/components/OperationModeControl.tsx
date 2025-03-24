@@ -1,9 +1,11 @@
 
 import React from 'react';
+import { useOperationModeListener } from '@/hooks/useOperationModeListener';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Database, Layers, Activity, Settings, Info, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { operationMode } from '@/services/operationMode';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOperationMode } from '@/services/operationMode';
 
@@ -23,10 +25,11 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
   compact = false,
   simplified = false // Add default value
 }) => {
-  const { isDemoMode, toggle, failures, lastError, switchReason } = useOperationMode();
+  const { isDemoMode, toggleMode } = useOperationModeListener();
+  const { failures, lastError, switchReason } = useOperationMode();
   
   const handleToggle = () => {
-    toggle();
+    toggleMode();
     if (onToggle) onToggle();
   };
   
@@ -175,3 +178,4 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
 };
 
 export default OperationModeControl;
+

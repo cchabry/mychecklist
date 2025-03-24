@@ -38,8 +38,7 @@ export const mockMode = {
    * Force la réinitialisation du mode mock
    */
   forceReset(): void {
-    // Remplacer setDemoMode par enableRealMode pour réinitialiser
-    operationMode.enableRealMode();
+    operationMode.setDemoMode(false);
     operationMode.reset();
   },
   
@@ -47,8 +46,8 @@ export const mockMode = {
    * Persiste le mode mock
    */
   persist(): void {
-    // Suppression de la propriété non définie persistentModeStorage
-    operationMode.updateSettings({});
+    // Rien à faire, operationMode s'en charge
+    operationMode.updateSettings({ persistentModeStorage: true });
   },
   
   /**
@@ -79,8 +78,7 @@ export const mockMode = {
    */
   restoreAfterForceReal(restore: boolean = true): void {
     if (restore) {
-      // Remplacer setDemoMode par enableDemoMode
-      operationMode.enableDemoMode("Restauration après forçage");
+      operationMode.setDemoMode(true);
     }
   }
 };

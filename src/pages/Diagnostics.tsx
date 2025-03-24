@@ -29,8 +29,7 @@ const Diagnostics = () => {
             </CardHeader>
             <CardContent>
               <NotionConfigForm 
-                isOpen={true}
-                onClose={() => {}}
+                onSubmit={() => {}} 
                 onCancel={() => {}}
               />
             </CardContent>

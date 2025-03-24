@@ -1,94 +1,27 @@
 
 import { operationMode } from '@/services/operationMode';
-import { OperationMode } from '@/services/operationMode/types';
 
 /**
- * Gestionnaire de mode mock pour les requêtes Notion
+ * Re-export le mockMode depuis le nouveau chemin (pour compatibilité)
+ * @deprecated Utilisez operationMode depuis services/operationMode à la place
  */
 export const mockMode = {
-  /**
-   * Vérifie si le mode mock est actif
-   */
-  isActive(): boolean {
-    return operationMode.isDemoMode;
-  },
-  
-  /**
-   * Active le mode mock
-   */
-  activate(): void {
-    operationMode.enableDemoMode("Activé manuellement via mockMode");
-  },
-  
-  /**
-   * Désactive le mode mock
-   */
-  deactivate(): void {
-    operationMode.enableRealMode();
-  },
-  
-  /**
-   * Bascule entre les modes mock et réel
-   */
-  toggle(): void {
-    operationMode.toggle();
-  },
-  
-  /**
-   * Force la réinitialisation du mode
-   */
-  forceReset(): void {
+  isActive: () => operationMode.isDemoMode,
+  activate: () => operationMode.enableDemoMode('Activé via ancien API mockMode'),
+  deactivate: () => operationMode.enableRealMode(),
+  toggle: () => operationMode.toggle(),
+  forceReset: () => {
+    operationMode.setDemoMode(false);
     operationMode.reset();
   },
-  
-  /**
-   * Persiste la configuration dans le localStorage
-   */
-  persist(): void {
-    // Mise à jour des paramètres
-    operationMode.updateSettings({
-      mode: operationMode.isDemoMode ? OperationMode.DEMO : OperationMode.REAL
-    });
-  },
-  
-  /**
-   * Met à jour la configuration
-   */
-  updateConfig(config: any): void {
-    operationMode.updateSettings({
-      mode: config.enabled ? OperationMode.DEMO : OperationMode.REAL
-    });
-  },
-  
-  /**
-   * Force temporairement le mode réel
-   */
-  temporarilyForceReal(): void {
-    localStorage.setItem('notion_force_real', 'true');
-  },
-  
-  /**
-   * Vérifie si le mode réel est temporairement forcé
-   */
-  isTemporarilyForcedReal(reset = false): boolean {
-    const isForced = localStorage.getItem('notion_force_real') === 'true';
-    
-    if (reset && isForced) {
-      localStorage.removeItem('notion_force_real');
-    }
-    
-    return isForced;
-  },
-  
-  /**
-   * Restaure le mode après avoir forcé temporairement le mode réel
-   */
-  restoreAfterForceReal(restore = false): void {
-    if (restore) {
-      localStorage.removeItem('notion_force_real');
-      if (operationMode.isDemoMode) {
-        operationMode.enableDemoMode("Restauration après forçage temporaire du mode réel");
-      }
-    }
+  persist: () => operationMode.updateSettings({ persistentModeStorage: true }),
+  updateConfig: () => console.warn('[DEPRECATED] mockMode.updateConfig is deprecated and has no effect'),
+  temporarilyForceReal: () => operationMode.enableRealMode(),
+  isTemporarilyForcedReal: () => false,
+  restoreAfterForceReal: (restore = true) => {
+    if (restore) operationMode.setDemoMode(true);
   }
 };
+
+// Export par défaut pour la compatibilité
+export default mockMode;

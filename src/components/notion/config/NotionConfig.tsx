@@ -11,11 +11,11 @@ import { notionApi } from '@/lib/notionProxy';
 import { Info, Database, Key, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
-import NotionDatabaseDiscovery from '../../notion/NotionDatabaseDiscovery';
-import type { NotionDatabaseTarget } from '../../notion/NotionDatabaseDiscovery';
+import NotionDatabaseDiscovery, { NotionDatabaseTarget } from '../NotionDatabaseDiscovery';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
+// Structure pour stocker les informations de chaque base de données
 interface DatabaseConfig {
   id: string;
   key: string;
@@ -46,6 +46,7 @@ const NotionConfig: React.FC = () => {
   const [showDatabaseDiscovery, setShowDatabaseDiscovery] = useState(false);
   const { isDemoMode } = useOperationMode();
 
+  // Définition des bases de données
   const DATABASE_DEFINITIONS: Record<string, DatabaseConfig[]> = {
     core: [
       { 
@@ -109,6 +110,7 @@ const NotionConfig: React.FC = () => {
     ]
   };
 
+  // Charger la date de dernière configuration
   useEffect(() => {
     const lastConfigDate = localStorage.getItem('notion_last_config_date');
     if (lastConfigDate) {
@@ -132,8 +134,10 @@ const NotionConfig: React.FC = () => {
       return;
     }
     
+    // Sauvegarder la clé API
     localStorage.setItem('notion_api_key', apiKey);
     
+    // Sauvegarder tous les IDs de base de données
     Object.entries(databaseConfigs).forEach(([dbType, dbId]) => {
       const storageKey = dbType === 'projects' 
         ? 'notion_database_id' 
@@ -148,9 +152,11 @@ const NotionConfig: React.FC = () => {
       }
     });
     
+    // Sauvegarder la date de configuration
     localStorage.setItem('notion_last_config_date', new Date().toISOString());
     setLastSaved(new Date().toLocaleString());
     
+    // Si en mode démo, demander à l'utilisateur s'il veut essayer le mode réel
     if (isDemoMode) {
       toast.success('Configuration Notion sauvegardée', {
         description: 'Souhaitez-vous essayer de passer en mode réel?',
@@ -169,14 +175,17 @@ const NotionConfig: React.FC = () => {
   };
   
   const resetConfig = () => {
+    // Réinitialiser la clé API
     setApiKey('');
     
+    // Réinitialiser tous les IDs de base de données
     const emptyConfigs = Object.keys(databaseConfigs).reduce(
       (acc, key) => ({ ...acc, [key]: '' }), 
       {} as Record<NotionDatabaseTarget, string>
     );
     setDatabaseConfigs(emptyConfigs);
     
+    // Supprimer toutes les entrées de localStorage
     localStorage.removeItem('notion_api_key');
     localStorage.removeItem('notion_database_id');
     
@@ -204,15 +213,19 @@ const NotionConfig: React.FC = () => {
     setIsTesting(true);
     
     try {
+      // Désactiver temporairement le mode mock pour le test
       const wasMockMode = notionApi.mockMode.isActive();
       if (wasMockMode) {
         notionApi.mockMode.temporarilyForceReal();
       }
       
+      // Tester la connexion à l'API
       const userResponse = await notionApi.users.me(apiKey);
       
+      // Tester l'accès aux bases de données configurées
       const dbTestResults: {id: string, name: string, success: boolean, error?: string}[] = [];
       
+      // Vérifier l'accès à chaque base de données configurée
       for (const [dbType, dbId] of Object.entries(databaseConfigs)) {
         if (!dbId) continue;
         
@@ -238,6 +251,7 @@ const NotionConfig: React.FC = () => {
         }
       }
       
+      // Afficher un récapitulatif des tests
       const successCount = dbTestResults.filter(r => r.success).length;
       const totalTests = dbTestResults.length;
       
@@ -251,6 +265,7 @@ const NotionConfig: React.FC = () => {
             description: `Certaines bases de données ne sont pas accessibles`
           });
           
+          // Afficher les erreurs pour chaque base de données en échec
           dbTestResults.filter(r => !r.success).forEach(result => {
             toast.error(`Erreur d'accès: ${result.name}`, {
               description: result.error
@@ -263,6 +278,7 @@ const NotionConfig: React.FC = () => {
         });
       }
       
+      // Passer en mode réel si le test a réussi
       if (isDemoMode) {
         operationMode.enableRealMode();
       }
@@ -272,9 +288,9 @@ const NotionConfig: React.FC = () => {
         description: error.message || 'Vérifiez votre clé API'
       });
       
+      // Signaler l'erreur
       operationMode.handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)),
-        'Test connexion Notion'
+        error instanceof Error ? error : new Error(String(error))
       );
     } finally {
       setIsTesting(false);
@@ -299,6 +315,7 @@ const NotionConfig: React.FC = () => {
     setShowDatabaseDiscovery(true);
   };
 
+  // Nouvelle fonction pour gérer la sélection d'une base de données
   const handleSelectDatabase = (id: string, target: NotionDatabaseTarget) => {
     const cleanId = extractNotionDatabaseId(id);
     
@@ -312,6 +329,7 @@ const NotionConfig: React.FC = () => {
     });
   };
 
+  // Rendu des champs de base de données selon l'onglet actif
   const renderDatabaseFields = (tabId: string) => {
     return DATABASE_DEFINITIONS[tabId]?.map(db => (
       <div key={db.id} className="space-y-2">

@@ -1,7 +1,6 @@
 
 import { toast } from 'sonner';
-import { OperationMode } from './index';
-import { operationMode } from './operationModeService';
+import { OperationMode } from './types';
 
 /**
  * Service de gestion des notifications pour le système operationMode
@@ -26,12 +25,20 @@ export const operationModeNotifications = {
 
   /**
    * Affiche une notification en cas de basculement automatique
-   * (Désactivé car nous préférons voir les erreurs)
    */
   showAutoSwitchNotification(failures: number): void {
-    toast.error('Plusieurs erreurs de connexion détectées', {
-      description: `${failures} tentatives de connexion ont échoué. Vérifiez la configuration et les erreurs.`,
+    toast.warning('Basculement automatique en mode démonstration', {
+      description: `Après ${failures} tentatives de connexion échouées, le mode démonstration a été activé automatiquement.`,
       duration: 6000,
+      action: {
+        label: 'Réessayer le mode réel',
+        onClick: () => {
+          // Import dynamique pour éviter les dépendances circulaires
+          import('./operationModeService').then(({ operationMode }) => {
+            operationMode.enableRealMode();
+          });
+        },
+      },
     });
   },
 
@@ -49,13 +56,16 @@ export const operationModeNotifications = {
    * Affiche une notification pour conseiller l'utilisation du mode démo
    */
   showSuggestDemoModeNotification(): void {
-    toast.info('Option disponible: mode démonstration', {
-      description: 'Vous pouvez activer le mode démonstration pour utiliser des données fictives.',
+    toast.info('Problème de connexion détecté', {
+      description: 'Souhaitez-vous activer le mode démonstration pour continuer à utiliser l\'application ?',
       duration: 10000,
       action: {
         label: 'Activer',
         onClick: () => {
-          operationMode.enableDemoMode('Activé manuellement');
+          // Import dynamique pour éviter les dépendances circulaires
+          import('./operationModeService').then(({ operationMode }) => {
+            operationMode.enableDemoMode('Activé suite à une suggestion après erreur');
+          });
         },
       },
     });

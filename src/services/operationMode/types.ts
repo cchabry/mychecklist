@@ -16,20 +16,26 @@ export type SwitchReason = string | null;
  * Paramètres du mode opérationnel
  */
 export interface OperationModeSettings {
-  // Mode opérationnel actuel
-  mode: OperationMode;
-  
   // Bascule automatique en mode démo après un certain nombre d'échecs
-  autoSwitchEnabled: boolean;
+  autoSwitchOnFailure: boolean;
   
   // Nombre d'échecs consécutifs avant basculement automatique
-  failuresThreshold: number;
+  maxConsecutiveFailures: number;
   
-  // Gestion des erreurs (auto ou manuel)
-  errorHandling: 'auto' | 'manual';
+  // Conserver le mode entre les sessions
+  persistentModeStorage: boolean;
   
-  // Basculer automatiquement en mode démo lors d'erreurs
-  autoSwitchOnErrors: boolean;
+  // Afficher les notifications de changement de mode
+  showNotifications: boolean;
+  
+  // Utiliser le cache en mode réel
+  useCacheInRealMode?: boolean;
+  
+  // Taux d'erreurs simulées en mode démo (pourcentage)
+  errorSimulationRate: number;
+  
+  // Délai réseau simulé en mode démo (ms)
+  simulatedNetworkDelay: number;
 }
 
 /**

@@ -1,3 +1,4 @@
+
 import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
 import { Audit } from '@/lib/types';
@@ -25,10 +26,10 @@ export const getAudits = async (): Promise<Audit[]> => {
 
   // Sinon, récupérer depuis Notion
   const apiKey = localStorage.getItem('notion_api_key');
-  const dbId = localStorage.getItem('notion_audits_database_id');
+  const dbId = localStorage.getItem('notion_audit_database_id');
 
   if (!apiKey || !dbId) {
-    throw new Error('Configuration Notion manquante pour les audits');
+    throw new Error('Configuration Notion manquante');
   }
 
   const response = await notionApiRequest(
@@ -76,59 +77,39 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
 
   // Sinon, créer dans Notion
   const apiKey = localStorage.getItem('notion_api_key');
-  const dbId = localStorage.getItem('notion_audits_database_id');
+  const dbId = localStorage.getItem('notion_audit_database_id');
   
   if (!apiKey || !dbId) {
-    throw new Error('Configuration Notion manquante pour les audits');
+    throw new Error('Configuration Notion manquante');
   }
 
-  console.log(`Création d'un audit dans Notion avec apiKey: ${apiKey.slice(0, 5)}... et dbId: ${dbId}`);
+  const properties = {
+    "Name": { title: [{ text: { content: data.name || `Audit du ${new Date().toLocaleDateString()}` } }] },
+    "ProjectId": { rich_text: [{ text: { content: data.projectId || '' } }] },
+    "Score": { number: 0 },
+    "Version": { rich_text: [{ text: { content: '1.0' } }] }
+  };
+  
+  const response = await notionApiRequest(
+    `/pages`,
+    'POST',
+    {
+      parent: { database_id: dbId },
+      properties
+    },
+    apiKey
+  );
 
-  try {
-    const properties = {
-      "Name": { title: [{ text: { content: data.name || `Audit du ${new Date().toLocaleDateString()}` } }] },
-      "ProjectId": { rich_text: [{ text: { content: data.projectId || '' } }] },
-      "Score": { number: 0 },
-      "Version": { rich_text: [{ text: { content: '1.0' } }] }
-    };
-    
-    const response = await notionApiRequest(
-      `/pages`,
-      'POST',
-      {
-        parent: { database_id: dbId },
-        properties
-      },
-      apiKey
-    );
-
-    console.log('Réponse de création d\'audit Notion:', response);
-
-    return {
-      id: response.id,
-      projectId: data.projectId || '',
-      name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
-      items: [],
-      createdAt: response.created_time,
-      updatedAt: response.last_edited_time,
-      score: 0,
-      version: '1.0'
-    };
-  } catch (error) {
-    console.error('Erreur lors de la création d\'un audit dans Notion:', error);
-    console.error('Détails:', error.message, error.stack);
-    
-    if (error.response) {
-      console.error('Réponse d\'erreur:', error.response);
-    }
-    
-    // Reformater le message d'erreur pour être plus informatif
-    const errorMessage = error.message.includes('Failed to fetch') 
-      ? 'Erreur de connexion à l\'API Notion (CORS)'
-      : `Erreur de création d'audit: ${error.message}`;
-    
-    throw new Error(errorMessage);
-  }
+  return {
+    id: response.id,
+    projectId: data.projectId || '',
+    name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
+    items: [],
+    createdAt: response.created_time,
+    updatedAt: response.last_edited_time,
+    score: 0,
+    version: '1.0'
+  };
 };
 
 /**
@@ -280,4 +261,3 @@ export const getAudit = async (id: string): Promise<Audit | null> => {
     return null;
   }
 };
-

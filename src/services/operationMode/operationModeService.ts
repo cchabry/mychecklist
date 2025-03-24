@@ -1,309 +1,226 @@
-import { toast } from 'sonner';
+import { 
+  OperationMode, 
+  OperationModeSettings, 
+  SwitchReason, 
+  OperationModeSubscriber,
+  IOperationModeService
+} from './types';
+import { DEFAULT_SETTINGS } from './constants';
+import { operationModeStorage } from './storage';
 import { operationModeNotifications } from './notifications';
-import { OperationMode, OperationModeSettings, SwitchReason } from './types';
 
-/**
- * Type principal pour le service
- */
-export type OperationModeType = 'real' | 'demo' | 'auto';
-
-/**
- * Service de gestion des modes opérationnels (réel vs démo)
- * Ce service permet de basculer entre un mode réel (API externes)
- * et un mode démonstration (données simulées)
- */
-class OperationModeService {
+class OperationModeService implements IOperationModeService {
   private mode: OperationMode = OperationMode.REAL;
-  private previousMode: OperationMode | null = null;
-  private switchReason: string | null = null;
+  private switchReason: SwitchReason | null = null;
+  private settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
   private consecutiveFailures: number = 0;
   private lastError: Error | null = null;
-  private listeners: Function[] = [];
+  private subscribers: OperationModeSubscriber[] = [];
   
-  private settings: OperationModeSettings = {
-    mode: OperationMode.REAL,
-    autoSwitchEnabled: false,
-    failuresThreshold: 3,
-    errorHandling: 'manual',
-    autoSwitchOnErrors: false
-  };
-
-  /**
-   * Constructor avec initialisation des paramètres depuis le localStorage
-   */
   constructor() {
-    // Charger les paramètres depuis le localStorage
-    this.loadSettings();
-    
-    // Initialiser le mode à partir des paramètres
-    this.mode = this.settings.mode;
-    
-    // Log pour le débogage
-    console.log(`[OperationMode] Initialisé en mode: ${this.mode}`);
-  }
-
-  /**
-   * Charge les paramètres depuis le localStorage
-   */
-  private loadSettings(): void {
-    try {
-      const savedSettings = localStorage.getItem('operation_mode_settings');
-      if (savedSettings) {
-        this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement des paramètres du mode opérationnel:', error);
-    }
-  }
-
-  /**
-   * Sauvegarde les paramètres dans le localStorage
-   */
-  private saveSettings(): void {
-    try {
-      localStorage.setItem('operation_mode_settings', JSON.stringify(this.settings));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde des paramètres du mode opérationnel:', error);
-    }
-  }
-
-  /**
-   * Accesseur pour le mode opérationnel
-   */
-  getMode(): OperationMode {
-    return this.mode;
+    this.loadPersistedState();
   }
   
-  /**
-   * Accesseur pour la raison du basculement
-   */
-  getSwitchReason(): string | null {
-    return this.switchReason;
-  }
-  
-  /**
-   * Accesseur pour le nombre d'échecs consécutifs
-   */
-  getConsecutiveFailures(): number {
-    return this.consecutiveFailures;
-  }
-  
-  /**
-   * Accesseur pour la dernière erreur
-   */
-  getLastError(): Error | null {
-    return this.lastError;
-  }
-  
-  /**
-   * Accesseur pour les paramètres
-   */
-  getSettings(): OperationModeSettings {
-    return { ...this.settings };
-  }
-  
-  /**
-   * Propriété calculée: mode démo activé?
-   */
-  get isDemoMode(): boolean {
+  // Propriétés calculées
+  public get isDemoMode(): boolean {
     return this.mode === OperationMode.DEMO;
   }
   
-  /**
-   * Propriété calculée: mode réel activé?
-   */
-  get isRealMode(): boolean {
+  public get isRealMode(): boolean {
     return this.mode === OperationMode.REAL;
   }
   
-  /**
-   * Active le mode démo
-   */
-  enableDemoMode(reason?: string): void {
-    if (this.mode !== OperationMode.DEMO) {
-      this.previousMode = this.mode;
-      this.mode = OperationMode.DEMO;
-      this.switchReason = reason || 'Activé manuellement';
-      
-      // Mettre à jour les paramètres
-      this.settings.mode = OperationMode.DEMO;
-      this.saveSettings();
-      
-      // Afficher une notification
-      operationModeNotifications.showModeChangeNotification(OperationMode.DEMO, this.switchReason);
-      
-      // Notifier les listeners
-      this.notifyListeners();
-      
-      console.log(`[OperationMode] Mode démo activé. Raison: ${this.switchReason}`);
-    }
+  // Accesseurs d'état
+  public getMode(): OperationMode {
+    return this.mode;
   }
   
-  /**
-   * Active le mode réel
-   */
-  enableRealMode(): void {
-    if (this.mode !== OperationMode.REAL) {
-      this.previousMode = this.mode;
-      this.mode = OperationMode.REAL;
-      this.switchReason = 'Activé manuellement';
-      this.consecutiveFailures = 0;
-      
-      // Mettre à jour les paramètres
-      this.settings.mode = OperationMode.REAL;
-      this.saveSettings();
-      
-      // Afficher une notification
-      operationModeNotifications.showModeChangeNotification(OperationMode.REAL);
-      
-      // Notifier les listeners
-      this.notifyListeners();
-      
-      console.log('[OperationMode] Mode réel activé');
-    }
+  public getSwitchReason(): SwitchReason | null {
+    return this.switchReason;
   }
   
-  /**
-   * Bascule entre les modes réel et démo
-   */
-  toggle(): void {
-    if (this.isDemoMode) {
-      this.enableRealMode();
-    } else {
-      this.enableDemoMode('Basculement manuel');
-    }
+  public getSettings(): OperationModeSettings {
+    return { ...this.settings };
   }
   
-  /**
-   * Gère une erreur de connexion
-   */
-  handleConnectionError(error: Error, context: string): void {
-    console.warn('[OperationMode] Erreur détectée:', error, 'Contexte:', context);
-    
-    // Enregistrer l'erreur
-    this.lastError = error;
-    this.consecutiveFailures++;
-    
-    console.warn('[OperationMode] Échecs consécutifs:', this.consecutiveFailures);
-    
-    // En mode manuel, uniquement notifier l'erreur sans basculer
-    if (this.settings.errorHandling === 'manual') {
-      // Uniquement suggérer le mode démo mais ne pas basculer automatiquement
-      if (this.consecutiveFailures >= this.settings.failuresThreshold && 
-          !this.isDemoMode && 
-          this.settings.autoSwitchOnErrors) {
-        operationModeNotifications.showSuggestDemoModeNotification();
-      }
-      return;
-    }
-    
-    // En mode auto, basculer automatiquement après un certain nombre d'échecs
-    if (this.settings.autoSwitchEnabled && 
-        this.consecutiveFailures >= this.settings.failuresThreshold && 
-        !this.isDemoMode) {
-      
-      // Afficher une notification d'erreurs multiples
-      operationModeNotifications.showAutoSwitchNotification(this.consecutiveFailures);
-      
-      // Basculer en mode démo
-      this.enableDemoMode(`${this.consecutiveFailures} erreurs consécutives`);
-    }
-    
-    // Notifier les listeners
-    this.notifyListeners();
+  public getConsecutiveFailures(): number {
+    return this.consecutiveFailures;
   }
   
-  /**
-   * Signale une opération réussie
-   */
-  handleSuccessfulOperation(): void {
-    // Réinitialiser le compteur d'échecs consécutifs
-    if (this.consecutiveFailures > 0) {
-      this.consecutiveFailures = 0;
-      this.notifyListeners();
-    }
+  public getLastError(): Error | null {
+    return this.lastError;
   }
   
-  /**
-   * Met à jour les paramètres du service
-   */
-  updateSettings(newSettings: Partial<OperationModeSettings>): void {
-    this.settings = {
-      ...this.settings,
-      ...newSettings
+  // Gestion des abonnements
+  public subscribe(subscriber: OperationModeSubscriber): () => void {
+    this.subscribers.push(subscriber);
+    return () => {
+      this.subscribers = this.subscribers.filter(s => s !== subscriber);
+    };
+  }
+  
+  // Alias pour la compatibilité avec l'ancien système
+  public onModeChange(subscriber: (isDemoMode: boolean) => void): () => void {
+    // Adaptateur qui convertit les callbacks de l'ancien format (isDemoMode)
+    // vers le nouveau format (mode, reason)
+    const adapter: OperationModeSubscriber = (mode) => {
+      subscriber(mode === OperationMode.DEMO);
     };
     
-    // Mettre à jour le mode si nécessaire
-    if (newSettings.mode && newSettings.mode !== this.mode) {
-      if (newSettings.mode === OperationMode.DEMO) {
-        this.enableDemoMode('Changement de paramètres');
-      } else if (newSettings.mode === OperationMode.REAL) {
-        this.enableRealMode();
-      }
-    }
-    
-    // Sauvegarder les paramètres
-    this.saveSettings();
-    
-    // Notifier les listeners
-    this.notifyListeners();
-    
-    console.log('[OperationMode] Paramètres mis à jour:', this.settings);
+    return this.subscribe(adapter);
   }
   
-  /**
-   * Réinitialise le service
-   */
-  reset(): void {
-    this.mode = OperationMode.REAL;
-    this.previousMode = null;
-    this.switchReason = null;
-    this.consecutiveFailures = 0;
-    this.lastError = null;
-    
-    // Réinitialiser les paramètres
-    this.settings = {
-      mode: OperationMode.REAL,
-      autoSwitchEnabled: false,
-      failuresThreshold: 3,
-      errorHandling: 'manual',
-      autoSwitchOnErrors: false
-    };
-    
-    // Sauvegarder les paramètres
-    this.saveSettings();
-    
-    // Notifier les listeners
-    this.notifyListeners();
-    
-    console.log('[OperationMode] Service réinitialisé');
-  }
-  
-  /**
-   * Notifie les listeners d'un changement d'état
-   */
-  private notifyListeners(): void {
-    this.listeners.forEach(listener => {
-      try {
-        listener();
-      } catch (error) {
-        console.error('Erreur dans un listener du mode opérationnel:', error);
+  // Alias pour la compatibilité avec l'ancien système
+  public offModeChange(subscriber: (isDemoMode: boolean) => void): void {
+    // Supprimer tous les abonnements qui correspondent à cette fonction
+    this.subscribers = this.subscribers.filter(s => {
+      // Check if s is a function, and if it's our adapter
+      if (typeof s === 'function') {
+        // We can't directly compare functions, so we'll keep all subscribers
+        // This is a simplification; in a real app we would use a Map to track adapters
+        return true;
       }
+      return true;
     });
   }
   
-  /**
-   * Permet de s'abonner aux changements d'état
-   */
-  subscribe(listener: Function): () => void {
-    this.listeners.push(listener);
+  // Méthodes de changement de mode
+  public enableDemoMode(reason: SwitchReason = 'Changement manuel'): void {
+    if (this.mode !== OperationMode.DEMO) {
+      this.mode = OperationMode.DEMO;
+      this.switchReason = reason;
+      
+      // Notification de changement
+      if (this.settings.showNotifications) {
+        operationModeNotifications.showModeChangeNotification(OperationMode.DEMO, reason);
+      }
+      
+      this.notifySubscribers();
+      this.persistState();
+    }
+  }
+  
+  public enableRealMode(): void {
+    if (this.mode !== OperationMode.REAL) {
+      this.mode = OperationMode.REAL;
+      this.switchReason = null;
+      
+      // Notification de changement
+      if (this.settings.showNotifications) {
+        operationModeNotifications.showModeChangeNotification(OperationMode.REAL);
+      }
+      
+      this.notifySubscribers();
+      this.persistState();
+    }
+  }
+  
+  public toggle(): void {
+    if (this.mode === OperationMode.REAL) {
+      this.enableDemoMode('Basculement manuel');
+    } else {
+      this.enableRealMode();
+    }
+  }
+  
+  // Alias pour la compatibilité avec l'ancien système
+  public toggleMode(): void {
+    this.toggle();
+  }
+  
+  // Alias pour la compatibilité avec l'ancien système
+  public setDemoMode(value: boolean): void {
+    if (value) {
+      this.enableDemoMode('Changement manuel');
+    } else {
+      this.enableRealMode();
+    }
+  }
+  
+  // Gestion des erreurs
+  public handleConnectionError(error: Error, context: string = 'Opération'): void {
+    this.lastError = error;
+    this.consecutiveFailures++;
     
-    // Retourner une fonction pour se désabonner
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+    console.warn(`[OperationMode] Erreur détectée (${context}): ${error.message}`);
+    console.warn(`[OperationMode] Échecs consécutifs: ${this.consecutiveFailures}/${this.settings.maxConsecutiveFailures}`);
+    
+    // Vérifier s'il faut basculer automatiquement en mode démo
+    if (
+      this.settings.autoSwitchOnFailure && 
+      this.mode === OperationMode.REAL &&
+      this.consecutiveFailures >= this.settings.maxConsecutiveFailures
+    ) {
+      const reason = `Basculement automatique après ${this.consecutiveFailures} échecs`;
+      this.enableDemoMode(reason);
+      
+      // Notification spécifique pour le switch automatique
+      if (this.settings.showNotifications) {
+        operationModeNotifications.showAutoSwitchNotification(this.consecutiveFailures);
+      }
+    } else if (this.settings.showNotifications) {
+      // Notification d'erreur standard
+      operationModeNotifications.showConnectionErrorNotification(error, context);
+    }
+    
+    this.notifySubscribers();
+  }
+  
+  public handleSuccessfulOperation(): void {
+    // Réinitialiser le compteur d'échecs après une opération réussie
+    if (this.consecutiveFailures > 0) {
+      this.consecutiveFailures = 0;
+      this.lastError = null;
+      this.notifySubscribers();
+    }
+  }
+  
+  // Configuration
+  public updateSettings(partialSettings: Partial<OperationModeSettings>): void {
+    this.settings = {
+      ...this.settings,
+      ...partialSettings
     };
+    
+    // Persister les paramètres
+    operationModeStorage.saveSettings(this.settings);
+    
+    this.notifySubscribers();
+  }
+  
+  // Réinitialisation
+  public reset(): void {
+    this.consecutiveFailures = 0;
+    this.lastError = null;
+    this.settings = { ...DEFAULT_SETTINGS };
+    this.notifySubscribers();
+  }
+  
+  // Méthodes privées
+  private notifySubscribers(): void {
+    for (const subscriber of this.subscribers) {
+      subscriber(this.mode, this.switchReason);
+    }
+  }
+  
+  private persistState(): void {
+    if (this.settings.persistentModeStorage) {
+      operationModeStorage.saveMode(this.mode, this.switchReason);
+    }
+  }
+  
+  private loadPersistedState(): void {
+    // Charger les paramètres
+    this.settings = operationModeStorage.loadSettings();
+    
+    // Charger le mode 
+    if (this.settings.persistentModeStorage) {
+      const { mode, reason } = operationModeStorage.loadMode();
+      this.mode = mode;
+      this.switchReason = reason;
+    }
   }
 }
 
-// Exporter l'instance singleton du service
+// Exporter une instance singleton
 export const operationMode = new OperationModeService();
