@@ -401,3 +401,32 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     throw error;
   }
 };
+
+// Fonction utilitaire pour transformer une page Notion en SamplePage
+export const processSamplePage = (notionPage: any, projectId: string, index: number = 0): import('@/lib/types').SamplePage => {
+  if (!notionPage) {
+    return {
+      id: `sample-${Date.now()}-${index}`,
+      projectId,
+      url: '',
+      title: `Page ${index + 1}`,
+      description: '',
+      order: index
+    };
+  }
+  
+  // Extraire les propriétés de la réponse Notion
+  const pageProperties = notionPage.properties || {};
+  
+  return {
+    id: notionPage.id,
+    projectId,
+    url: pageProperties.URL?.url || pageProperties.url?.url || '',
+    title: pageProperties.Title?.title?.[0]?.plain_text || 
+           pageProperties.title?.title?.[0]?.plain_text || 
+           `Page ${index + 1}`,
+    description: pageProperties.Description?.rich_text?.[0]?.plain_text || '',
+    order: pageProperties.Order?.number || index
+  };
+};
+
