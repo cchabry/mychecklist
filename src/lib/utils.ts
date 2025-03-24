@@ -46,3 +46,22 @@ export const cleanProjectId = (id: string | undefined): string => {
   // Return as is if we couldn't clean it
   return id;
 };
+
+/**
+ * Reset application state
+ * Clears localStorage and performs other cleanup
+ */
+export const resetApplicationState = () => {
+  try {
+    // Clear localStorage
+    localStorage.clear();
+    
+    // Reset any global state or cache as needed
+    console.log('Application state has been reset');
+    
+    // Reload the page to ensure a clean state
+    window.location.reload();
+  } catch (error) {
+    console.error('Error resetting application state:', error);
+  }
+};

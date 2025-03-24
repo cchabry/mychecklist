@@ -41,6 +41,8 @@ export const getProjectsFromNotion = async (): Promise<Project[]> => {
         progress: properties.Progress?.number || 0,
         createdAt: page.created_time,
         updatedAt: page.last_edited_time,
+        itemsCount: properties.ItemsCount?.number || 15,
+        pagesCount: properties.PagesCount?.number || 0
       };
     });
     
@@ -82,6 +84,8 @@ export const getProjectById = async (projectId: string): Promise<Project | null>
       progress: properties.Progress?.number || 0,
       createdAt: response.created_time,
       updatedAt: response.last_edited_time,
+      itemsCount: properties.ItemsCount?.number || 15,
+      pagesCount: properties.PagesCount?.number || 0
     };
     
     // Fetch the project's sample pages

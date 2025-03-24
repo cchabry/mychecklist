@@ -15,7 +15,7 @@ export async function getAllPages() {
     await operationModeUtils.applySimulatedDelay();
     
     // Return mock data
-    return mockData.getAllPages ? mockData.getAllPages() : mockData.pages;
+    return mockData.getPages ? mockData.getPages() : mockData.pages;
   }
   
   // In real mode, connect to Notion API
@@ -66,7 +66,7 @@ export async function getPage(pageId: string) {
  * Create a new sample page
  * @param data Page data
  */
-export async function createPage(data: Partial<SamplePage>) {
+export async function create(data: Partial<SamplePage>) {
   // Check if we're in mock mode
   if (operationMode.isDemoMode) {
     // Apply delay to simulate network request
@@ -99,7 +99,7 @@ export async function createPage(data: Partial<SamplePage>) {
  * @param pageId Page ID
  * @param data Update data
  */
-export async function updatePage(pageId: string, data: Partial<SamplePage>) {
+export async function update(pageId: string, data: Partial<SamplePage>) {
   // Check if we're in mock mode
   if (operationMode.isDemoMode) {
     // Apply delay to simulate network request

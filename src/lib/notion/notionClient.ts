@@ -1,6 +1,61 @@
 
 import { notionApi } from '../notionProxy';
 
+// Configuration data for Notion client
+type NotionConfig = {
+  apiKey: string | null;
+  dbId: string | null;
+  projectsDbId: string | null;
+  checklistsDbId: string | null;
+};
+
+// Create a singleton notionClient with methods to access configuration
+export const notionClient = {
+  getConfig(): NotionConfig {
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
+    const projectsDbId = localStorage.getItem('notion_database_id');
+    const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
+    
+    return { apiKey, dbId, projectsDbId, checklistsDbId };
+  },
+  
+  // Additional methods and configuration for the Notion client
+  databases: {
+    query: async (params: any) => {
+      const { apiKey } = notionClient.getConfig();
+      return await notionApi.databases.query(params.database_id, params, apiKey || undefined);
+    },
+    retrieve: async (databaseId: string) => {
+      const { apiKey } = notionClient.getConfig();
+      return await notionApi.databases.retrieve(databaseId, apiKey || undefined);
+    }
+  },
+  
+  pages: {
+    retrieve: async (params: any) => {
+      const { apiKey } = notionClient.getConfig();
+      return await notionApi.pages.retrieve(params.page_id, apiKey || undefined);
+    },
+    create: async (params: any) => {
+      const { apiKey } = notionClient.getConfig();
+      return await notionApi.pages.create(params, apiKey || undefined);
+    },
+    update: async (pageId: string, params: any) => {
+      const { apiKey } = notionClient.getConfig();
+      return await notionApi.pages.update(pageId, params, apiKey || undefined);
+    }
+  },
+  
+  users: {
+    me: async () => {
+      const { apiKey } = notionClient.getConfig();
+      if (!apiKey) return null;
+      return await notionApi.users.me(apiKey);
+    }
+  }
+};
+
 export const getNotionClient = () => {
   const apiKey = localStorage.getItem('notion_api_key');
   const dbId = localStorage.getItem('notion_database_id');
