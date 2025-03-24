@@ -218,3 +218,4 @@ export interface NotionConfig {
 
 // Compatibilité avec l'ancien type ComplianceLevel
 export type ComplianceLevel = ComplianceStatus;
+

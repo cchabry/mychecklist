@@ -20,6 +20,9 @@ export const getPageById = consolidatedMockData.getPage;
 export const createNewAudit = consolidatedMockData.createNewAudit;
 export const getMockAuditHistory = consolidatedMockData.getMockAuditHistory;
 export const getMockActionHistory = consolidatedMockData.getMockActionHistory;
+export const createSamplePage = consolidatedMockData.createSamplePage;
+export const updateSamplePage = consolidatedMockData.updateSamplePage;
+export const deleteSamplePage = consolidatedMockData.deleteSamplePage;
 
 // Par défaut, exporter la version consolidée
 export default consolidatedMockData;

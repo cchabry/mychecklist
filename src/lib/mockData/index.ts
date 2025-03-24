@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Project, 
@@ -73,9 +74,9 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     description: 'Toutes les images doivent avoir un texte alternatif',
     category: 'Accessibilité',
     subcategory: 'Images',
-    reference: 'RGAA 1.1',
+    reference: ['RGAA 1.1'],
     profile: 'Développeur',
-    phase: 'Développement',
+    phase: ['Développement'],
     effort: 'low',
     priority: 'high',
     consigne: 'Images accessibles',
@@ -90,9 +91,9 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     description: 'Le contraste entre le texte et le fond doit être suffisant',
     category: 'Accessibilité',
     subcategory: 'Couleurs',
-    reference: 'RGAA 3.2',
+    reference: ['RGAA 3.2'],
     profile: 'UX Designer',
-    phase: 'Conception',
+    phase: ['Conception'],
     effort: 'medium',
     priority: 'medium',
     consigne: 'Contraste des textes',
@@ -107,9 +108,9 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     description: 'Tous les champs de formulaire doivent avoir une étiquette',
     category: 'Accessibilité',
     subcategory: 'Formulaires',
-    reference: 'RGAA 11.1',
+    reference: ['RGAA 11.1'],
     profile: 'Développeur',
-    phase: 'Développement',
+    phase: ['Développement'],
     effort: 'low',
     priority: 'high',
     consigne: 'Formulaires avec étiquettes',
@@ -128,7 +129,9 @@ export const SAMPLE_PAGES: Page[] = [
     url: 'https://example.com/accueil',
     title: 'Page d\'accueil',
     description: 'Page d\'accueil du site',
-    order: 1
+    order: 1,
+    createdAt: '2023-01-15T10:30:00Z',
+    updatedAt: '2023-03-20T14:45:00Z'
   },
   {
     id: 'page_2',
@@ -136,7 +139,9 @@ export const SAMPLE_PAGES: Page[] = [
     url: 'https://example.com/contact',
     title: 'Contact',
     description: 'Formulaire de contact',
-    order: 2
+    order: 2,
+    createdAt: '2023-01-15T10:30:00Z',
+    updatedAt: '2023-03-20T14:45:00Z'
   },
   {
     id: 'page_3',
@@ -144,7 +149,9 @@ export const SAMPLE_PAGES: Page[] = [
     url: 'https://example.com/produits',
     title: 'Produits',
     description: 'Liste des produits',
-    order: 3
+    order: 3,
+    createdAt: '2023-01-15T10:30:00Z',
+    updatedAt: '2023-03-20T14:45:00Z'
   }
 ];
 
@@ -235,6 +242,7 @@ export const mockActions: CorrectiveAction[] = [
 export const getAllProjects = () => MOCK_PROJECTS;
 export const getProjectById = (id: string) => MOCK_PROJECTS.find(p => p.id === id);
 export const getPageById = (id: string) => SAMPLE_PAGES.find(p => p.id === id);
+export const getPagesByProjectId = (projectId: string) => SAMPLE_PAGES.filter(p => p.projectId === projectId);
 export const createNewAudit = (projectId: string) => ({
   id: `audit_${Date.now()}`,
   name: `Audit ${new Date().toLocaleDateString()}`,
@@ -248,6 +256,41 @@ export const createNewAudit = (projectId: string) => ({
 
 // Corriger l'erreur dans la méthode getAction
 export const getAction = (id: string) => mockActions.find(a => a.id === id);
+
+// Fonctions pour les pages
+export const createSamplePage = (data: Omit<Page, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const now = new Date().toISOString();
+  const newPage: Page = {
+    id: `page_${Date.now()}`,
+    ...data,
+    createdAt: now,
+    updatedAt: now
+  };
+  SAMPLE_PAGES.push(newPage);
+  return newPage;
+};
+
+export const updateSamplePage = (id: string, data: Partial<Page>) => {
+  const index = SAMPLE_PAGES.findIndex(p => p.id === id);
+  if (index >= 0) {
+    SAMPLE_PAGES[index] = { 
+      ...SAMPLE_PAGES[index], 
+      ...data, 
+      updatedAt: new Date().toISOString() 
+    };
+    return SAMPLE_PAGES[index];
+  }
+  return null;
+};
+
+export const deleteSamplePage = (id: string) => {
+  const index = SAMPLE_PAGES.findIndex(p => p.id === id);
+  if (index >= 0) {
+    const deleted = SAMPLE_PAGES.splice(index, 1)[0];
+    return { success: true, deleted };
+  }
+  return { success: false };
+};
 
 // Export une structure complète qui correspond à ce qui est attendu
 export const mockData = {
@@ -266,6 +309,7 @@ export const mockData = {
   getChecklistItem: (id: string) => CHECKLIST_ITEMS.find(i => i.id === id),
   getPages: () => SAMPLE_PAGES,
   getPage: getPageById,
+  getProjectPages: getPagesByProjectId,
   getExigences: () => mockExigences,
   getExigence: (id: string) => mockExigences.find(e => e.id === id),
   getEvaluations: () => mockEvaluations,
@@ -279,5 +323,9 @@ export const mockData = {
   deleteEvaluation: () => true,
   createAction: (data: any) => ({...data, id: `action_${uuidv4()}`}),
   updateAction: (id: string, data: any) => ({...mockActions.find(a => a.id === id), ...data}),
-  deleteAction: () => true
+  deleteAction: () => true,
+  createSamplePage,
+  updateSamplePage,
+  deleteSamplePage
 };
+
