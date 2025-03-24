@@ -1,5 +1,6 @@
 
-import { operationMode, OperationMode } from '@/services/operationMode';
+import { operationMode } from '@/services/operationMode';
+import { OperationMode } from '@/services/operationMode/types';
 
 /**
  * Gestionnaire de mode mock pour les requêtes Notion

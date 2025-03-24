@@ -1,19 +1,6 @@
-
 import { toast } from 'sonner';
-import { OperationMode } from './index';
 import { operationModeNotifications } from './notifications';
-
-/**
- * Type pour les paramètres du service
- */
-export interface OperationModeSettings {
-  mode: OperationMode;
-  autoSwitchEnabled: boolean;
-  failuresThreshold: number;
-  errorHandling: 'auto' | 'manual';
-  // Nouvelle option pour contrôler si on bascule automatiquement ou non
-  autoSwitchOnErrors: boolean;
-}
+import { OperationMode, OperationModeSettings, SwitchReason } from './types';
 
 /**
  * Type principal pour le service
