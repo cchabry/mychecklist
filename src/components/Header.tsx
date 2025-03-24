@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Menu, TestTube, Database, FileCode, Beaker, Settings } from 'lucide-react';
+import { Home, Menu, TestTube, Database, FileCode, Beaker, Settings, Tag } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,13 +9,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { NotionTestDataGenerator } from '@/components/notion';
 import { useState } from 'react';
 import OperationModeControl from './OperationModeControl';
@@ -24,19 +17,29 @@ const Header: React.FC = () => {
   const location = useLocation();
   const [showTestGenerator, setShowTestGenerator] = useState(false);
   
+  const version = document.documentElement.getAttribute('data-version') || 'DEV';
+  
   return (
     <header className="w-full bg-[#eeeeee]/90 backdrop-blur-lg border-b border-border sticky top-0 z-10 transition-all duration-300">
       <div className="container flex items-center justify-between h-16 px-4 mx-auto">
-        <Link 
-          to="/" 
-          className="flex items-center transition-opacity duration-300 hover:opacity-80"
-        >
-          <img 
-            src="/lovable-uploads/466bc6e6-4040-4ea7-a953-45cf731a6d91.png" 
-            alt="myChecklist Logo" 
-            className="h-8 w-auto" 
-          />
-        </Link>
+        <div className="flex items-center">
+          <Link 
+            to="/" 
+            className="flex items-center transition-opacity duration-300 hover:opacity-80"
+          >
+            <img 
+              src="/lovable-uploads/466bc6e6-4040-4ea7-a953-45cf731a6d91.png" 
+              alt="myChecklist Logo" 
+              className="h-8 w-auto" 
+            />
+            <span 
+              className="ml-2 text-xs text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded"
+            >
+              <Tag size={12} />
+              {version}
+            </span>
+          </Link>
+        </div>
         
         <div className="flex items-center space-x-4">
           {/* Utilisation de OperationModeControl */}
