@@ -1,17 +1,60 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { createGlobalState } from 'react-use';
+import { 
+  OperationMode, 
+  OperationModeSettings,
+  SwitchReason, 
+  OperationModeUtils
+} from './operationMode/types';
+import { DEFAULT_SETTINGS } from './operationMode/constants';
 
 export interface OperationModeState {
   isDemoMode: boolean;
   simulatedErrorRate: number;
   simulatedNetworkDelay: number;
+  switchReason: SwitchReason | null;
+  failures: number;
+  settings: OperationModeSettings;
+  mode: OperationMode;
 }
+
+const createGlobalState = <T>(initialState: T | (() => T)) => {
+  let state = typeof initialState === 'function' 
+    ? (initialState as () => T)() 
+    : initialState;
+  const listeners = new Set<(state: T) => void>();
+
+  return () => {
+    const [localState, setLocalState] = useState<T>(state);
+
+    useEffect(() => {
+      listeners.add(setLocalState);
+      return () => {
+        listeners.delete(setLocalState);
+      };
+    }, []);
+
+    const setState = (newState: T | ((prevState: T) => T)) => {
+      state = typeof newState === 'function'
+        ? (newState as (prevState: T) => T)(state)
+        : newState;
+      
+      listeners.forEach(listener => listener(state));
+      return state;
+    };
+
+    return [localState, setState] as const;
+  };
+};
 
 const DEFAULT_STATE: OperationModeState = {
   isDemoMode: true,
-  simulatedErrorRate: 20,
-  simulatedNetworkDelay: 800
+  simulatedErrorRate: DEFAULT_SETTINGS.errorSimulationRate,
+  simulatedNetworkDelay: DEFAULT_SETTINGS.simulatedNetworkDelay,
+  switchReason: null,
+  failures: 0,
+  settings: DEFAULT_SETTINGS,
+  mode: OperationMode.DEMO
 };
 
 // Créez un état global pour le mode de fonctionnement
@@ -33,6 +76,11 @@ class OperationModeService {
   private _errorRate: number = DEFAULT_STATE.simulatedErrorRate;
   private _networkDelay: number = DEFAULT_STATE.simulatedNetworkDelay;
   private _isDemoMode: boolean = DEFAULT_STATE.isDemoMode;
+  private _switchReason: SwitchReason | null = null;
+  private _failures: number = 0;
+  private _lastError: Error | null = null;
+  private _settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
+  private _subscribers: ((isDemoMode: boolean) => void)[] = [];
 
   // Getters et setters
   get simulatedErrorRate(): number {
@@ -51,6 +99,46 @@ class OperationModeService {
     return !this._isDemoMode;
   }
 
+  get switchReason(): SwitchReason | null {
+    return this._switchReason;
+  }
+
+  get failures(): number {
+    return this._failures;
+  }
+
+  get lastError(): Error | null {
+    return this._lastError;
+  }
+
+  get settings(): OperationModeSettings {
+    return { ...this._settings };
+  }
+
+  get mode(): OperationMode {
+    return this._isDemoMode ? OperationMode.DEMO : OperationMode.REAL;
+  }
+
+  getMode(): OperationMode {
+    return this.mode;
+  }
+
+  getSwitchReason(): SwitchReason | null {
+    return this._switchReason;
+  }
+
+  getSettings(): OperationModeSettings {
+    return { ...this._settings };
+  }
+
+  getConsecutiveFailures(): number {
+    return this._failures;
+  }
+
+  getLastError(): Error | null {
+    return this._lastError;
+  }
+
   setSimulatedErrorRate(rate: number): void {
     if (rate >= 0 && rate <= 100) {
       this._errorRate = rate;
@@ -67,32 +155,99 @@ class OperationModeService {
 
   enableDemoMode(reason: string = 'Changement manuel'): void {
     this._isDemoMode = true;
+    this._switchReason = reason;
     this.saveState();
+    this._notifySubscribers();
   }
 
   enableRealMode(): void {
     this._isDemoMode = false;
+    this._switchReason = null;
     this.saveState();
+    this._notifySubscribers();
+  }
+
+  toggle(): void {
+    if (this._isDemoMode) {
+      this.enableRealMode();
+    } else {
+      this.enableDemoMode('Basculement manuel');
+    }
   }
 
   toggleMode(): void {
-    this._isDemoMode = !this._isDemoMode;
-    this.saveState();
+    this.toggle();
+  }
+
+  setDemoMode(value: boolean): void {
+    if (value) {
+      this.enableDemoMode();
+    } else {
+      this.enableRealMode();
+    }
   }
 
   // Gestion des erreurs
   handleConnectionError(error: Error, context: string = 'Opération'): void {
+    this._lastError = error;
+    this._failures++;
+    
     console.warn(`[OperationMode] Erreur détectée (${context}): ${error.message}`);
+    
+    // Vérifier s'il faut basculer automatiquement en mode démo
+    if (
+      this._settings.autoSwitchOnFailure && 
+      !this._isDemoMode &&
+      this._failures >= this._settings.maxConsecutiveFailures
+    ) {
+      this.enableDemoMode(`Basculement automatique après ${this._failures} échecs`);
+    }
   }
 
   handleSuccessfulOperation(): void {
     // Réinitialiser après une opération réussie
+    if (this._failures > 0) {
+      this._failures = 0;
+      this._lastError = null;
+    }
+  }
+
+  updateSettings(partialSettings: Partial<OperationModeSettings>): void {
+    this._settings = {
+      ...this._settings,
+      ...partialSettings
+    };
+    this.saveState();
   }
 
   reset(): void {
     // Réinitialiser les paramètres
-    this._errorRate = DEFAULT_STATE.simulatedErrorRate;
-    this._networkDelay = DEFAULT_STATE.simulatedNetworkDelay;
+    this._errorRate = DEFAULT_SETTINGS.errorSimulationRate;
+    this._networkDelay = DEFAULT_SETTINGS.simulatedNetworkDelay;
+    this._failures = 0;
+    this._lastError = null;
+    this._settings = { ...DEFAULT_SETTINGS };
+  }
+
+  subscribe(subscriber: (isDemoMode: boolean) => void): () => void {
+    this._subscribers.push(subscriber);
+    return () => {
+      this._subscribers = this._subscribers.filter(s => s !== subscriber);
+    };
+  }
+
+  onModeChange(subscriber: (isDemoMode: boolean) => void): () => void {
+    return this.subscribe(subscriber);
+  }
+
+  offModeChange(subscriber: (isDemoMode: boolean) => void): void {
+    this._subscribers = this._subscribers.filter(s => s !== subscriber);
+  }
+
+  private _notifySubscribers(): void {
+    for (const subscriber of this._subscribers) {
+      subscriber(this._isDemoMode);
+    }
   }
 
   private saveState(): void {
@@ -100,7 +255,11 @@ class OperationModeService {
       localStorage.setItem('operationMode', JSON.stringify({
         isDemoMode: this._isDemoMode,
         simulatedErrorRate: this._errorRate,
-        simulatedNetworkDelay: this._networkDelay
+        simulatedNetworkDelay: this._networkDelay,
+        switchReason: this._switchReason,
+        failures: this._failures,
+        settings: this._settings,
+        mode: this.mode
       }));
     } catch (error) {
       console.error('Erreur lors de la sauvegarde du mode opérationnel:', error);
@@ -131,6 +290,9 @@ class OperationModeService {
         this._isDemoMode = state.isDemoMode;
         this._errorRate = state.simulatedErrorRate;
         this._networkDelay = state.simulatedNetworkDelay;
+        this._switchReason = state.switchReason || null;
+        this._failures = state.failures || 0;
+        this._settings = state.settings || { ...DEFAULT_SETTINGS };
       }
     } catch (error) {
       console.error('Erreur lors de l\'initialisation du mode opérationnel:', error);
@@ -142,7 +304,7 @@ class OperationModeService {
 export const operationMode = new OperationModeService();
 
 // Exportation de operationModeUtils pour compatibilité
-export const operationModeUtils = {
+export const operationModeUtils: OperationModeUtils = {
   applySimulatedDelay: async (): Promise<void> => {
     await operationMode.simulateNetworkDelay();
   },
@@ -162,10 +324,7 @@ export const operationModeUtils = {
 };
 
 // Exportation de l'énumération OperationMode
-export enum OperationMode {
-  DEMO = 'demo',
-  REAL = 'real'
-}
+export { OperationMode } from './operationMode/types';
 
 // Hook pour utiliser le mode opérationnel dans les composants
 export function useOperationMode() {
@@ -182,7 +341,7 @@ export function useOperationMode() {
     operationMode.setSimulatedNetworkDelay(state.simulatedNetworkDelay);
     if (state.isDemoMode !== operationMode.isDemoMode) {
       if (state.isDemoMode) {
-        operationMode.enableDemoMode();
+        operationMode.enableDemoMode(state.switchReason || undefined);
       } else {
         operationMode.enableRealMode();
       }
@@ -190,10 +349,12 @@ export function useOperationMode() {
   }, [state]);
   
   const toggle = useCallback(() => {
-    operationMode.toggleMode();
+    operationMode.toggle();
     setState(prev => ({
       ...prev,
-      isDemoMode: !prev.isDemoMode
+      isDemoMode: !prev.isDemoMode,
+      mode: !prev.isDemoMode ? OperationMode.DEMO : OperationMode.REAL,
+      switchReason: !prev.isDemoMode ? 'Basculement manuel' : null
     }));
   }, [setState]);
   
@@ -217,7 +378,9 @@ export function useOperationMode() {
     operationMode.enableDemoMode(reason);
     setState(prev => ({
       ...prev,
-      isDemoMode: true
+      isDemoMode: true,
+      mode: OperationMode.DEMO,
+      switchReason: reason
     }));
   }, [setState]);
   
@@ -225,7 +388,20 @@ export function useOperationMode() {
     operationMode.enableRealMode();
     setState(prev => ({
       ...prev,
-      isDemoMode: false
+      isDemoMode: false,
+      mode: OperationMode.REAL,
+      switchReason: null
+    }));
+  }, [setState]);
+
+  const updateSettings = useCallback((partialSettings: Partial<OperationModeSettings>) => {
+    operationMode.updateSettings(partialSettings);
+    setState(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        ...partialSettings
+      }
     }));
   }, [setState]);
 
@@ -233,21 +409,35 @@ export function useOperationMode() {
     operationMode.reset();
     setState(prev => ({
       ...prev,
-      simulatedErrorRate: DEFAULT_STATE.simulatedErrorRate,
-      simulatedNetworkDelay: DEFAULT_STATE.simulatedNetworkDelay
+      simulatedErrorRate: DEFAULT_SETTINGS.errorSimulationRate,
+      simulatedNetworkDelay: DEFAULT_SETTINGS.simulatedNetworkDelay,
+      failures: 0,
+      lastError: null,
+      settings: { ...DEFAULT_SETTINGS }
     }));
   }, [setState]);
   
   return {
+    // État
+    mode: state.mode || (state.isDemoMode ? OperationMode.DEMO : OperationMode.REAL),
+    switchReason: state.switchReason || operationMode.switchReason,
+    failures: state.failures || operationMode.failures,
+    lastError: state.lastError || operationMode.lastError,
+    settings: state.settings || operationMode.settings,
+    
+    // Propriétés calculées
     isDemoMode: state.isDemoMode,
     isRealMode: !state.isDemoMode,
     simulatedErrorRate: state.simulatedErrorRate,
     simulatedNetworkDelay: state.simulatedNetworkDelay,
+    
+    // Actions
     toggle,
     setErrorRate,
     setNetworkDelay,
     enableDemoMode,
     enableRealMode,
+    updateSettings,
     reset,
     handleConnectionError: operationMode.handleConnectionError.bind(operationMode),
     handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode)

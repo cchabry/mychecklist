@@ -42,7 +42,12 @@ const OperationModeStatusBadge: React.FC<OperationModeStatusBadgeProps> = ({
       <CloudOff size={iconSize} />
       {showLabel && <span className={textSize}>Mode démonstration</span>}
       {switchReason && (
-        <AlertTriangle size={iconSize} className="ml-1 text-amber-500" title={switchReason} />
+        <span 
+          className="ml-1 text-amber-500 cursor-help" 
+          aria-label={switchReason}
+        >
+          <AlertTriangle size={iconSize} />
+        </span>
       )}
     </Badge>
   );
