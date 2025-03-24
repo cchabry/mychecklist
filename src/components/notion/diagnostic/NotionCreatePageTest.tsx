@@ -1,142 +1,197 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { NotionCreatePageTestProps } from './types';
-import { notionApi } from '@/lib/notionProxy';
+import { notionApiRequest } from '@/lib/notionProxy/proxyFetch';
+import { Badge } from '@/components/ui/badge';
+import { Check, X, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import NotionTestResult from './NotionTestResult';
+import { consolidatedMockData } from '@/lib/mockData';
+import { operationMode } from '@/services/operationMode';
 
-const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ 
-  databaseId, 
-  onClose,
+interface NotionCreatePageTestProps {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+  smallVariant?: boolean;
+}
+
+/**
+ * Test de création d'une page Notion
+ */
+const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({
   onSuccess,
-  onError 
+  onError,
+  smallVariant = false
 }) => {
-  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-  const [details, setDetails] = useState<string | null>(null);
-  const [pageName, setPageName] = useState('Test Page');
-  const [pageUrl, setPageUrl] = useState('https://example.com');
-  const [pageId, setPageId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<{
+    status: 'success' | 'error' | 'idle';
+    message?: string;
+    error?: Error;
+    pageId?: string;
+    pageUrl?: string;
+  }>({
+    status: 'idle'
+  });
 
-  const createTestPage = async () => {
-    if (!databaseId?.trim()) {
-      setStatus('error');
-      setMessage('ID de base de données manquant');
-      onError && onError(new Error('ID de base de données manquant'));
-      return;
-    }
-
-    setStatus('pending');
-    setMessage('Création de la page de test...');
+  // Exécuter le test de création de page
+  const runTest = async () => {
+    setIsLoading(true);
+    setResult({ status: 'idle' });
 
     try {
-      const apiKey = localStorage.getItem('notion_api_key');
-      
-      if (!apiKey) {
-        setStatus('error');
-        setMessage('Clé API non configurée');
-        onError && onError(new Error('Clé API non configurée'));
-        return;
-      }
-
-      const response = await notionApi.pages.create({
-        parent: { database_id: databaseId },
-        properties: {
-          Name: { title: [{ text: { content: pageName } }] },
-          URL: { url: pageUrl }
-        }
-      }, apiKey);
-      
-      if (response && response.id) {
-        setPageId(response.id);
-        setStatus('success');
-        setMessage('Page créée avec succès !');
-        onSuccess && onSuccess(response.id);
+      // Si en mode démo, simuler une réponse réussie
+      if (operationMode.isDemoMode) {
+        // Simuler un délai réseau
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockPageId = `page_${Date.now()}`;
+        const mockPageUrl = `https://notion.so/${mockPageId}`;
+        
+        setResult({
+          status: 'success',
+          message: "Page créée avec succès (mode démonstration)",
+          pageId: mockPageId,
+          pageUrl: mockPageUrl
+        });
+        
+        if (onSuccess) onSuccess();
       } else {
-        setStatus('error');
-        setMessage('Échec de création de la page');
-        setDetails('La réponse de l\'API Notion est invalide');
-        onError && onError(new Error('Réponse invalide'));
+        // En mode réel, effectuer l'appel à l'API Notion
+        const response = await fetch('/api/notion-test/create-page', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: `Test Page - ${new Date().toISOString()}`,
+            content: "Cette page a été créée par un test automatisé."
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        setResult({
+          status: 'success',
+          message: "Page créée avec succès",
+          pageId: data.id,
+          pageUrl: data.url
+        });
+        
+        if (onSuccess) onSuccess();
       }
     } catch (error) {
-      setStatus('error');
-      setMessage('Erreur lors de la création de la page');
-      setDetails(error instanceof Error ? error.message : 'Erreur inconnue');
-      onError && onError(error instanceof Error ? error : new Error(String(error)));
+      console.error("Erreur lors du test de création de page:", error);
+      const formattedError = error instanceof Error ? error : new Error(String(error));
+      
+      setResult({
+        status: 'error',
+        message: "Échec de la création de page",
+        error: formattedError
+      });
+      
+      if (onError) onError(formattedError);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Version compacte pour l'UI "small"
+  if (smallVariant) {
+    return (
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={runTest} 
+        disabled={isLoading}
+        className={`min-w-[120px] ${
+          result.status === 'success' ? 'border-green-500 text-green-600' : 
+          result.status === 'error' ? 'border-red-500 text-red-600' : ''
+        }`}
+      >
+        {isLoading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : result.status === 'success' ? (
+          <Check className="mr-2 h-4 w-4" />
+        ) : result.status === 'error' ? (
+          <X className="mr-2 h-4 w-4" />
+        ) : (
+          <FileText className="mr-2 h-4 w-4" />
+        )}
+        Créer Page
+      </Button>
+    );
+  }
+
+  // Version complète
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Créer une page de test dans Notion</DialogTitle>
-        </DialogHeader>
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-medium flex items-center">
+            <FileText className="mr-2 h-4 w-4" />
+            Test de création de page
+          </h3>
+          <p className="text-xs text-gray-500">Vérifie les permissions d'écriture</p>
+        </div>
         
-        {status === 'idle' && (
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="pageName">Nom de la page</Label>
-              <Input
-                id="pageName"
-                value={pageName}
-                onChange={(e) => setPageName(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="pageUrl">URL</Label>
-              <Input
-                id="pageUrl"
-                value={pageUrl}
-                onChange={(e) => setPageUrl(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-        
-        {status !== 'idle' && (
-          <div className="flex flex-col items-center justify-center p-6 space-y-4">
-            {status === 'pending' && (
-              <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            )}
-            
-            {status === 'success' && (
-              <CheckCircle className="w-12 h-12 text-green-500" />
-            )}
-            
-            {status === 'error' && (
-              <AlertTriangle className="w-12 h-12 text-destructive" />
-            )}
-            
-            <p className="text-center text-lg font-medium">{message}</p>
-            
-            {details && (
-              <p className="text-center text-sm text-muted-foreground">{details}</p>
-            )}
-            
-            {pageId && (
-              <div className="w-full mt-4 p-3 bg-muted rounded-md text-sm">
-                <p className="font-medium">Page ID:</p>
-                <code className="text-xs">{pageId}</code>
-              </div>
-            )}
-          </div>
-        )}
-        
-        <DialogFooter>
-          {status === 'idle' && (
-            <Button onClick={createTestPage}>Créer la page</Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={runTest}
+          disabled={isLoading}
+          className="min-w-[120px]"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Test en cours...
+            </>
+          ) : (
+            <>
+              {result.status === 'success' ? (
+                <Check className="mr-2 h-4 w-4" />
+              ) : result.status === 'error' ? (
+                <ArrowRight className="mr-2 h-4 w-4" />
+              ) : (
+                <ArrowRight className="mr-2 h-4 w-4" />
+              )}
+              Lancer le test
+            </>
           )}
-          <Button variant={status === 'idle' ? 'outline' : 'default'} onClick={onClose}>
-            {status === 'idle' ? 'Annuler' : 'Fermer'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </Button>
+      </div>
+      
+      {result.status !== 'idle' && (
+        <NotionTestResult 
+          status={result.status}
+          title={result.status === 'success' ? "Page créée avec succès" : "Échec de la création de page"}
+          message={result.message}
+          error={result.error}
+        >
+          {result.status === 'success' && result.pageId && (
+            <div className="mt-2">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                ID: {result.pageId}
+              </Badge>
+              {result.pageUrl && (
+                <a 
+                  href={result.pageUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline ml-2"
+                >
+                  Voir la page
+                </a>
+              )}
+            </div>
+          )}
+        </NotionTestResult>
+      )}
+    </div>
   );
 };
 

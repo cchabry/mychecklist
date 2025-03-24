@@ -1,5 +1,5 @@
 
-export { NotionDiagnosticTool } from './NotionDiagnosticTool';
+export { default as NotionDiagnosticTool } from './NotionDiagnosticTool';
 export { default as NotionDiagnosticRunner } from './NotionDiagnosticRunner';
 export { default as NotionTestResult } from './NotionTestResult';
 export { default as NotionTestSection } from './NotionTestSection';

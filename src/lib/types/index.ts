@@ -1,4 +1,3 @@
-
 // Interfaces principales du système
 
 export interface Project {
@@ -43,6 +42,8 @@ export interface SamplePage {
   title: string;
   description?: string;
   order: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Checklist {
