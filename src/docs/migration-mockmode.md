@@ -148,22 +148,113 @@ function MyComponent() {
    - TTL adaptatif selon le mode
    - Stratégies de mise en cache configurable
 
+## Les adaptateurs de compatibilité temporaires
+
+Pendant la transition, nous avons créé plusieurs adaptateurs temporaires :
+
+1. `src/lib/operationMode/index.ts` (supprimé)
+   - Réexportait les éléments depuis le nouveau chemin
+   - Permettait une migration progressive
+
+2. `src/lib/notionProxy/mockMode.ts` (supprimé)
+   - Adaptateur qui redirige les appels vers operationMode
+   - Préservait la compatibilité avec le code existant
+
+3. `src/components/MockModeToggle.tsx` (remplacé)
+   - Transformé en wrapper autour de OperationModeStatus
+   - Maintenant directement remplacé par OperationModeStatus
+
+## Utilisation dans les endpoints API
+
+Pour les points de terminaison API qui utilisaient mockMode pour simuler des réponses :
+
+**Avant:**
+```typescript
+// Dans un endpoint API
+if (mockMode.isActive()) {
+  // Simuler un délai
+  await mockUtils.applyDelay();
+  // Renvoyer des données mock
+  return mockData.getFakeData();
+}
+// Sinon, appeler l'API réelle
+```
+
+**Après:**
+```typescript
+// Dans un endpoint API
+if (operationMode.isDemoMode) {
+  // Simuler un délai
+  await operationModeUtils.applySimulatedDelay();
+  // Simuler une erreur aléatoire selon configuration
+  if (operationModeUtils.shouldSimulateError()) {
+    operationModeUtils.simulateConnectionError();
+  }
+  // Renvoyer des données mock
+  return mockData.getFakeData();
+}
+// Sinon, appeler l'API réelle
+```
+
+## Transition des hooks personnalisés
+
+Plusieurs hooks personnalisés liés au mode de démonstration ont été migrés ou consolidés :
+
+1. `useMockMode` -> `useOperationMode`
+   - Accès complet à toutes les fonctionnalités du mode opérationnel
+
+2. Nouveau hook : `useOperationModeListener`
+   - Version simplifiée pour les composants qui n'ont besoin que de l'état
+
+## Gestion automatique des erreurs
+
+Le nouveau système intègre une gestion automatique des erreurs :
+
+```typescript
+try {
+  // Opération qui peut échouer
+} catch (error) {
+  // Signaler l'erreur au système de mode opérationnel
+  operationMode.handleConnectionError(
+    error instanceof Error ? error : new Error(String(error)),
+    'Contexte de l'erreur'
+  );
+}
+```
+
+## Migration complète
+
+La migration a été complétée en plusieurs étapes :
+
+1. Implémentation du nouveau système operationMode
+2. Création d'adaptateurs temporaires pour assurer la compatibilité
+3. Migration progressive de tous les composants et services
+4. Suppression des adaptateurs temporaires et fichiers obsolètes
+5. Vérification finale et nettoyage du code
+
 ## Fichiers supprimés
 
-Les fichiers suivants ont été supprimés car ils ne servaient que d'adaptateurs de compatibilité:
+Les fichiers suivants ont été supprimés car ils ne servaient plus :
 
 - `src/lib/notionProxy/mockMode.ts`
 - `src/lib/notionProxy/mock/mode.ts`
 - `src/lib/notionProxy/mock/state.ts`
+- `src/lib/notionProxy/mock/utils.ts`
 - `src/lib/operationMode/index.ts`
 
-## Fichiers modifiés
+## Recommandations pour les développements futurs
 
-- `src/lib/notionProxy/mock/utils.ts` - Simplifié pour appeler directement operationModeUtils
-- `src/lib/notionProxy/mock/index.ts` - Suppression des références aux fichiers supprimés
-- `src/components/MockModeToggle.tsx` - Transformé en wrapper autour de OperationModeStatus
+1. **Utiliser directement les imports de operationMode**
+   ```typescript
+   import { operationMode, operationModeUtils } from '@/services/operationMode';
+   ```
 
-## Prochaines étapes
+2. **Exploiter les mécanismes de détection d'erreurs**
+   ```typescript
+   operationMode.handleConnectionError(error, 'Contexte');
+   operationMode.handleSuccessfulOperation();
+   ```
 
-- Supprimer complètement le dossier `src/lib/notionProxy/mock/` une fois que tous les imports auront été mis à jour
-- Remplacer directement tous les usages de MockModeToggle par OperationModeStatus
+3. **Utiliser les hooks appropriés**
+   - `useOperationMode` pour un accès complet
+   - `useOperationModeListener` pour un accès simplifié
