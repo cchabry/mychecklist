@@ -46,10 +46,10 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
         notionApi.mockMode.temporarilyForceReal();
       }
       
-      // Récupérer la liste des bases de données - CORRECTION : Utiliser POST avec le chemin correct
+      // CORRECTION: Utiliser la méthode request qui passe par les proxys correctement
       const response = await notionApi.request(
-        'POST',  // Méthode POST pour l'endpoint search
-        '/search',  // Chemin de l'API
+        'POST',
+        '/v1/search',  // Utiliser le chemin complet avec /v1/
         {
           filter: {
             value: 'database',

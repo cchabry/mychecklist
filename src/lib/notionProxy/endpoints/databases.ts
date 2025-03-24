@@ -22,9 +22,20 @@ export const query = async (databaseId: string, queryParams: any, token: string)
 
 /**
  * Liste toutes les bases de données
+ * Utilise l'endpoint search avec un filtre sur les objets de type database
  */
 export const list = async (token: string) => {
-  return notionApiRequest('/databases', 'GET', undefined, token);
+  return notionApiRequest(
+    '/search',
+    'POST',
+    {
+      filter: {
+        value: 'database',
+        property: 'object'
+      }
+    },
+    token
+  );
 };
 
 /**

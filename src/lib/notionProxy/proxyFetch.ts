@@ -88,6 +88,10 @@ async function useServerlessProxy(
   body?: any,
   token?: string
 ): Promise<any> {
+  // CORRECTION: Assurer que l'endpoint est formaté correctement pour les serverless functions
+  // Nettoyer l'endpoint de tout /v1 en préfixe car il sera ajouté par le proxy
+  const cleanEndpoint = endpoint.startsWith('/v1/') ? endpoint.substring(3) : endpoint;
+  
   // Essayer d'abord le proxy Vercel
   try {
     const vercelResponse = await fetch('/api/notion-proxy', {
@@ -96,7 +100,7 @@ async function useServerlessProxy(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        endpoint,
+        endpoint: cleanEndpoint,
         method,
         body,
         token
@@ -122,7 +126,7 @@ async function useServerlessProxy(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        endpoint,
+        endpoint: cleanEndpoint,
         method,
         body,
         token
@@ -151,8 +155,16 @@ async function useCorsProxy(
   token?: string
 ): Promise<any> {
   // Construire l'URL complète vers l'API Notion
-  const baseUrl = 'https://api.notion.com/v1';
-  const url = `${baseUrl}${endpoint}`;
+  const baseUrl = 'https://api.notion.com';
+  
+  // CORRECTION: Assurer que l'endpoint est correctement formaté
+  // S'assurer que l'endpoint commence par /v1/ pour l'API Notion
+  const apiEndpoint = endpoint.startsWith('/v1/') ? endpoint : 
+                      endpoint.startsWith('/') ? `/v1${endpoint}` : `/v1/${endpoint}`;
+  
+  const url = `${baseUrl}${apiEndpoint}`;
+  
+  console.log(`📡 Requête Notion via proxy CORS: ${method} ${url}`);
   
   // Obtenir le proxy CORS
   const currentProxy = corsProxy.getCurrentProxy();
