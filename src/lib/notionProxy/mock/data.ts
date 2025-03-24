@@ -1,14 +1,14 @@
 
-import { mockData as originalMockData } from '@/lib/mockData/mockData';
+import { mockData as originalMockData, getAllProjects, getProjectById, getPageById } from '@/lib/mockData';
 import { mockDataExtensions } from '@/lib/mockData/mockDataExtensions';
 
 // Create a merged version with utility functions
 const mergedMockData = {
   ...originalMockData,
   ...mockDataExtensions,
-  getAllProjects: () => originalMockData.projects,
-  getProjectById: (id: string) => originalMockData.projects.find(p => p.id === id),
-  getPageById: (id: string) => originalMockData.pages.find(p => p.id === id)
+  getAllProjects,
+  getProjectById,
+  getPageById
 };
 
 // Export the merged mock data

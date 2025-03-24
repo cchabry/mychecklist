@@ -1,5 +1,4 @@
-
-import { Project, Audit, ChecklistItem, Exigence, Evaluation, Action, SamplePage } from '@/types';
+import { Project, Audit, ChecklistItem, Exigence, Evaluation, CorrectiveAction, SamplePage, ComplianceStatus, ImportanceLevel, ActionStatus, ActionPriority } from '@/lib/types';
 
 // Une fonction simple pour générer des ID uniques
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -39,7 +38,7 @@ export const MOCK_PROJECTS: Project[] = [
 ];
 
 // Données de démonstration pour les items de la checklist
-const checklist: ChecklistItem[] = [
+export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'item-1',
     title: 'Images responsives',
@@ -253,7 +252,7 @@ const checklist: ChecklistItem[] = [
 ];
 
 // Échantillon de pages pour le projet 1
-const samplePages: SamplePage[] = [
+export const SAMPLE_PAGES: SamplePage[] = [
   {
     id: 'page-1-1',
     projectId: 'project-1',
@@ -515,7 +514,7 @@ const evaluations: Evaluation[] = [
 ];
 
 // Actions correctives
-const actions: Action[] = [
+const actions: CorrectiveAction[] = [
   {
     id: 'action-1',
     evaluationId: 'eval-1-1-1',
@@ -546,7 +545,7 @@ const actions: Action[] = [
 ];
 
 // Données pour un audit en cours sur le projet 1 avec des items à évaluer
-const auditItemsProject1 = checklist.map(item => {
+const auditItemsProject1 = CHECKLIST_ITEMS.map(item => {
   const exigence = exigences.find(e => e.itemId === item.id);
   return {
     ...item,
@@ -554,7 +553,7 @@ const auditItemsProject1 = checklist.map(item => {
     importance: exigence?.importance || 'N/A',
     projectRequirement: exigence?.comment || '',
     projectComment: exigence?.comment || '',
-    pageResults: samplePages
+    pageResults: SAMPLE_PAGES
       .filter(page => page.projectId === 'project-1')
       .map(page => ({
         pageId: page.id,
@@ -567,8 +566,8 @@ const auditItemsProject1 = checklist.map(item => {
 export const mockData = {
   projects: MOCK_PROJECTS,
   audits,
-  checklist,
-  pages: samplePages,
+  checklist: CHECKLIST_ITEMS,
+  pages: SAMPLE_PAGES,
   exigences,
   evaluations,
   actions,
@@ -580,18 +579,23 @@ export const mockData = {
   getAudits: () => audits,
   getAudit: (id: string) => audits.find(audit => audit.id === id),
   getAuditsByProject: (projectId: string) => audits.filter(audit => audit.projectId === projectId),
-  getChecklist: () => checklist,
-  getChecklistItem: (id: string) => checklist.find(item => item.id === id),
+  getChecklist: () => CHECKLIST_ITEMS,
+  getChecklistItem: (id: string) => CHECKLIST_ITEMS.find(item => item.id === id),
   getExigences: () => exigences,
   getExigencesByProject: (projectId: string) => exigences.filter(exigence => exigence.projectId === projectId),
   getEvaluations: () => evaluations,
   getEvaluationsByAudit: (auditId: string) => evaluations.filter(evaluation => evaluation.auditId === auditId),
   getActions: () => actions,
   getActionsByEvaluation: (evaluationId: string) => actions.filter(action => action.evaluationId === evaluationId),
-  getPages: () => samplePages,
-  getPagesByProject: (projectId: string) => samplePages.filter(page => page.projectId === projectId),
-  getPage: (id: string) => samplePages.find(page => page.id === id),
+  getPages: () => SAMPLE_PAGES,
+  getPagesByProject: (projectId: string) => SAMPLE_PAGES.filter(page => page.projectId === projectId),
+  getPage: (id: string) => SAMPLE_PAGES.find(page => page.id === id),
   getAuditItems: (projectId: string) => auditItemsProject1.filter(_ => projectId === 'project-1'),
+  
+  // Add these specific export functions
+  getAllProjects: () => MOCK_PROJECTS,
+  getMockAuditHistory: (projectId: string) => audits.filter(audit => audit.projectId === projectId),
+  getMockActionHistory: (evaluationId: string) => actions.filter(action => action.evaluationId === evaluationId),
   
   // Méthodes pour créer de nouvelles données
   createProject: (data: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -626,17 +630,6 @@ export const mockData = {
     return true;
   },
   
-  // Génère une exigence de test pour un projet et un item de checklist donnés
-  generateMockExigence: (projectId: string, itemId: string) => {
-    return {
-      id: `exigence-test-${generateId()}`,
-      projectId,
-      itemId,
-      importance: 'moyen',
-      comment: 'Exigence générée automatiquement pour test'
-    };
-  },
-
   // Méthodes CRUD pour les pages d'échantillon
   createPage: (data: any) => {
     const newId = `page_${Date.now()}`;
@@ -658,7 +651,7 @@ export const mockData = {
   },
 
   getProjectPages: (projectId: string) => {
-    return samplePages.filter((page) => page.projectId === projectId);
+    return SAMPLE_PAGES.filter((page) => page.projectId === projectId);
   },
 
   createSamplePage: (pageData: any) => {
@@ -668,34 +661,99 @@ export const mockData = {
       url: pageData.url,
       title: pageData.title || 'Nouvelle page',
       description: pageData.description || '',
-      order: samplePages.length + 1,
+      order: SAMPLE_PAGES.length + 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    samplePages.push(newPage);
+    SAMPLE_PAGES.push(newPage);
     return newPage;
   },
 
   updateSamplePage: (pageId: string, pageData: any) => {
-    const pageIndex = samplePages.findIndex((p) => p.id === pageId);
+    const pageIndex = SAMPLE_PAGES.findIndex((p) => p.id === pageId);
     if (pageIndex === -1) {
       throw new Error(`Page with ID ${pageId} not found`);
     }
-    samplePages[pageIndex] = {
-      ...samplePages[pageIndex],
+    SAMPLE_PAGES[pageIndex] = {
+      ...SAMPLE_PAGES[pageIndex],
       ...pageData,
       updatedAt: new Date().toISOString()
     };
-    return samplePages[pageIndex];
+    return SAMPLE_PAGES[pageIndex];
   },
 
   deletePage: (pageId: string) => {
-    const pageIndex = samplePages.findIndex((p) => p.id === pageId);
+    const pageIndex = SAMPLE_PAGES.findIndex((p) => p.id === pageId);
     if (pageIndex === -1) {
       throw new Error(`Page with ID ${pageId} not found`);
     }
-    samplePages.splice(pageIndex, 1);
+    SAMPLE_PAGES.splice(pageIndex, 1);
     return { success: true, id: pageId };
+  },
+  
+  // Add missing functions for evaluations and actions
+  createEvaluation: (data: any) => {
+    const newEvaluation = {
+      id: `eval_${Date.now()}`,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    evaluations.push(newEvaluation);
+    return newEvaluation;
+  },
+  
+  updateEvaluation: (id: string, data: any) => {
+    const index = evaluations.findIndex(e => e.id === id);
+    if (index === -1) return null;
+    
+    evaluations[index] = {
+      ...evaluations[index],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return evaluations[index];
+  },
+  
+  deleteEvaluation: (id: string) => {
+    const index = evaluations.findIndex(e => e.id === id);
+    if (index === -1) return false;
+    
+    evaluations.splice(index, 1);
+    return true;
+  },
+  
+  createAction: (data: any) => {
+    const newAction = {
+      id: `action_${Date.now()}`,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    actions.push(newAction);
+    return newAction;
+  },
+  
+  updateAction: (id: string, data: any) => {
+    const index = actions.findIndex(a => a.id === id);
+    if (index === -1) return null;
+    
+    actions[index] = {
+      ...actions[index],
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return actions[index];
+  },
+  
+  deleteAction: (id: string) => {
+    const index = actions.findIndex(a => a.id === id);
+    if (index === -1) return false;
+    
+    actions.splice(index, 1);
+    return true;
   }
 };
 
@@ -720,8 +778,16 @@ export const createNewAudit = createMockAudit;
 export const getProjectById = (id: string) => MOCK_PROJECTS.find(project => project.id === id);
 
 // Helper to get pages by project ID
-export const getPagesByProjectId = (projectId: string) => samplePages.filter(page => page.projectId === projectId);
+export const getPagesByProjectId = (projectId: string) => SAMPLE_PAGES.filter(page => page.projectId === projectId);
+
+// Helper to get audit history for a project
+export const getMockAuditHistory = (projectId: string) => audits.filter(audit => audit.projectId === projectId);
+
+// Helper to get action history for an evaluation
+export const getMockActionHistory = (evaluationId: string) => actions.filter(action => action.evaluationId === evaluationId);
 
 // Export some commonly used mock data directly
-export { checklist as CHECKLIST_ITEMS };
-export { samplePages as SAMPLE_PAGES };
+export { MOCK_PROJECTS, CHECKLIST_ITEMS as CATEGORIES };
+
+// Default export
+export default mockData;

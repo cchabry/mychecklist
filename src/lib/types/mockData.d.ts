@@ -1,27 +1,47 @@
 
-import { Project, Audit, ChecklistItem, Exigence, Evaluation, CorrectiveAction, SamplePage } from './index';
+import { ComplianceStatus, ImportanceLevel, ActionStatus, ActionPriority } from '../types';
 
-export interface MockData {
-  projects: Project[];
-  audits: Audit[];
-  checklist: ChecklistItem[];
-  pages: SamplePage[];
-  exigences: Exigence[];
-  evaluations: Evaluation[];
-  actions: CorrectiveAction[];
-  getProjects: () => Project[];
-  getProject: (id: string) => Project | undefined;
-  getAudits: () => Audit[];
-  getAudit: (id: string) => Audit | undefined;
-  getChecklistItems: () => ChecklistItem[];
-  getChecklistItem: (id: string) => ChecklistItem | undefined;
-  getPages: () => SamplePage[];
-  getPage: (id: string) => SamplePage | undefined;
-  getProjectPages: (projectId: string) => SamplePage[];
-  getExigences: () => Exigence[];
-  getExigence: (id: string) => Exigence | undefined;
-  getEvaluations: () => Evaluation[];
-  getEvaluation: (id: string) => Evaluation | undefined;
-  getActions: () => CorrectiveAction[];
-  getAction: (id: string) => CorrectiveAction | undefined;
+export interface SamplePage {
+  id: string;
+  projectId: string;
+  url: string;
+  title: string;
+  description?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectRequirement {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment: string;
+}
+
+export interface AuditItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  metaRefs?: string;
+  profile?: string[];
+  phase?: string[];
+  effort?: string;
+  priority?: string;
+  requirementLevel?: string;
+  scope?: string;
+  criteria?: string;
+  status: string;
+  importance: string;
+  projectRequirement: string;
+  projectComment: string;
+  pageResults: PageResult[];
+}
+
+export interface PageResult {
+  pageId: string;
+  status: string;
 }

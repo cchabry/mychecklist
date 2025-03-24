@@ -1,85 +1,74 @@
 
-// Define the operation mode options
-export enum OperationMode {
-  REAL = "real",
-  DEMO = "demo"
+import { DEFAULT_SETTINGS } from './constants';
+
+export type OperationMode = 'real' | 'mock';
+
+export enum SwitchReason {
+  ERROR = 'error',
+  USER = 'user',
+  SYSTEM = 'system',
+  TIMEOUT = 'timeout',
+  INIT = 'init'
 }
 
-// Define the settings for the operation mode
 export interface OperationModeSettings {
-  // Behavioral settings
+  // Paramètres comportementaux
   autoSwitchOnFailure: boolean;
   persistentModeStorage: boolean;
   showNotifications: boolean;
   useCacheInRealMode: boolean;
   
-  // Simulation settings
+  // Paramètres de simulation
   errorSimulationRate: number;
   simulatedNetworkDelay: number;
   
-  // Security settings
+  // Paramètres de sécurité
   maxConsecutiveFailures: number;
 }
 
-// Define the state for the operation mode
 export interface OperationModeState {
   mode: OperationMode;
-  switchReason: string;
-  failures: number;
-  settings: OperationModeSettings;
-  lastError?: Error;
-}
-
-// Define the hook return type
-export interface OperationModeHook {
-  // Current state properties
-  mode: OperationMode;
-  switchReason: string;
+  switchReason: SwitchReason | null;
   failures: number;
   lastError: Error | null;
   settings: OperationModeSettings;
-  
-  // Derived state properties
-  isDemoMode: boolean;
-  isRealMode: boolean;
-  simulatedErrorRate: number;
-  simulatedNetworkDelay: number;
-  
-  // Action methods
-  toggle: () => void;
-  setErrorRate: (rate: number) => void;
-  setNetworkDelay: (delay: number) => void;
-  enableDemoMode: (reason?: string) => void;
-  enableRealMode: () => void;
-  updateSettings: (settings: Partial<OperationModeSettings>) => void;
-  handleConnectionError: (error: Error, context?: string) => void;
-  handleSuccessfulOperation: () => void;
-  reset: () => void;
 }
 
-// Type for the operation mode service
-export interface OperationModeService {
-  // Current state getters
-  getMode: () => OperationMode;
-  getState: () => OperationModeState;
-  getSettings: () => OperationModeSettings;
-  getSwitchReason: () => string;
-  getFailures: () => number;
-  isDemoMode: () => boolean;
-  isRealMode: () => boolean;
-  
-  // State modifiers
-  setMode: (mode: OperationMode, reason?: string) => void;
-  toggle: () => void;
+export interface OperationModeHook extends OperationModeState {
+  isDemoMode: boolean;
+  isRealMode: boolean;
+  switchMode: (mode: OperationMode, reason?: SwitchReason) => void;
+  toggleMode: (reason?: SwitchReason) => void;
+  resetFailures: () => void;
   updateSettings: (settings: Partial<OperationModeSettings>) => void;
+  reset: () => void;
+  simulatedErrorRate: number;
+  simulatedNetworkDelay: number;
   setErrorRate: (rate: number) => void;
   setNetworkDelay: (delay: number) => void;
-  
-  // Operational methods
-  handleConnectionError: (error: Error, context?: string) => void;
-  handleSuccessfulOperation: () => void;
-  reset: () => void;
-  
-  // Event handling
-  onModeChange: (callback: (state: OperationModeState) => void) => () => void;
 }
+
+export interface OperationModeSubscriber {
+  onModeChange?: (mode: OperationMode) => void;
+  onFailure?: (error: Error) => void;
+  onReset?: () => void;
+}
+
+export interface IOperationModeService {
+  getMode(): OperationMode;
+  switchMode(mode: OperationMode, reason?: SwitchReason): void;
+  toggleMode(reason?: SwitchReason): void;
+  registerFailure(error: Error): void;
+  resetFailures(): void;
+  updateSettings(settings: Partial<OperationModeSettings>): void;
+  getSettings(): OperationModeSettings;
+  getState(): OperationModeState;
+  subscribe(subscriber: OperationModeSubscriber): () => void;
+  reset(): void;
+}
+
+export const OperationModeUtils = {
+  getDefaultSettings: (): OperationModeSettings => {
+    return { ...DEFAULT_SETTINGS };
+  }
+};
