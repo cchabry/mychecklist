@@ -1,80 +1,67 @@
 
 import React from 'react';
-import { Wifi, WifiOff, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { operationMode } from '@/services/operationMode';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Globe } from 'lucide-react';
+import { corsProxy } from '@/services/corsProxy';
 
 interface ProxyStatusIndicatorProps {
-  isDemoMode?: boolean;
+  isDemoMode: boolean;
 }
 
-/**
- * Composant qui affiche l'état du proxy CORS et du mode démo
- */
-const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({
-  isDemoMode: propsDemoMode
-}) => {
-  // Utiliser le nouveau système operationMode comme source de vérité,
-  // avec fallback sur les props pour la rétrocompatibilité
-  const [proxyStatus, setProxyStatus] = React.useState<'unknown' | 'working' | 'not-working'>('unknown');
-  const isDemoActive = propsDemoMode !== undefined ? propsDemoMode : operationMode.isDemoMode;
+const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({ isDemoMode }) => {
+  // Obtenir l'URL du proxy actuel s'il existe
+  const currentProxy = corsProxy.getCurrentProxy();
+  const hasProxy = !!currentProxy;
   
-  React.useEffect(() => {
-    // Nous n'avons pas besoin de tester le proxy si on est en mode démo
-    if (isDemoActive) {
-      setProxyStatus('unknown');
-      return;
-    }
-    
-    // Récupérer l'état du proxy depuis le localStorage ou autre source
-    const storedStatus = localStorage.getItem('proxy_status');
-    if (storedStatus === 'working') {
-      setProxyStatus('working');
-    } else if (storedStatus === 'not-working') {
-      setProxyStatus('not-working');
-    } else {
-      setProxyStatus('unknown');
-    }
-  }, [isDemoActive]);
-  
-  if (isDemoActive) {
+  // Si nous sommes en mode démo, ce composant n'est pas pertinent
+  if (isDemoMode) {
     return (
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-700">Mode démonstration actif</AlertTitle>
-        <AlertDescription className="text-blue-600">
-          L'application utilise des données simulées. Aucune connexion à Notion n'est nécessaire.
-          <span className="block mt-1 text-xs">Vous pouvez désactiver ce mode dans les paramètres.</span>
-        </AlertDescription>
-      </Alert>
+      <Card className="border-amber-200 bg-amber-50">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-medium text-amber-800">Mode démo actif</h3>
+              <p className="text-xs text-amber-700 mt-1">
+                Le mode démo est activé, le proxy CORS n'est pas utilisé.
+                Désactivez le mode démo pour utiliser le proxy CORS.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   
-  if (proxyStatus === 'working') {
-    return (
-      <Alert className="bg-green-50 border-green-200">
-        <Wifi className="h-4 w-4 text-green-600" />
-        <AlertTitle className="text-green-700">Proxy CORS fonctionnel</AlertTitle>
-        <AlertDescription className="text-green-600">
-          La connexion à l'API Notion via le proxy CORS fonctionne correctement.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (proxyStatus === 'not-working') {
-    return (
-      <Alert className="bg-red-50 border-red-200">
-        <WifiOff className="h-4 w-4 text-red-600" />
-        <AlertTitle className="text-red-700">Problème de connexion</AlertTitle>
-        <AlertDescription className="text-red-600">
-          Le proxy CORS ne fonctionne pas correctement. Essayez d'en choisir un autre.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  return null;
+  return (
+    <Card className={hasProxy ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          {hasProxy ? (
+            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+          ) : (
+            <Globe className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          )}
+          
+          <div>
+            <h3 className="text-sm font-medium text-amber-800">
+              {hasProxy ? "Proxy CORS configuré" : "Proxy CORS non configuré"}
+            </h3>
+            <p className="text-xs text-amber-700 mt-1">
+              {hasProxy 
+                ? `Le proxy est configuré à l'adresse: ${currentProxy.url}`
+                : "Aucun proxy CORS n'est configuré. Les appels directs à l'API Notion seront bloqués par le navigateur."}
+            </p>
+            {!hasProxy && (
+              <p className="text-xs text-amber-700 mt-1">
+                Pour utiliser l'API Notion, vous devez configurer un proxy CORS ou déployer l'application avec les fonctions serverless.
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default ProxyStatusIndicator;

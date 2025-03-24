@@ -1,142 +1,142 @@
 
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { verifyProxyDeployment } from '@/lib/notionProxy/config';
+import { AlertCircle, Check, ServerCrash, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const NotionDeploymentChecker: React.FC = () => {
+  const [deploymentStatus, setDeploymentStatus] = useState<'checking' | 'deployed' | 'not-deployed'>('checking');
   const [isChecking, setIsChecking] = useState(false);
-  const [checkResult, setCheckResult] = useState<{
-    error?: string;
-    isWorking?: boolean;
-    message?: string;
-  } | null>(null);
   
-  // Vérifie l'état du déploiement au chargement initial une seule fois
-  useEffect(() => {
-    const checkDeploymentOnLoad = async () => {
-      // Seulement vérifier si nous avons une clé API configurée
-      const apiKey = localStorage.getItem('notion_api_key');
-      if (apiKey) {
-        // On ne montre pas l'indicateur de chargement pour le check initial
-        try {
-          const isWorking = await verifyProxyDeployment(false, apiKey);
-          if (isWorking) {
-            console.log("Proxy deployment verification on load: SUCCESS");
-          } else {
-            console.log("Proxy deployment verification on load: FAILED");
-          }
-        } catch (error) {
-          console.error("Initial proxy verification failed:", error);
-        }
-      }
-    };
-    
-    checkDeploymentOnLoad();
-  }, []);
-  
+  // Vérifier si les fonctions serverless sont déployées
   const checkDeployment = async () => {
     setIsChecking(true);
-    setCheckResult(null);
     
     try {
-      // Récupérer la clé API pour le test
-      const apiKey = localStorage.getItem('notion_api_key');
-      console.log(`Using API key for proxy test: ${apiKey ? `${apiKey.substring(0, 8)}...` : 'none'}`);
+      // Tester si l'API Vercel est disponible
+      const vercelResponse = await fetch('/api/ping', { method: 'GET' });
+      const vercelWorks = vercelResponse.ok;
       
-      if (!apiKey) {
-        throw new Error("Aucune clé API trouvée. Veuillez configurer Notion d'abord.");
-      }
-      
-      // Accepter les deux formats de clé API : secret_ (intégration) et ntn_ (OAuth)
-      if (!apiKey.startsWith('secret_') && !apiKey.startsWith('ntn_')) {
-        throw new Error("Format de clé API incorrect. La clé doit commencer par 'secret_' ou 'ntn_'");
-      }
-      
-      // Noter que les deux types utilisent Bearer token pour l'authentification
-      console.log(`Type de token détecté: ${apiKey.startsWith('ntn_') ? 'OAuth (ntn_)' : 'Integration (secret_)'}`);
-      console.log("Les deux types utilisent l'authentification Bearer");
-      
-      const isWorking = await verifyProxyDeployment(true, apiKey);
-      
-      if (isWorking) {
-        setCheckResult({
-          isWorking: true,
-          message: "Le proxy CORS est opérationnel!"
+      if (vercelWorks) {
+        setDeploymentStatus('deployed');
+        toast.success('Fonctions serverless détectées', {
+          description: 'Votre application utilise des fonctions serverless'
         });
       } else {
-        setCheckResult({
-          isWorking: false,
-          error: "Le proxy ne répond pas correctement aux requêtes"
+        setDeploymentStatus('not-deployed');
+        toast.error('Fonctions serverless non disponibles', { 
+          description: 'Déployez votre application pour utiliser les fonctions serverless'
         });
       }
+      
+      // Tester si l'API Netlify est disponible
+      try {
+        const netlifyResponse = await fetch('/.netlify/functions/notion-proxy', { method: 'GET' });
+        const netlifyWorks = netlifyResponse.ok;
+        
+        if (netlifyWorks) {
+          setDeploymentStatus('deployed');
+          toast.success('Fonctions Netlify détectées', {
+            description: 'Votre application utilise des fonctions Netlify'
+          });
+        }
+      } catch (netlifyError) {
+        // Ignorer si Vercel fonctionne déjà
+        if (deploymentStatus !== 'deployed') {
+          console.log('Fonctions Netlify non disponibles:', netlifyError);
+        }
+      }
     } catch (error) {
-      console.error("Proxy verification failed:", error);
-      
-      // Gérer spécifiquement l'erreur CORS "Failed to fetch"
-      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue lors de la vérification";
-      const isCorsError = errorMessage.includes('Failed to fetch');
-      
-      setCheckResult({
-        isWorking: false,
-        error: isCorsError 
-          ? "Le proxy ne répond pas correctement aux requêtes (CORS error)"
-          : errorMessage
+      console.error('Erreur lors de la vérification du déploiement:', error);
+      setDeploymentStatus('not-deployed');
+      toast.error('Erreur de vérification', {
+        description: 'Impossible de vérifier si les fonctions serverless sont déployées'
       });
     } finally {
       setIsChecking(false);
     }
   };
   
+  // Vérifier le déploiement au chargement
+  useEffect(() => {
+    checkDeployment();
+  }, []);
+  
+  if (deploymentStatus === 'checking' || isChecking) {
+    return (
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="h-5 w-5 text-blue-600 animate-spin" />
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">
+                Vérification du déploiement
+              </h3>
+              <p className="text-xs text-blue-700 mt-1">
+                Vérification de la disponibilité des fonctions serverless...
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (deploymentStatus === 'deployed') {
+    return (
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <Check className="h-5 w-5 text-green-600" />
+            <div>
+              <h3 className="text-sm font-medium text-green-800">
+                Fonctions serverless détectées
+              </h3>
+              <p className="text-xs text-green-700 mt-1">
+                Les fonctions serverless sont correctement déployées. Vous pouvez communiquer avec l'API Notion sans problème CORS.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <div className="bg-white p-4 rounded-md border mb-4">
-      <h3 className="font-medium mb-2 flex items-center gap-2">
-        <ExternalLink size={16} className="text-blue-500" />
-        Test du proxy CORS
-      </h3>
-      
-      <div className="text-sm text-gray-600 mb-3">
-        Vérifiez si le proxy CORS client peut accéder à l'API Notion.
-      </div>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={checkDeployment} 
-        disabled={isChecking}
-        className="w-full"
-      >
-        {isChecking ? (
-          <>
-            <RefreshCw size={14} className="mr-2 animate-spin" />
-            Vérification en cours...
-          </>
-        ) : (
-          <>
-            <RefreshCw size={14} className="mr-2" />
-            Tester le proxy CORS
-          </>
-        )}
-      </Button>
-      
-      {checkResult && (
-        <div className={`mt-3 p-2 rounded text-sm ${
-          checkResult.isWorking ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-        }`}>
-          {checkResult.isWorking ? (
-            <div className="flex items-center gap-2">
-              <CheckCircle size={14} />
-              <span>{checkResult.message}</span>
+    <Card className="border-amber-200 bg-amber-50">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <ServerCrash className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-medium text-amber-800">
+              Fonctions serverless non détectées
+            </h3>
+            <p className="text-xs text-amber-700 mt-1">
+              Pour utiliser l'API Notion sans problème CORS, vous devez déployer l'application sur Vercel ou Netlify.
+              En environnement de développement, vous pouvez utiliser un proxy CORS.
+            </p>
+            
+            <div className="mt-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={checkDeployment}
+                disabled={isChecking}
+                className="text-xs"
+              >
+                {isChecking ? (
+                  <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 mr-2" />
+                )}
+                Vérifier à nouveau
+              </Button>
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={14} />
-              <span>{checkResult.error}</span>
-            </div>
-          )}
+          </div>
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

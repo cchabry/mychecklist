@@ -2,9 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Database, Key, Globe, Code } from 'lucide-react';
+import { Database, Key, Globe, Code, ServerCrash } from 'lucide-react';
 import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
+import NotionDeploymentChecker from './NotionDeploymentChecker';
+import ProxyStatusIndicator from './ProxyStatusIndicator';
 
 interface NotionSolutionsSectionProps {
   showApiKey?: boolean;
@@ -26,9 +28,18 @@ const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
     // Recharger la page après un court délai
     setTimeout(() => window.location.reload(), 1000);
   };
+
+  // Récupérer l'état du mode démo
+  const isDemoMode = operationMode.isDemoMode;
   
   return (
     <div className="space-y-4">
+      {/* Vérificateur de déploiement */}
+      {showCorsProxy && <NotionDeploymentChecker />}
+      
+      {/* Indicateur de statut du proxy */}
+      {showCorsProxy && <ProxyStatusIndicator isDemoMode={isDemoMode} />}
+      
       {showApiKey && (
         <Card>
           <CardContent className="pt-6">
@@ -42,9 +53,11 @@ const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
                   Si vous rencontrez des erreurs d'authentification, vérifiez les points suivants :
                 </p>
                 <ul className="text-sm text-muted-foreground list-disc pl-5 mb-3 space-y-1">
-                  <li>La clé commence bien par "secret_" (clé d'intégration)</li>
+                  <li>Pour une clé d'intégration: commence par "secret_"</li>
+                  <li>Pour un token OAuth: commence par "ntn_"</li>
                   <li>L'intégration a été correctement configurée dans Notion</li>
                   <li>Les permissions sont suffisantes (lecture et écriture)</li>
+                  <li>L'intégration a été partagée avec vos bases de données</li>
                 </ul>
                 <a 
                   href="https://developers.notion.com/docs/create-a-notion-integration" 
@@ -65,29 +78,36 @@ const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <div className="bg-primary/10 p-2 rounded-full">
-                <Globe className="h-5 w-5 text-primary" />
+                <ServerCrash className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-lg mb-1">Problème de CORS</h3>
+                <h3 className="font-medium text-lg mb-1">Problème de serveur</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Les navigateurs bloquent les connexions directes à l'API Notion pour des raisons de sécurité. 
-                  Pour résoudre ce problème :
+                  En environnement de développement, vous avez deux options pour communiquer avec l'API Notion :
                 </p>
                 <ul className="text-sm text-muted-foreground list-disc pl-5 mb-3 space-y-1">
-                  <li>En développement : utilisez le mode démo ou une extension CORS</li>
-                  <li>En production : déployez un proxy serverless (Vercel, Netlify, etc.)</li>
+                  <li>Déployer votre application sur Vercel ou Netlify</li>
+                  <li>Utiliser un proxy CORS côté client (moins fiable)</li>
+                  <li>Activer le mode démo pour tester sans API Notion</li>
                 </ul>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleEnableDemoMode}>
-                    Activer le mode démo
-                  </Button>
+                
+                <div className="flex flex-wrap gap-2">
                   <a 
-                    href="https://github.com/notionapi/notion-sdk-js#cors" 
+                    href="https://vercel.com/new" 
                     target="_blank" 
                     rel="noopener noreferrer"
                   >
                     <Button variant="outline" size="sm">
-                      Documentation CORS
+                      Déployer sur Vercel
+                    </Button>
+                  </a>
+                  <a 
+                    href="https://app.netlify.com/start" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="outline" size="sm">
+                      Déployer sur Netlify
                     </Button>
                   </a>
                 </div>
@@ -115,9 +135,10 @@ const NotionSolutionsSection: React.FC<NotionSolutionsSectionProps> = ({
                   size="sm"
                   onClick={handleEnableDemoMode}
                   className="gap-2"
+                  disabled={isDemoMode}
                 >
                   <Code className="h-4 w-4" />
-                  Activer le mode démo
+                  {isDemoMode ? "Mode démo déjà actif" : "Activer le mode démo"}
                 </Button>
               </div>
             </div>
