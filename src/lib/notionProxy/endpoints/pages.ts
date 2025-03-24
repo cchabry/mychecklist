@@ -1,208 +1,149 @@
 
 import { operationMode, operationModeUtils } from '@/services/operationMode';
 import { mockData } from '../mock/data';
+import { SamplePage } from '@/lib/types';
 
 // Pages API endpoints
 
 /**
- * Récupère toutes les pages d'un utilisateur Notion
- * @param token Token d'authentification Notion
+ * Get all sample pages
  */
-export async function getPages(token?: string) {
-  // Vérifier si on est en mode démonstration
+export async function getAllPages() {
+  // Check if we're in mock mode
   if (operationMode.isDemoMode) {
-    // Appliquer un délai pour simuler une requête réseau
+    // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Simuler une erreur réseau aléatoire
-    if (operationModeUtils.shouldSimulateError()) {
-      operationModeUtils.simulateConnectionError();
-    }
-    
-    // Renvoyer les données de démonstration
-    return mockData.getPages();
+    // Return mock data
+    return mockData.getAllPages ? mockData.getAllPages() : mockData.pages;
   }
   
-  try {
-    // En mode réel, tenter d'utiliser l'API Notion
-    // Implémentation à venir avec le token approprié
-    if (!token) {
-      throw new Error('Token Notion requis');
-    }
-    
-    // Exemple d'implémentation (à adapter)
-    // const notion = new Client({ auth: token });
-    // const response = await notion.search({
-    //   filter: {
-    //     property: 'object',
-    //     value: 'page'
-    //   }
-    // });
-    // return response.results;
-    
-    throw new Error('API Notion non implémentée pour les pages');
-  } catch (error) {
-    console.error('Erreur lors de la récupération des pages Notion:', error);
-    throw error;
-  }
+  // In real mode, connect to Notion API
+  throw new Error('Notion API not implemented for pages');
 }
 
 /**
- * Récupère une page spécifique par ID
- * @param id ID de la page
- * @param token Token d'authentification Notion (optionnel)
+ * Get pages for a specific project
+ * @param projectId Project ID
  */
-export async function retrieve(id: string, token?: string) {
-  // Vérifier si on est en mode démonstration
+export async function getProjectPages(projectId: string) {
+  // Check if we're in mock mode
   if (operationMode.isDemoMode) {
-    // Appliquer un délai pour simuler une requête réseau
+    // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Simuler une erreur réseau aléatoire
-    if (operationModeUtils.shouldSimulateError()) {
-      operationModeUtils.simulateConnectionError();
-    }
-    
-    // Renvoyer les données de démonstration
-    return mockData.getPage(id);
+    // Return mock data
+    return mockData.getProjectPages 
+      ? mockData.getProjectPages(projectId) 
+      : mockData.pages.filter(page => page.projectId === projectId);
   }
   
-  try {
-    // En mode réel, tenter d'utiliser l'API Notion
-    if (!token) {
-      token = localStorage.getItem('notion_api_key') || '';
-      if (!token) {
-        throw new Error('Token Notion requis');
-      }
-    }
-    
-    // Exemple d'implémentation (à adapter)
-    // const notion = new Client({ auth: token });
-    // const response = await notion.pages.retrieve({ page_id: id });
-    // return response;
-    
-    throw new Error('API Notion non implémentée pour récupérer une page');
-  } catch (error) {
-    console.error(`Erreur lors de la récupération de la page Notion ${id}:`, error);
-    throw error;
-  }
+  // In real mode, connect to Notion API
+  throw new Error('Notion API not implemented for project pages');
 }
 
 /**
- * Create a page in Notion
+ * Get a specific page by ID
+ * @param pageId Page ID
+ */
+export async function getPage(pageId: string) {
+  // Check if we're in mock mode
+  if (operationMode.isDemoMode) {
+    // Apply delay to simulate network request
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Return mock data
+    return mockData.getPage 
+      ? mockData.getPage(pageId) 
+      : mockData.pages.find(page => page.id === pageId);
+  }
+  
+  // In real mode, connect to Notion API
+  throw new Error('Notion API not implemented for specific page');
+}
+
+/**
+ * Create a new sample page
  * @param data Page data
- * @param token Authentication token
  */
-export async function create(data: any, token?: string) {
-  // Check if we're in demo mode
+export async function createPage(data: Partial<SamplePage>) {
+  // Check if we're in mock mode
   if (operationMode.isDemoMode) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Simulate random network error
-    if (operationModeUtils.shouldSimulateError()) {
-      operationModeUtils.simulateConnectionError();
+    // Create a new page using mock data
+    if (mockData.createSamplePage) {
+      return mockData.createSamplePage(data);
     }
     
-    // Return mock data
-    if (mockData.createPage) {
-      return mockData.createPage(data);
-    }
-    
-    // Fallback mock implementation
-    return {
+    // Fallback implementation if the mockData function isn't available
+    const newPage: SamplePage = {
       id: `page_${Date.now()}`,
-      created_time: new Date().toISOString(),
-      last_edited_time: new Date().toISOString(),
-      ...data
+      projectId: data.projectId || '',
+      url: data.url || '',
+      title: data.title || 'New Page',
+      description: data.description || '',
+      order: data.order || 0,
     };
+    
+    return newPage;
   }
   
-  try {
-    // In real mode, try to use Notion API
-    if (!token) {
-      token = localStorage.getItem('notion_api_key') || '';
-      if (!token) {
-        throw new Error('Notion token required');
-      }
-    }
-    
-    // Implementation to be added
-    throw new Error('Notion API not implemented for creating a page');
-  } catch (error) {
-    console.error('Error creating Notion page:', error);
-    throw error;
-  }
+  // In real mode, connect to Notion API
+  throw new Error('Notion API not implemented for page creation');
 }
 
 /**
- * Update a page in Notion
- * @param id Page ID
+ * Update a sample page
+ * @param pageId Page ID
  * @param data Update data
- * @param token Authentication token
  */
-export async function update(id: string, data: any, token?: string) {
-  // Check if we're in demo mode
+export async function updatePage(pageId: string, data: Partial<SamplePage>) {
+  // Check if we're in mock mode
   if (operationMode.isDemoMode) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Simulate random network error
-    if (operationModeUtils.shouldSimulateError()) {
-      operationModeUtils.simulateConnectionError();
+    // Update the page using mock data
+    if (mockData.updateSamplePage) {
+      return mockData.updateSamplePage(pageId, data);
     }
     
-    // Return mock data
-    if (mockData.updatePage) {
-      return mockData.updatePage(id, data);
-    }
-    
-    // Fallback mock implementation
-    const page = mockData.getPage(id);
+    // Fallback implementation if the mockData function isn't available
+    const page = mockData.pages.find(p => p.id === pageId);
     if (!page) {
-      throw new Error(`Page ${id} not found`);
+      throw new Error(`Page ${pageId} not found`);
     }
     
-    return {
+    const updatedPage = {
       ...page,
       ...data,
-      last_edited_time: new Date().toISOString()
     };
+    
+    return updatedPage;
   }
   
-  try {
-    // In real mode, try to use Notion API
-    if (!token) {
-      token = localStorage.getItem('notion_api_key') || '';
-      if (!token) {
-        throw new Error('Notion token required');
-      }
-    }
-    
-    // Implementation to be added
-    throw new Error('Notion API not implemented for updating a page');
-  } catch (error) {
-    console.error(`Error updating Notion page ${id}:`, error);
-    throw error;
-  }
+  // In real mode, connect to Notion API
+  throw new Error('Notion API not implemented for page update');
 }
 
 /**
- * Get page by ID - Alias for retrieve for backward compatibility
+ * Delete a sample page
+ * @param pageId Page ID
  */
-export const getPageById = retrieve;
-
-// Cette fonction vérifie si l'utilisateur est temporairement en mode réel
-export const isTemporarilyForcedReal = () => {
-  return !operationMode.isDemoMode;
-};
-
-// Export an object to match the expected structure
-export default {
-  getPages,
-  retrieve,
-  create,
-  update,
-  getPageById,
-  isTemporarilyForcedReal
-};
+export async function deletePage(pageId: string) {
+  // Check if we're in mock mode
+  if (operationMode.isDemoMode) {
+    // Apply delay to simulate network request
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Delete the page using mock data
+    return mockData.deletePage 
+      ? mockData.deletePage(pageId) 
+      : true;
+  }
+  
+  // In real mode, connect to Notion API
+  throw new Error('Notion API not implemented for page deletion');
+}

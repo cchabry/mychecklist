@@ -2,6 +2,16 @@
 /**
  * Shared utility functions
  */
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+/**
+ * Combines class names using clsx and tailwind-merge
+ * This is a utility function for combining Tailwind CSS classes conditionally
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 /**
  * Clean up and normalize a project ID
