@@ -1,3 +1,4 @@
+
 import { getNotionClient, testNotionConnection } from './notionClient';
 import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
@@ -403,7 +404,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
 };
 
 // Fix for the SamplePage type issues in the function that processes them
-export const processSamplePage = (page: any) => {
+export const processSamplePage = (page: any): SamplePage | null => {
   if (!page) return null;
 
   // Extract properties from the Notion page
