@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 
 import {
@@ -14,7 +15,7 @@ import {
   ConfigureExigences,
   NotionDatabaseDiscoveryPage
 } from '@/pages';
-import { ConfigPage } from '@/pages/ConfigPage';
+import ConfigPage from '@/pages/ConfigPage';
 import { NotionProvider } from '@/contexts/NotionContext';
 
 function App() {
