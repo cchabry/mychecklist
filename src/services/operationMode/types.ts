@@ -17,7 +17,7 @@ export type SwitchReason = string | null;
  */
 export interface OperationModeSettings {
   // Mode opérationnel actuel
-  mode: OperationMode;
+  mode: string;
   
   // Bascule automatique en mode démo après un certain nombre d'échecs
   autoSwitchEnabled: boolean;

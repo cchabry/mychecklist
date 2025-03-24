@@ -23,13 +23,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 // Schéma de validation pour le formulaire des paramètres
 const settingsSchema = z.object({
-  autoSwitchOnFailure: z.boolean().default(true),
-  maxConsecutiveFailures: z.number().min(1).max(10).default(3),
-  persistentModeStorage: z.boolean().default(true),
-  showNotifications: z.boolean().default(true),
-  useCacheInRealMode: z.boolean().default(true),
-  errorSimulationRate: z.number().min(0).max(100).default(10),
-  simulatedNetworkDelay: z.number().min(0).max(5000).default(500),
+  autoSwitchEnabled: z.boolean().default(true),
+  failuresThreshold: z.number().min(1).max(10).default(3),
+  errorHandling: z.enum(['auto', 'manual']).default('auto'),
+  autoSwitchOnErrors: z.boolean().default(true),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -62,7 +59,12 @@ const OperationModeSettings: React.FC = () => {
   // Initialiser le formulaire avec les paramètres actuels
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: settings
+    defaultValues: {
+      autoSwitchEnabled: settings.autoSwitchEnabled,
+      failuresThreshold: settings.failuresThreshold,
+      errorHandling: settings.errorHandling,
+      autoSwitchOnErrors: settings.autoSwitchOnErrors
+    }
   });
   
   // Gérer la soumission du formulaire
@@ -84,7 +86,7 @@ const OperationModeSettings: React.FC = () => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="autoSwitchOnFailure"
+          name="autoSwitchEnabled"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
@@ -96,17 +98,17 @@ const OperationModeSettings: React.FC = () => {
               <FormControl>
                 <Switch
                   checked={field.value}
-                  onCheckedChange={(value) => handleValueChange('autoSwitchOnFailure', value)}
+                  onCheckedChange={(value) => handleValueChange('autoSwitchEnabled', value)}
                 />
               </FormControl>
             </FormItem>
           )}
         />
         
-        {form.watch('autoSwitchOnFailure') && (
+        {form.watch('autoSwitchEnabled') && (
           <FormField
             control={form.control}
-            name="maxConsecutiveFailures"
+            name="failuresThreshold"
             render={({ field }) => (
               <FormItem className="space-y-2">
                 <FormLabel>Nombre d'échecs avant basculement</FormLabel>
@@ -117,7 +119,7 @@ const OperationModeSettings: React.FC = () => {
                       min={1}
                       max={10}
                       step={1}
-                      onValueChange={(value) => handleValueChange('maxConsecutiveFailures', value[0])}
+                      onValueChange={(value) => handleValueChange('failuresThreshold', value[0])}
                     />
                   </FormControl>
                   <span className="w-8 text-center">{field.value}</span>
@@ -132,19 +134,19 @@ const OperationModeSettings: React.FC = () => {
         
         <FormField
           control={form.control}
-          name="persistentModeStorage"
+          name="errorHandling"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
-                <FormLabel className="text-base">Conserver le mode</FormLabel>
+                <FormLabel className="text-base">Gestion des erreurs</FormLabel>
                 <FormDescription>
-                  Se souvenir du mode opérationnel entre les sessions
+                  Mode de gestion des erreurs de connexion
                 </FormDescription>
               </div>
               <FormControl>
                 <Switch
-                  checked={field.value}
-                  onCheckedChange={(value) => handleValueChange('persistentModeStorage', value)}
+                  checked={field.value === 'auto'}
+                  onCheckedChange={(value) => handleValueChange('errorHandling', value ? 'auto' : 'manual')}
                 />
               </FormControl>
             </FormItem>
@@ -153,7 +155,7 @@ const OperationModeSettings: React.FC = () => {
         
         <FormField
           control={form.control}
-          name="showNotifications"
+          name="autoSwitchOnErrors"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
@@ -165,71 +167,12 @@ const OperationModeSettings: React.FC = () => {
               <FormControl>
                 <Switch
                   checked={field.value}
-                  onCheckedChange={(value) => handleValueChange('showNotifications', value)}
+                  onCheckedChange={(value) => handleValueChange('autoSwitchOnErrors', value)}
                 />
               </FormControl>
             </FormItem>
           )}
         />
-        
-        <div className="rounded-lg border p-3">
-          <h3 className="font-medium flex items-center gap-2 mb-2">
-            <Info size={16} />
-            Paramètres du mode démo
-          </h3>
-          
-          <div className="space-y-4 mt-4">
-            <FormField
-              control={form.control}
-              name="errorSimulationRate"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Taux d'erreurs simulées (%)</FormLabel>
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                      <Slider
-                        value={[field.value]}
-                        min={0}
-                        max={100}
-                        step={5}
-                        onValueChange={(value) => handleValueChange('errorSimulationRate', value[0])}
-                      />
-                    </FormControl>
-                    <span className="w-8 text-center">{field.value}%</span>
-                  </div>
-                  <FormDescription>
-                    Pourcentage de requêtes qui échoueront en mode démo
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="simulatedNetworkDelay"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Délai réseau simulé (ms)</FormLabel>
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                      <Slider
-                        value={[field.value]}
-                        min={0}
-                        max={2000}
-                        step={100}
-                        onValueChange={(value) => handleValueChange('simulatedNetworkDelay', value[0])}
-                      />
-                    </FormControl>
-                    <span className="w-16 text-center">{field.value} ms</span>
-                  </div>
-                  <FormDescription>
-                    Délai simulé pour les requêtes en mode démo
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
       </form>
     </Form>
   );
