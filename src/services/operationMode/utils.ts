@@ -1,81 +1,109 @@
 
+import { toast } from 'sonner';
+import { operationMode } from './operationModeService';
+
 /**
- * Utilitaires pour le mode opérationnel
+ * Utilitaires pour le système operationMode
  */
-
-import { operationMode } from './index';
-
 export const operationModeUtils = {
   /**
-   * Applique un délai simulé selon la configuration du mode
+   * Applique un délai simulé pour les opérations en mode démo
    */
   async applySimulatedDelay(): Promise<void> {
-    if (!operationMode.isDemoMode) {
-      return Promise.resolve();
-    }
+    if (!operationMode.isDemoMode) return;
     
     const settings = operationMode.getSettings();
-    const delay = settings.simulatedNetworkDelay || 0;
+    const delay = settings.simulatedNetworkDelay || 300;
     
     if (delay > 0) {
-      return new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-    
-    return Promise.resolve();
   },
   
   /**
-   * Détermine si une erreur doit être simulée selon le taux configuré
+   * Vérifie s'il faut simuler une erreur en fonction du taux configuré
    */
   shouldSimulateError(): boolean {
-    if (!operationMode.isDemoMode) {
-      return false;
-    }
+    if (!operationMode.isDemoMode) return false;
     
     const settings = operationMode.getSettings();
     const errorRate = settings.errorSimulationRate || 0;
     
-    return Math.random() * 100 < errorRate;
-  },
-  
-  /**
-   * Génère une erreur simulée
-   */
-  generateSimulatedError(action: string): Error {
-    return new Error(`Erreur simulée lors de l'action: ${action}`);
+    if (errorRate <= 0) return false;
+    
+    // Générer un nombre aléatoire entre 0 et 100
+    const random = Math.random() * 100;
+    return random < errorRate;
   },
   
   /**
    * Simule une erreur de connexion
    */
   simulateConnectionError(): never {
-    throw new Error("Erreur de connexion simulée");
+    const errorMessages = [
+      "Erreur réseau simulée: impossible de se connecter au serveur",
+      "Temps d'attente dépassé pour la requête simulée",
+      "Erreur d'authentification simulée: accès refusé",
+      "Erreur de serveur simulée: service temporairement indisponible",
+      "Erreur de quota API simulée: limite de requêtes atteinte"
+    ];
+    
+    // Choisir un message d'erreur aléatoire
+    const errorMessage = errorMessages[Math.floor(Math.random() * errorMessages.length)];
+    
+    throw new Error(`[ERREUR SIMULÉE] ${errorMessage}`);
   },
   
   /**
-   * Récupère un scénario de démo en fonction du contexte
-   * @param context Contexte du scénario
-   * @returns Données du scénario ou null si aucun scénario n'est configuré
+   * Récupère un scénario de démonstration pour un contexte donné
+   * (pour la compatibilité avec l'ancien système)
    */
-  getScenario(context: string): any | null {
-    // Pour l'instant, retourne null (pas de scénario configuré)
-    // Cette méthode pourra être enrichie pour retourner des scénarios prédéfinis
-    return null;
+  getScenario(context: string): any {
+    return {
+      context,
+      isDemo: true,
+      data: {
+        message: "Données de démonstration générées pour " + context
+      }
+    };
   },
   
   /**
-   * Simule une opération avec possibilité d'erreur et délai
+   * Vérifie si une URL doit ignorer le mode démonstration
    */
-  async simulateOperation<T>(operation: () => T | Promise<T>, action: string): Promise<T> {
-    // Simuler un délai réseau
-    await this.applySimulatedDelay();
+  shouldBypassDemoMode(url: string): boolean {
+    // Liste des URL qui doivent toujours utiliser le mode réel
+    const alwaysRealUrls = [
+      '/api/health',
+      '/api/version',
+      '/api/config'
+    ];
     
-    // Simuler une erreur potentielle
-    if (this.shouldSimulateError()) {
-      throw this.generateSimulatedError(action);
-    }
+    return alwaysRealUrls.some(pattern => url.includes(pattern));
+  },
+  
+  /**
+   * Vérifie si un basculement automatique vers le mode démo est recommandé
+   */
+  shouldSuggestDemoMode(currentFailures: number): boolean {
+    // Si on a déjà plusieurs échecs mais pas assez pour un basculement automatique
+    const settings = operationMode.getSettings();
+    const threshold = settings.maxConsecutiveFailures - 1;
     
-    // Exécuter l'opération réelle
-    return operation();
+    return currentFailures >= 2 && currentFailures === threshold;
+  },
+  
+  /**
+   * Suggère d'activer le mode démo après des erreurs répétées
+   */
+  suggestDemoMode(): void {
+    toast.info('Problèmes de connexion détectés', {
+      description: 'Souhaitez-vous activer le mode démonstration?',
+      action: {
+        label: 'Activer',
+        onClick: () => operationMode.enableDemoMode('Activé suite à une suggestion')
+      },
+      duration: 8000
+    });
   }
 };

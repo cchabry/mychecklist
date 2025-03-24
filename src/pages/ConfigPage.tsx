@@ -1,120 +1,172 @@
 
 import React, { useState } from 'react';
-import { useOperationMode } from '@/services/operationMode';
-import OperationModeSettings, { OperationModeSettingsButton } from '@/components/OperationModeSettings';
-import OperationModeControl from '@/components/OperationModeControl';
-import OperationModeStatus from '@/components/OperationModeStatus';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Settings, ArrowLeft, Database, Activity, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, Database, Activity, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import OperationModeControl from '@/components/OperationModeControl';
+import OperationModeSettings from '@/components/OperationModeSettings';
+import { operationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/services/operationMode';
+import { Link } from 'react-router-dom';
 
 /**
- * Page dédiée à la configuration de l'application
+ * Page de configuration de l'application
  */
 const ConfigPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('mode');
-  const { isDemoMode, isRealMode } = useOperationMode();
+  const [activeTab, setActiveTab] = useState('operation-mode');
+  const { isDemoMode, failures } = useOperationMode();
   
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" asChild className="mr-2 p-2">
-            <Link to="/">
-              <ArrowLeft size={20} />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">Configuration de l'Application</h1>
-        </div>
-        <OperationModeStatus />
+    <div className="container mx-auto py-8">
+      <div className="mb-6 flex items-center gap-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Retour
+          </Link>
+        </Button>
+        <h1 className="text-3xl font-bold">Configuration</h1>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 w-full max-w-md mx-auto grid grid-cols-2">
-          <TabsTrigger value="mode" className="flex items-center gap-2">
-            <Activity size={16} />
-            <span>Mode Opérationnel</span>
+      
+      {isDemoMode && (
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <Database className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-700">Mode démonstration actif</AlertTitle>
+          <AlertDescription className="text-blue-600">
+            L'application est actuellement en mode démonstration. Les données affichées sont simulées.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {failures > 0 && (
+        <Alert className="mb-6 bg-amber-50 border-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-700">Problèmes de connexion détectés</AlertTitle>
+          <AlertDescription className="text-amber-600">
+            {failures} tentative{failures > 1 ? 's' : ''} de connexion a échoué récemment.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="operation-mode">
+            {isDemoMode ? (
+              <Database className="h-4 w-4 mr-2" />
+            ) : (
+              <Activity className="h-4 w-4 mr-2" />
+            )}
+            Mode opérationnel
           </TabsTrigger>
-          <TabsTrigger value="other" className="flex items-center gap-2">
-            <Settings size={16} />
-            <span>Autres réglages</span>
-          </TabsTrigger>
+          <TabsTrigger value="notion">Notion</TabsTrigger>
+          <TabsTrigger value="avancees">Paramètres avancés</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="mode" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <OperationModeSettings />
-            </div>
-            
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {isDemoMode ? (
-                      <>
-                        <Database size={18} className="text-blue-500" />
-                        Mode Démonstration
-                      </>
-                    ) : (
-                      <>
-                        <Info size={18} className="text-green-500" />
-                        Mode Réel
-                      </>
-                    )}
-                  </CardTitle>
-                  <CardDescription>
-                    {isDemoMode 
-                      ? "L'application utilise des données simulées" 
-                      : "L'application est connectée à Notion"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <OperationModeControl simplified />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Accès rapide</CardTitle>
-                  <CardDescription>
-                    Actions et raccourcis pour le mode opérationnel
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm mb-2">Bouton avec panneau latéral:</p>
-                    <OperationModeSettingsButton label="Ouvrir les paramètres" />
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm mb-2">Navigation:</p>
-                    <Button variant="default" asChild>
-                      <Link to="/">
-                        <ArrowLeft size={16} className="mr-2" />
-                        Retour à l'accueil
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
         
-        <TabsContent value="other">
+        <TabsContent value="operation-mode" className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            <OperationModeControl />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Paramètres du mode opérationnel</CardTitle>
+                <CardDescription>
+                  Configurez le comportement du système de modes opérationnels
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OperationModeSettings />
+              </CardContent>
+            </Card>
+          </div>
+          
           <Card>
             <CardHeader>
-              <CardTitle>Paramètres supplémentaires</CardTitle>
+              <CardTitle>Outils de diagnostic</CardTitle>
               <CardDescription>
-                Cet espace est réservé pour d'autres configurations à venir.
+                Outils pour tester et diagnostiquer les problèmes de connexion
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground py-8 text-center">
-                Les options de configuration supplémentaires seront ajoutées ultérieurement.
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-auto py-3 flex items-start"
+                  asChild
+                >
+                  <Link to="/diagnostics/operation-mode">
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-medium">Diagnostics du mode opérationnel</span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        Tester le système de gestion des modes
+                      </span>
+                    </div>
+                  </Link>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-auto py-3 flex items-start"
+                  asChild
+                >
+                  <Link to="/diagnostics/notion">
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-medium">Diagnostics Notion</span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        Tester la connexion à l'API Notion
+                      </span>
+                    </div>
+                  </Link>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-auto py-3 flex items-start"
+                  onClick={() => {
+                    operationMode.reset();
+                    window.location.reload();
+                  }}
+                >
+                  <div className="flex flex-col items-start text-left">
+                    <span className="font-medium">Réinitialiser l'état</span>
+                    <span className="text-xs text-gray-500 mt-1">
+                      Effacer toutes les erreurs et réinitialiser les paramètres
+                    </span>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="notion">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuration Notion</CardTitle>
+              <CardDescription>
+                Paramètres de connexion à l'API Notion
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500">
+                Contenu à venir...
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="avancees">
+          <Card>
+            <CardHeader>
+              <CardTitle>Paramètres avancés</CardTitle>
+              <CardDescription>
+                Options avancées pour les utilisateurs expérimentés
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500">
+                Contenu à venir...
               </p>
             </CardContent>
           </Card>

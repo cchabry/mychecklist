@@ -1,54 +1,73 @@
 
 import { toast } from 'sonner';
-import { OperationMode, SwitchReason } from './types';
+import { OperationMode } from './types';
 
 /**
- * Service de notifications pour le système operationMode
- * Gère l'affichage des notifications liées aux changements de mode
+ * Service de gestion des notifications pour le système operationMode
  */
 export const operationModeNotifications = {
   /**
-   * Affiche une notification lors du changement de mode
+   * Affiche une notification lors du changement de mode opérationnel
    */
-  showModeChangeNotification(mode: OperationMode, reason?: SwitchReason): void {
+  showModeChangeNotification(mode: OperationMode, reason?: string | null): void {
     if (mode === OperationMode.DEMO) {
       toast.info('Mode démonstration activé', {
-        description: reason || 'L\'application utilise maintenant des données simulées',
-        duration: 4000
+        description: reason || 'Utilisation de données de démonstration',
+        duration: 4000,
       });
     } else {
       toast.success('Mode réel activé', {
-        description: 'L\'application est maintenant connectée à l\'API Notion',
-        duration: 4000
+        description: 'Connexion aux services API activée',
+        duration: 3000,
       });
     }
   },
-  
+
   /**
-   * Affiche une notification pour le basculement automatique
+   * Affiche une notification en cas de basculement automatique
    */
   showAutoSwitchNotification(failures: number): void {
-    toast.warning('Passage automatique en mode démonstration', {
-      description: `Après ${failures} échec(s) de connexion, l'application est passée en mode démonstration.`,
+    toast.warning('Basculement automatique en mode démonstration', {
+      description: `Après ${failures} tentatives de connexion échouées, le mode démonstration a été activé automatiquement.`,
       duration: 6000,
       action: {
-        label: 'Réessayer en mode réel',
+        label: 'Réessayer le mode réel',
         onClick: () => {
-          // Ce callback sera fourni par le composant qui utilise cette notification
-          // Il appellera operationMode.enableRealMode()
-          console.log('Action: tentative de retour au mode réel');
-        }
-      }
+          // Import dynamique pour éviter les dépendances circulaires
+          import('./operationModeService').then(({ operationMode }) => {
+            operationMode.enableRealMode();
+          });
+        },
+      },
     });
   },
-  
+
   /**
    * Affiche une notification d'erreur de connexion
    */
   showConnectionErrorNotification(error: Error, context: string): void {
-    toast.error(`Erreur de connexion (${context})`, {
+    toast.error(`Erreur de connexion: ${context}`, {
       description: error.message,
-      duration: 5000
+      duration: 5000,
+    });
+  },
+
+  /**
+   * Affiche une notification pour conseiller l'utilisation du mode démo
+   */
+  showSuggestDemoModeNotification(): void {
+    toast.info('Problème de connexion détecté', {
+      description: 'Souhaitez-vous activer le mode démonstration pour continuer à utiliser l\'application ?',
+      duration: 10000,
+      action: {
+        label: 'Activer',
+        onClick: () => {
+          // Import dynamique pour éviter les dépendances circulaires
+          import('./operationModeService').then(({ operationMode }) => {
+            operationMode.enableDemoMode('Activé suite à une suggestion après erreur');
+          });
+        },
+      },
     });
   }
 };

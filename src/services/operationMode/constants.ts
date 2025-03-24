@@ -2,10 +2,10 @@
 import { OperationModeSettings } from './types';
 
 /**
- * Paramètres par défaut pour le mode opérationnel
+ * Paramètres par défaut pour le système operationMode
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
-  // Basculer automatiquement en mode démo après un certain nombre d'échecs
+  // Bascule automatique en mode démo après un certain nombre d'échecs
   autoSwitchOnFailure: true,
   
   // Nombre d'échecs consécutifs avant basculement automatique
@@ -21,8 +21,8 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   useCacheInRealMode: true,
   
   // Taux d'erreurs simulées en mode démo (pourcentage)
-  errorSimulationRate: 5,
+  errorSimulationRate: 10,
   
   // Délai réseau simulé en mode démo (ms)
-  simulatedNetworkDelay: 500
+  simulatedNetworkDelay: 300
 };

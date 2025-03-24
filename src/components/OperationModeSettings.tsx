@@ -1,202 +1,237 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useOperationMode } from '@/services/operationMode';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel
+} from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Slider } from '@/components/ui/slider';
-import { Settings2, RefreshCw } from 'lucide-react';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { 
+  Slider
+} from '@/components/ui/slider';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 import { toast } from 'sonner';
+import { Info, Settings } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-/**
- * Composant de configuration complète du système operationMode
- */
-const OperationModeSettings: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const { settings, updateSettings, reset } = useOperationMode();
-  
-  const handleReset = () => {
-    reset();
-    toast.success('Paramètres réinitialisés', {
-      description: 'Les paramètres ont été réinitialisés aux valeurs par défaut'
-    });
-  };
-  
+// Schéma de validation pour le formulaire des paramètres
+const settingsSchema = z.object({
+  autoSwitchOnFailure: z.boolean().default(true),
+  maxConsecutiveFailures: z.number().min(1).max(10).default(3),
+  persistentModeStorage: z.boolean().default(true),
+  showNotifications: z.boolean().default(true),
+  useCacheInRealMode: z.boolean().default(true),
+  errorSimulationRate: z.number().min(0).max(100).default(10),
+  simulatedNetworkDelay: z.number().min(0).max(5000).default(500),
+});
+
+type SettingsFormValues = z.infer<typeof settingsSchema>;
+
+// Composant bouton pour afficher les paramètres dans une popover
+export const OperationModeSettingsButton: React.FC<{ 
+  className?: string,
+  label?: string 
+}> = ({ className = '', label = 'Paramètres' }) => {
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Settings2 size={18} className="text-slate-600" />
-          Paramètres du mode opérationnel
-        </CardTitle>
-        <CardDescription>
-          Configurez comment l'application gère les modes réel et démonstration
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Comportement général</h3>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="auto-switch" className="text-sm">
-                Basculement automatique
-              </Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Passer en mode démo en cas d'erreurs répétées
-              </p>
-            </div>
-            <Switch
-              id="auto-switch"
-              checked={settings.autoSwitchOnFailure}
-              onCheckedChange={(checked) => {
-                updateSettings({ autoSwitchOnFailure: checked });
-              }}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="persistent-mode" className="text-sm">
-                Persistance du mode
-              </Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Conserver le mode entre les sessions
-              </p>
-            </div>
-            <Switch
-              id="persistent-mode"
-              checked={settings.persistentModeStorage}
-              onCheckedChange={(checked) => {
-                updateSettings({ persistentModeStorage: checked });
-              }}
-            />
-          </div>
-        </div>
-        
-        <Separator />
-        
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Paramètres avancés</h3>
-          
-          <div className="space-y-2">
-            <Label htmlFor="max-failures" className="text-sm">
-              Nombre maximum d'échecs consécutifs
-            </Label>
-            <Input
-              id="max-failures"
-              type="number"
-              min="1"
-              max="10"
-              value={settings.maxConsecutiveFailures}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value) && value > 0) {
-                  updateSettings({ maxConsecutiveFailures: value });
-                }
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Nombre d'erreurs successives avant basculement automatique
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label className="text-sm">Taux d'erreurs simulées</Label>
-            <div className="flex items-center space-x-2">
-              <Slider
-                value={[settings.errorSimulationRate]}
-                min={0}
-                max={100}
-                step={5}
-                onValueChange={(value) => {
-                  updateSettings({ errorSimulationRate: value[0] });
-                }}
-              />
-              <span className="w-10 text-sm">{settings.errorSimulationRate}%</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Probabilité de simuler des erreurs en mode démo
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label className="text-sm">Délai réseau simulé (ms)</Label>
-            <div className="flex items-center space-x-2">
-              <Slider
-                value={[settings.simulatedNetworkDelay]}
-                min={0}
-                max={2000}
-                step={100}
-                onValueChange={(value) => {
-                  updateSettings({ simulatedNetworkDelay: value[0] });
-                }}
-              />
-              <span className="w-16 text-sm">{settings.simulatedNetworkDelay} ms</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Durée simulée des requêtes en mode démo
-            </p>
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleReset}
-          className="ml-auto flex items-center gap-1"
-        >
-          <RefreshCw size={14} />
-          Réinitialiser
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className={className}>
+          <Settings size={16} className="mr-2" />
+          {label}
         </Button>
-      </CardFooter>
-    </Card>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <h3 className="font-medium mb-2">Paramètres du mode opérationnel</h3>
+        <OperationModeSettings />
+      </PopoverContent>
+    </Popover>
   );
 };
 
-/**
- * Bouton qui ouvre les paramètres dans un panneau latéral
- */
-export const OperationModeSettingsButton: React.FC<{
-  label?: string;
-  side?: 'left' | 'right' | 'top' | 'bottom';
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-}> = ({ 
-  label = 'Paramètres', 
-  side = 'right',
-  size = 'md',
-  className = '' 
-}) => {
+// Composant principal pour les paramètres du mode opérationnel
+const OperationModeSettings: React.FC = () => {
+  const { settings, updateSettings } = useOperationMode();
+  
+  // Initialiser le formulaire avec les paramètres actuels
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: settings
+  });
+  
+  // Gérer la soumission du formulaire
+  const onSubmit = (values: SettingsFormValues) => {
+    updateSettings(values);
+    toast.success('Paramètres mis à jour');
+  };
+  
+  // Mettre à jour les paramètres à chaque changement
+  const handleValueChange = (field: keyof SettingsFormValues, value: any) => {
+    form.setValue(field, value);
+    // Appliquer immédiatement les changements
+    const currentValues = form.getValues();
+    updateSettings({ ...currentValues, [field]: value });
+  };
+  
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          variant="outline"
-          size={size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'default'}
-          className={className}
-        >
-          <Settings2 size={size === 'sm' ? 14 : 16} className="mr-2" />
-          {label}
-        </Button>
-      </SheetTrigger>
-      <SheetContent side={side} className="w-full sm:w-[450px] overflow-y-auto">
-        <SheetHeader className="mb-5">
-          <SheetTitle>Paramètres du mode opérationnel</SheetTitle>
-          <SheetDescription>
-            Configurez le comportement de l'application avec Notion
-          </SheetDescription>
-        </SheetHeader>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="autoSwitchOnFailure"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Basculement automatique</FormLabel>
+                <FormDescription>
+                  Activer le mode démo automatiquement après plusieurs échecs
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(value) => handleValueChange('autoSwitchOnFailure', value)}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
         
-        <OperationModeSettings />
-      </SheetContent>
-    </Sheet>
+        {form.watch('autoSwitchOnFailure') && (
+          <FormField
+            control={form.control}
+            name="maxConsecutiveFailures"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel>Nombre d'échecs avant basculement</FormLabel>
+                <div className="flex items-center gap-2">
+                  <FormControl>
+                    <Slider
+                      value={[field.value]}
+                      min={1}
+                      max={10}
+                      step={1}
+                      onValueChange={(value) => handleValueChange('maxConsecutiveFailures', value[0])}
+                    />
+                  </FormControl>
+                  <span className="w-8 text-center">{field.value}</span>
+                </div>
+                <FormDescription>
+                  Nombre d'erreurs consécutives avant de basculer en mode démo
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        )}
+        
+        <FormField
+          control={form.control}
+          name="persistentModeStorage"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Conserver le mode</FormLabel>
+                <FormDescription>
+                  Se souvenir du mode opérationnel entre les sessions
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(value) => handleValueChange('persistentModeStorage', value)}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="showNotifications"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Notifications</FormLabel>
+                <FormDescription>
+                  Afficher des notifications lors des changements de mode
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(value) => handleValueChange('showNotifications', value)}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <div className="rounded-lg border p-3">
+          <h3 className="font-medium flex items-center gap-2 mb-2">
+            <Info size={16} />
+            Paramètres du mode démo
+          </h3>
+          
+          <div className="space-y-4 mt-4">
+            <FormField
+              control={form.control}
+              name="errorSimulationRate"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>Taux d'erreurs simulées (%)</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Slider
+                        value={[field.value]}
+                        min={0}
+                        max={100}
+                        step={5}
+                        onValueChange={(value) => handleValueChange('errorSimulationRate', value[0])}
+                      />
+                    </FormControl>
+                    <span className="w-8 text-center">{field.value}%</span>
+                  </div>
+                  <FormDescription>
+                    Pourcentage de requêtes qui échoueront en mode démo
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="simulatedNetworkDelay"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>Délai réseau simulé (ms)</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Slider
+                        value={[field.value]}
+                        min={0}
+                        max={2000}
+                        step={100}
+                        onValueChange={(value) => handleValueChange('simulatedNetworkDelay', value[0])}
+                      />
+                    </FormControl>
+                    <span className="w-16 text-center">{field.value} ms</span>
+                  </div>
+                  <FormDescription>
+                    Délai simulé pour les requêtes en mode démo
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      </form>
+    </Form>
   );
 };
 
