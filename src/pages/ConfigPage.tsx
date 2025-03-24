@@ -10,6 +10,7 @@ import OperationModeSettings from '@/components/OperationModeSettings';
 import { operationMode } from '@/services/operationMode';
 import { useOperationMode } from '@/services/operationMode';
 import { Link } from 'react-router-dom';
+import { NotionConfig } from '@/components/notion/config';
 
 /**
  * Page de configuration de l'application
@@ -141,19 +142,7 @@ const ConfigPage: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="notion">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuration Notion</CardTitle>
-              <CardDescription>
-                Paramètres de connexion à l'API Notion
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-500">
-                Contenu à venir...
-              </p>
-            </CardContent>
-          </Card>
+          <NotionConfig />
         </TabsContent>
         
         <TabsContent value="avancees">
