@@ -47,6 +47,10 @@ class OperationModeService {
     return this._isDemoMode;
   }
 
+  get isRealMode(): boolean {
+    return !this._isDemoMode;
+  }
+
   setSimulatedErrorRate(rate: number): void {
     if (rate >= 0 && rate <= 100) {
       this._errorRate = rate;
@@ -61,7 +65,7 @@ class OperationModeService {
     }
   }
 
-  enableDemoMode(): void {
+  enableDemoMode(reason: string = 'Changement manuel'): void {
     this._isDemoMode = true;
     this.saveState();
   }
@@ -74,6 +78,21 @@ class OperationModeService {
   toggleMode(): void {
     this._isDemoMode = !this._isDemoMode;
     this.saveState();
+  }
+
+  // Gestion des erreurs
+  handleConnectionError(error: Error, context: string = 'Opération'): void {
+    console.warn(`[OperationMode] Erreur détectée (${context}): ${error.message}`);
+  }
+
+  handleSuccessfulOperation(): void {
+    // Réinitialiser après une opération réussie
+  }
+
+  reset(): void {
+    // Réinitialiser les paramètres
+    this._errorRate = DEFAULT_STATE.simulatedErrorRate;
+    this._networkDelay = DEFAULT_STATE.simulatedNetworkDelay;
   }
 
   private saveState(): void {
@@ -122,6 +141,32 @@ class OperationModeService {
 // Instance singleton du service
 export const operationMode = new OperationModeService();
 
+// Exportation de operationModeUtils pour compatibilité
+export const operationModeUtils = {
+  applySimulatedDelay: async (): Promise<void> => {
+    await operationMode.simulateNetworkDelay();
+  },
+  
+  shouldSimulateError: (): boolean => {
+    return operationMode.shouldSimulateError();
+  },
+  
+  simulateConnectionError(): never {
+    throw new Error("Erreur de connexion simulée");
+  },
+  
+  getScenario(context: string): any | null {
+    // Cette méthode pourra être enrichie
+    return null;
+  }
+};
+
+// Exportation de l'énumération OperationMode
+export enum OperationMode {
+  DEMO = 'demo',
+  REAL = 'real'
+}
+
 // Hook pour utiliser le mode opérationnel dans les composants
 export function useOperationMode() {
   const [state, setState] = useGlobalOperationMode();
@@ -168,8 +213,8 @@ export function useOperationMode() {
     }));
   }, [setState]);
   
-  const enableDemoMode = useCallback(() => {
-    operationMode.enableDemoMode();
+  const enableDemoMode = useCallback((reason: string = 'Changement manuel') => {
+    operationMode.enableDemoMode(reason);
     setState(prev => ({
       ...prev,
       isDemoMode: true
@@ -183,15 +228,28 @@ export function useOperationMode() {
       isDemoMode: false
     }));
   }, [setState]);
+
+  const reset = useCallback(() => {
+    operationMode.reset();
+    setState(prev => ({
+      ...prev,
+      simulatedErrorRate: DEFAULT_STATE.simulatedErrorRate,
+      simulatedNetworkDelay: DEFAULT_STATE.simulatedNetworkDelay
+    }));
+  }, [setState]);
   
   return {
     isDemoMode: state.isDemoMode,
+    isRealMode: !state.isDemoMode,
     simulatedErrorRate: state.simulatedErrorRate,
     simulatedNetworkDelay: state.simulatedNetworkDelay,
     toggle,
     setErrorRate,
     setNetworkDelay,
     enableDemoMode,
-    enableRealMode
+    enableRealMode,
+    reset,
+    handleConnectionError: operationMode.handleConnectionError.bind(operationMode),
+    handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode)
   };
 }

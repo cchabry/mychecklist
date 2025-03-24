@@ -1,4 +1,3 @@
-
 import { operationMode, operationModeUtils } from '@/services/operationMode';
 import { mockData } from '../mock/data';
 
