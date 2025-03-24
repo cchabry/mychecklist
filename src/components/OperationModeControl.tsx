@@ -13,6 +13,7 @@ interface OperationModeControlProps {
   className?: string;
   onToggle?: () => void;
   compact?: boolean;
+  simplified?: boolean; // Add the simplified prop to match usage in Header.tsx
 }
 
 /**
@@ -21,7 +22,8 @@ interface OperationModeControlProps {
 const OperationModeControl: React.FC<OperationModeControlProps> = ({ 
   className = '',
   onToggle,
-  compact = false
+  compact = false,
+  simplified = false // Add default value
 }) => {
   const { isDemoMode, toggleMode } = useOperationModeListener();
   const { failures, lastError, switchReason } = useOperationMode();
@@ -31,6 +33,30 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
     if (onToggle) onToggle();
   };
   
+  // If simplified prop is true, use this simplified version
+  if (simplified) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        {isDemoMode ? (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+            <Database size={14} className="text-blue-500" />
+            <span className="text-xs">Démo</span>
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+            <Activity size={14} className="text-green-500" />
+            <span className="text-xs">Réel</span>
+          </Badge>
+        )}
+        
+        <Button variant="ghost" size="sm" onClick={handleToggle} className="h-7 text-xs">
+          Changer
+        </Button>
+      </div>
+    );
+  }
+  
+  // Use compact version if requested
   if (compact) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
@@ -53,6 +79,7 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
     );
   }
   
+  // Full card version (default)
   return (
     <Card className={className}>
       <CardHeader>
@@ -151,3 +178,4 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
 };
 
 export default OperationModeControl;
+

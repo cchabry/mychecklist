@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -133,7 +132,6 @@ const Header: React.FC = () => {
         </div>
       </div>
       
-      {/* Dialog pour le générateur de données de test */}
       <Dialog open={showTestGenerator} onOpenChange={setShowTestGenerator}>
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
           <DialogHeader>
