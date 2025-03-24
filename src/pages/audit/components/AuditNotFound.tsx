@@ -1,58 +1,83 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { NavigateFunction } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { operationMode } from '@/services/operationMode';
 
-export interface AuditNotFoundProps {
-  navigate: NavigateFunction;
+interface AuditNotFoundProps {
   projectId?: string;
-  error?: string;
+  auditId?: string;
+  reason?: string;
+  onRetry?: () => void;
 }
 
-const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
+/**
+ * Affiche un message d'erreur lorsqu'un audit n'est pas trouvé
+ */
+const AuditNotFound: React.FC<AuditNotFoundProps> = ({
+  projectId,
+  auditId,
+  reason = "L'audit demandé n'a pas été trouvé",
+  onRetry
+}) => {
+  const navigate = useNavigate();
+  
+  const handleRetry = () => {
+    // Réinitialiser le mode pour forcer une nouvelle tentative
+    operationMode.enableRealMode();
+    
+    // Appeler le callback de retry si fourni
+    if (onRetry) {
+      onRetry();
+    }
+  };
+  
+  const handleBackToProject = () => {
+    if (projectId) {
+      navigate(`/project/${projectId}`);
+    } else {
+      navigate('/');
+    }
+  };
+  
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-1 container mx-auto px-4 py-12 flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <div className="flex items-center gap-2 text-amber-500 mb-2">
-              <AlertTriangle size={24} />
-              <CardTitle className="text-xl">Audit non trouvé</CardTitle>
-            </div>
-            <CardDescription>
-              {error || "L'audit que vous recherchez n'existe pas ou n'est pas accessible."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {projectId 
-                ? "Vérifiez que l'ID du projet est correct et que vous avez accès à cet audit."
-                : "Vérifiez l'URL et assurez-vous que vous êtes connecté avec les bonnes permissions."}
-            </p>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/')}
-              className="gap-2"
-            >
-              <ArrowLeft size={16} />
-              Retour à l'accueil
-            </Button>
-            
-            {projectId && (
-              <Button 
-                onClick={() => navigate(`/projet/${projectId}`)}
-              >
-                Aller au projet
-              </Button>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Audit introuvable</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>
+            {reason}
+            {auditId && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                ID d'audit: <code className="text-xs bg-muted p-1 rounded">{auditId}</code>
+              </div>
             )}
-          </CardFooter>
-        </Card>
-      </main>
-    </div>
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button 
+          variant="outline" 
+          onClick={handleBackToProject}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour au projet
+        </Button>
+        <Button 
+          onClick={handleRetry}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Réessayer
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

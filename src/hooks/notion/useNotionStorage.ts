@@ -5,15 +5,8 @@ import { useCallback } from 'react';
 export interface NotionConfig {
   apiKey: string;
   databaseId: string;
-  checklistsDbId?: string;
-  projectsDbId?: string;
-  auditsDbId?: string;
-  exigencesDbId?: string;
-  samplePagesDbId?: string;
-  evaluationsDbId?: string;
-  actionsDbId?: string;
-  pagesDbId?: string;
-  lastConfigDate?: string | null;
+  checklistsDbId: string;
+  lastConfigDate: string | null;
 }
 
 /**
@@ -29,12 +22,6 @@ export function useNotionStorage() {
       apiKey: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
       databaseId: localStorage.getItem(STORAGE_KEYS.DATABASE_ID) || '',
       checklistsDbId: localStorage.getItem(STORAGE_KEYS.CHECKLISTS_DB_ID) || '',
-      projectsDbId: localStorage.getItem('notion_projects_database_id') || '',
-      auditsDbId: localStorage.getItem('notion_audits_database_id') || '',
-      exigencesDbId: localStorage.getItem('notion_exigences_database_id') || '',
-      samplePagesDbId: localStorage.getItem('notion_samplePages_database_id') || '',
-      evaluationsDbId: localStorage.getItem('notion_evaluations_database_id') || '',
-      actionsDbId: localStorage.getItem('notion_actions_database_id') || '',
       lastConfigDate: localStorage.getItem(STORAGE_KEYS.LAST_CONFIG_DATE)
     };
   }, []);
@@ -62,30 +49,6 @@ export function useNotionStorage() {
       localStorage.setItem(STORAGE_KEYS.CHECKLISTS_DB_ID, config.checklistsDbId);
     }
     
-    if (config.projectsDbId !== undefined) {
-      localStorage.setItem('notion_projects_database_id', config.projectsDbId);
-    }
-    
-    if (config.auditsDbId !== undefined) {
-      localStorage.setItem('notion_audits_database_id', config.auditsDbId);
-    }
-    
-    if (config.exigencesDbId !== undefined) {
-      localStorage.setItem('notion_exigences_database_id', config.exigencesDbId);
-    }
-    
-    if (config.samplePagesDbId !== undefined) {
-      localStorage.setItem('notion_samplePages_database_id', config.samplePagesDbId);
-    }
-    
-    if (config.evaluationsDbId !== undefined) {
-      localStorage.setItem('notion_evaluations_database_id', config.evaluationsDbId);
-    }
-    
-    if (config.actionsDbId !== undefined) {
-      localStorage.setItem('notion_actions_database_id', config.actionsDbId);
-    }
-    
     localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
   }, [getStoredConfig]);
 
@@ -96,12 +59,6 @@ export function useNotionStorage() {
     localStorage.removeItem(STORAGE_KEYS.API_KEY);
     localStorage.removeItem(STORAGE_KEYS.DATABASE_ID);
     localStorage.removeItem(STORAGE_KEYS.CHECKLISTS_DB_ID);
-    localStorage.removeItem('notion_projects_database_id');
-    localStorage.removeItem('notion_audits_database_id');
-    localStorage.removeItem('notion_exigences_database_id');
-    localStorage.removeItem('notion_samplePages_database_id');
-    localStorage.removeItem('notion_evaluations_database_id');
-    localStorage.removeItem('notion_actions_database_id');
     localStorage.removeItem(STORAGE_KEYS.LAST_CONFIG_DATE);
   }, []);
 

@@ -2,6 +2,7 @@
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { Audit, AuditItem } from './types';
 // Nous importons directement depuis '../types' pour éviter l'erreur d'usage comme valeur
+import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
 import { notionApi } from '@/lib/notionProxy';
 
@@ -64,7 +65,7 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             requirementLevel: relation.requirementLevel || '',
             scope: relation.scope || '',
             consigne: relation.title || '',
-            status: relation.status || 'non-évalué',
+            status: relation.status || ComplianceStatus.NotEvaluated,
             comment: relation.comment || '',
             pageResults: [],
             actions: [], 
@@ -88,12 +89,12 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
       id: getRichTextValue(properties.id) || page.id,
       projectId: projectId,
       name: getRichTextValue(properties.name) || getRichTextValue(properties.Name) || `Audit - ${new Date().toLocaleDateString()}`,
+      items: items,
       createdAt: page.created_time || new Date().toISOString(),
       updatedAt: page.last_edited_time || new Date().toISOString(),
       completedAt: getDateValue(properties.completedAt) || getDateValue(properties.CompletedAt),
-      items: items, // Ajout du champ items
-      score: getNumberValue(properties.score) || getNumberValue(properties.Score) || 0, // Ajout du champ score
-      version: getRichTextValue(properties.version) || getRichTextValue(properties.Version) || '1.0' // Ajout du champ version
+      score: getNumberValue(properties.score) || getNumberValue(properties.Score) || 0,
+      version: getRichTextValue(properties.version) || getRichTextValue(properties.Version) || '1.0'
     };
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'audit:', error);
@@ -116,26 +117,68 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
     
     // Créer l'objet de propriétés pour la mise à jour
     const properties = {
+      score: {
+        number: audit.score
+      },
       updatedAt: {
         date: {
           start: new Date().toISOString()
         }
+      },
+      version: {
+        rich_text: [{
+          type: 'text',
+          text: {
+            content: audit.version || '1.0'
+          }
+        }]
       }
     };
     
-    // Update the audit page using fetch directly instead of request
-    const response = await fetch(`https://api.notion.com/v1/pages/${audit.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ properties }),
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
-      }
-    });
+    // Update the audit page
+    await notionApi.pages.update(
+      audit.id,
+      { properties },
+      apiKey
+    );
     
-    if (!response.ok) {
-      throw new Error(`Erreur lors de la mise à jour: ${response.status} ${response.statusText}`);
+    // Update individual items
+    for (const item of audit.items) {
+      console.log('Mise à jour item:', item.id, item.status);
+      
+      const itemProperties = {
+        properties: {
+          status: {
+            select: {
+              name: item.status
+            }
+          },
+          comment: {
+            rich_text: [
+              {
+                type: 'text',
+                text: {
+                  content: item.comment || ''
+                }
+              }
+            ]
+          }
+        }
+      };
+      
+      await notionApi.pages.update(
+        item.id,
+        itemProperties,
+        apiKey
+      );
+      
+      // Sauvegarde des actions correctives si présentes
+      if (item.actions && item.actions.length > 0) {
+        console.log(`Sauvegarde de ${item.actions.length} actions correctives pour l'item:`, item.id);
+        
+        // Pour le prototype, nous ne faisons pas de vraie sauvegarde des actions,
+        // mais nous pourrions ajouter ce code ici pour la version finale
+      }
     }
     
     // Restaurer le mode mock si nécessaire

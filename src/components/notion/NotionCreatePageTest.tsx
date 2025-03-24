@@ -1,12 +1,11 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, RotateCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileWarning, RotateCw } from "lucide-react";
 import { notionApi } from '@/lib/notionProxy';
-import { mockData } from '@/lib/mockData';
+import { isMockActive, temporarilyDisableMock, enableMock } from './utils';
 
 interface NotionCreatePageTestProps {
   onClose: () => void;
@@ -26,21 +25,19 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onClose }) 
       // Vérifier si l'URL est valide
       if (!pageUrl.startsWith('https://')) {
         setError('URL invalide. L\'URL doit commencer par https://');
-        setIsLoading(false);
         return;
       }
 
       // Extraire le projectId de l'URL
       const urlParts = pageUrl.split('/');
-      const projectId = urlParts[4] || 'default-project';
+      const projectId = urlParts[4];
 
-      // Utiliser mockData au lieu de consolidatedMockData
-      const newPage = mockData.createSamplePage({
+      // Créer la page
+      const newPage = await notionApi.createSamplePage({
         projectId: projectId,
         url: pageUrl,
         title: `Page de test ${Date.now()}`,
-        description: 'Page créée pour tester l\'intégration Notion',
-        order: 1
+        description: 'Page créée pour tester l\'intégration Notion'
       });
 
       if (newPage) {

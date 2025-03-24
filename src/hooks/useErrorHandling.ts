@@ -1,8 +1,8 @@
+
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
 import { notionErrorService, NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling';
-import { SwitchReason } from '@/lib/operationMode/types';
 
 export type ErrorCategory = 
   | 'network'        // Erreurs de connexion réseau
@@ -124,7 +124,7 @@ export function useErrorHandling() {
       case 'network':
         actions.push({
           label: 'Passer en mode démonstration',
-          action: () => enableDemoMode(SwitchReason.NETWORK_ERROR)
+          action: () => enableDemoMode('Basculement manuel suite à une erreur réseau')
         });
         break;
         
@@ -156,7 +156,7 @@ export function useErrorHandling() {
     if (!isDemoMode && !actions.some(a => a.label.includes('démonstration'))) {
       actions.push({
         label: 'Utiliser le mode démonstration',
-        action: () => enableDemoMode(SwitchReason.AFTER_ERROR)
+        action: () => enableDemoMode('Basculement manuel après erreur')
       });
     }
     
@@ -268,7 +268,7 @@ export function useErrorHandling() {
     
     // Basculer automatiquement en mode démo pour certaines erreurs critiques
     if (critical && category === 'network' && context?.includes('repeated') && !isDemoMode) {
-      enableDemoMode(SwitchReason.REPEATED_ERRORS);
+      enableDemoMode('Basculement automatique suite à des erreurs réseau répétées');
       
       toast.warning('Passage automatique en mode démonstration', {
         description: 'Plusieurs erreurs réseau ont été détectées. L\'application utilise maintenant des données fictives.'

@@ -5,40 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import NotionApiKeyField from '@/components/notion/form/NotionApiKeyField';
-import NotionDatabaseField from '@/components/notion/form/NotionDatabaseField';
-import NotionConnectionTests from '@/components/notion/form/NotionConnectionTests';
-import NotionFormActions from '@/components/notion/form/NotionFormActions';
+import { NotionApiKeyField } from '@/components/notion/form/NotionApiKeyField';
+import { NotionDatabaseField } from '@/components/notion/form/NotionDatabaseField';
+import { NotionConnectionTests } from '@/components/notion/form/NotionConnectionTests';
+import { NotionFormActions } from '@/components/notion/form/NotionFormActions';
 import { useNotion } from '@/contexts/NotionContext';
 import { useNotionStorage } from '@/hooks/notion/useNotionStorage';
 import { operationMode } from '@/services/operationMode';
+import OperationModeStatus from '@/components/OperationModeStatus';
 import { useOperationMode } from '@/services/operationMode';
-import OperationModeStatusBadge from '@/components/operationMode/OperationModeStatusBadge';
 
 interface NotionConfigFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
 }
-
-const OperationModeStatus: React.FC<{ showToggle?: boolean }> = ({ showToggle = false }) => {
-  const { isDemoMode, toggle } = useOperationMode();
-  
-  return (
-    <div className="flex items-center gap-2">
-      <OperationModeStatusBadge />
-      {showToggle && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={toggle} 
-          className="text-xs"
-        >
-          {isDemoMode ? "Mode réel" : "Mode démo"}
-        </Button>
-      )}
-    </div>
-  );
-};
 
 export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   onSuccess,
@@ -46,7 +26,7 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
 }) => {
   // Hooks pour accéder aux données et fonctions
   const { status, testConnection } = useNotion();
-  const notionStorage = useNotionStorage();
+  const { loadKeys, saveKeys, clearKeys } = useNotionStorage();
   const { enableRealMode } = useOperationMode();
   
   // État local pour les champs du formulaire
@@ -64,26 +44,26 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   
   // Charger les valeurs sauvegardées au démarrage
   useEffect(() => {
-    const config = notionStorage.getStoredConfig();
-    if (config.apiKey) setApiKey(config.apiKey);
-    if (config.databaseId) setDatabaseId(config.databaseId);
+    const keys = loadKeys();
+    if (keys.apiKey) setApiKey(keys.apiKey);
+    if (keys.databaseId) setDatabaseId(keys.databaseId);
     
     // Charger les bases de données additionnelles
-    if (config.checklistsDbId) setAdditionalDatabases(prev => ({ ...prev, checklists: config.checklistsDbId || '' }));
-    if (config.projectsDbId) setAdditionalDatabases(prev => ({ ...prev, projects: config.projectsDbId || '' }));
-    if (config.auditsDbId) setAdditionalDatabases(prev => ({ ...prev, audits: config.auditsDbId || '' }));
-    if (config.exigencesDbId) setAdditionalDatabases(prev => ({ ...prev, exigences: config.exigencesDbId || '' }));
-    if (config.samplePagesDbId) setAdditionalDatabases(prev => ({ ...prev, samplePages: config.samplePagesDbId || '' }));
-    if (config.evaluationsDbId) setAdditionalDatabases(prev => ({ ...prev, evaluations: config.evaluationsDbId || '' }));
-    if (config.actionsDbId) setAdditionalDatabases(prev => ({ ...prev, actions: config.actionsDbId || '' }));
-  }, [notionStorage]);
+    if (keys.checklistsDbId) setAdditionalDatabases(prev => ({ ...prev, checklists: keys.checklistsDbId }));
+    if (keys.projectsDbId) setAdditionalDatabases(prev => ({ ...prev, projects: keys.projectsDbId }));
+    if (keys.auditsDbId) setAdditionalDatabases(prev => ({ ...prev, audits: keys.auditsDbId }));
+    if (keys.exigencesDbId) setAdditionalDatabases(prev => ({ ...prev, exigences: keys.exigencesDbId }));
+    if (keys.samplePagesDbId) setAdditionalDatabases(prev => ({ ...prev, samplePages: keys.samplePagesDbId }));
+    if (keys.evaluationsDbId) setAdditionalDatabases(prev => ({ ...prev, evaluations: keys.evaluationsDbId }));
+    if (keys.actionsDbId) setAdditionalDatabases(prev => ({ ...prev, actions: keys.actionsDbId }));
+  }, [loadKeys]);
   
   // Gérer la soumission du formulaire
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Enregistrer les clés
-    notionStorage.updateStoredConfig({
+    saveKeys({
       apiKey,
       databaseId,
       checklistsDbId: additionalDatabases.checklists,
@@ -107,7 +87,7 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   
   // Gérer le reset complet
   const handleReset = () => {
-    notionStorage.clearStoredConfig();
+    clearKeys();
     setApiKey('');
     setDatabaseId('');
     setAdditionalDatabases({
@@ -139,7 +119,7 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       <Separator className="my-4" />
       
       <NotionApiKeyField
-        apiKey={apiKey}
+        value={apiKey}
         onChange={setApiKey}
         className="mb-6"
       />
@@ -193,9 +173,9 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       />
       
       <NotionFormActions
-        onCancel={onCancel}
+        onSubmit={handleSubmit}
         onReset={handleReset}
-        isSubmitting={false}
+        onCancel={onCancel}
       />
     </form>
   );

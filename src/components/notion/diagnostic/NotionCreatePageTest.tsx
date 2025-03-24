@@ -1,143 +1,142 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, FileWarning, RotateCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NotionCreatePageTestProps } from './types';
 import { notionApi } from '@/lib/notionProxy';
-import { isMockActive, temporarilyDisableMock, enableMock } from '../utils';
 
-interface NotionCreatePageTestProps {
-  onClose: () => void;
-}
+const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ 
+  databaseId, 
+  onClose,
+  onSuccess,
+  onError 
+}) => {
+  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+  const [details, setDetails] = useState<string | null>(null);
+  const [pageName, setPageName] = useState('Test Page');
+  const [pageUrl, setPageUrl] = useState('https://example.com');
+  const [pageId, setPageId] = useState<string | null>(null);
 
-const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onClose }) => {
-  const [pageUrl, setPageUrl] = useState('');
-  const [pageCreated, setPageCreated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const createTestPage = async () => {
+    if (!databaseId?.trim()) {
+      setStatus('error');
+      setMessage('ID de base de données manquant');
+      onError && onError(new Error('ID de base de données manquant'));
+      return;
+    }
 
-  const handleCreatePage = async () => {
-    setIsLoading(true);
-    setError(null);
+    setStatus('pending');
+    setMessage('Création de la page de test...');
 
     try {
-      // Vérifier si l'URL est valide
-      if (!pageUrl.startsWith('https://')) {
-        setError('URL invalide. L\'URL doit commencer par https://');
-        setIsLoading(false);
-        return;
-      }
-
-      // Extraire le projectId de l'URL
-      const urlParts = pageUrl.split('/');
-      const projectId = urlParts[4];
-
-      // Créer la page en utilisant la requête générique au lieu de createSamplePage
-      // Implémentation directe pour contourner l'erreur
       const apiKey = localStorage.getItem('notion_api_key');
-      const dbId = localStorage.getItem('notion_database_id');
-
-      if (!apiKey || !dbId) {
-        setError('Configuration Notion manquante. Veuillez configurer votre API key et database ID.');
-        setIsLoading(false);
+      
+      if (!apiKey) {
+        setStatus('error');
+        setMessage('Clé API non configurée');
+        onError && onError(new Error('Clé API non configurée'));
         return;
       }
 
-      const createData = {
-        parent: { database_id: dbId },
+      const response = await notionApi.pages.create({
+        parent: { database_id: databaseId },
         properties: {
-          Name: {
-            title: [{ text: { content: `Page de test ${Date.now()}` } }]
-          },
-          URL: { 
-            url: pageUrl 
-          },
-          Description: { 
-            rich_text: [{ text: { content: 'Page créée pour tester l\'intégration Notion' } }] 
-          }
+          Name: { title: [{ text: { content: pageName } }] },
+          URL: { url: pageUrl }
         }
-      };
-
-      // Fix this line - use options object instead of direct parameters
-      const response = await notionApi.request({
-        endpoint: "pages",
-        method: 'POST',
-        body: JSON.stringify(createData),
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Notion-Version': '2022-06-28'
-        }
-      });
-
+      }, apiKey);
+      
       if (response && response.id) {
-        setPageCreated(true);
+        setPageId(response.id);
+        setStatus('success');
+        setMessage('Page créée avec succès !');
+        onSuccess && onSuccess(response.id);
       } else {
-        setError('Erreur lors de la création de la page.');
+        setStatus('error');
+        setMessage('Échec de création de la page');
+        setDetails('La réponse de l\'API Notion est invalide');
+        onError && onError(new Error('Réponse invalide'));
       }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'Erreur inconnue';
-      setError(`Erreur lors de la création de la page: ${errorMessage}`);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      setStatus('error');
+      setMessage('Erreur lors de la création de la page');
+      setDetails(error instanceof Error ? error.message : 'Erreur inconnue');
+      onError && onError(error instanceof Error ? error : new Error(String(error)));
     }
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Créer une page de test</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="page-url">URL de la page</Label>
-          <Input
-            id="page-url"
-            placeholder="https://www.notion.so/tmwagency/Nom-du-Projet-466c66e640404ea7a95345cf731a6d91?pvs=4"
-            value={pageUrl}
-            onChange={(e) => setPageUrl(e.target.value)}
-            disabled={isLoading || pageCreated}
-          />
-        </div>
-
-        {error && (
-          <div className="rounded-md border border-destructive/50 bg-destructive/5 text-destructive p-4">
-            <div className="flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />
-              <h3 className="text-sm font-medium">Erreur</h3>
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Créer une page de test dans Notion</DialogTitle>
+        </DialogHeader>
+        
+        {status === 'idle' && (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="pageName">Nom de la page</Label>
+              <Input
+                id="pageName"
+                value={pageName}
+                onChange={(e) => setPageName(e.target.value)}
+              />
             </div>
-            <p className="text-sm opacity-70">{error}</p>
+            
+            <div className="space-y-2">
+              <Label htmlFor="pageUrl">URL</Label>
+              <Input
+                id="pageUrl"
+                value={pageUrl}
+                onChange={(e) => setPageUrl(e.target.value)}
+              />
+            </div>
           </div>
         )}
-
-        {pageCreated && (
-          <div className="rounded-md border border-green-500/50 bg-green-500/5 text-green-500 p-4">
-            <div className="flex items-center gap-1">
-              <CheckCircle2 className="h-4 w-4" />
-              <h3 className="text-sm font-medium">Succès</h3>
-            </div>
-            <p className="text-sm opacity-70">Page créée avec succès !</p>
+        
+        {status !== 'idle' && (
+          <div className="flex flex-col items-center justify-center p-6 space-y-4">
+            {status === 'pending' && (
+              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            )}
+            
+            {status === 'success' && (
+              <CheckCircle className="w-12 h-12 text-green-500" />
+            )}
+            
+            {status === 'error' && (
+              <AlertTriangle className="w-12 h-12 text-destructive" />
+            )}
+            
+            <p className="text-center text-lg font-medium">{message}</p>
+            
+            {details && (
+              <p className="text-center text-sm text-muted-foreground">{details}</p>
+            )}
+            
+            {pageId && (
+              <div className="w-full mt-4 p-3 bg-muted rounded-md text-sm">
+                <p className="font-medium">Page ID:</p>
+                <code className="text-xs">{pageId}</code>
+              </div>
+            )}
           </div>
         )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-          Annuler
-        </Button>
-        <Button onClick={handleCreatePage} disabled={isLoading || pageCreated}>
-          {isLoading ? (
-            <>
-              <RotateCw className="mr-2 h-4 w-4 animate-spin" />
-              Création...
-            </>
-          ) : (
-            'Créer la page'
+        
+        <DialogFooter>
+          {status === 'idle' && (
+            <Button onClick={createTestPage}>Créer la page</Button>
           )}
-        </Button>
-      </CardFooter>
-    </Card>
+          <Button variant={status === 'idle' ? 'outline' : 'default'} onClick={onClose}>
+            {status === 'idle' ? 'Annuler' : 'Fermer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

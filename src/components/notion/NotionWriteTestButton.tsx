@@ -13,22 +13,16 @@ import {
 
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
-  apiKey?: string;
-  databaseId?: string;
 }
 
-const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ 
-  onSuccess,
-  apiKey: propApiKey,
-  databaseId: propDatabaseId
-}) => {
+const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess }) => {
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const handleTestWrite = async () => {
-    // Vérifier les valeurs dans localStorage ou utiliser les props
-    const apiKey = propApiKey || localStorage.getItem('notion_api_key');
-    const dbId = propDatabaseId || localStorage.getItem('notion_database_id');
+    // Vérifier les valeurs dans localStorage
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
     
     console.log('🔍 Démarrage du test d\'écriture avec:', {
       'API Key présente': !!apiKey,
@@ -68,37 +62,16 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({
       
       console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
       
-      // Utiliser l'API proxy pour créer la page
-      const requestConfig = {
-        method: 'POST',
-        body: JSON.stringify(createData),
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Notion-Version': '2022-06-28'
-        }
-      };
+      // Tenter de créer la page
+      const response = await notionApi.pages.create(createData, apiKey);
       
-      // Utiliser l'API notionApi directement sans passer par request
-      const response = await fetch(`https://api.notion.com/v1/pages`, requestConfig);
-      const responseData = await response.json();
-      
-      if (responseData && responseData.id) {
-        console.log('✅ Test d\'écriture réussi! ID de la page créée:', responseData.id);
+      if (response && response.id) {
+        console.log('✅ Test d\'écriture réussi! ID de la page créée:', response.id);
         
         // Vérifier en lisant la page créée
-        const getConfig = {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Notion-Version': '2022-06-28'
-          }
-        };
+        const pageData = await notionApi.pages.retrieve(response.id, apiKey);
         
-        const pageResponse = await fetch(`https://api.notion.com/v1/pages/${responseData.id}`, getConfig);
-        const pageData = await pageResponse.json();
-        
-        if (pageData && pageData.id === responseData.id) {
+        if (pageData && pageData.id === response.id) {
           console.log('✅ Lecture de la page créée réussie!');
           setTestStatus('success');
           toast.success('Test d\'écriture réussi', {
@@ -107,19 +80,9 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({
           
           // Tentative d'archivage de la page de test
           try {
-            const archiveConfig = {
-              method: 'PATCH',
-              body: JSON.stringify({
-                archived: true
-              }),
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'Notion-Version': '2022-06-28'
-              }
-            };
-            
-            await fetch(`https://api.notion.com/v1/pages/${responseData.id}`, archiveConfig);
+            await notionApi.pages.update(response.id, {
+              archived: true
+            }, apiKey);
             console.log('🧹 Nettoyage: Page de test archivée');
           } catch (cleanupError) {
             console.log('⚠️ Impossible d\'archiver la page de test:', cleanupError);

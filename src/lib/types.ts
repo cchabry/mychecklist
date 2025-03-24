@@ -1,46 +1,92 @@
-// Types de base pour l'application
+
+export interface ChecklistItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  subcategory?: string;
+  metaRefs?: string;
+  criteria: string;
+  profile: string;
+  phase: string;
+  effort: string;
+  priority: string;
+  requirementLevel: string;
+  scope: string;
+  consigne: string;
+  status: ComplianceStatus; // Make sure status is required, not optional
+  pageResults?: PageResult[];
+  importance?: ImportanceLevel;
+  projectRequirement?: string;
+  projectComment?: string;
+  actions?: CorrectiveAction[];
+  comment?: string;
+  reference?: string;
+  profil?: string;
+  details?: string; // Pour remplacer les références à subsubcategory et autres détails
+}
 
 export interface Project {
   id: string;
   name: string;
   url: string;
-  description?: string;
-  status?: string;
   createdAt: string;
   updatedAt: string;
   progress: number;
-  itemsCount?: number;
-  pagesCount?: number;
-  client?: string;
-  startDate?: string;
-  endDate?: string;
+  itemsCount: number;
+  pagesCount: number;
+  description?: string;
+  status?: string;
 }
 
-export interface ChecklistItem {
+export interface Audit {
   id: string;
-  title: string;
-  consigne: string;
-  description: string;
-  category: string;
-  subcategory: string;
-  metaRefs?: string;
-  profil?: string[];
-  phase?: string[];
-  effort?: string;
-  priority?: string;
-  reference?: string[];
-  profile?: string[];
-  requirementLevel?: string;
-  scope?: string;
-  details?: string;
-  criteria?: string;
-  status?: string;
+  projectId: string;
+  name: string;
+  items: ChecklistItem[];
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  score: number;
+  version: string;
+}
+
+// Alias pour la compatibilité avec le code existant
+export type AuditItem = ChecklistItem;
+export type ProjectRequirement = Exigence;
+
+export enum ComplianceStatus {
+  Compliant = "Compliant",
+  NonCompliant = "NonCompliant",
+  PartiallyCompliant = "PartiallyCompliant",
+  NotEvaluated = "NotEvaluated",
+  NotApplicable = "NotApplicable"
+}
+
+// Ajout de l'alias ComplianceLevel pour compatibilité
+export type ComplianceLevel = ComplianceStatus;
+
+// Valeurs numériques pour les statuts de conformité (pour les calculs de score)
+export const COMPLIANCE_VALUES = {
+  [ComplianceStatus.Compliant]: 1,
+  [ComplianceStatus.PartiallyCompliant]: 0.5,
+  [ComplianceStatus.NonCompliant]: 0,
+  [ComplianceStatus.NotEvaluated]: 0,
+  [ComplianceStatus.NotApplicable]: 0
+};
+
+export enum ImportanceLevel {
+  Majeur = "Majeur",
+  Important = "Important",
+  Moyen = "Moyen",
+  Mineur = "Mineur",
+  NA = "N/A"
+}
+
+export interface PageResult {
+  pageId: string;
+  status: ComplianceStatus;
   comment?: string;
-  pageResults?: PageResult[];
-  actions?: CorrectiveAction[];
-  importance?: string;
-  projectRequirement?: string;
-  projectComment?: string;
 }
 
 export interface SamplePage {
@@ -50,103 +96,50 @@ export interface SamplePage {
   title: string;
   description?: string;
   order: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
-export interface Exigence {
-  id: string;
-  projectId: string;
-  itemId: string;
-  importance: ImportanceLevel;
-  comment?: string;
+export enum ActionPriority {
+  High = "High",
+  Medium = "Medium",
+  Low = "Low",
+  Critical = "Critical"
 }
 
-export interface ProjectRequirement {
-  id: string;
-  projectId: string;
-  itemId: string;
-  importance: ImportanceLevel;
-  comment: string;
+export enum ActionStatus {
+  Open = "Open",
+  InProgress = "In Progress",
+  Done = "Done",
+  Blocked = "Blocked",
+  ToDo = "To Do"
 }
 
+// Structure d'évaluation pour le suivi des audits
 export interface Evaluation {
   id: string;
   auditId: string;
   pageId: string;
   exigenceId: string;
-  score: string;
-  comment?: string;
-  attachments?: string[];
+  score: ComplianceStatus;
+  comment: string;
+  attachments: string[];
   createdAt: string;
   updatedAt: string;
-  status?: string;
 }
 
-export interface Audit {
-  id: string;
-  projectId: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
-  items?: AuditItem[];
-  score?: number;
-  version?: string;
-  startDate?: string;
-  endDate?: string;
-  status?: string;
-  progress?: number;
-}
-
-export interface PageResult {
-  pageId: string;
-  score?: string;
-  status?: string;
-  comment?: string;
-  attachments?: string[];
-}
-
-export interface AuditItem {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  subcategory: string;
-  metaRefs?: string;
-  profile: string;
-  phase: string;
-  effort: string;
-  priority: string;
-  requirementLevel: string;
-  scope: string;
-  consigne: string;
-  status: string;
-  comment?: string;
-  pageResults?: PageResult[];
-  actions?: CorrectiveAction[];
-  details?: string;
-  criteria?: string;
-  importance?: string;
-  projectRequirement?: string;
-  projectComment?: string;
-}
-
+// Structure d'action corrective
 export interface CorrectiveAction {
   id: string;
   evaluationId: string;
-  pageId: string;
-  targetScore: string;
-  priority: string;
+  pageId: string; // Ajout du champ pageId manquant
+  targetScore: ComplianceStatus;
+  priority: ActionPriority;
   dueDate: string;
   responsible: string;
   comment: string;
-  status: string;
+  status: ActionStatus;
   createdAt: string;
   updatedAt: string;
   progress: ActionProgress[];
-  description?: string;
 }
 
 export interface ActionProgress {
@@ -155,69 +148,15 @@ export interface ActionProgress {
   date: string;
   responsible: string;
   comment: string;
-  score: string;
-  status: string;
+  score: ComplianceStatus;
+  status: ActionStatus;
 }
 
-export const ComplianceStatus = {
-  Compliant: 'conforme',
-  NonCompliant: 'non-conforme',
-  PartiallyCompliant: 'partiellement-conforme',
-  NotApplicable: 'non-applicable',
-  NotEvaluated: 'non-évalué'
-} as const;
-
-export type ComplianceStatus = typeof ComplianceStatus[keyof typeof ComplianceStatus];
-
-export const COMPLIANCE_VALUES: Record<string, number> = {
-  'conforme': 1,
-  'partiellement-conforme': 0.5,
-  'non-conforme': 0,
-  'non-applicable': 0,
-  'non-évalué': 0
-};
-
-export const ImportanceLevel = {
-  NA: 'N/A',
-  Mineur: 'mineur',
-  Moyen: 'moyen',
-  Important: 'important',
-  Majeur: 'majeur'
-} as const;
-
-export type ImportanceLevel = typeof ImportanceLevel[keyof typeof ImportanceLevel];
-
-export const ActionPriority = {
-  Low: 'faible',
-  Medium: 'moyenne',
-  High: 'haute',
-  Critical: 'critique'
-} as const;
-
-export type ActionPriority = typeof ActionPriority[keyof typeof ActionPriority];
-
-export const ActionStatus = {
-  ToDo: 'à faire',
-  InProgress: 'en cours',
-  Done: 'terminée',
-  Cancelled: 'annulée',
-  Blocked: 'bloquée',
-  Open: 'ouverte'
-} as const;
-
-export type ActionStatus = typeof ActionStatus[keyof typeof ActionStatus];
-
-export interface NotionConfig {
-  apiKey: string;
-  databaseId: string;
-  checklistsDbId?: string;
-  projectsDbId?: string;
-  auditsDbId?: string;
-  exigencesDbId?: string;
-  samplePagesDbId?: string;
-  evaluationsDbId?: string;
-  actionsDbId?: string;
-  pagesDbId?: string;
+// Type pour les exigences spécifiques à un projet
+export interface Exigence {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
 }
-
-export type ComplianceLevel = ComplianceStatus;

@@ -9,7 +9,7 @@ import ChecklistItemTags from './ChecklistItemTags';
 
 interface ChecklistItemProps {
   item: AuditItem;
-  onChange: (itemId: string, status: string, comment?: string) => void;
+  onChange: (itemId: string, status: ComplianceStatus, comment?: string) => void;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
@@ -22,7 +22,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({ item, onChange }) => {
     onChange(item.id, item.status, e.target.value);
   };
   
-  const handleStatusChange = (status: string) => {
+  const handleStatusChange = (status: ComplianceStatus) => {
     onChange(item.id, status, comment);
   };
   
