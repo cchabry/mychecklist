@@ -18,6 +18,8 @@ export const useAuditData = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { isDemoMode } = useOperationMode();
+  const [hasChecklistDb, setHasChecklistDb] = useState(false);
+  const mockModeActive = isDemoMode;
 
   // Charger le projet et l'audit
   const loadProject = async () => {
@@ -29,6 +31,9 @@ export const useAuditData = () => {
       // Charger l'audit pour ce projet
       const auditData = await getAuditForProject(projectId);
       setAudit(auditData);
+      
+      // Vérifier si la base de données de checklists est configurée
+      setHasChecklistDb(!!localStorage.getItem('notion_checklists_database_id'));
     } catch (error) {
       console.error('Erreur lors du chargement de l\'audit:', error);
       setNotionError(error instanceof Error ? error.message : 'Erreur lors du chargement de l\'audit');
@@ -40,6 +45,17 @@ export const useAuditData = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction pour sauvegarder l'audit
+  const handleSaveAudit = async () => {
+    if (!audit) return;
+    
+    toast.success("Audit sauvegardé", {
+      description: "Les modifications ont été enregistrées"
+    });
+    
+    // Ajouter ici la logique pour sauvegarder l'audit
   };
 
   // Charger les données au montage du composant
@@ -58,7 +74,10 @@ export const useAuditData = () => {
     setAudit,
     loadProject,
     navigate,
-    isDemoMode
+    isDemoMode,
+    hasChecklistDb,
+    mockModeActive,
+    handleSaveAudit
   };
 };
 

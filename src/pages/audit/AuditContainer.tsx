@@ -106,7 +106,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     setAudit, 
     handleSaveAudit,
     loadProject 
-  } = useAuditData(normalizedProjectId);
+  } = useAuditData();
   
   useEffect(() => {
     if (notionError) {
@@ -118,7 +118,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     }
   }, [notionError, onError]);
   
-  // Ne charge le projet qu'une seule fois au montage
+  // Charger le projet au montage
   useEffect(() => {
     if (normalizedProjectId && !dataInitialized.current) {
       console.log("Loading project data");
@@ -127,7 +127,7 @@ export const AuditContainer: React.FC<AuditContainerProps> = ({ projectId, onErr
     }
   }, [normalizedProjectId, loadProject]);
   
-  // Charger les pages d'échantillon au montage
+  // Charger les pages d'��chantillon au montage
   useEffect(() => {
     if (project && project.id) {
       const pages = getPagesByProjectId(project.id);

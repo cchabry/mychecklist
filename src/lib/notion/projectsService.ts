@@ -1,4 +1,3 @@
-
 import { getNotionClient, testNotionConnection } from './notionClient';
 import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
@@ -400,4 +399,26 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     throw error;
   }
+};
+
+// Fix for the SamplePage type issues in the function that processes them
+export const processSamplePage = (page: any) => {
+  if (!page) return null;
+
+  // Extract properties from the Notion page
+  const notionProperties = page.properties || {};
+  
+  // Map to our SamplePage structure
+  return {
+    id: page.id,
+    projectId: notionProperties.ProjectId?.rich_text?.[0]?.plain_text || '',
+    url: notionProperties.URL?.url || notionProperties.Url?.url || '',
+    title: notionProperties.Title?.title?.[0]?.plain_text || 
+           notionProperties.Name?.title?.[0]?.plain_text || 'Sans titre',
+    description: notionProperties.Description?.rich_text?.[0]?.plain_text || '',
+    order: notionProperties.Order?.number || 0,
+    // Include the created time and last edited time
+    createdAt: page.created_time || new Date().toISOString(),
+    updatedAt: page.last_edited_time || new Date().toISOString()
+  };
 };
