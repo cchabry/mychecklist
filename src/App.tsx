@@ -1,62 +1,48 @@
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { Toaster } from 'sonner';
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Toaster } from '@/components/ui/sonner';
+import {
+  HomePage,
+  NotFoundPage,
+  NewProjectPage,
+  CreateDatabasesPage,
+  AuditPage,
+  DiagnosticsPage,
+  SamplePagesPage,
+  ConfigureExigences,
+  NotionDatabaseDiscoveryPage
+} from '@/pages';
+import { ConfigPage } from '@/pages/ConfigPage';
+import { NotionProvider } from '@/contexts/NotionContext';
 
-// Pages
-import Dashboard from '@/pages/Dashboard';
-import NotionConfig from '@/pages/NotionConfig';
-import NewProject from '@/pages/NewProject';
-import EditProject from '@/pages/EditProject';
-import ProjectAudit from '@/pages/audit/ProjectAudit';
-import NewAuditPage from '@/pages/audit/NewAuditPage';
-import NotFound from '@/pages/NotFound';
-import ErrorPage from '@/pages/ErrorPage';
-import ConfigureExigences from '@/pages/project/ConfigureExigences';
-import ConfigPage from '@/pages/ConfigPage';
-
-// Provider pour les services Notion
-import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
-
-/**
- * Point d'entrée principal de l'application
- * Configuration de la navigation et des routes
- */
 function App() {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <NotionServiceProvider>
-      <Router>
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Page d'accueil - Dashboard */}
-          <Route path="/" element={<Dashboard />} />
-          
-          {/* Gestion des projets */}
-          <Route path="/project/new" element={<NewProject />} />
-          <Route path="/project/edit/:id" element={<EditProject />} />
-          
-          {/* Audits */}
-          <Route path="/audit/:projectId" element={<ProjectAudit />} />
-          <Route path="/audit/:projectId/:auditId" element={<ProjectAudit />} />
-          <Route path="/audit/new/:projectId" element={<NewAuditPage />} />
-          
-          {/* Configuration Notion */}
-          <Route path="/notion-config" element={<NotionConfig />} />
-          
-          {/* Configuration du Mode Opérationnel */}
-          <Route path="/config" element={<ConfigPage />} />
-          
-          {/* Pages d'erreur */}
-          <Route path="/error/:errorType" element={<ErrorPage />} />
-          
-          {/* Page 404 */}
-          <Route path="*" element={<NotFound />} />
-          
-          {/* Exigences */}
-          <Route path="/project/:projectId/exigences" element={<ConfigureExigences />} />
-        </Routes>
-      </Router>
-    </NotionServiceProvider>
+    <div className="App">
+      <NotionProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/config" element={<ConfigPage />} />
+              <Route path="/diagnostics" element={<DiagnosticsPage />} />
+              <Route path="/new-project" element={<NewProjectPage />} />
+              <Route path="/project/:projectId/sample-pages" element={<SamplePagesPage />} />
+              <Route path="/project/:projectId/exigences" element={<ConfigureExigences />} />
+              <Route path="/audit/:projectId/:auditId" element={<AuditPage />} />
+              <Route path="/audit/:projectId" element={<AuditPage />} />
+              <Route path="/create-databases" element={<CreateDatabasesPage />} />
+              <Route path="/database-discovery" element={<NotionDatabaseDiscoveryPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+            <Toaster richColors position="bottom-right" />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </NotionProvider>
+    </div>
   );
 }
 
