@@ -12,7 +12,6 @@ import {
   Info, 
   DatabaseIcon
 } from 'lucide-react';
-import { getCurrentVersion } from '@/config/version';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
@@ -29,9 +28,6 @@ const Header = () => {
   const navigate = useNavigate();
   const [showVersionInfo, setShowVersionInfo] = useState(false);
   const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
-  
-  // Récupérer la version actuelle
-  const currentVersion = getCurrentVersion();
 
   const handleNavigateTo = (path: string) => {
     navigate(path);
@@ -56,8 +52,8 @@ const Header = () => {
             <Database size={24} className="text-primary" />
             <h1 className="text-xl font-bold">AccessScan</h1>
           </Link>
-          <span className="text-xs bg-gray-700 px-1.5 py-0.5 rounded text-gray-300 cursor-pointer" onClick={() => setShowVersionInfo(true)}>
-            v{currentVersion}
+          <span className="text-xs bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">
+            Beta
           </span>
         </div>
         
@@ -116,23 +112,22 @@ const Header = () => {
         </div>
       </div>
       
-      {/* Dialogue d'information de version */}
+      {/* Dialogue d'information simplifiée */}
       <Dialog open={showVersionInfo} onOpenChange={setShowVersionInfo}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Information de version</DialogTitle>
+            <DialogTitle>Information sur l'application</DialogTitle>
             <DialogDescription>
-              Version actuelle: {currentVersion}
+              Version Beta
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Détails de cette version:</p>
+              <p className="text-sm font-medium">Fonctionnalités incluses:</p>
               <ul className="text-sm list-disc pl-5 space-y-1">
                 <li>Système de gestion des modes de fonctionnement</li>
                 <li>Test d'écriture Notion fonctionnel</li>
                 <li>Interface améliorée et plus informative</li>
-                <li>Correction des bugs d'affichage</li>
               </ul>
             </div>
           </div>

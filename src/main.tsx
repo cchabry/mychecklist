@@ -6,7 +6,7 @@ import App from './App';
 import { Toaster } from 'sonner';
 import './index.css';
 
-// Initialiser la configuration de l'application (y compris le versioning)
+// Initialiser la configuration de l'application
 import { initAppConfig } from './config';
 initAppConfig();
 

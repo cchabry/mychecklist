@@ -4,19 +4,10 @@
  * Importe et initialise tous les modules de configuration
  */
 
-// Importer et initialiser le versioning de l'application
-import { APP_VERSION, getCurrentVersion } from './version';
-
-// Exporter le système de versioning pour un accès global
-export { APP_VERSION, getCurrentVersion } from './version';
-
-// Autres exports de configuration peuvent être ajoutés ici
-
 /**
  * Initialise les configurations globales de l'application
  */
 export function initAppConfig() {
-  // Utiliser l'import direct au lieu de require
-  console.log('Application configurée avec version:', APP_VERSION.toString());
+  console.log('Application configurée avec succès');
   // Autres initialisations de configuration peuvent être ajoutées ici
 }
