@@ -6,17 +6,32 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { Copy, Database, CheckCheck, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { NotionDatabaseTarget } from '../NotionDatabaseDiscovery';
 
 interface DatabaseItemProps {
   id: string;
   title: string;
   createdTime: string;
-  onSelectDatabase?: (id: string, target: 'projects' | 'checklists') => void;
+  onSelectDatabase?: (id: string, target: NotionDatabaseTarget) => void;
 }
+
+// Définition des bases de données cibles avec leurs labels
+const DATABASE_TARGETS: {id: NotionDatabaseTarget, label: string, description: string}[] = [
+  { id: 'projects', label: 'Projets', description: 'Base de données principale des projets' },
+  { id: 'checklists', label: 'Checklists', description: 'Référentiel de bonnes pratiques' },
+  { id: 'exigences', label: 'Exigences', description: 'Exigences spécifiques par projet' },
+  { id: 'pages', label: 'Pages', description: 'Échantillon de pages à auditer' },
+  { id: 'audits', label: 'Audits', description: 'Audits réalisés sur les projets' },
+  { id: 'evaluations', label: 'Évaluations', description: 'Résultats d\'évaluation par page et exigence' },
+  { id: 'actions', label: 'Actions', description: 'Actions correctives à réaliser' },
+  { id: 'progress', label: 'Progrès', description: 'Suivi des actions correctives' }
+];
 
 const DatabaseListItem: React.FC<DatabaseItemProps> = ({ 
   id, 
@@ -38,10 +53,10 @@ const DatabaseListItem: React.FC<DatabaseItemProps> = ({
     toast.success("ID copié dans le presse-papier");
   };
   
-  const handleSelectForConfig = (target: 'projects' | 'checklists') => {
+  const handleSelectForConfig = (target: NotionDatabaseTarget) => {
     if (onSelectDatabase) {
       onSelectDatabase(id, target);
-      toast.success(`Base de données sélectionnée pour ${target === 'projects' ? 'Projets' : 'Checklists'}`);
+      toast.success(`Base de données "${title}" sélectionnée pour "${DATABASE_TARGETS.find(db => db.id === target)?.label}"`);
     }
   };
   
@@ -69,15 +84,19 @@ const DatabaseListItem: React.FC<DatabaseItemProps> = ({
                   Ajouter à
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleSelectForConfig('projects')}>
-                  <Database className="h-4 w-4 mr-2" />
-                  Base de Projets
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSelectForConfig('checklists')}>
-                  <Database className="h-4 w-4 mr-2" />
-                  Base de Checklists
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="bg-white">
+                <DropdownMenuLabel>Sélectionner pour</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {DATABASE_TARGETS.map((target) => (
+                  <DropdownMenuItem 
+                    key={target.id} 
+                    onClick={() => handleSelectForConfig(target.id)}
+                    title={target.description}
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    {target.label}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (

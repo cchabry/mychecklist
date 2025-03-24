@@ -11,19 +11,104 @@ import { notionApi } from '@/lib/notionProxy';
 import { Info, Database, Key, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
-import NotionDatabaseDiscovery from '../NotionDatabaseDiscovery';
+import NotionDatabaseDiscovery, { NotionDatabaseTarget } from '../NotionDatabaseDiscovery';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+
+// Structure pour stocker les informations de chaque base de données
+interface DatabaseConfig {
+  id: string;
+  key: string;
+  label: string;
+  description: string;
+  required: boolean;
+}
 
 /**
  * Composant de configuration Notion pour la page de configuration
  */
 const NotionConfig: React.FC = () => {
   const [apiKey, setApiKey] = useState(localStorage.getItem('notion_api_key') || '');
-  const [databaseId, setDatabaseId] = useState(localStorage.getItem('notion_database_id') || '');
-  const [checklistsDbId, setChecklistsDbId] = useState(localStorage.getItem('notion_checklists_database_id') || '');
+  const [databaseConfigs, setDatabaseConfigs] = useState<Record<NotionDatabaseTarget, string>>({
+    projects: localStorage.getItem('notion_database_id') || '',
+    checklists: localStorage.getItem('notion_checklists_database_id') || '',
+    exigences: localStorage.getItem('notion_exigences_database_id') || '',
+    pages: localStorage.getItem('notion_pages_database_id') || '',
+    audits: localStorage.getItem('notion_audits_database_id') || '',
+    evaluations: localStorage.getItem('notion_evaluations_database_id') || '',
+    actions: localStorage.getItem('notion_actions_database_id') || '',
+    progress: localStorage.getItem('notion_progress_database_id') || ''
+  });
+  
+  const [activeTab, setActiveTab] = useState<string>('core');
   const [isTesting, setIsTesting] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [showDatabaseDiscovery, setShowDatabaseDiscovery] = useState(false);
   const { isDemoMode } = useOperationMode();
+
+  // Définition des bases de données
+  const DATABASE_DEFINITIONS: Record<string, DatabaseConfig[]> = {
+    core: [
+      { 
+        id: 'projects', 
+        key: 'notion_database_id',
+        label: 'Base de données Projets', 
+        description: 'Contient les informations sur les sites web à auditer',
+        required: true
+      },
+      { 
+        id: 'checklists', 
+        key: 'notion_checklists_database_id',
+        label: 'Base de données Checklists', 
+        description: 'Référentiel de bonnes pratiques servant de critères d\'évaluation',
+        required: false
+      }
+    ],
+    advanced: [
+      { 
+        id: 'exigences', 
+        key: 'notion_exigences_database_id',
+        label: 'Base de données Exigences', 
+        description: 'Bonnes pratiques retenues pour un projet spécifique',
+        required: false
+      },
+      { 
+        id: 'pages', 
+        key: 'notion_pages_database_id',
+        label: 'Base de données Pages', 
+        description: 'Échantillon de pages à auditer pour chaque projet',
+        required: false
+      },
+      { 
+        id: 'audits', 
+        key: 'notion_audits_database_id',
+        label: 'Base de données Audits', 
+        description: 'Informations générales sur les audits réalisés',
+        required: false
+      },
+      { 
+        id: 'evaluations', 
+        key: 'notion_evaluations_database_id',
+        label: 'Base de données Évaluations', 
+        description: 'Résultats d\'évaluation pour chaque page et exigence',
+        required: false
+      },
+      { 
+        id: 'actions', 
+        key: 'notion_actions_database_id',
+        label: 'Base de données Actions correctives', 
+        description: 'Actions correctives à réaliser suite aux évaluations',
+        required: false
+      },
+      { 
+        id: 'progress', 
+        key: 'notion_progress_database_id',
+        label: 'Base de données Progrès', 
+        description: 'Suivi de l\'avancement des actions correctives',
+        required: false
+      }
+    ]
+  };
 
   // Charger la date de dernière configuration
   useEffect(() => {
@@ -44,24 +129,28 @@ const NotionConfig: React.FC = () => {
       return;
     }
     
-    if (!databaseId.trim()) {
+    if (!databaseConfigs.projects.trim()) {
       toast.error('L\'ID de base de données de projets est requis');
       return;
     }
     
-    // Extraire les IDs propres à partir des URLs
-    const cleanDatabaseId = extractNotionDatabaseId(databaseId);
-    const cleanChecklistsDbId = checklistsDbId ? extractNotionDatabaseId(checklistsDbId) : '';
-    
-    // Sauvegarder les valeurs
+    // Sauvegarder la clé API
     localStorage.setItem('notion_api_key', apiKey);
-    localStorage.setItem('notion_database_id', cleanDatabaseId);
     
-    if (cleanChecklistsDbId) {
-      localStorage.setItem('notion_checklists_database_id', cleanChecklistsDbId);
-    } else {
-      localStorage.removeItem('notion_checklists_database_id');
-    }
+    // Sauvegarder tous les IDs de base de données
+    Object.entries(databaseConfigs).forEach(([dbType, dbId]) => {
+      const storageKey = dbType === 'projects' 
+        ? 'notion_database_id' 
+        : `notion_${dbType}_database_id`;
+      
+      const cleanDbId = extractNotionDatabaseId(dbId);
+      
+      if (cleanDbId) {
+        localStorage.setItem(storageKey, cleanDbId);
+      } else {
+        localStorage.removeItem(storageKey);
+      }
+    });
     
     // Sauvegarder la date de configuration
     localStorage.setItem('notion_last_config_date', new Date().toISOString());
@@ -86,13 +175,26 @@ const NotionConfig: React.FC = () => {
   };
   
   const resetConfig = () => {
+    // Réinitialiser la clé API
     setApiKey('');
-    setDatabaseId('');
-    setChecklistsDbId('');
     
+    // Réinitialiser tous les IDs de base de données
+    const emptyConfigs = Object.keys(databaseConfigs).reduce(
+      (acc, key) => ({ ...acc, [key]: '' }), 
+      {} as Record<NotionDatabaseTarget, string>
+    );
+    setDatabaseConfigs(emptyConfigs);
+    
+    // Supprimer toutes les entrées de localStorage
     localStorage.removeItem('notion_api_key');
     localStorage.removeItem('notion_database_id');
-    localStorage.removeItem('notion_checklists_database_id');
+    
+    Object.keys(databaseConfigs).forEach(dbType => {
+      if (dbType !== 'projects') {
+        localStorage.removeItem(`notion_${dbType}_database_id`);
+      }
+    });
+    
     localStorage.removeItem('notion_last_config_date');
     
     setLastSaved(null);
@@ -117,21 +219,57 @@ const NotionConfig: React.FC = () => {
         notionApi.mockMode.temporarilyForceReal();
       }
       
-      // Tester la connexion
+      // Tester la connexion à l'API
       const userResponse = await notionApi.users.me(apiKey);
       
-      // Tester l'accès à la BDD projets si un ID est fourni
-      if (databaseId) {
+      // Tester l'accès aux bases de données configurées
+      const dbTestResults: {id: string, name: string, success: boolean, error?: string}[] = [];
+      
+      // Vérifier l'accès à chaque base de données configurée
+      for (const [dbType, dbId] of Object.entries(databaseConfigs)) {
+        if (!dbId) continue;
+        
+        const cleanDbId = extractNotionDatabaseId(dbId);
+        if (!cleanDbId) continue;
+        
         try {
-          const dbResponse = await notionApi.databases.retrieve(extractNotionDatabaseId(databaseId), apiKey);
+          const dbResponse = await notionApi.databases.retrieve(cleanDbId, apiKey);
           const dbName = dbResponse.title?.[0]?.plain_text || 'Base de données';
           
-          toast.success('Connexion à Notion réussie', {
-            description: `Connecté en tant que ${userResponse.name} avec accès à "${dbName}"`
+          dbTestResults.push({
+            id: dbType,
+            name: dbName,
+            success: true
           });
-        } catch (dbError) {
-          toast.error('Erreur d\'accès à la base de données', {
-            description: dbError.message || 'Vérifiez l\'ID de base de données'
+        } catch (dbError: any) {
+          dbTestResults.push({
+            id: dbType,
+            name: `Base de données ${dbType}`,
+            success: false,
+            error: dbError.message || 'Erreur d\'accès à la base de données'
+          });
+        }
+      }
+      
+      // Afficher un récapitulatif des tests
+      const successCount = dbTestResults.filter(r => r.success).length;
+      const totalTests = dbTestResults.length;
+      
+      if (totalTests > 0) {
+        if (successCount === totalTests) {
+          toast.success(`Connexion réussie à toutes les bases de données (${successCount}/${totalTests})`, {
+            description: `Connecté en tant que ${userResponse.name}`
+          });
+        } else {
+          toast.warning(`Connexion partielle aux bases de données (${successCount}/${totalTests})`, {
+            description: `Certaines bases de données ne sont pas accessibles`
+          });
+          
+          // Afficher les erreurs pour chaque base de données en échec
+          dbTestResults.filter(r => !r.success).forEach(result => {
+            toast.error(`Erreur d'accès: ${result.name}`, {
+              description: result.error
+            });
           });
         }
       } else {
@@ -140,31 +278,12 @@ const NotionConfig: React.FC = () => {
         });
       }
       
-      // Tester l'accès à la BDD checklists si fournie
-      if (checklistsDbId) {
-        try {
-          const checklistDbResponse = await notionApi.databases.retrieve(
-            extractNotionDatabaseId(checklistsDbId), 
-            apiKey
-          );
-          const checklistDbName = checklistDbResponse.title?.[0]?.plain_text || 'Base de checklists';
-          
-          toast.success('Accès à la base de checklists confirmé', {
-            description: `Accès à "${checklistDbName}" vérifié`
-          });
-        } catch (checklistError) {
-          toast.warning('Erreur d\'accès à la base de checklists', {
-            description: checklistError.message || 'Vérifiez l\'ID de base de checklists'
-          });
-        }
-      }
-      
       // Passer en mode réel si le test a réussi
       if (isDemoMode) {
         operationMode.enableRealMode();
       }
       
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Erreur de connexion à Notion', {
         description: error.message || 'Vérifiez votre clé API'
       });
@@ -178,9 +297,11 @@ const NotionConfig: React.FC = () => {
     }
   };
   
-  const handleDatabaseUrlChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
-    const url = e.target.value;
-    setter(url);
+  const handleDatabaseUrlChange = (dbId: NotionDatabaseTarget, value: string) => {
+    setDatabaseConfigs(prev => ({
+      ...prev,
+      [dbId]: value
+    }));
   };
 
   const handleDiscoveryOpen = () => {
@@ -195,23 +316,39 @@ const NotionConfig: React.FC = () => {
   };
 
   // Nouvelle fonction pour gérer la sélection d'une base de données
-  const handleSelectDatabase = (id: string, target: 'projects' | 'checklists') => {
+  const handleSelectDatabase = (id: string, target: NotionDatabaseTarget) => {
     const cleanId = extractNotionDatabaseId(id);
     
-    if (target === 'projects') {
-      setDatabaseId(cleanId);
-      toast.success("ID de base de projets mis à jour", {
-        description: "N'oubliez pas d'enregistrer la configuration"
-      });
-    } else if (target === 'checklists') {
-      setChecklistsDbId(cleanId);
-      toast.success("ID de base de checklists mis à jour", {
-        description: "N'oubliez pas d'enregistrer la configuration"
-      });
-    }
+    setDatabaseConfigs(prev => ({
+      ...prev,
+      [target]: cleanId
+    }));
     
-    // Fermer la fenêtre de découverte après sélection
-    setShowDatabaseDiscovery(false);
+    toast.success(`ID de base "${target}" mis à jour`, {
+      description: "N'oubliez pas d'enregistrer la configuration"
+    });
+  };
+
+  // Rendu des champs de base de données selon l'onglet actif
+  const renderDatabaseFields = (tabId: string) => {
+    return DATABASE_DEFINITIONS[tabId]?.map(db => (
+      <div key={db.id} className="space-y-2">
+        <Label htmlFor={db.id} className="flex items-center gap-1.5">
+          <Database className="h-4 w-4 text-muted-foreground" />
+          {db.label} {db.required && <span className="text-red-500">*</span>}
+        </Label>
+        <Input
+          id={db.id}
+          placeholder="ID ou URL de la base de données"
+          value={databaseConfigs[db.id as NotionDatabaseTarget] || ''}
+          onChange={(e) => handleDatabaseUrlChange(db.id as NotionDatabaseTarget, e.target.value)}
+          className="font-mono text-sm"
+        />
+        <p className="text-xs text-muted-foreground">
+          {db.description}
+        </p>
+      </div>
+    ));
   };
 
   return (
@@ -219,7 +356,7 @@ const NotionConfig: React.FC = () => {
       <CardHeader>
         <CardTitle>Configuration Notion</CardTitle>
         <CardDescription>
-          Paramètres de connexion à votre base Notion
+          Paramètres de connexion à vos bases Notion
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -270,44 +407,27 @@ const NotionConfig: React.FC = () => {
           </Button>
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="databaseId" className="flex items-center gap-1.5">
-            <Database className="h-4 w-4 text-muted-foreground" />
-            ID Base de données Projets
-          </Label>
-          <Input
-            id="databaseId"
-            placeholder="ID ou URL de la base de données"
-            value={databaseId}
-            onChange={(e) => handleDatabaseUrlChange(e, setDatabaseId)}
-            className="font-mono text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            Copiez l'URL de votre base de données Notion et collez-la ici.
-          </p>
-        </div>
+        <Separator className="my-4" />
         
-        <div className="space-y-2">
-          <Label htmlFor="checklistsDbId" className="flex items-center gap-1.5">
-            <Database className="h-4 w-4 text-muted-foreground" />
-            ID Base de données Checklists (optionnel)
-          </Label>
-          <Input
-            id="checklistsDbId"
-            placeholder="ID ou URL de la base de données (optionnel)"
-            value={checklistsDbId}
-            onChange={(e) => handleDatabaseUrlChange(e, setChecklistsDbId)}
-            className="font-mono text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            Si vous utilisez une base de données séparée pour vos checklists, indiquez-la ici.
-          </p>
-        </div>
+        <Tabs defaultValue="core" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="core">Bases principales</TabsTrigger>
+            <TabsTrigger value="advanced">Bases avancées</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="core" className="space-y-4">
+            {renderDatabaseFields('core')}
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="space-y-4">
+            {renderDatabaseFields('advanced')}
+          </TabsContent>
+        </Tabs>
         
         <Alert>
           <Info className="h-4 w-4 text-blue-500" />
           <AlertDescription className="text-blue-700">
-            N'oubliez pas de partager votre(s) base(s) de données avec votre intégration Notion.
+            N'oubliez pas de partager vos bases de données avec votre intégration Notion.
           </AlertDescription>
         </Alert>
       </CardContent>
@@ -347,6 +467,7 @@ const NotionConfig: React.FC = () => {
         onOpenChange={setShowDatabaseDiscovery}
         apiKey={apiKey}
         onSelectDatabase={handleSelectDatabase}
+        autoClose={false}
       />
     </Card>
   );

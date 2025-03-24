@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Database, Loader2 } from 'lucide-react';
@@ -7,12 +7,14 @@ import { notionApi } from '@/lib/notionProxy';
 import DatabaseListItem from './DatabaseListItem';
 import DatabaseSearchHeader from './DatabaseSearchHeader';
 import DatabaseEmptyState from './DatabaseEmptyState';
+import { NotionDatabaseTarget } from '../NotionDatabaseDiscovery';
 
 interface DiscoveryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   apiKey?: string;
-  onSelectDatabase?: (id: string, target: 'projects' | 'checklists') => void;
+  onSelectDatabase?: (id: string, target: NotionDatabaseTarget) => void;
+  autoClose?: boolean;
 }
 
 interface DatabaseItem {
@@ -25,12 +27,23 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
   open, 
   onOpenChange,
   apiKey = '',
-  onSelectDatabase
+  onSelectDatabase,
+  autoClose = false
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  
+  // Effecer les données lors de la fermeture pour éviter les références obsolètes
+  useEffect(() => {
+    if (!open) {
+      // Reset les données si la fenêtre est fermée
+      setDatabases([]);
+      setError(null);
+      setSearch('');
+    }
+  }, [open]);
   
   const handleDiscoverDatabases = async () => {
     if (!apiKey) {
@@ -57,7 +70,7 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
       if (databasesList.length === 0) {
         setError("Aucune base de données trouvée");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur lors de la découverte des bases de données:', err);
       setError(err instanceof Error ? err.message : "Erreur lors de la récupération des bases de données");
       
@@ -70,6 +83,18 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
     }
   };
   
+  // Créer un wrapper pour la fonction onSelectDatabase qui gérera la fermeture automatique
+  const handleSelectDatabase = (id: string, target: NotionDatabaseTarget) => {
+    if (onSelectDatabase) {
+      onSelectDatabase(id, target);
+      
+      // Fermer la fenêtre seulement si autoClose est true
+      if (autoClose) {
+        onOpenChange(false);
+      }
+    }
+  };
+  
   // Filtrer les bases de données en fonction de la recherche
   const filteredDatabases = databases.filter(db => 
     db.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -78,7 +103,7 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg bg-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
@@ -131,7 +156,7 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
                     id={db.id}
                     title={db.title}
                     createdTime={db.createdTime}
-                    onSelectDatabase={onSelectDatabase}
+                    onSelectDatabase={handleSelectDatabase}
                   />
                 ))}
                 

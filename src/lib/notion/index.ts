@@ -5,6 +5,25 @@ import { getNotionClient, testNotionConnection } from './notionClient';
 import { getProjectsFromNotion, getProjectById, createProjectInNotion } from './projectsService';
 import { getAuditForProject, saveAuditToNotion } from './auditService';
 import { ProjectData } from './types';
+import { NotionDatabaseTarget } from '@/components/notion/NotionDatabaseDiscovery';
+
+// Structure pour les configurations de base de données
+interface NotionDatabaseConfig {
+  key: string;
+  isRequired: boolean;
+}
+
+// Mappage des types de bases de données aux clés de stockage
+const DATABASE_CONFIG: Record<string, NotionDatabaseConfig> = {
+  projects: { key: 'notion_database_id', isRequired: true },
+  checklists: { key: 'notion_checklists_database_id', isRequired: false },
+  exigences: { key: 'notion_exigences_database_id', isRequired: false },
+  pages: { key: 'notion_pages_database_id', isRequired: false },
+  audits: { key: 'notion_audits_database_id', isRequired: false },
+  evaluations: { key: 'notion_evaluations_database_id', isRequired: false },
+  actions: { key: 'notion_actions_database_id', isRequired: false },
+  progress: { key: 'notion_progress_database_id', isRequired: false }
+};
 
 // Configuration et initialisation
 export function configureNotion(apiKey: string, databaseId: string, checklistsDbId?: string) {
@@ -72,14 +91,38 @@ export function extractNotionDatabaseId(url: string): string {
   return url;
 }
 
+// Nouvelle fonction pour récupérer toutes les configurations de base de données
+export function getAllDatabaseConfigs(): Record<string, string> {
+  const configs: Record<string, string> = {};
+  
+  Object.entries(DATABASE_CONFIG).forEach(([dbType, config]) => {
+    const value = localStorage.getItem(config.key) || '';
+    configs[dbType] = value;
+  });
+  
+  return configs;
+}
+
 // Nouvelle fonction pour récupérer les informations de configuration Notion
 export function getNotionConfig() {
+  const configs = getAllDatabaseConfigs();
+  
   return {
     apiKey: localStorage.getItem('notion_api_key') || '',
-    databaseId: localStorage.getItem('notion_database_id') || '',
-    checklistsDbId: localStorage.getItem('notion_checklists_database_id') || '',
-    lastConfigDate: localStorage.getItem('notion_last_config_date') || null
+    databaseId: configs.projects || '',
+    checklistsDbId: configs.checklists || '',
+    lastConfigDate: localStorage.getItem('notion_last_config_date') || null,
+    databases: configs
   };
+}
+
+// Fonction pour vérifier si une base de données spécifique est configurée
+export function isDatabaseConfigured(dbType: NotionDatabaseTarget): boolean {
+  const config = DATABASE_CONFIG[dbType];
+  if (!config) return false;
+  
+  const value = localStorage.getItem(config.key);
+  return !!value;
 }
 
 export {
