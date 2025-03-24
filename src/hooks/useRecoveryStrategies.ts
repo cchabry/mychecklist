@@ -1,9 +1,11 @@
+
 import { useCallback } from 'react';
 import { useOperationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useOperationQueue } from '@/hooks/api/useOperationQueue';
 import { ErrorCategory } from './useErrorHandling';
+import { SwitchReason } from '@/lib/operationMode/types';
 
 /**
  * Hook qui fournit des stratégies de récupération pour différents types d'erreurs
@@ -18,7 +20,7 @@ export function useRecoveryStrategies() {
    */
   const enableDemoModeStrategy = useCallback((reason: string = 'Récupération après erreur') => {
     if (isRealMode) {
-      enableDemoMode(reason);
+      enableDemoMode(SwitchReason.AFTER_ERROR);
       toast.success('Mode démonstration activé', {
         description: 'L\'application utilise maintenant des données fictives'
       });

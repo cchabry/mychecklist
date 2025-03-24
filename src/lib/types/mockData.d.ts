@@ -59,4 +59,5 @@ export interface NotionConfig {
   evaluationsDbId?: string;
   actionsDbId?: string;
   pagesDbId?: string;
+  lastConfigDate?: string | null;
 }

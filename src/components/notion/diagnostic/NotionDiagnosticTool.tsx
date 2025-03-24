@@ -1,165 +1,61 @@
-
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import NotionConnectionTest from './NotionConnectionTest';
-import NotionDatabaseTest from './NotionDatabaseTest';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertCircle, CheckCircle2, FileWarning, RotateCw } from "lucide-react";
+import { notionApi } from '@/lib/notionProxy';
+import { isMockActive, temporarilyDisableMock, enableMock } from '../utils';
 import NotionCreatePageTest from './NotionCreatePageTest';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import NotionConfig from '@/components/notion/config/NotionConfig';
-import { extractNotionDatabaseId } from '@/lib/notion';
 
-/**
- * Outil de diagnostic pour les connexions Notion
- */
-export function NotionDiagnosticTool() {
-  const [apiKey, setApiKey] = useState('');
-  const [databaseId, setDatabaseId] = useState('');
-  const [activeTab, setActiveTab] = useState('config');
-  const [showConnectionTest, setShowConnectionTest] = useState(false);
-  const [showDatabaseTest, setShowDatabaseTest] = useState(false);
-  const [showCreatePageTest, setShowCreatePageTest] = useState(false);
-  
-  const handleClearApiKey = () => {
-    setApiKey('');
-  };
-  
-  const handleClearDatabaseId = () => {
-    setDatabaseId('');
-  };
-  
-  const handleDatabaseUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    const extractedId = extractNotionDatabaseId(url);
-    setDatabaseId(extractedId || url);
-  };
-  
+interface NotionDiagnosticToolProps {
+  apiKey: string | null;
+  projectsDbId: string | null;
+  checklistsDbId: string | null;
+  onClose: () => void;
+}
+
+type TestStatus = 'idle' | 'loading' | 'success' | 'error';
+
+interface TestResult {
+  name: string;
+  status: TestStatus;
+  details?: string;
+}
+
+const NotionDiagnosticTool: React.FC<NotionDiagnosticToolProps> = ({ apiKey, projectsDbId, checklistsDbId, onClose }) => {
+  const [activeTest, setActiveTest] = useState<string | null>(null);
+
   return (
-    <Card className="w-full max-w-3xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Notion Diagnostic Tool</CardTitle>
-        <CardDescription>
-          Test your Notion connection and database configuration
-        </CardDescription>
+        <CardTitle>Outils de diagnostic Notion</CardTitle>
       </CardHeader>
-      
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2">
-          <TabsTrigger value="config">Configuration</TabsTrigger>
-          <TabsTrigger value="tests">Tests</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="config">
-          <CardContent className="space-y-4">
-            <NotionConfig />
-          </CardContent>
-        </TabsContent>
-        
-        <TabsContent value="tests">
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">API Key</Label>
-              <div className="flex space-x-2">
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="secret_..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-                <Button variant="outline" onClick={handleClearApiKey}>
-                  Clear
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="databaseId">Database ID or URL</Label>
-              <div className="flex space-x-2">
-                <Input
-                  id="databaseId"
-                  placeholder="Database ID or URL"
-                  value={databaseId}
-                  onChange={handleDatabaseUrlChange}
-                />
-                <Button variant="outline" onClick={handleClearDatabaseId}>
-                  Clear
-                </Button>
-              </div>
-            </div>
-            
-            <Alert variant="default">
-              <AlertTitle>Information</AlertTitle>
-              <AlertDescription>
-                Enter your Notion API key and database ID or URL to run the tests.
-                The API key should start with <code>secret_</code>.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-          
-          <CardFooter className="flex justify-between">
-            <div className="space-x-2">
-              <Button 
-                onClick={() => setShowConnectionTest(true)} 
-                disabled={!apiKey}
-                variant="outline"
-              >
-                Test Connection
-              </Button>
-              
-              <Button 
-                onClick={() => setShowDatabaseTest(true)}
-                disabled={!apiKey || !databaseId}
-                variant="outline"
-              >
-                Test Database
-              </Button>
-              
-              <Button 
-                onClick={() => setShowCreatePageTest(true)}
-                disabled={!apiKey || !databaseId}
-                variant="outline"
-              >
-                Test Create Page
-              </Button>
-            </div>
-          </CardFooter>
-        </TabsContent>
-      </Tabs>
-      
-      {showConnectionTest && (
-        <NotionConnectionTest 
-          apiKey={apiKey}
-          onClose={() => setShowConnectionTest(false)}
-        />
-      )}
-      
-      {showDatabaseTest && (
-        <NotionDatabaseTest 
-          apiKey={apiKey}
-          databaseId={databaseId}
-          onClose={() => setShowDatabaseTest(false)}
-        />
-      )}
-      
-      {showCreatePageTest && (
-        <NotionCreatePageTest 
-          databaseId={databaseId}
-          onClose={() => setShowCreatePageTest(false)}
-        />
-      )}
+      <CardContent className="space-y-4">
+        {!activeTest ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choisissez un test à exécuter pour diagnostiquer votre configuration Notion.
+            </p>
+
+            <Button variant="outline" onClick={() => setActiveTest('create-page')}>
+              Tester la création de page
+            </Button>
+          </div>
+        ) : activeTest === 'create-page' ? (
+          <NotionCreatePageTest
+            onClose={() => setActiveTest(null)}
+          />
+        ) : null}
+      </CardContent>
+      <CardFooter className="flex justify-end">
+        <Button variant="ghost" onClick={onClose}>
+          Fermer
+        </Button>
+      </CardFooter>
     </Card>
   );
-}
+};
 
 export default NotionDiagnosticTool;

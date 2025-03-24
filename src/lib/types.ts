@@ -1,5 +1,5 @@
-
 // Types de base pour l'application
+
 export interface Project {
   id: string;
   name: string;
@@ -24,12 +24,12 @@ export interface ChecklistItem {
   category: string;
   subcategory: string;
   metaRefs?: string;
-  profil?: string[];  // Notez: profil, pas profile
+  profil?: string[];
   phase?: string[];
   effort?: string;
   priority?: string;
   reference?: string[];
-  profile?: string; // Pour compatibilité
+  profile?: string[];
   requirementLevel?: string;
   scope?: string;
   details?: string;
@@ -80,7 +80,7 @@ export interface Evaluation {
   attachments?: string[];
   createdAt: string;
   updatedAt: string;
-  status?: string; // Added to fix the type errors
+  status?: string;
 }
 
 export interface Audit {
@@ -97,7 +97,7 @@ export interface Audit {
   startDate?: string;
   endDate?: string;
   status?: string;
-  progress?: number; // Added to fix type errors
+  progress?: number;
 }
 
 export interface PageResult {
@@ -146,7 +146,7 @@ export interface CorrectiveAction {
   createdAt: string;
   updatedAt: string;
   progress: ActionProgress[];
-  description?: string; // Added to fix type errors
+  description?: string;
 }
 
 export interface ActionProgress {
@@ -159,7 +159,6 @@ export interface ActionProgress {
   status: string;
 }
 
-// Types d'énumération sous forme de strings const
 export const ComplianceStatus = {
   Compliant: 'conforme',
   NonCompliant: 'non-conforme',
@@ -168,10 +167,8 @@ export const ComplianceStatus = {
   NotEvaluated: 'non-évalué'
 } as const;
 
-// Type pour les valeurs de ComplianceStatus
 export type ComplianceStatus = typeof ComplianceStatus[keyof typeof ComplianceStatus];
 
-// Valeurs pour le calcul des scores
 export const COMPLIANCE_VALUES: Record<string, number> = {
   'conforme': 1,
   'partiellement-conforme': 0.5,
@@ -180,7 +177,6 @@ export const COMPLIANCE_VALUES: Record<string, number> = {
   'non-évalué': 0
 };
 
-// Niveaux d'importance
 export const ImportanceLevel = {
   NA: 'N/A',
   Mineur: 'mineur',
@@ -191,7 +187,6 @@ export const ImportanceLevel = {
 
 export type ImportanceLevel = typeof ImportanceLevel[keyof typeof ImportanceLevel];
 
-// Priorités d'action
 export const ActionPriority = {
   Low: 'faible',
   Medium: 'moyenne',
@@ -201,7 +196,6 @@ export const ActionPriority = {
 
 export type ActionPriority = typeof ActionPriority[keyof typeof ActionPriority];
 
-// Statuts d'action
 export const ActionStatus = {
   ToDo: 'à faire',
   InProgress: 'en cours',
@@ -213,7 +207,6 @@ export const ActionStatus = {
 
 export type ActionStatus = typeof ActionStatus[keyof typeof ActionStatus];
 
-// Type pour la configuration Notion
 export interface NotionConfig {
   apiKey: string;
   databaseId: string;
@@ -227,5 +220,4 @@ export interface NotionConfig {
   pagesDbId?: string;
 }
 
-// Compatibilité avec l'ancien type ComplianceLevel
 export type ComplianceLevel = ComplianceStatus;

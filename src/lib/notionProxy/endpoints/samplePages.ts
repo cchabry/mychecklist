@@ -1,260 +1,160 @@
+import { notionApi } from '@/lib/notionProxy';
+import { Project, SamplePage } from '@/lib/types';
 
-import { notionApiRequest } from '../proxyFetch';
-import { operationMode } from '@/services/operationMode';
-import { SamplePage } from '@/lib/types';
-
-/**
- * Récupère toutes les pages d'échantillon
- */
-export const getSamplePages = async (): Promise<SamplePage[]> => {
-  // Si nous sommes en mode démo, retourner des données simulées
-  if (operationMode.isDemoMode) {
-    console.log('Using demo sample pages data');
-    return [
-      {
-        id: 'page-1',
-        projectId: 'project-1',
-        url: 'https://example.com/page1',
-        title: 'Page d\'accueil',
-        description: 'Page principale du site',
-        order: 0
-      },
-      {
-        id: 'page-2',
-        projectId: 'project-1',
-        url: 'https://example.com/page2',
-        title: 'Page de contact',
-        description: 'Formulaire de contact',
-        order: 1
-      }
-    ];
-  }
-
-  // Sinon, récupérer depuis Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  const dbId = localStorage.getItem('notion_samplepages_database_id');
-
-  if (!apiKey || !dbId) {
-    throw new Error('Configuration Notion manquante');
-  }
-
-  const response = await notionApiRequest(
-    `/databases/${dbId}/query`,
-    'POST',
-    {},
-    apiKey
-  );
-
-  // Mapper les résultats en pages d'échantillon
-  return response.results.map((page: any) => {
-    const properties = page.properties;
-    
-    return {
-      id: page.id,
-      projectId: properties.ProjectId?.rich_text?.[0]?.plain_text || '',
-      url: properties.URL?.url || properties.Url?.url || '',
-      title: properties.Title?.title?.[0]?.plain_text || '',
-      description: properties.Description?.rich_text?.[0]?.plain_text || '',
-      order: properties.Order?.number || 0
-    };
-  });
+// Add this helper at the top of the file
+const addTimestamps = (obj: any) => {
+  const now = new Date().toISOString();
+  return {
+    ...obj,
+    createdAt: obj.createdAt || now,
+    updatedAt: obj.updatedAt || now
+  };
 };
 
 /**
- * Récupère une page d'échantillon par son ID
+ * Sample Pages Endpoints
  */
-export const getSamplePage = async (id: string): Promise<SamplePage | null> => {
-  // Si nous sommes en mode démo, retourner une fausse page
-  if (operationMode.isDemoMode) {
-    console.log('Using demo sample page data for ID:', id);
-    return {
-      id,
-      projectId: 'project-1',
-      url: 'https://example.com/page',
-      title: 'Page d\'exemple',
-      description: 'Description de la page',
-      order: 0
-    };
-  }
+export const samplePagesEndpoints = {
+  /**
+   * Get all sample pages for a project
+   * @param projectId Project ID
+   * @returns Sample pages
+   */
+  getSamplePages: async (projectId: string): Promise<SamplePage[]> => {
+    try {
+      const pages = await notionApi.proxy.getSamplePages(projectId);
+      return pages.map(page => addTimestamps(page));
+    } catch (error: any) {
+      console.error("Error fetching sample pages:", error);
+      throw error;
+    }
+  },
 
-  // Sinon, récupérer depuis Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  
-  if (!apiKey) {
-    throw new Error('Clé API Notion manquante');
-  }
+  /**
+   * Get a sample page by ID
+   * @param id Sample page ID
+   * @returns Sample page
+   */
+  getSamplePage: async (id: string): Promise<SamplePage> => {
+    try {
+      const page = await notionApi.proxy.getSamplePage(id);
+      return addTimestamps(page);
+    } catch (error: any) {
+      console.error("Error fetching sample page:", error);
+      throw error;
+    }
+  },
 
-  try {
-    const response = await notionApiRequest(
-      `/pages/${id}`,
-      'GET',
-      undefined,
-      apiKey
-    );
+  /**
+   * Create a sample page
+   * @param data Sample page data
+   * @returns Sample page
+   */
+  createSamplePage: async (data: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>): Promise<SamplePage> => {
+    try {
+      const newPage = await notionApi.proxy.createSamplePage(data);
+      return addTimestamps(newPage);
+    } catch (error: any) {
+      console.error("Error creating sample page:", error);
+      throw error;
+    }
+  },
 
-    if (!response) {
+  /**
+   * Update a sample page
+   * @param id Sample page ID
+   * @param data Sample page data
+   * @returns Sample page
+   */
+  updateSamplePage: async (id: string, data: Partial<SamplePage>): Promise<SamplePage> => {
+    try {
+      const updatedPage = await notionApi.proxy.updateSamplePage(id, data);
+      return addTimestamps(updatedPage);
+    } catch (error: any) {
+      console.error("Error updating sample page:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a sample page
+   * @param id Sample page ID
+   * @returns Success status
+   */
+  deleteSamplePage: async (id: string): Promise<{ success: boolean }> => {
+    try {
+      await notionApi.proxy.deleteSamplePage(id);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error deleting sample page:", error);
+      return { success: false };
+    }
+  },
+
+  /**
+   * Create multiple sample pages
+   * @param pages Sample page data array
+   * @returns Sample pages
+   */
+  createSamplePages: async (pages: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<SamplePage[]> => {
+    try {
+      const newPages = await Promise.all(pages.map(page => notionApi.proxy.createSamplePage(page)));
+      return newPages.map(page => addTimestamps(page));
+    } catch (error: any) {
+      console.error("Error creating sample pages:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update multiple sample pages
+   * @param pages Sample page data array
+   * @returns Sample pages
+   */
+  updateSamplePages: async (pages: SamplePage[]): Promise<SamplePage[]> => {
+    try {
+      const updatedPages = await Promise.all(pages.map(page => notionApi.proxy.updateSamplePage(page.id, page)));
+      return updatedPages.map(page => addTimestamps(page));
+    } catch (error: any) {
+      console.error("Error updating sample pages:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete multiple sample pages
+   * @param ids Sample page ID array
+   * @returns Success status
+   */
+  deleteSamplePages: async (ids: string[]): Promise<{ success: boolean }> => {
+    try {
+      await Promise.all(ids.map(id => notionApi.proxy.deleteSamplePage(id)));
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error deleting sample pages:", error);
+      return { success: false };
+    }
+  },
+
+  /**
+   * Get project from sample page ID
+   * @param pageId Sample page ID
+   * @returns Project
+   */
+  getProjectFromSamplePageId: async (pageId: string): Promise<Project | null> => {
+    try {
+      const page = await notionApi.proxy.getSamplePage(pageId);
+      if (!page) return null;
+
+      // Ensure the page has timestamps
+      const timestampedPage = addTimestamps(page);
+
+      // Now you can safely access projectId
+      const project = await notionApi.proxy.getProject(timestampedPage.projectId);
+      return project || null;
+    } catch (error: any) {
+      console.error("Error getting project from sample page ID:", error);
       return null;
     }
-
-    const properties = response.properties;
-    
-    return {
-      id: response.id,
-      projectId: properties.ProjectId?.rich_text?.[0]?.plain_text || '',
-      url: properties.URL?.url || properties.Url?.url || '',
-      title: properties.Title?.title?.[0]?.plain_text || '',
-      description: properties.Description?.rich_text?.[0]?.plain_text || '',
-      order: properties.Order?.number || 0
-    };
-  } catch (error) {
-    console.error(`Erreur lors de la récupération de la page d'échantillon #${id}:`, error);
-    return null;
-  }
-};
-
-/**
- * Crée une nouvelle page d'échantillon
- */
-export const createSamplePage = async (data: Partial<SamplePage>): Promise<SamplePage> => {
-  // Si nous sommes en mode démo, créer une fausse page
-  if (operationMode.isDemoMode) {
-    console.log('Creating demo sample page for project:', data.projectId);
-    return {
-      id: `page-${Date.now()}`,
-      projectId: data.projectId || '',
-      url: data.url || '',
-      title: data.title || '',
-      description: data.description || '',
-      order: data.order || 0
-    };
-  }
-
-  // Sinon, créer dans Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  const dbId = localStorage.getItem('notion_samplepages_database_id');
-  
-  if (!apiKey || !dbId) {
-    throw new Error('Configuration Notion manquante');
-  }
-
-  const properties = {
-    "ProjectId": { rich_text: [{ text: { content: data.projectId || '' } }] },
-    "URL": { url: data.url || '' },
-    "Title": { title: [{ text: { content: data.title || '' } }] },
-    "Description": { rich_text: [{ text: { content: data.description || '' } }] },
-    "Order": { number: data.order || 0 }
-  };
-  
-  const response = await notionApiRequest(
-    `/pages`,
-    'POST',
-    {
-      parent: { database_id: dbId },
-      properties
-    },
-    apiKey
-  );
-
-  return {
-    id: response.id,
-    projectId: data.projectId || '',
-    url: data.url || '',
-    title: data.title || '',
-    description: data.description || '',
-    order: data.order || 0
-  };
-};
-
-/**
- * Met à jour une page d'échantillon existante
- */
-export const updateSamplePage = async (id: string, data: Partial<SamplePage>): Promise<SamplePage> => {
-  // Si nous sommes en mode démo, mettre à jour une fausse page
-  if (operationMode.isDemoMode) {
-    console.log('Updating demo sample page with ID:', id);
-    return {
-      id,
-      projectId: data.projectId || '',
-      url: data.url || '',
-      title: data.title || '',
-      description: data.description || '',
-      order: data.order || 0
-    };
-  }
-
-  // Sinon, mettre à jour dans Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  
-  if (!apiKey) {
-    throw new Error('Clé API Notion manquante');
-  }
-
-  const properties: any = {};
-  
-  if (data.url) {
-    properties.URL = { url: data.url };
-  }
-  
-  if (data.title) {
-    properties.Title = { title: [{ text: { content: data.title } }] };
-  }
-  
-  if (data.description !== undefined) {
-    properties.Description = { rich_text: [{ text: { content: data.description } }] };
-  }
-  
-  if (data.order !== undefined) {
-    properties.Order = { number: data.order };
-  }
-  
-  await notionApiRequest(
-    `/pages/${id}`,
-    'PATCH',
-    { properties },
-    apiKey
-  );
-
-  // Récupérer la page mise à jour
-  const updatedPage = await getSamplePage(id);
-  return updatedPage || {
-    id,
-    projectId: data.projectId || '',
-    url: data.url || '',
-    title: data.title || '',
-    description: data.description || '',
-    order: data.order || 0
-  };
-};
-
-/**
- * Supprime une page d'échantillon
- */
-export const deleteSamplePage = async (id: string): Promise<boolean> => {
-  // Si nous sommes en mode démo, simuler une suppression
-  if (operationMode.isDemoMode) {
-    console.log('Deleting demo sample page with ID:', id);
-    return true;
-  }
-
-  // Sinon, supprimer dans Notion (Notion archive les pages, ne les supprime pas vraiment)
-  const apiKey = localStorage.getItem('notion_api_key');
-  
-  if (!apiKey) {
-    throw new Error('Clé API Notion manquante');
-  }
-
-  try {
-    await notionApiRequest(
-      `/pages/${id}`,
-      'PATCH',
-      {
-        archived: true
-      },
-      apiKey
-    );
-    return true;
-  } catch (error) {
-    console.error(`Erreur lors de la suppression de la page d'échantillon #${id}:`, error);
-    return false;
   }
 };

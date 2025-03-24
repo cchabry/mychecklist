@@ -1,4 +1,3 @@
-
 // Interfaces principales du système
 
 export interface Project {
@@ -164,6 +163,7 @@ export interface CorrectiveAction {
   createdAt: string;
   updatedAt: string;
   progress: ActionProgress[];
+  description?: string;
 }
 
 export interface ActionProgress {
