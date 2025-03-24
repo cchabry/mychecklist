@@ -77,17 +77,7 @@ const NotionDatabaseDiscovery: React.FC<NotionDatabaseDiscoveryProps> = ({
       }
 
       // Récupérer la liste des bases de données disponibles
-      const response = await notionApi.search({
-        query: '',
-        filter: {
-          value: 'database',
-          property: 'object'
-        },
-        sort: {
-          direction: 'descending',
-          timestamp: 'last_edited_time'
-        }
-      }, apiKey);
+      const response = await notionApi.databases.list(apiKey);
 
       // Formater les résultats
       const formattedDatabases = response.results.map((db: any) => ({

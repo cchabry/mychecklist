@@ -61,7 +61,7 @@ export const useAuditProject = ({ projectId, auditId }: UseAuditProjectProps) =>
       
       // Charger les pages de l'échantillon
       try {
-        const pagesData = await notionApi.getSamplePages(cleanedProjectId);
+        const pagesData = await notionApi.getSamplePages();
         setPages(pagesData);
         
         if (callbacks?.onPagesLoaded) {

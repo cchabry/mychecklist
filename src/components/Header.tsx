@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import {
 import { NotionTestDataGenerator } from '@/components/notion';
 import { useState } from 'react';
 import OperationModeControl from './OperationModeControl';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const Header: React.FC = () => {
   const location = useLocation();
