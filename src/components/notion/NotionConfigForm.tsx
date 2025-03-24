@@ -13,7 +13,6 @@ import NotionFormActions from '@/components/notion/form/NotionFormActions';
 import { useNotion } from '@/contexts/NotionContext';
 import { useNotionStorage } from '@/hooks/notion/useNotionStorage';
 import { operationMode } from '@/services/operationMode';
-import OperationModeStatus from '@/components/OperationModeStatus';
 import { useOperationMode } from '@/services/operationMode';
 
 interface NotionConfigFormProps {

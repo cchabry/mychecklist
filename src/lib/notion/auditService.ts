@@ -91,6 +91,9 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
       createdAt: page.created_time || new Date().toISOString(),
       updatedAt: page.last_edited_time || new Date().toISOString(),
       completedAt: getDateValue(properties.completedAt) || getDateValue(properties.CompletedAt),
+      items: items, // Ajout du champ items
+      score: getNumberValue(properties.score) || getNumberValue(properties.Score) || 0, // Ajout du champ score
+      version: getRichTextValue(properties.version) || getRichTextValue(properties.Version) || '1.0' // Ajout du champ version
     };
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'audit:', error);
@@ -120,8 +123,8 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
       }
     };
     
-    // Update the audit page
-    await notionApi.request(`pages/${audit.id}`, {
+    // Update the audit page using fetch directly instead of request
+    const response = await fetch(`https://api.notion.com/v1/pages/${audit.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ properties }),
       headers: {
@@ -130,6 +133,10 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
         'Notion-Version': '2022-06-28'
       }
     });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur lors de la mise à jour: ${response.status} ${response.statusText}`);
+    }
     
     // Restaurer le mode mock si nécessaire
     if (wasMockForced) {

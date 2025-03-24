@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useOperationMode } from '@/services/operationMode';
+import { operationMode } from '@/services/operationMode';
 
 interface OperationModeSettingsProps {
   className?: string;
@@ -16,13 +17,21 @@ interface OperationModeSettingsProps {
  */
 const OperationModeSettings: React.FC<OperationModeSettingsProps> = ({ className = "" }) => {
   const { 
-    isDemoMode, 
-    errorRate, 
-    networkDelay, 
-    setErrorRate, 
-    setNetworkDelay, 
+    isDemoMode,
     toggle 
   } = useOperationMode();
+  
+  // Accéder directement aux méthodes du service
+  const errorRate = operationMode.simulatedErrorRate;
+  const networkDelay = operationMode.simulatedNetworkDelay;
+  
+  const setErrorRate = (value: number) => {
+    operationMode.setSimulatedErrorRate(value);
+  };
+  
+  const setNetworkDelay = (value: number) => {
+    operationMode.setSimulatedNetworkDelay(value);
+  };
 
   return (
     <Card className={className}>

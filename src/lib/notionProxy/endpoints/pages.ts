@@ -2,6 +2,85 @@
 import { operationMode, operationModeUtils } from '@/services/operationMode';
 import { mockData } from '../mock/data';
 
+// Complétons les méthodes manquantes dans le mockData
+if (!mockData.createPage) {
+  mockData.createPage = (data: any) => {
+    const newId = `page_${Date.now()}`;
+    return { id: newId, ...data };
+  };
+}
+
+if (!mockData.updatePage) {
+  mockData.updatePage = (id: string, data: any) => {
+    return { id, ...data, updated: true };
+  };
+}
+
+if (!mockData.getPage) {
+  mockData.getPage = (id: string) => {
+    const existingPage = mockData.pages.find((page: any) => page.id === id);
+    if (existingPage) {
+      return existingPage;
+    }
+    return { id, notFound: true };
+  };
+}
+
+if (!mockData.getPages) {
+  mockData.getPages = () => {
+    return mockData.pages;
+  };
+}
+
+if (!mockData.getProjectPages) {
+  mockData.getProjectPages = (projectId: string) => {
+    return mockData.pages.filter((page: any) => page.projectId === projectId);
+  };
+}
+
+if (!mockData.createSamplePage) {
+  mockData.createSamplePage = (pageData: any) => {
+    const newPage = {
+      id: `page_${Date.now()}`,
+      projectId: pageData.projectId,
+      url: pageData.url,
+      title: pageData.title || 'Nouvelle page',
+      description: pageData.description || '',
+      order: mockData.pages.length + 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    mockData.pages.push(newPage);
+    return newPage;
+  };
+}
+
+if (!mockData.updateSamplePage) {
+  mockData.updateSamplePage = (pageId: string, pageData: any) => {
+    const pageIndex = mockData.pages.findIndex((p: any) => p.id === pageId);
+    if (pageIndex === -1) {
+      throw new Error(`Page with ID ${pageId} not found`);
+    }
+    mockData.pages[pageIndex] = {
+      ...mockData.pages[pageIndex],
+      ...pageData,
+      updatedAt: new Date().toISOString()
+    };
+    return mockData.pages[pageIndex];
+  };
+}
+
+if (!mockData.deletePage) {
+  mockData.deletePage = (pageId: string) => {
+    const pageIndex = mockData.pages.findIndex((p: any) => p.id === pageId);
+    if (pageIndex === -1) {
+      throw new Error(`Page with ID ${pageId} not found`);
+    }
+    mockData.pages.splice(pageIndex, 1);
+    return { success: true, id: pageId };
+  };
+}
+
 // Pages API endpoints
 
 /**
@@ -189,69 +268,6 @@ export async function retrieve(pageId: string, token?: string) {
     console.error(`Erreur lors de la récupération de la page Notion ${pageId}:`, error);
     throw error;
   }
-}
-
-// Ajoutons les méthodes manquantes au mockData
-if (!mockData.createPage) {
-  mockData.createPage = (data: any) => {
-    const newId = `page_${Date.now()}`;
-    return { id: newId, ...data };
-  };
-}
-
-if (!mockData.updatePage) {
-  mockData.updatePage = (id: string, data: any) => {
-    return { id, ...data, updated: true };
-  };
-}
-
-if (!mockData.getProjectPages) {
-  mockData.getProjectPages = (projectId: string) => {
-    return mockData.pages.filter((page: any) => page.projectId === projectId);
-  };
-}
-
-if (!mockData.createSamplePage) {
-  mockData.createSamplePage = (pageData: any) => {
-    const newPage = {
-      id: `page_${Date.now()}`,
-      projectId: pageData.projectId,
-      url: pageData.url,
-      title: pageData.title || 'Nouvelle page',
-      description: pageData.description || '',
-      order: mockData.pages.length + 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    mockData.pages.push(newPage);
-    return newPage;
-  };
-}
-
-if (!mockData.updateSamplePage) {
-  mockData.updateSamplePage = (pageId: string, pageData: any) => {
-    const pageIndex = mockData.pages.findIndex((p: any) => p.id === pageId);
-    if (pageIndex === -1) {
-      throw new Error(`Page with ID ${pageId} not found`);
-    }
-    mockData.pages[pageIndex] = {
-      ...mockData.pages[pageIndex],
-      ...pageData,
-      updatedAt: new Date().toISOString()
-    };
-    return mockData.pages[pageIndex];
-  };
-}
-
-if (!mockData.deletePage) {
-  mockData.deletePage = (pageId: string) => {
-    const pageIndex = mockData.pages.findIndex((p: any) => p.id === pageId);
-    if (pageIndex === -1) {
-      throw new Error(`Page with ID ${pageId} not found`);
-    }
-    mockData.pages.splice(pageIndex, 1);
-    return { success: true, id: pageId };
-  };
 }
 
 // Cette fonction vérifie si l'utilisateur est temporairement en mode réel

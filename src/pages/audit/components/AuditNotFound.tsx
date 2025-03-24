@@ -1,57 +1,52 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileQuestion, ArrowLeft, Plus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { NavigateFunction } from 'react-router-dom';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
 export interface AuditNotFoundProps {
+  navigate: NavigateFunction;
   projectId?: string;
   error?: string;
 }
 
-const AuditNotFound: React.FC<AuditNotFoundProps> = ({ projectId, error }) => {
-  const navigate = useNavigate();
-  
-  const goBack = () => {
-    navigate('/');
-  };
-  
-  const createNewAudit = () => {
-    if (projectId) {
-      navigate(`/projet/${projectId}/audit/new`);
-    } else {
-      navigate('/');
-    }
-  };
-  
+const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-1 container mx-auto px-4 py-12 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="max-w-md w-full">
           <CardHeader>
-            <div className="flex justify-center mb-4">
-              <FileQuestion className="h-16 w-16 text-gray-400" />
+            <div className="flex items-center gap-2 text-amber-500 mb-2">
+              <AlertTriangle size={24} />
+              <CardTitle className="text-xl">Audit non trouvé</CardTitle>
             </div>
-            <CardTitle className="text-center text-xl">Audit non trouvé</CardTitle>
-            <CardDescription className="text-center">
-              {error || "L'audit que vous recherchez n'existe pas ou n'est plus disponible."}
+            <CardDescription>
+              {error || "L'audit que vous recherchez n'existe pas ou n'est pas accessible."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-center text-sm text-muted-foreground">
-              Vous pouvez revenir à l'accueil ou créer un nouvel audit pour ce projet.
+            <p className="text-sm text-muted-foreground mb-4">
+              {projectId 
+                ? "Vérifiez que l'ID du projet est correct et que vous avez accès à cet audit."
+                : "Vérifiez l'URL et assurez-vous que vous êtes connecté avec les bonnes permissions."}
             </p>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={goBack}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <ArrowLeft size={16} />
               Retour à l'accueil
             </Button>
+            
             {projectId && (
-              <Button onClick={createNewAudit}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvel audit
+              <Button 
+                onClick={() => navigate(`/projet/${projectId}`)}
+              >
+                Aller au projet
               </Button>
             )}
           </CardFooter>
