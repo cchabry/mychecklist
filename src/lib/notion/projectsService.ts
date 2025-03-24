@@ -3,6 +3,7 @@ import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
 import { notionApi } from '../notionProxy';
 import { toast } from 'sonner';
+import { SamplePage } from '@/lib/types';
 
 export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
   const dbId = localStorage.getItem('notion_database_id');
@@ -416,9 +417,6 @@ export const processSamplePage = (page: any) => {
     title: notionProperties.Title?.title?.[0]?.plain_text || 
            notionProperties.Name?.title?.[0]?.plain_text || 'Sans titre',
     description: notionProperties.Description?.rich_text?.[0]?.plain_text || '',
-    order: notionProperties.Order?.number || 0,
-    // Include the created time and last edited time
-    createdAt: page.created_time || new Date().toISOString(),
-    updatedAt: page.last_edited_time || new Date().toISOString()
+    order: notionProperties.Order?.number || 0
   };
 };
