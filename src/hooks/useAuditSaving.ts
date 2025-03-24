@@ -1,17 +1,18 @@
 
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Audit } from '@/lib/types';
-import { saveAuditToNotion } from '@/lib/notion';
+import { notionWriteService } from '@/services/notion/notionWriteService';
 import { notionApi } from '@/lib/notionProxy';
 
 /**
  * Hook spécialisé pour la sauvegarde des audits
- * Version simplifiée et unifiée pour le scénario primaire
  */
 export const useAuditSaving = () => {
+  const [isSaving, setIsSaving] = useState(false);
+  
   /**
    * Sauvegarde un audit de manière fiable
-   * Gestion des cas mode mock et erreurs CORS
    */
   const saveAudit = async (
     audit: Audit | null,
@@ -32,6 +33,8 @@ export const useAuditSaving = () => {
       return false;
     }
     
+    setIsSaving(true);
+    
     try {
       // Si on est en mode mock ou si l'utilisateur n'utilise pas Notion, simuler une sauvegarde
       if (options.isMockMode || !options.usingNotion) {
@@ -44,6 +47,7 @@ export const useAuditSaving = () => {
           description: "Toutes les modifications ont été enregistrées (mode local)",
         });
         
+        setIsSaving(false);
         return true;
       }
       
@@ -55,48 +59,28 @@ export const useAuditSaving = () => {
           description: 'Pour sauvegarder les audits dans Notion, configurez une base de données pour les checklists.'
         });
         
-        // Activer le mode mock comme fallback
-        notionApi.mockMode.activate();
-        
-        return true; // Simuler une sauvegarde réussie pour ne pas bloquer l'utilisateur
+        setIsSaving(false);
+        return true;
       }
       
-      // Sauvegarde dans Notion
-      console.log('🔍 useAuditSaving - Tentative de sauvegarde dans Notion');
+      // Récupérer la clé API
+      const apiKey = localStorage.getItem('notion_api_key');
       
-      try {
-        const success = await saveAuditToNotion(audit);
+      if (!apiKey) {
+        console.error('❌ useAuditSaving - Clé API Notion non configurée');
+        toast.error('Clé API Notion manquante', {
+          description: 'Veuillez configurer votre clé API dans les paramètres.'
+        });
         
-        if (success) {
-          console.log('✅ useAuditSaving - Sauvegarde Notion réussie');
-          toast.success("Audit sauvegardé avec succès", {
-            description: "Toutes les modifications ont été enregistrées dans Notion",
-          });
-        } else {
-          console.error('❌ useAuditSaving - Échec de la sauvegarde dans Notion (false retourné)');
-          throw new Error('Échec de la sauvegarde dans Notion');
-        }
-        
-        return success;
-      } catch (error) {
-        // Gérer les erreurs CORS ou réseau
-        if (error.message?.includes('Failed to fetch')) {
-          console.warn('⚠️ useAuditSaving - Erreur CORS détectée, activation du mode mock');
-          
-          // Activer le mode mock
-          notionApi.mockMode.activate();
-          
-          toast.warning('Mode démonstration activé', {
-            description: 'Sauvegarde en mode local uniquement car l\'API Notion n\'est pas accessible directement',
-          });
-          
-          // Simuler une sauvegarde réussie
-          return true;
-        }
-        
-        // Propager les autres erreurs
-        throw error;
+        setIsSaving(false);
+        return false;
       }
+      
+      // Utiliser le service d'écriture pour sauvegarder l'audit
+      const success = await notionWriteService.saveAudit(audit, apiKey);
+      
+      setIsSaving(false);
+      return success;
     } catch (error) {
       console.error('❌ useAuditSaving - Erreur lors de la sauvegarde:', error);
       
@@ -104,9 +88,10 @@ export const useAuditSaving = () => {
         description: 'Impossible de sauvegarder les modifications: ' + (error.message || 'Erreur inconnue')
       });
       
+      setIsSaving(false);
       return false;
     }
   };
   
-  return { saveAudit };
+  return { saveAudit, isSaving };
 };
