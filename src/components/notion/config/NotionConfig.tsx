@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -193,6 +194,26 @@ const NotionConfig: React.FC = () => {
     setShowDatabaseDiscovery(true);
   };
 
+  // Nouvelle fonction pour gérer la sélection d'une base de données
+  const handleSelectDatabase = (id: string, target: 'projects' | 'checklists') => {
+    const cleanId = extractNotionDatabaseId(id);
+    
+    if (target === 'projects') {
+      setDatabaseId(cleanId);
+      toast.success("ID de base de projets mis à jour", {
+        description: "N'oubliez pas d'enregistrer la configuration"
+      });
+    } else if (target === 'checklists') {
+      setChecklistsDbId(cleanId);
+      toast.success("ID de base de checklists mis à jour", {
+        description: "N'oubliez pas d'enregistrer la configuration"
+      });
+    }
+    
+    // Fermer la fenêtre de découverte après sélection
+    setShowDatabaseDiscovery(false);
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -325,6 +346,7 @@ const NotionConfig: React.FC = () => {
         open={showDatabaseDiscovery} 
         onOpenChange={setShowDatabaseDiscovery}
         apiKey={apiKey}
+        onSelectDatabase={handleSelectDatabase}
       />
     </Card>
   );

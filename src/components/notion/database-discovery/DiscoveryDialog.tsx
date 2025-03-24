@@ -12,6 +12,7 @@ interface DiscoveryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   apiKey?: string;
+  onSelectDatabase?: (id: string, target: 'projects' | 'checklists') => void;
 }
 
 interface DatabaseItem {
@@ -23,7 +24,8 @@ interface DatabaseItem {
 const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({ 
   open, 
   onOpenChange,
-  apiKey = ''
+  apiKey = '',
+  onSelectDatabase
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
@@ -129,6 +131,7 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
                     id={db.id}
                     title={db.title}
                     createdTime={db.createdTime}
+                    onSelectDatabase={onSelectDatabase}
                   />
                 ))}
                 

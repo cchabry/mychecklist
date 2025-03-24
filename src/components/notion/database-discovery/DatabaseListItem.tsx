@@ -2,16 +2,28 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, CheckCheck } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Copy, Database, CheckCheck, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DatabaseItemProps {
   id: string;
   title: string;
   createdTime: string;
+  onSelectDatabase?: (id: string, target: 'projects' | 'checklists') => void;
 }
 
-const DatabaseListItem: React.FC<DatabaseItemProps> = ({ id, title, createdTime }) => {
+const DatabaseListItem: React.FC<DatabaseItemProps> = ({ 
+  id, 
+  title, 
+  createdTime,
+  onSelectDatabase 
+}) => {
   const [copied, setCopied] = useState(false);
   
   const handleCopyId = () => {
@@ -24,6 +36,13 @@ const DatabaseListItem: React.FC<DatabaseItemProps> = ({ id, title, createdTime 
     }, 2000);
     
     toast.success("ID copié dans le presse-papier");
+  };
+  
+  const handleSelectForConfig = (target: 'projects' | 'checklists') => {
+    if (onSelectDatabase) {
+      onSelectDatabase(id, target);
+      toast.success(`Base de données sélectionnée pour ${target === 'projects' ? 'Projets' : 'Checklists'}`);
+    }
   };
   
   return (
@@ -40,18 +59,43 @@ const DatabaseListItem: React.FC<DatabaseItemProps> = ({ id, title, createdTime 
             Créée le {createdTime}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCopyId}
-          className="shrink-0"
-        >
-          {copied ? (
-            <CheckCheck className="h-4 w-4 text-green-500" />
+        
+        <div className="flex gap-2">
+          {onSelectDatabase ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Ajouter à
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleSelectForConfig('projects')}>
+                  <Database className="h-4 w-4 mr-2" />
+                  Base de Projets
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSelectForConfig('checklists')}>
+                  <Database className="h-4 w-4 mr-2" />
+                  Base de Checklists
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <Copy className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyId}
+              className="shrink-0"
+              title="Copier l'ID"
+            >
+              {copied ? (
+                <CheckCheck className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
       </CardContent>
     </Card>
   );
