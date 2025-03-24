@@ -1,367 +1,322 @@
 
 import { toast } from 'sonner';
+import { OperationMode } from './index';
+import { operationModeNotifications } from './notifications';
 
-export type OperationModeType = 'demo' | 'real' | 'auto';
-
-interface OperationModeSettings {
-  /**
-   * Mode actif actuel
-   */
-  mode: OperationModeType;
-  
-  /**
-   * Mode forcé (ignore le mode automatique)
-   */
-  forcedMode: OperationModeType | null;
-  
-  /**
-   * Indique si le mode démo est temporairement activé
-   */
-  temporaryDemo: boolean;
-  
-  /**
-   * Compteur d'échecs consécutifs
-   */
-  consecutiveFailures: number;
-  
-  /**
-   * Timestamp de la dernière erreur
-   */
-  lastErrorTimestamp: number | null;
-  
-  /**
-   * Dernière opération réussie
-   */
-  lastSuccessTimestamp: number | null;
+/**
+ * Type pour les paramètres du service
+ */
+export interface OperationModeSettings {
+  mode: OperationMode;
+  autoSwitchEnabled: boolean;
+  failuresThreshold: number;
+  errorHandling: 'auto' | 'manual';
+  // Nouvelle option pour contrôler si on bascule automatiquement ou non
+  autoSwitchOnErrors: boolean;
 }
 
-const DEFAULT_SETTINGS: OperationModeSettings = {
-  mode: 'auto',
-  forcedMode: null,
-  temporaryDemo: false,
-  consecutiveFailures: 0,
-  lastErrorTimestamp: null,
-  lastSuccessTimestamp: null
-};
+/**
+ * Type principal pour le service
+ */
+export type OperationModeType = 'real' | 'demo' | 'auto';
 
 /**
- * Nombre maximum d'échecs consécutifs avant de basculer automatiquement en mode démo
- * Désactivé (valeur élevée) car nous préférons afficher les erreurs
+ * Service de gestion des modes opérationnels (réel vs démo)
+ * Ce service permet de basculer entre un mode réel (API externes)
+ * et un mode démonstration (données simulées)
  */
-const MAX_CONSECUTIVE_FAILURES = 999;
-
-/**
- * Délai après lequel réinitialiser le compteur d'échecs (ms)
- */
-const FAILURE_RESET_DELAY = 10 * 60 * 1000; // 10 minutes
-
 class OperationModeService {
-  private settings: OperationModeSettings;
-  private listeners: Set<() => void> = new Set();
+  private mode: OperationMode = OperationMode.REAL;
+  private previousMode: OperationMode | null = null;
+  private switchReason: string | null = null;
+  private consecutiveFailures: number = 0;
+  private lastError: Error | null = null;
+  private listeners: Function[] = [];
   
+  private settings: OperationModeSettings = {
+    mode: OperationMode.REAL,
+    autoSwitchEnabled: false, // Désactivé par défaut maintenant
+    failuresThreshold: 3,
+    errorHandling: 'manual', // Mode manuel par défaut
+    autoSwitchOnErrors: false // Nouvelle option pour contrôler si on bascule automatiquement ou non
+  };
+
+  /**
+   * Constructor avec initialisation des paramètres depuis le localStorage
+   */
   constructor() {
-    this.settings = this.loadSettings();
+    // Charger les paramètres depuis le localStorage
+    this.loadSettings();
     
-    // Si le mode temporaire est activé depuis plus de 30 minutes, le désactiver
-    if (this.settings.temporaryDemo) {
-      const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
-      if (this.settings.lastErrorTimestamp && this.settings.lastErrorTimestamp < thirtyMinutesAgo) {
-        this.settings.temporaryDemo = false;
-        this.saveSettings();
-      }
-    }
+    // Initialiser le mode à partir des paramètres
+    this.mode = this.settings.mode;
     
-    // Réinitialiser le compteur d'échecs si le dernier échec date d'il y a longtemps
-    if (this.settings.consecutiveFailures > 0 && 
-        this.settings.lastErrorTimestamp && 
-        Date.now() - this.settings.lastErrorTimestamp > FAILURE_RESET_DELAY) {
-      this.resetFailureCounter();
-    }
+    // Log pour le débogage
+    console.log(`[OperationMode] Initialisé en mode: ${this.mode}`);
   }
-  
+
   /**
-   * Charge les paramètres depuis le stockage local
+   * Charge les paramètres depuis le localStorage
    */
-  private loadSettings(): OperationModeSettings {
+  private loadSettings(): void {
     try {
-      const stored = localStorage.getItem('operation_mode_settings');
-      if (stored) {
-        return JSON.parse(stored) as OperationModeSettings;
+      const savedSettings = localStorage.getItem('operation_mode_settings');
+      if (savedSettings) {
+        this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
       }
-    } catch (e) {
-      console.error('Erreur lors du chargement des paramètres:', e);
+    } catch (error) {
+      console.error('Erreur lors du chargement des paramètres du mode opérationnel:', error);
     }
-    return { ...DEFAULT_SETTINGS };
   }
-  
+
   /**
-   * Sauvegarde les paramètres dans le stockage local
+   * Sauvegarde les paramètres dans le localStorage
    */
-  private saveSettings() {
+  private saveSettings(): void {
     try {
       localStorage.setItem('operation_mode_settings', JSON.stringify(this.settings));
-      this.notifyListeners();
-    } catch (e) {
-      console.error('Erreur lors de la sauvegarde des paramètres:', e);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des paramètres du mode opérationnel:', error);
     }
   }
-  
+
   /**
-   * Notifie tous les écouteurs d'un changement de mode
+   * Accesseur pour le mode opérationnel
    */
-  private notifyListeners() {
-    this.listeners.forEach(listener => listener());
+  getMode(): OperationMode {
+    return this.mode;
   }
   
   /**
-   * Ajoute un écouteur pour les changements de mode
+   * Accesseur pour la raison du basculement
    */
-  public subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+  getSwitchReason(): string | null {
+    return this.switchReason;
   }
   
   /**
-   * Réinitialise le compteur d'échecs
+   * Accesseur pour le nombre d'échecs consécutifs
    */
-  private resetFailureCounter() {
-    this.settings.consecutiveFailures = 0;
-    this.saveSettings();
+  getConsecutiveFailures(): number {
+    return this.consecutiveFailures;
   }
   
   /**
-   * Active temporairement le mode démo
+   * Accesseur pour la dernière erreur
    */
-  public temporarilyActivateDemoMode() {
-    if (this.isDemoMode) return; // Déjà en mode démo
-    
-    console.log('Activation temporaire du mode démo');
-    this.settings.temporaryDemo = true;
-    this.settings.lastErrorTimestamp = Date.now();
-    this.saveSettings();
-    
-    toast.info('Mode démonstration temporairement activé', {
-      description: 'L\'application utilise des données simulées pour cette opération.'
-    });
+  getLastError(): Error | null {
+    return this.lastError;
   }
   
   /**
-   * Désactive le mode démo temporaire
+   * Accesseur pour les paramètres
    */
-  public resetTemporaryMode() {
-    if (!this.settings.temporaryDemo) return;
-    
-    console.log('Désactivation du mode démo temporaire');
-    this.settings.temporaryDemo = false;
-    this.saveSettings();
-  }
-  
-  /**
-   * Gère une erreur de connexion - ne bascule plus automatiquement
-   */
-  public handleConnectionError(error: Error, context: string) {
-    console.warn(`[OperationMode] Erreur détectée (${context}):`, error);
-    
-    // Incrémenter le compteur d'échecs
-    this.settings.consecutiveFailures++;
-    this.settings.lastErrorTimestamp = Date.now();
-    console.warn(`[OperationMode] Échecs consécutifs: ${this.settings.consecutiveFailures}`);
-    
-    // Afficher l'erreur plutôt que de basculer en mode démo
-    toast.error(`Erreur: ${context}`, {
-      description: error.message,
-      duration: 8000
-    });
-    
-    this.saveSettings();
-  }
-  
-  /**
-   * Gère une opération réussie
-   */
-  public handleSuccessfulOperation() {
-    // Si nous avions des échecs, réinitialiser le compteur
-    if (this.settings.consecutiveFailures > 0) {
-      console.log('[OperationMode] Opération réussie, réinitialisation du compteur d\'échecs');
-      this.resetFailureCounter();
-    }
-    
-    // Si nous étions en mode démo temporaire, revenir au mode normal
-    if (this.settings.temporaryDemo) {
-      console.log('[OperationMode] Opération réussie, désactivation du mode démo temporaire');
-      this.resetTemporaryMode();
-    }
-    
-    this.settings.lastSuccessTimestamp = Date.now();
-    this.saveSettings();
-  }
-  
-  /**
-   * Définit le mode d'opération
-   */
-  public setMode(mode: OperationModeType) {
-    this.settings.mode = mode;
-    
-    // Si on passe en mode réel, réinitialiser les compteurs d'erreurs
-    if (mode === 'real') {
-      this.resetFailureCounter();
-      this.resetTemporaryMode();
-    }
-    
-    this.saveSettings();
-    
-    return this;
-  }
-  
-  /**
-   * Force un mode spécifique (ignore le mode automatique)
-   */
-  public forceMode(mode: OperationModeType | null) {
-    this.settings.forcedMode = mode;
-    
-    // Si on force le mode réel, réinitialiser les compteurs d'erreurs
-    if (mode === 'real') {
-      this.resetFailureCounter();
-      this.resetTemporaryMode();
-    }
-    
-    this.saveSettings();
-    
-    return this;
-  }
-  
-  /**
-   * Active le mode démo explicitement
-   */
-  public enableDemoMode(reason?: string) {
-    console.log('[OperationMode] Activation du mode démo:', reason || 'Action manuelle');
-    this.forceMode('demo');
-    
-    return this;
-  }
-  
-  /**
-   * Active le mode réel explicitement
-   */
-  public enableRealMode() {
-    console.log('[OperationMode] Activation du mode réel');
-    this.forceMode('real');
-    
-    return this;
-  }
-  
-  /**
-   * Indique si le mode démo est actuellement actif
-   */
-  public get isDemoMode(): boolean {
-    // Mode forcé prioritaire
-    if (this.settings.forcedMode) {
-      return this.settings.forcedMode === 'demo';
-    }
-    
-    // Mode temporaire ensuite
-    if (this.settings.temporaryDemo) {
-      return true;
-    }
-    
-    // Enfin, le mode défini
-    if (this.settings.mode === 'auto') {
-      // En mode auto, vérifier les échecs récents
-      return this.settings.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES;
-    }
-    
-    return this.settings.mode === 'demo';
-  }
-  
-  /**
-   * Indique si le mode réel est actuellement actif
-   */
-  public get isRealMode(): boolean {
-    return !this.isDemoMode;
-  }
-  
-  /**
-   * Retourne l'état actuel du mode opérationnel
-   */
-  public getStatus() {
-    return {
-      currentMode: this.isDemoMode ? 'demo' : 'real',
-      configuredMode: this.settings.mode,
-      forcedMode: this.settings.forcedMode,
-      temporaryDemo: this.settings.temporaryDemo,
-      consecutiveFailures: this.settings.consecutiveFailures,
-      lastErrorTimestamp: this.settings.lastErrorTimestamp,
-      lastSuccessTimestamp: this.settings.lastSuccessTimestamp
-    };
-  }
-  
-  /**
-   * Obtient le mode opérationnel actuel en tant qu'enum
-   */
-  public getMode() {
-    return this.isDemoMode ? 'demo' : 'real';
-  }
-  
-  /**
-   * Obtient la raison du dernier changement de mode
-   */
-  public getSwitchReason(): string | null {
-    // Pas implémenté pour simplifier
-    return null;
-  }
-  
-  /**
-   * Obtient le nombre d'échecs consécutifs
-   */
-  public getConsecutiveFailures(): number {
-    return this.settings.consecutiveFailures;
-  }
-  
-  /**
-   * Obtient la dernière erreur
-   */
-  public getLastError(): Error | null {
-    // Pas implémenté pour simplifier
-    return null;
-  }
-  
-  /**
-   * Obtient les paramètres complets
-   */
-  public getSettings(): OperationModeSettings {
+  getSettings(): OperationModeSettings {
     return { ...this.settings };
   }
   
   /**
-   * Met à jour les paramètres
+   * Propriété calculée: mode démo activé?
    */
-  public updateSettings(newSettings: Partial<OperationModeSettings>) {
-    this.settings = { ...this.settings, ...newSettings };
-    this.saveSettings();
-    return this;
+  get isDemoMode(): boolean {
+    return this.mode === OperationMode.DEMO;
   }
   
   /**
-   * Réinitialise les paramètres
+   * Propriété calculée: mode réel activé?
    */
-  public reset() {
-    this.settings = { ...DEFAULT_SETTINGS };
-    this.saveSettings();
-    return this;
+  get isRealMode(): boolean {
+    return this.mode === OperationMode.REAL;
   }
   
   /**
-   * Bascule entre les modes
+   * Active le mode démo
    */
-  public toggle() {
+  enableDemoMode(reason?: string): void {
+    if (this.mode !== OperationMode.DEMO) {
+      this.previousMode = this.mode;
+      this.mode = OperationMode.DEMO;
+      this.switchReason = reason || 'Activé manuellement';
+      
+      // Mettre à jour les paramètres
+      this.settings.mode = OperationMode.DEMO;
+      this.saveSettings();
+      
+      // Afficher une notification
+      operationModeNotifications.showModeChangeNotification(OperationMode.DEMO, this.switchReason);
+      
+      // Notifier les listeners
+      this.notifyListeners();
+      
+      console.log(`[OperationMode] Mode démo activé. Raison: ${this.switchReason}`);
+    }
+  }
+  
+  /**
+   * Active le mode réel
+   */
+  enableRealMode(): void {
+    if (this.mode !== OperationMode.REAL) {
+      this.previousMode = this.mode;
+      this.mode = OperationMode.REAL;
+      this.switchReason = 'Activé manuellement';
+      this.consecutiveFailures = 0;
+      
+      // Mettre à jour les paramètres
+      this.settings.mode = OperationMode.REAL;
+      this.saveSettings();
+      
+      // Afficher une notification
+      operationModeNotifications.showModeChangeNotification(OperationMode.REAL);
+      
+      // Notifier les listeners
+      this.notifyListeners();
+      
+      console.log('[OperationMode] Mode réel activé');
+    }
+  }
+  
+  /**
+   * Bascule entre les modes réel et démo
+   */
+  toggle(): void {
     if (this.isDemoMode) {
       this.enableRealMode();
     } else {
-      this.enableDemoMode();
+      this.enableDemoMode('Basculement manuel');
     }
-    return this;
+  }
+  
+  /**
+   * Gère une erreur de connexion
+   */
+  handleConnectionError(error: Error, context: string): void {
+    console.warn('[OperationMode] Erreur détectée:', error, 'Contexte:', context);
+    
+    // Enregistrer l'erreur
+    this.lastError = error;
+    this.consecutiveFailures++;
+    
+    console.warn('[OperationMode] Échecs consécutifs:', this.consecutiveFailures);
+    
+    // En mode manuel, uniquement notifier l'erreur sans basculer
+    if (this.settings.errorHandling === 'manual') {
+      // Uniquement suggérer le mode démo mais ne pas basculer automatiquement
+      if (this.consecutiveFailures >= this.settings.failuresThreshold && 
+          !this.isDemoMode && 
+          this.settings.autoSwitchOnErrors) {
+        operationModeNotifications.showSuggestDemoModeNotification();
+      }
+      return;
+    }
+    
+    // En mode auto, basculer automatiquement après un certain nombre d'échecs
+    if (this.settings.autoSwitchEnabled && 
+        this.consecutiveFailures >= this.settings.failuresThreshold && 
+        !this.isDemoMode) {
+      
+      // Afficher une notification d'erreurs multiples
+      operationModeNotifications.showAutoSwitchNotification(this.consecutiveFailures);
+      
+      // Basculer en mode démo
+      this.enableDemoMode(`${this.consecutiveFailures} erreurs consécutives`);
+    }
+    
+    // Notifier les listeners
+    this.notifyListeners();
+  }
+  
+  /**
+   * Signale une opération réussie
+   */
+  handleSuccessfulOperation(): void {
+    // Réinitialiser le compteur d'échecs consécutifs
+    if (this.consecutiveFailures > 0) {
+      this.consecutiveFailures = 0;
+      this.notifyListeners();
+    }
+  }
+  
+  /**
+   * Met à jour les paramètres du service
+   */
+  updateSettings(newSettings: Partial<OperationModeSettings>): void {
+    this.settings = {
+      ...this.settings,
+      ...newSettings
+    };
+    
+    // Mettre à jour le mode si nécessaire
+    if (newSettings.mode && newSettings.mode !== this.mode) {
+      if (newSettings.mode === OperationMode.DEMO) {
+        this.enableDemoMode('Changement de paramètres');
+      } else if (newSettings.mode === OperationMode.REAL) {
+        this.enableRealMode();
+      }
+    }
+    
+    // Sauvegarder les paramètres
+    this.saveSettings();
+    
+    // Notifier les listeners
+    this.notifyListeners();
+    
+    console.log('[OperationMode] Paramètres mis à jour:', this.settings);
+  }
+  
+  /**
+   * Réinitialise le service
+   */
+  reset(): void {
+    this.mode = OperationMode.REAL;
+    this.previousMode = null;
+    this.switchReason = null;
+    this.consecutiveFailures = 0;
+    this.lastError = null;
+    
+    // Réinitialiser les paramètres
+    this.settings = {
+      mode: OperationMode.REAL,
+      autoSwitchEnabled: false,
+      failuresThreshold: 3,
+      errorHandling: 'manual',
+      autoSwitchOnErrors: false
+    };
+    
+    // Sauvegarder les paramètres
+    this.saveSettings();
+    
+    // Notifier les listeners
+    this.notifyListeners();
+    
+    console.log('[OperationMode] Service réinitialisé');
+  }
+  
+  /**
+   * Notifie les listeners d'un changement d'état
+   */
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => {
+      try {
+        listener();
+      } catch (error) {
+        console.error('Erreur dans un listener du mode opérationnel:', error);
+      }
+    });
+  }
+  
+  /**
+   * Permet de s'abonner aux changements d'état
+   */
+  subscribe(listener: Function): () => void {
+    this.listeners.push(listener);
+    
+    // Retourner une fonction pour se désabonner
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
   }
 }
 
-// Exporter une instance du service
+// Exporter l'instance singleton du service
 export const operationMode = new OperationModeService();

@@ -1,62 +1,76 @@
 
-/**
- * Utilitaires pour la compatibilité avec l'ancien système mockMode
- */
-
-import { operationModeUtils } from '@/services/operationMode/utils';
 import { operationMode } from '@/services/operationMode';
 
 /**
- * Vérifie si le mode mock est actif
- */
-export const isMockActive = (): boolean => {
-  return operationMode.isDemoMode;
-};
-
-/**
- * Désactive temporairement le mode mock
- */
-export const temporarilyDisableMock = (): void => {
-  operationMode.enableRealMode();
-};
-
-/**
- * Active le mode mock
- */
-export const enableMock = (): void => {
-  operationMode.enableDemoMode('Activation manuelle via API');
-};
-
-/**
- * Adaptateur pour la compatibilité avec l'ancien système mockMode
+ * Utilitaires pour le mode mock
  */
 export const mockUtils = {
   /**
-   * Applique un délai simulé
+   * Vérifie si le mode mock est activé
    */
-  applyDelay: operationModeUtils.applySimulatedDelay,
-  
-  /**
-   * Simule une erreur de connexion (aléatoire selon le taux d'erreur configuré)
-   */
-  maybeSimulateError: () => {
-    if (operationModeUtils.shouldSimulateError()) {
-      operationModeUtils.simulateConnectionError();
-    }
+  isMockModeEnabled(): boolean {
+    // Vérifier le localStorage et l'objet operationMode
+    return localStorage.getItem('notion_mock_mode') === 'true' || operationMode.isDemoMode;
   },
   
   /**
-   * Force une erreur simulée
+   * Vérifie si le mode réel est forcé temporairement
    */
-  forceError: () => operationModeUtils.simulateConnectionError(),
+  isRealModeForced(): boolean {
+    return localStorage.getItem('notion_force_real') === 'true';
+  },
   
   /**
-   * Récupère un scénario de démo
+   * Applique un délai aléatoire simulé
    */
-  getScenario: (context: string) => operationModeUtils.getScenario(context)
+  async applyMockDelay(): Promise<void> {
+    const config = this.getMockConfig();
+    const delayMin = config.delayMin || 100;
+    const delayMax = config.delayMax || 1000;
+    
+    // Calculer un délai aléatoire entre min et max
+    const delay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+    
+    // Appliquer le délai
+    await new Promise(resolve => setTimeout(resolve, delay));
+  },
+  
+  /**
+   * Détermine si une erreur simulée doit être générée
+   */
+  shouldSimulateError(): boolean {
+    const config = this.getMockConfig();
+    const errorRate = config.errorRate || 0.05;
+    
+    // Générer une erreur avec la probabilité définie dans la config
+    return Math.random() < errorRate;
+  },
+  
+  /**
+   * Récupère la configuration du mode mock
+   */
+  getMockConfig(): any {
+    try {
+      const configString = localStorage.getItem('notion_mock_config');
+      if (configString) {
+        return JSON.parse(configString);
+      }
+    } catch (e) {
+      console.error('Erreur lors de la lecture de la configuration mock:', e);
+    }
+    
+    return {
+      enabled: operationMode.isDemoMode,
+      errorRate: 0.05,
+      delayMin: 100,
+      delayMax: 1000
+    };
+  },
+  
+  /**
+   * Récupère un scénario pour le mode mock
+   */
+  getScenario(name: string): any {
+    return { type: 'default' }; // Implémentation simplifiée
+  }
 };
-
-/**
- * Pour compatibilité avec l'ancien mock.utils
- */
-export default mockUtils;

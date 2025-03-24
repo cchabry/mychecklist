@@ -1,174 +1,174 @@
 
-import { v4 as uuidv4 } from 'uuid';
-import { Audit } from '@/lib/types';
-import { handleDemoMode } from './baseService';
-import { mockAudits } from '@/lib/mockData/index';
+import { Audit, AuditAction } from '@/lib/types';
+import { BaseServiceAbstract } from './BaseServiceAbstract';
 import { notionApi } from '@/lib/notionProxy';
-import { operationMode } from '@/services/operationMode/operationModeService';
+import { operationMode } from '@/services/operationMode';
+import { toast } from 'sonner';
 
-class AuditsService {
-  async getAll(): Promise<Audit[]> {
-    return handleDemoMode<Audit[]>(
-      async () => {
-        try {
-          // Vérifier si la base de données des audits est configurée
-          const auditsDbId = localStorage.getItem('notion_audits_database_id');
-          if (!auditsDbId) {
-            console.warn('Base de données des audits non configurée, utilisation des données de démonstration');
-            return mockAudits || [];
-          }
-          
-          // Utiliser l'API Notion via proxy
-          const audits = await notionApi.audits.getAudits();
-          return audits;
-        } catch (error) {
-          console.error('Erreur lors de la récupération des audits:', error);
-          // Propager l'erreur pour affichage à l'utilisateur
-          throw error;
-        }
-      },
-      async () => {
-        // Utiliser des données mockées en mode démo
-        return mockAudits || [];
-      }
-    );
+/**
+ * Service pour la gestion des audits
+ */
+class AuditsService extends BaseServiceAbstract<Audit> {
+  constructor() {
+    super('audits', {
+      cacheTTL: 10 * 60 * 1000, // 10 minutes
+    });
   }
-
-  async getById(id: string): Promise<Audit | null> {
-    return handleDemoMode<Audit | null>(
-      async () => {
-        try {
-          // Vérifier si la base de données des audits est configurée
-          const auditsDbId = localStorage.getItem('notion_audits_database_id');
-          if (!auditsDbId) {
-            console.warn('Base de données des audits non configurée, utilisation des données de démonstration');
-            return mockAudits.find(audit => audit.id === id) || null;
-          }
-          
-          // Utiliser l'API Notion via proxy
-          const audit = await notionApi.audits.getAudit(id);
-          return audit;
-        } catch (error) {
-          console.error(`Erreur lors de la récupération de l'audit ${id}:`, error);
-          // Propager l'erreur pour affichage à l'utilisateur
-          throw error;
-        }
-      },
-      async () => {
-        // Utiliser des données mockées en mode démo
-        return mockAudits.find(audit => audit.id === id) || null;
-      }
-    );
+  
+  /**
+   * Récupère un audit par son ID
+   */
+  protected async fetchById(id: string): Promise<Audit | null> {
+    try {
+      return await notionApi.getAudit(id);
+    } catch (error) {
+      console.error(`Erreur lors de la récupération de l'audit #${id}:`, error);
+      return null;
+    }
   }
-
+  
+  /**
+   * Récupère tous les audits
+   */
+  protected async fetchAll(): Promise<Audit[]> {
+    try {
+      // Pour l'instant, nous ne pouvons pas récupérer tous les audits
+      // car ils sont liés à un projet
+      return [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des audits:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Récupère les audits pour un projet spécifique
+   */
+  async getByProject(projectId: string): Promise<Audit[]> {
+    try {
+      if (!projectId) {
+        throw new Error('ID de projet non spécifié');
+      }
+      
+      // Cette fonction n'est pas encore implémentée dans l'API
+      // Pour l'instant, nous retournons un tableau vide
+      return [];
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des audits pour le projet #${projectId}:`, error);
+      return [];
+    }
+  }
+  
+  /**
+   * Crée un nouvel audit
+   */
   async create(data: Partial<Audit>): Promise<Audit> {
-    console.log('AuditsService.create - Début avec mode:', operationMode.isDemoMode ? 'démo' : 'réel');
-    return handleDemoMode<Audit>(
-      async () => {
-        try {
-          console.log('AuditsService.create - Mode réel - Tentative de création via Notion');
-          // Vérifier si la base de données des audits est configurée
-          const auditsDbId = localStorage.getItem('notion_audits_database_id');
-          if (!auditsDbId) {
-            console.warn('Base de données des audits non configurée, création en mode démonstration');
-            // Notifier l'utilisateur de la configuration manquante
-            throw new Error('La base de données des audits n\'est pas configurée dans Notion. Configurez-la dans les paramètres.');
-          }
-          
-          // Utiliser l'API Notion via proxy
-          const newAudit = await notionApi.audits.createAudit(data);
-          console.log('AuditsService.create - Audit créé avec succès:', newAudit);
-          return newAudit;
-        } catch (error) {
-          console.error('Erreur lors de la création de l\'audit:', error);
-          // Propager l'erreur pour affichage à l'utilisateur
-          throw error;
-        }
-      },
-      async () => {
-        console.log('AuditsService.create - Mode démo - Création d\'un audit mocké');
-        // Créer un nouvel audit mocké en mode démo
-        return this.createMockAudit(data);
+    try {
+      if (!data.projectId) {
+        throw new Error('ID de projet non spécifié');
       }
-    );
+      
+      // Vérifier si la base de données des audits est configurée
+      const auditsDbId = localStorage.getItem('notion_audits_database_id');
+      
+      if (!auditsDbId && !operationMode.isDemoMode) {
+        console.warn("Base de données des audits non configurée, activation du mode démo");
+        toast.warning("Base de données des audits non configurée", {
+          description: "Le mode démo sera utilisé pour cette opération."
+        });
+        operationMode.enableDemoMode("Base de données des audits non configurée");
+      }
+      
+      // Appeler l'API pour créer l'audit
+      const audit = await notionApi.createAudit({
+        name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
+        projectId: data.projectId
+      });
+      
+      console.log("Audit créé:", audit);
+      
+      // Invalider le cache
+      this.invalidateCache();
+      
+      return audit;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'audit:', error);
+      throw error;
+    }
   }
-
-  private createMockAudit(data: Partial<Audit>): Audit {
-    const newAudit: Audit = {
-      id: `audit_${uuidv4()}`,
-      projectId: data.projectId || '',
-      name: data.name || 'New Audit',
-      items: data.items || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      score: data.score || 0,
-      version: data.version || '1.0'
-    };
-    
-    // Ajouter l'audit aux données mockées pour cohérence
-    mockAudits.unshift(newAudit);
-    
-    return newAudit;
-  }
-
+  
+  /**
+   * Met à jour un audit existant
+   */
   async update(id: string, data: Partial<Audit>): Promise<Audit> {
-    return handleDemoMode<Audit>(
-      async () => {
-        try {
-          // Vérifier si la base de données des audits est configurée
-          const auditsDbId = localStorage.getItem('notion_audits_database_id');
-          if (!auditsDbId) {
-            console.warn('Base de données des audits non configurée, mise à jour en mode démonstration');
-            throw new Error('La base de données des audits n\'est pas configurée dans Notion. Configurez-la dans les paramètres.');
-          }
-          
-          // Utiliser l'API Notion via proxy
-          const updatedAudit = await notionApi.audits.updateAudit(id, data);
-          return updatedAudit;
-        } catch (error) {
-          console.error(`Erreur lors de la mise à jour de l'audit ${id}:`, error);
-          // Propager l'erreur pour affichage à l'utilisateur
-          throw error;
-        }
-      },
-      async () => {
-        // Mettre à jour un audit mocké en mode démo
-        const audit = mockAudits.find(audit => audit.id === id);
-        if (!audit) {
-          throw new Error(`Audit with id ${id} not found`);
-        }
-        
-        const updatedAudit = { ...audit, ...data, updatedAt: new Date().toISOString() };
-        return updatedAudit;
+    try {
+      if (!id) {
+        throw new Error('ID d\'audit non spécifié');
       }
-    );
+      
+      // Appeler l'API pour mettre à jour l'audit
+      const updatedAudit = await notionApi.updateAudit(id, data);
+      
+      if (!updatedAudit) {
+        throw new Error(`Impossible de mettre à jour l'audit #${id}`);
+      }
+      
+      // Invalider le cache
+      this.invalidateCache();
+      
+      return updatedAudit;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'audit #${id}:`, error);
+      throw error;
+    }
   }
-
+  
+  /**
+   * Supprime un audit
+   */
   async delete(id: string): Promise<boolean> {
-    return handleDemoMode<boolean>(
-      async () => {
-        try {
-          // Vérifier si la base de données des audits est configurée
-          const auditsDbId = localStorage.getItem('notion_audits_database_id');
-          if (!auditsDbId) {
-            console.warn('Base de données des audits non configurée, suppression en mode démonstration');
-            throw new Error('La base de données des audits n\'est pas configurée dans Notion. Configurez-la dans les paramètres.');
-          }
-          
-          // Utiliser l'API Notion via proxy
-          const success = await notionApi.audits.deleteAudit(id);
-          return success;
-        } catch (error) {
-          console.error(`Erreur lors de la suppression de l'audit ${id}:`, error);
-          // Propager l'erreur pour affichage à l'utilisateur
-          throw error;
-        }
-      },
-      async () => {
-        // Simuler la suppression en mode démo
-        return true;
+    try {
+      if (!id) {
+        throw new Error('ID d\'audit non spécifié');
       }
-    );
+      
+      // Récupérer l'audit pour avoir son projectId
+      const audit = await this.getById(id);
+      const projectId = audit?.projectId;
+      
+      // Appeler l'API pour supprimer l'audit
+      const success = await notionApi.deleteAudit(id);
+      
+      if (!success) {
+        throw new Error(`Impossible de supprimer l'audit #${id}`);
+      }
+      
+      // Invalider le cache
+      this.invalidateCache();
+      
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de l'audit #${id}:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Ajoute une action à un audit
+   */
+  async addAction(auditId: string, action: AuditAction): Promise<boolean> {
+    // Cette fonction n'est pas encore implémentée
+    // Pour l'instant, nous retournons true
+    return true;
+  }
+  
+  /**
+   * Met à jour une action d'un audit
+   */
+  async updateAction(auditId: string, actionId: string, action: Partial<AuditAction>): Promise<boolean> {
+    // Cette fonction n'est pas encore implémentée
+    // Pour l'instant, nous retournons true
+    return true;
   }
 }
 

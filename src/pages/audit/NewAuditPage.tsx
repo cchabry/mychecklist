@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { auditsService } from '@/services/api/auditsService';
-import { operationMode } from '@/services/operationMode/operationModeService';
-import { operationModeUtils } from '@/services/operationMode/utils';
+import { operationMode } from '@/services/operationMode';
 import { useNotion } from '@/contexts/NotionContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -50,16 +49,14 @@ const NewAuditPage: React.FC = () => {
         console.log(`Base de données des audits configurée: ${!!auditsDbId}`);
         
         if (!auditsDbId) {
-          // Avertir l'utilisateur mais continuer (l'erreur sera affichée)
+          // Avertir l'utilisateur, mais continuer (le service passera en mode démo si nécessaire)
           toast.warning("Base de données des audits non configurée", {
-            description: "Configurez la base de données des audits dans les paramètres."
+            description: "Le mode démo sera utilisé pour cette opération."
           });
+          
+          // Activer le mode démo pour cette opération
+          operationMode.enableDemoMode("Base de données des audits non configurée");
         }
-      }
-
-      // Ajouter un délai simulé en mode démo
-      if (operationMode.isDemoMode) {
-        await operationModeUtils.applySimulatedDelay();
       }
 
       // Créer l'audit via le service API

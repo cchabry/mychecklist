@@ -1,49 +1,52 @@
 
+import { OperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
 
 /**
- * Objet de compatibilité pour l'ancien système mockMode
- * @deprecated Utilisez operationMode à la place
+ * Activer le mode mock pour Notion API
  */
-export const mockState = {
-  get isActive() {
-    return operationMode.isDemoMode;
-  },
-  set isActive(value: boolean) {
-    operationMode.setDemoMode(value);
-  },
-
-  // Méthodes de compatibilité
-  setActive: function(value: boolean) {
-    operationMode.setDemoMode(value);
-  },
-  
-  setPermanent: function(value: boolean) {
-    // Persistance est maintenant gérée via les settings
-    operationMode.updateSettings({ 
-      persistentModeStorage: value 
-    });
-  },
-  
-  isPermanent: function() {
-    return operationMode.getSettings().persistentModeStorage;
-  },
-  
-  updateConfig: function(config: any) {
-    // Déléguer à operationMode
-    console.warn('[DEPRECATED] mockState.updateConfig is deprecated');
-  },
-  
-  getConfig: function() {
-    // Retourner un objet compatible avec l'ancien format
-    return {};
-  }
-};
-
-export interface MockConfig {
-  // Configuration mock anciennement utilisée
-  errorRate?: number;
-  delay?: number;
+export function activateMockMode() {
+  operationMode.enableDemoMode();
+  localStorage.setItem('notion_mock_mode', 'true');
 }
 
-export default mockState;
+/**
+ * Désactiver le mode mock pour Notion API
+ */
+export function deactivateMockMode() {
+  operationMode.enableRealMode();
+  localStorage.removeItem('notion_mock_mode');
+}
+
+/**
+ * Mettre à jour la configuration du mode mock 
+ */
+export function updateMockConfig(config: any) {
+  operationMode.updateSettings({
+    mode: config.enabled ? OperationMode.DEMO : OperationMode.REAL
+  });
+  
+  // Sauvegarder dans le localStorage pour la persistance
+  localStorage.setItem('notion_mock_config', JSON.stringify(config));
+}
+
+/**
+ * Récupérer la configuration du mode mock
+ */
+export function getMockConfig() {
+  try {
+    const configString = localStorage.getItem('notion_mock_config');
+    if (configString) {
+      return JSON.parse(configString);
+    }
+  } catch (e) {
+    console.error('Erreur lors de la lecture de la configuration mock:', e);
+  }
+  
+  return {
+    enabled: operationMode.isDemoMode,
+    errorRate: 0.05,
+    delayMin: 100,
+    delayMax: 1000
+  };
+}
