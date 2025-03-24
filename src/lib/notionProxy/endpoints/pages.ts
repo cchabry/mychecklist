@@ -32,10 +32,8 @@ export async function getProjectPages(projectId: string) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Return mock data
-    return mockData.getProjectPages 
-      ? mockData.getProjectPages(projectId) 
-      : mockData.pages.filter(page => page.projectId === projectId);
+    // Return mock data for this project
+    return mockData.pages.filter(page => page.projectId === projectId);
   }
   
   // In real mode, connect to Notion API
@@ -46,16 +44,14 @@ export async function getProjectPages(projectId: string) {
  * Get a specific page by ID
  * @param pageId Page ID
  */
-export async function getPage(pageId: string) {
+export async function retrieve(pageId: string) {
   // Check if we're in mock mode
   if (operationMode.isDemoMode) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
     // Return mock data
-    return mockData.getPage 
-      ? mockData.getPage(pageId) 
-      : mockData.pages.find(page => page.id === pageId);
+    return mockData.pages.find(page => page.id === pageId);
   }
   
   // In real mode, connect to Notion API
@@ -72,12 +68,7 @@ export async function create(data: Partial<SamplePage>) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Create a new page using mock data
-    if (mockData.createSamplePage) {
-      return mockData.createSamplePage(data);
-    }
-    
-    // Fallback implementation if the mockData function isn't available
+    // Create a new mock page
     const newPage: SamplePage = {
       id: `page_${Date.now()}`,
       projectId: data.projectId || '',
@@ -86,6 +77,9 @@ export async function create(data: Partial<SamplePage>) {
       description: data.description || '',
       order: data.order || 0,
     };
+    
+    // Add to mock data
+    mockData.pages.push(newPage);
     
     return newPage;
   }
@@ -105,21 +99,19 @@ export async function update(pageId: string, data: Partial<SamplePage>) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Update the page using mock data
-    if (mockData.updateSamplePage) {
-      return mockData.updateSamplePage(pageId, data);
-    }
-    
-    // Fallback implementation if the mockData function isn't available
-    const page = mockData.pages.find(p => p.id === pageId);
-    if (!page) {
+    // Find and update the page
+    const pageIndex = mockData.pages.findIndex(p => p.id === pageId);
+    if (pageIndex < 0) {
       throw new Error(`Page ${pageId} not found`);
     }
     
     const updatedPage = {
-      ...page,
+      ...mockData.pages[pageIndex],
       ...data,
     };
+    
+    // Update the mock data
+    mockData.pages[pageIndex] = updatedPage;
     
     return updatedPage;
   }
@@ -138,10 +130,16 @@ export async function deletePage(pageId: string) {
     // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Delete the page using mock data
-    return mockData.deletePage 
-      ? mockData.deletePage(pageId) 
-      : true;
+    // Find the page index
+    const pageIndex = mockData.pages.findIndex(p => p.id === pageId);
+    if (pageIndex < 0) {
+      return false;
+    }
+    
+    // Remove from mock data
+    mockData.pages.splice(pageIndex, 1);
+    
+    return true;
   }
   
   // In real mode, connect to Notion API

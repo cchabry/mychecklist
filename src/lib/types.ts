@@ -3,6 +3,17 @@
  * Shared utility functions
  */
 
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+/**
+ * Combines class names using clsx and tailwind-merge
+ * This is a utility function for combining Tailwind CSS classes conditionally
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 /** 
  * Project representation
  */
@@ -46,6 +57,20 @@ export interface ChecklistItem {
   phase: string[];
   effort: string;
   priority: string;
+  title?: string;
+  metaRefs?: string;
+  profile?: string;
+  criteria?: string;
+  requirementLevel?: string;
+  scope?: string;
+  status?: ComplianceStatus;
+  comment?: string;
+  details?: string;
+  pageResults?: PageResult[];
+  importance?: ImportanceLevel;
+  projectRequirement?: string;
+  projectComment?: string;
+  actions?: CorrectiveAction[];
 }
 
 /**
@@ -55,7 +80,7 @@ export interface Exigence {
   id: string;
   projectId: string;
   itemId: string;
-  importance: 'N/A' | 'Mineur' | 'Moyen' | 'Important' | 'Majeur';
+  importance: ImportanceLevel;
   comment: string;
 }
 
@@ -68,6 +93,58 @@ export interface Audit {
   name: string;
   createdAt: string;
   updatedAt: string;
+  items?: AuditItem[];
+  score?: number;
+  version?: string;
+  completedAt?: string;
+}
+
+/**
+ * Audit item (adapted from checklist item)
+ */
+export interface AuditItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  subcategory?: string;
+  criteria?: string;
+  profile?: string;
+  phase?: string;
+  effort?: string;
+  priority?: string;
+  requirementLevel?: string;
+  scope?: string;
+  consigne: string;
+  status: ComplianceStatus;
+  pageResults?: PageResult[];
+  importance?: ImportanceLevel;
+  comment?: string;
+  metaRefs?: string;
+  profil?: string;
+  details?: string;
+  actions?: CorrectiveAction[];
+  reference?: string;
+}
+
+/**
+ * Page result for an audit item
+ */
+export interface PageResult {
+  pageId: string;
+  status: ComplianceStatus;
+  comment?: string;
+}
+
+/**
+ * Project requirement
+ */
+export interface ProjectRequirement {
+  id: string;
+  projectId: string;
+  itemId: string;
+  level: string;
+  details: string;
 }
 
 /**
@@ -78,7 +155,7 @@ export interface Evaluation {
   auditId: string;
   pageId: string;
   exigenceId: string;
-  score: 'Conforme' | 'Partiellement conforme' | 'Non conforme' | 'Non Applicable';
+  score: ComplianceStatus;
   comment: string;
   attachments: string[];
   createdAt: string;
@@ -88,28 +165,84 @@ export interface Evaluation {
 /**
  * Corrective action for an evaluation
  */
-export interface Action {
+export interface CorrectiveAction {
   id: string;
   evaluationId: string;
-  targetScore: 'Conforme' | 'Partiellement conforme' | 'Non conforme' | 'Non Applicable';
-  priority: 'Faible' | 'Moyenne' | 'Haute' | 'Critique';
+  targetScore: ComplianceStatus;
+  priority: ActionPriority;
   dueDate: string;
   responsible: string;
   comment: string;
-  status: 'À faire' | 'En cours' | 'Terminée';
-  createdAt: string;
-  updatedAt: string;
+  status: ActionStatus;
+  pageId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  progress?: ActionProgress[];
 }
 
 /**
  * Progress update on an action
  */
-export interface Progress {
+export interface ActionProgress {
   id: string;
   actionId: string;
   date: string;
   responsible: string;
   comment: string;
-  score: 'Conforme' | 'Partiellement conforme' | 'Non conforme' | 'Non Applicable';
-  status: 'À faire' | 'En cours' | 'Terminée';
+  score: ComplianceStatus;
+  status: ActionStatus;
+}
+
+/**
+ * Compliance status values
+ */
+export enum ComplianceStatus {
+  Compliant = "Compliant",
+  NonCompliant = "NonCompliant",
+  PartiallyCompliant = "PartiallyCompliant",
+  NotEvaluated = "NotEvaluated",
+  NotApplicable = "NotApplicable"
+}
+
+/**
+ * Values for compliance status calculations
+ */
+export const COMPLIANCE_VALUES = {
+  [ComplianceStatus.Compliant]: 1,
+  [ComplianceStatus.PartiallyCompliant]: 0.5,
+  [ComplianceStatus.NonCompliant]: 0,
+  [ComplianceStatus.NotEvaluated]: 0,
+  [ComplianceStatus.NotApplicable]: 0
+};
+
+/**
+ * Importance levels for requirements
+ */
+export enum ImportanceLevel {
+  Majeur = "Majeur",
+  Important = "Important",
+  Moyen = "Moyen",
+  Mineur = "Mineur",
+  NA = "N/A"
+}
+
+/**
+ * Priority levels for actions
+ */
+export enum ActionPriority {
+  High = "High",
+  Medium = "Medium",
+  Low = "Low",
+  Critical = "Critical"
+}
+
+/**
+ * Status values for actions
+ */
+export enum ActionStatus {
+  Open = "Open",
+  InProgress = "In Progress",
+  Done = "Done",
+  Blocked = "Blocked",
+  ToDo = "To Do"
 }

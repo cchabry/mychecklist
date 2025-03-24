@@ -1,8 +1,31 @@
 
-export { default as NotionApiKeyField } from './NotionApiKeyField';
-export { default as NotionDatabaseField } from './NotionDatabaseField';
-export { default as NotionIntegrationGuide } from './NotionIntegrationGuide';
-export { default as NotionFormActions } from './NotionFormActions';
-export { default as NotionConnectionTests } from './NotionConnectionTests';
-export { default as NotionLastSavedInfo } from './NotionLastSavedInfo';
-export { default as NotionConfigForm } from '../NotionConfigForm';
+// Export all form components individually
+import NotionApiKeyField from './NotionApiKeyField';
+import NotionDatabaseField from './NotionDatabaseField';
+import NotionIntegrationGuide from './NotionIntegrationGuide';
+import NotionFormActions from './NotionFormActions';
+import NotionConnectionTests from './NotionConnectionTests';
+import NotionLastSavedInfo from './NotionLastSavedInfo';
+import NotionConfigForm from '../NotionConfigForm';
+
+// Re-export them
+export {
+  NotionApiKeyField,
+  NotionDatabaseField,
+  NotionIntegrationGuide,
+  NotionFormActions,
+  NotionConnectionTests,
+  NotionLastSavedInfo,
+  NotionConfigForm
+};
+
+// Default export
+export default {
+  NotionApiKeyField,
+  NotionDatabaseField,
+  NotionIntegrationGuide,
+  NotionFormActions,
+  NotionConnectionTests,
+  NotionLastSavedInfo,
+  NotionConfigForm
+};

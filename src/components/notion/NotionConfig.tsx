@@ -189,9 +189,7 @@ const NotionConfig: React.FC<NotionConfigProps> = ({ isOpen, onClose, onSuccess 
           <NotionConfigForm 
             onSubmit={handleFormSubmit}
             onCancel={onClose}
-            initialApiKey={initialApiKey}
-            initialProjectsDbId={initialProjectsDbId}
-            initialChecklistsDbId={initialChecklistsDbId}
+            onSuccess={onSuccess}
           />
         </DialogContent>
       </Dialog>

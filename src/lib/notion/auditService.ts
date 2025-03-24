@@ -1,7 +1,7 @@
 
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
-import { Audit, AuditItem } from './types';
-// Nous importons directement depuis '../types' pour éviter l'erreur d'usage comme valeur
+import { Audit, AuditItem } from '../types';
+// We import directly from '../types' to get the correct types
 import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
 import { notionApi } from '@/lib/notionProxy';
@@ -24,8 +24,7 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             equals: projectId
           }
         }
-      },
-      apiKey
+      }
     );
     
     console.log('Résultats audit pour le projet:', projectId, response.results.length);
@@ -70,7 +69,9 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             pageResults: [],
             actions: [], 
             metaRefs: relation.metaRefs || '',
-            details: relation.details || ''
+            details: relation.details || '',
+            reference: relation.reference || '',
+            profil: relation.profil || ''
           };
           return item;
         });
@@ -138,46 +139,46 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
     // Update the audit page
     await notionApi.pages.update(
       audit.id,
-      { properties },
-      apiKey
+      { properties }
     );
     
     // Update individual items
-    for (const item of audit.items) {
-      console.log('Mise à jour item:', item.id, item.status);
-      
-      const itemProperties = {
-        properties: {
-          status: {
-            select: {
-              name: item.status
-            }
-          },
-          comment: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: item.comment || ''
-                }
-              }
-            ]
-          }
-        }
-      };
-      
-      await notionApi.pages.update(
-        item.id,
-        itemProperties,
-        apiKey
-      );
-      
-      // Sauvegarde des actions correctives si présentes
-      if (item.actions && item.actions.length > 0) {
-        console.log(`Sauvegarde de ${item.actions.length} actions correctives pour l'item:`, item.id);
+    if (audit.items) {
+      for (const item of audit.items) {
+        console.log('Mise à jour item:', item.id, item.status);
         
-        // Pour le prototype, nous ne faisons pas de vraie sauvegarde des actions,
-        // mais nous pourrions ajouter ce code ici pour la version finale
+        const itemProperties = {
+          properties: {
+            status: {
+              select: {
+                name: item.status
+              }
+            },
+            comment: {
+              rich_text: [
+                {
+                  type: 'text',
+                  text: {
+                    content: item.comment || ''
+                  }
+                }
+              ]
+            }
+          }
+        };
+        
+        await notionApi.pages.update(
+          item.id,
+          itemProperties
+        );
+        
+        // Sauvegarde des actions correctives si présentes
+        if (item.actions && item.actions.length > 0) {
+          console.log(`Sauvegarde de ${item.actions.length} actions correctives pour l'item:`, item.id);
+          
+          // Pour le prototype, nous ne faisons pas de vraie sauvegarde des actions,
+          // mais nous pourrions ajouter ce code ici pour la version finale
+        }
       }
     }
     

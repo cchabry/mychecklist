@@ -63,13 +63,13 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
       
       // Tenter de créer la page
-      const response = await notionApi.pages.create(createData, apiKey);
+      const response = await notionApi.pages.create(createData);
       
       if (response && response.id) {
         console.log('✅ Test d\'écriture réussi! ID de la page créée:', response.id);
         
         // Vérifier en lisant la page créée
-        const pageData = await notionApi.pages.retrieve(response.id, apiKey);
+        const pageData = await notionApi.pages.retrieve(response.id);
         
         if (pageData && pageData.id === response.id) {
           console.log('✅ Lecture de la page créée réussie!');
@@ -82,7 +82,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
           try {
             await notionApi.pages.update(response.id, {
               archived: true
-            }, apiKey);
+            });
             console.log('🧹 Nettoyage: Page de test archivée');
           } catch (cleanupError) {
             console.log('⚠️ Impossible d\'archiver la page de test:', cleanupError);

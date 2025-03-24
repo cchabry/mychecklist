@@ -1,120 +1,60 @@
 
 import { operationMode, operationModeUtils } from '@/services/operationMode';
 import { mockData } from '../mock/data';
-import { Action } from '@/lib/types';
-
-// For testing the error handling
-const shouldSimulateError = false;
+import { CorrectiveAction, ActionStatus, ComplianceStatus, ActionPriority } from '@/lib/types';
 
 /**
- * Get all corrective actions
- */
-export async function getAllActions() {
-  // Check if we're in mock mode
-  if (operationMode.isDemoMode) {
-    // Apply delay to simulate network request
-    await operationModeUtils.applySimulatedDelay();
-    
-    // Optionally simulate an error for testing
-    if (shouldSimulateError) {
-      throw new Error('Simulated error in getAllActions');
-    }
-    
-    // Return mock data
-    return mockData.actions;
-  }
-  
-  // In real mode, connect to Notion API
-  throw new Error('Notion API not implemented for actions');
-}
-
-/**
- * Get actions for a specific evaluation
- * @param evaluationId Evaluation ID
- */
-export async function getActionsByEvaluation(evaluationId: string) {
-  // Check if we're in mock mode
-  if (operationMode.isDemoMode) {
-    // Apply delay to simulate network request
-    await operationModeUtils.applySimulatedDelay();
-    
-    // Return mock data
-    return mockData.actions.filter(action => action.evaluationId === evaluationId);
-  }
-  
-  // In real mode, connect to Notion API
-  throw new Error('Notion API not implemented for actions by evaluation');
-}
-
-/**
- * Get actions for a specific audit
- * @param auditId Audit ID
- */
-export async function getActionsByAudit(auditId: string) {
-  // Check if we're in mock mode
-  if (operationMode.isDemoMode) {
-    // Apply delay to simulate network request
-    await operationModeUtils.applySimulatedDelay();
-    
-    // Filter actions based on evaluations that belong to this audit
-    const evaluationsForAudit = mockData.evaluations.filter(eval => eval.auditId === auditId);
-    const evaluationIds = evaluationsForAudit.map(eval => eval.id);
-    
-    return mockData.actions.filter(action => 
-      evaluationIds.includes(action.evaluationId)
-    );
-  }
-  
-  // In real mode, connect to Notion API
-  throw new Error('Notion API not implemented for actions by audit');
-}
-
-/**
- * Get a specific action by ID
- * @param actionId Action ID
+ * Get action by ID
  */
 export async function getAction(actionId: string) {
-  // Check if we're in mock mode
   if (operationMode.isDemoMode) {
-    // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Find the action
-    const action = mockData.actions.find(action => action.id === actionId);
-    
+    const action = mockData.actions.find(a => a.id === actionId);
     if (!action) {
-      throw new Error(`Action with ID ${actionId} not found`);
+      throw new Error('Action not found');
     }
-    
     return action;
   }
   
-  // In real mode, connect to Notion API
-  throw new Error('Notion API not implemented for specific action');
+  throw new Error('Not implemented in real mode yet');
 }
 
 /**
- * Create a new corrective action
- * @param data Action data
+ * Get actions for evaluation
  */
-export async function createAction(data: Partial<Action>) {
-  // Check if we're in mock mode
+export async function getActionsForEvaluation(evaluationId: string) {
   if (operationMode.isDemoMode) {
-    // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Create a new action
-    const newAction: Action = {
+    const actions = mockData.actions.filter(a => a.evaluationId === evaluationId);
+    return actions;
+  }
+  
+  throw new Error('Not implemented in real mode yet');
+}
+
+/**
+ * Create a new action
+ */
+export async function createAction(action: Partial<CorrectiveAction>) {
+  if (operationMode.isDemoMode) {
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Create a new action with defaults
+    const newAction: CorrectiveAction = {
       id: `action_${Date.now()}`,
-      evaluationId: data.evaluationId || '',
-      targetScore: data.targetScore || 'Conforme',
-      priority: data.priority || 'Moyenne',
-      dueDate: data.dueDate || new Date().toISOString(),
-      responsible: data.responsible || 'Non assigné',
-      comment: data.comment || '',
-      status: data.status || 'À faire',
+      evaluationId: action.evaluationId || '',
+      targetScore: action.targetScore || ComplianceStatus.Compliant,
+      priority: action.priority || ActionPriority.Medium,
+      dueDate: action.dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      responsible: action.responsible || 'Unassigned',
+      comment: action.comment || '',
+      status: action.status || ActionStatus.ToDo,
+      pageId: action.pageId || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      progress: []
     };
     
     // Add to mock data
@@ -123,41 +63,56 @@ export async function createAction(data: Partial<Action>) {
     return newAction;
   }
   
-  // In real mode, connect to Notion API
-  throw new Error('Notion API not implemented for action creation');
+  throw new Error('Not implemented in real mode yet');
 }
 
 /**
- * Update an existing corrective action
- * @param actionId Action ID
- * @param data Updated data
+ * Update action
  */
-export async function updateAction(actionId: string, data: Partial<Action>) {
-  // Check if we're in mock mode
+export async function updateAction(actionId: string, data: Partial<CorrectiveAction>) {
   if (operationMode.isDemoMode) {
-    // Apply delay to simulate network request
     await operationModeUtils.applySimulatedDelay();
     
-    // Find the action
-    const actionIndex = mockData.actions.findIndex(action => action.id === actionId);
-    
+    // Find action index
+    const actionIndex = mockData.actions.findIndex(a => a.id === actionId);
     if (actionIndex === -1) {
-      throw new Error(`Action with ID ${actionId} not found`);
+      throw new Error('Action not found');
     }
     
     // Update the action
     const updatedAction = {
       ...mockData.actions[actionIndex],
       ...data,
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
-    // Replace in mock data
+    // Update in-place
     mockData.actions[actionIndex] = updatedAction;
     
     return updatedAction;
   }
   
-  // In real mode, connect to Notion API
-  throw new Error('Notion API not implemented for action update');
+  throw new Error('Not implemented in real mode yet');
+}
+
+/**
+ * Delete action
+ */
+export async function deleteAction(actionId: string) {
+  if (operationMode.isDemoMode) {
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Find action index
+    const actionIndex = mockData.actions.findIndex(a => a.id === actionId);
+    if (actionIndex === -1) {
+      return false;
+    }
+    
+    // Remove from mock data
+    mockData.actions.splice(actionIndex, 1);
+    
+    return true;
+  }
+  
+  throw new Error('Not implemented in real mode yet');
 }

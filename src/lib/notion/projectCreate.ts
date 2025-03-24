@@ -92,7 +92,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
       console.log('Notion connection verified before creating project:', user.name);
       
       // Test database access
-      const db = await notionApi.databases.retrieve(dbId, apiKey);
+      const db = await notionApi.databases.retrieve(dbId);
       console.log('Database access verified:', db.title?.[0]?.plain_text || dbId);
       
       // Analyze database structure to better adapt our properties
@@ -147,7 +147,7 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     console.log('Payload for Notion creation:', JSON.stringify(payload, null, 2));
     
-    const response = await notionApi.pages.create(payload, apiKey);
+    const response = await notionApi.pages.create(payload);
     
     if (!response || !response.id) {
       throw new Error('Failed to create project in Notion: No ID returned');

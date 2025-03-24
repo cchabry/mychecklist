@@ -7,6 +7,7 @@ type NotionConfig = {
   dbId: string | null;
   projectsDbId: string | null;
   checklistsDbId: string | null;
+  pagesDbId: string | null;
 };
 
 // Create a singleton notionClient with methods to access configuration
@@ -16,34 +17,35 @@ export const notionClient = {
     const dbId = localStorage.getItem('notion_database_id');
     const projectsDbId = localStorage.getItem('notion_database_id');
     const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
+    const pagesDbId = localStorage.getItem('notion_pages_database_id');
     
-    return { apiKey, dbId, projectsDbId, checklistsDbId };
+    return { apiKey, dbId, projectsDbId, checklistsDbId, pagesDbId };
   },
   
   // Additional methods and configuration for the Notion client
   databases: {
     query: async (params: any) => {
       const { apiKey } = notionClient.getConfig();
-      return await notionApi.databases.query(params.database_id, params, apiKey || undefined);
+      return await notionApi.databases.query(params.database_id, params);
     },
     retrieve: async (databaseId: string) => {
       const { apiKey } = notionClient.getConfig();
-      return await notionApi.databases.retrieve(databaseId, apiKey || undefined);
+      return await notionApi.databases.retrieve(databaseId);
     }
   },
   
   pages: {
     retrieve: async (params: any) => {
       const { apiKey } = notionClient.getConfig();
-      return await notionApi.pages.retrieve(params.page_id, apiKey || undefined);
+      return await notionApi.pages.retrieve(params.page_id);
     },
     create: async (params: any) => {
       const { apiKey } = notionClient.getConfig();
-      return await notionApi.pages.create(params, apiKey || undefined);
+      return await notionApi.pages.create(params);
     },
     update: async (pageId: string, params: any) => {
       const { apiKey } = notionClient.getConfig();
-      return await notionApi.pages.update(pageId, params, apiKey || undefined);
+      return await notionApi.pages.update(pageId, params);
     }
   },
   
@@ -128,7 +130,7 @@ export const testNotionConnection = async () => {
     // Tentative d'accès à la base de données des projets
     let projectsDbName = '';
     try {
-      const dbResponse = await notionApi.databases.retrieve(dbId, apiKey);
+      const dbResponse = await notionApi.databases.retrieve(dbId);
       projectsDbName = dbResponse.title?.[0]?.plain_text || dbId;
       console.log('✅ Connexion à la base de données des projets réussie:', projectsDbName);
     } catch (dbError) {
@@ -144,7 +146,7 @@ export const testNotionConnection = async () => {
     let checklistsDbName = '';
     if (checklistsDbId) {
       try {
-        const checklistDbResponse = await notionApi.databases.retrieve(checklistsDbId, apiKey);
+        const checklistDbResponse = await notionApi.databases.retrieve(checklistsDbId);
         checklistsDbName = checklistDbResponse.title?.[0]?.plain_text || checklistsDbId;
         console.log('✅ Connexion à la base de données des checklists réussie:', checklistsDbName);
       } catch (checklistDbError) {
