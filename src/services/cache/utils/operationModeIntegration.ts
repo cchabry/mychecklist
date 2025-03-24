@@ -85,30 +85,40 @@ export const operationModeIntegration = {
   },
   
   /**
-   * Fonctions exportées pour l'intégration avec le service de cache
+   * Détermine si le cache doit être utilisé
    */
-  // Fonction pour déterminer si le cache doit être utilisé
-  shouldUseCache: function() {
+  _shouldUseCache: function() {
     return !this.isCacheDisabled();
   },
   
-  // Fonction pour obtenir un TTL effectif
+  /**
+   * Obtenir un TTL effectif
+   */
   getEffectiveTTL: function(defaultTTL?: number) {
     return this.getCacheTTL(defaultTTL || 60000);
   },
   
-  // Fonction pour signaler une erreur de cache
+  /**
+   * Signaler une erreur de cache
+   */
   reportCacheError: function(error: Error, context: string) {
     console.error(`[Cache Error] ${context}:`, error);
     // Signaler l'erreur au système operationMode
     operationMode.handleConnectionError(error, `Cache: ${context}`);
   },
   
-  // Fonction pour signaler une opération de cache réussie
+  /**
+   * Signaler une opération de cache réussie
+   */
   reportCacheSuccess: function() {
     operationMode.handleSuccessfulOperation();
   }
 };
 
 // Exporter les fonctions individuellement pour l'usage dans d'autres modules
-export const { shouldUseCache, getEffectiveTTL, reportCacheError, reportCacheSuccess } = operationModeIntegration;
+export const { 
+  _shouldUseCache: shouldUseCache, 
+  getEffectiveTTL, 
+  reportCacheError, 
+  reportCacheSuccess 
+} = operationModeIntegration;

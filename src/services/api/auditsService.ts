@@ -23,6 +23,8 @@ export interface AuditAction {
  * Service pour la gestion des audits
  */
 class AuditsService extends BaseServiceAbstract<Audit> {
+  private cacheKeys: string[] = [];
+
   constructor() {
     super('audits', {
       cacheTTL: 10 * 60 * 1000, // 10 minutes
@@ -158,8 +160,8 @@ class AuditsService extends BaseServiceAbstract<Audit> {
       
       console.log("Audit créé:", audit);
       
-      // Invalider le cache en utilisant la méthode du parent
-      this.clearCache();
+      // Invalider le cache
+      this.invalidateCache();
       
       return audit;
     } catch (error) {
@@ -184,8 +186,8 @@ class AuditsService extends BaseServiceAbstract<Audit> {
         throw new Error(`Impossible de mettre à jour l'audit #${id}`);
       }
       
-      // Invalider le cache en utilisant la méthode du parent
-      this.clearCache();
+      // Invalider le cache
+      this.invalidateCache();
       
       return updatedAudit;
     } catch (error) {
@@ -214,14 +216,21 @@ class AuditsService extends BaseServiceAbstract<Audit> {
         throw new Error(`Impossible de supprimer l'audit #${id}`);
       }
       
-      // Invalider le cache en utilisant la méthode du parent
-      this.clearCache();
+      // Invalider le cache
+      this.invalidateCache();
       
       return true;
     } catch (error) {
       console.error(`Erreur lors de la suppression de l'audit #${id}:`, error);
       throw error;
     }
+  }
+  
+  /**
+   * Méthode pour vider le cache
+   */
+  invalidateCache(): void {
+    super.clearCache();
   }
   
   /**
