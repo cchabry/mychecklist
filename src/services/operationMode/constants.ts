@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   autoSwitchOnFailure: true,
   persistentModeStorage: true,
   showNotifications: true,
+  useCacheInRealMode: true,
   
   // Paramètres de simulation
   errorSimulationRate: 20,

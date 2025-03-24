@@ -13,6 +13,7 @@ export const getProjectById = (id: string) => mockData.projects.find(p => p.id =
 export const getPageById = (id: string) => mockData.pages.find(p => p.id === id);
 export const getMockAuditHistory = (projectId: string) => mockData.audits.filter(a => a.projectId === projectId);
 export const getMockActionHistory = (evaluationId: string) => mockData.actions.filter(a => a.evaluationId === evaluationId);
+export const getPagesByProjectId = (projectId: string) => mockData.pages.filter(p => p.projectId === projectId);
 
 // Re-export mock data collections
 export const MOCK_PROJECTS = mockData.projects;

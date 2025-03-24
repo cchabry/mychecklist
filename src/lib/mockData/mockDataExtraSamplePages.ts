@@ -1,7 +1,11 @@
 
-import { mockData } from '@/lib/mockData/index';
+import { mockData as originalMockData } from './mockData';
 import { SamplePage } from '@/lib/types';
 
+// Create a copy of the mock data to avoid modifying the original
+const mockData = { ...originalMockData };
+
+// Extend mockData with additional sample pages functions
 // Vérifier si les fonctions sont déjà définies
 // Pour les pages d'échantillon
 if (!mockData.getProjectPages) {
