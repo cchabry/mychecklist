@@ -17,6 +17,9 @@ export const notionApiRequest = async (
   body?: any,
   token?: string
 ): Promise<any> => {
+  // Normaliser l'endpoint pour garantir le format correct
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  
   // Vérifier si nous sommes en mode démo simulé
   if (operationMode.isDemoMode) {
     // Simuler un délai réseau
@@ -24,11 +27,11 @@ export const notionApiRequest = async (
     
     // Simuler une erreur aléatoire selon le taux configuré
     if (operationModeUtils.shouldSimulateError()) {
-      throw new Error(`Erreur simulée lors de l'appel à ${endpoint}`);
+      throw new Error(`Erreur simulée lors de l'appel à ${normalizedEndpoint}`);
     }
     
     // En mode démo, on devrait normalement utiliser les données mock au lieu d'appeler cette fonction
-    console.warn(`notionApiRequest appelé en mode démo pour ${endpoint}. Utiliser les données mock directement.`);
+    console.warn(`notionApiRequest appelé en mode démo pour ${normalizedEndpoint}. Utiliser les données mock directement.`);
     
     // Retourner un résultat fictif générique
     return { success: true, message: "Opération simulée avec succès" };
@@ -52,8 +55,8 @@ export const notionApiRequest = async (
   try {
     // Essayer d'abord d'utiliser les fonctions serverless
     try {
-      console.log('🔄 Tentative d\'utilisation des fonctions serverless pour:', endpoint);
-      return await useServerlessProxy(endpoint, method, body, formattedToken);
+      console.log('🔄 Tentative d\'utilisation des fonctions serverless pour:', normalizedEndpoint);
+      return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
     } catch (serverlessError) {
       console.log('⚠️ Fonctions serverless non disponibles, tentative d\'utilisation du proxy CORS:', serverlessError);
       
@@ -65,19 +68,43 @@ export const notionApiRequest = async (
       }
       
       // Ensuite essayer d'utiliser le proxy CORS
-      return await useCorsProxy(endpoint, method, body, formattedToken);
+      return await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
     }
   } catch (error) {
     // En cas d'erreur, signaler au système operationMode
     operationMode.handleConnectionError(
       error instanceof Error ? error : new Error(String(error)),
-      `notionApiRequest: ${endpoint}`
+      `notionApiRequest: ${normalizedEndpoint}`
     );
     
-    // Propager l'erreur
-    throw error;
+    // Propager l'erreur avec des informations utiles pour le débogage
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const enhancedError = new Error(`Erreur API Notion (${normalizedEndpoint}): ${errorMessage}`);
+    throw enhancedError;
   }
 };
+
+/**
+ * Normalise les endpoints pour garantir la cohérence
+ * Cette fonction est cruciale pour résoudre les problèmes d'endpoints
+ */
+function normalizeEndpoint(endpoint: string): string {
+  // Enlever les barres obliques de début et de fin pour la normalisation
+  let cleanedEndpoint = endpoint.trim();
+  
+  // Gérer le cas spécial où l'endpoint est déjà complet avec /v1
+  if (cleanedEndpoint.startsWith('/v1/')) {
+    return cleanedEndpoint; // Déjà au bon format
+  }
+  
+  // S'assurer que l'endpoint commence par une barre oblique
+  if (!cleanedEndpoint.startsWith('/')) {
+    cleanedEndpoint = '/' + cleanedEndpoint;
+  }
+  
+  // Ajouter le préfixe /v1 si nécessaire (ce sera retiré pour serverless, mais gardé pour CORS)
+  return `/v1${cleanedEndpoint}`;
+}
 
 /**
  * Utilise le proxy serverless (Vercel, Netlify) pour appeler l'API Notion
@@ -88,9 +115,12 @@ async function useServerlessProxy(
   body?: any,
   token?: string
 ): Promise<any> {
-  // CORRECTION: Assurer que l'endpoint est formaté correctement pour les serverless functions
-  // Nettoyer l'endpoint de tout /v1 en préfixe car il sera ajouté par le proxy
-  const cleanEndpoint = endpoint.startsWith('/v1/') ? endpoint.substring(3) : endpoint;
+  // Pour les fonctions serverless, on doit retirer le préfixe /v1
+  const serverlessEndpoint = endpoint.startsWith('/v1/')
+    ? endpoint.substring(3) // Enlever le /v1 car il sera ajouté par le proxy serverless
+    : endpoint;
+  
+  console.log(`🔄 Préparation endpoint serverless: "${serverlessEndpoint}" (depuis "${endpoint}")`);
   
   // Essayer d'abord le proxy Vercel
   try {
@@ -100,7 +130,7 @@ async function useServerlessProxy(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        endpoint: cleanEndpoint,
+        endpoint: serverlessEndpoint,
         method,
         body,
         token
@@ -126,7 +156,7 @@ async function useServerlessProxy(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        endpoint: cleanEndpoint,
+        endpoint: serverlessEndpoint,
         method,
         body,
         token
@@ -154,15 +184,14 @@ async function useCorsProxy(
   body?: any,
   token?: string
 ): Promise<any> {
+  // Pour le proxy CORS, on maintient le format complet avec /v1
+  const corsEndpoint = endpoint.startsWith('/v1/') 
+    ? endpoint 
+    : `/v1${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    
   // Construire l'URL complète vers l'API Notion
   const baseUrl = 'https://api.notion.com';
-  
-  // CORRECTION: Assurer que l'endpoint est correctement formaté
-  // S'assurer que l'endpoint commence par /v1/ pour l'API Notion
-  const apiEndpoint = endpoint.startsWith('/v1/') ? endpoint : 
-                      endpoint.startsWith('/') ? `/v1${endpoint}` : `/v1/${endpoint}`;
-  
-  const url = `${baseUrl}${apiEndpoint}`;
+  const url = `${baseUrl}${corsEndpoint}`;
   
   console.log(`📡 Requête Notion via proxy CORS: ${method} ${url}`);
   

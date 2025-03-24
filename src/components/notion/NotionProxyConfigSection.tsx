@@ -24,6 +24,8 @@ const NotionProxyConfigSection: React.FC = () => {
   const testProxy = async (proxyUrl: string) => {
     setTesting(proxyUrl);
     try {
+      // On envoie explicitement une requête complète avec le bon format
+      // Utiliser l'endpoint "me" qui est léger et rapide
       const testUrl = `${proxyUrl}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
       
       const response = await fetch(testUrl, {

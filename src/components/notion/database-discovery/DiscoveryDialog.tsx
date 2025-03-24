@@ -40,28 +40,8 @@ const DiscoveryDialog: React.FC<DiscoveryDialogProps> = ({
     setError(null);
     
     try {
-      // Désactiver temporairement le mode mock pour cette opération
-      const wasMockMode = notionApi.mockMode.isActive();
-      if (wasMockMode) {
-        notionApi.mockMode.temporarilyForceReal();
-      }
-      
-      // CORRECTION: Utiliser la méthode request qui passe par les proxys correctement
-      const response = await notionApi.request(
-        'POST',
-        '/v1/search',  // Utiliser le chemin complet avec /v1/
-        {
-          filter: {
-            value: 'database',
-            property: 'object'
-          },
-          sort: {
-            direction: 'descending',
-            timestamp: 'last_edited_time'
-          }
-        },
-        apiKey
-      );
+      // Utiliser directement la fonction list de l'endpoint databases qui a été corrigée
+      const response = await notionApi.databases.list(apiKey);
       
       // Formater les résultats
       const databasesList = response.results.map((db: any) => ({

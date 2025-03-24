@@ -25,13 +25,18 @@ export const query = async (databaseId: string, queryParams: any, token: string)
  * Utilise l'endpoint search avec un filtre sur les objets de type database
  */
 export const list = async (token: string) => {
+  // On utilise explicitement le chemin /v1/search pour garantir la cohérence
   return notionApiRequest(
-    '/search',
+    '/v1/search',
     'POST',
     {
       filter: {
         value: 'database',
         property: 'object'
+      },
+      sort: {
+        direction: 'descending',
+        timestamp: 'last_edited_time'
       }
     },
     token
