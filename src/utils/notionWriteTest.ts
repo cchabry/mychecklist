@@ -10,6 +10,21 @@ export interface NotionCreateData {
   };
 }
 
+// Interface pour typer les propriétés Notion
+interface NotionProperty {
+  type: string;
+  [key: string]: any;
+}
+
+interface NotionDatabase {
+  id: string;
+  title?: Array<{plain_text?: string}>;
+  properties: {
+    [key: string]: NotionProperty;
+  };
+  [key: string]: any;
+}
+
 /**
  * Génère les données pour un test d'écriture Notion
  */
@@ -91,14 +106,21 @@ export const enrichWithRequiredProperties = async (
 ): Promise<NotionCreateData> => {
   try {
     console.log('🔍 Vérification de la structure de la base de données avant création...');
-    const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
+    const dbDetails = await notionApi.databases.retrieve(dbId, apiKey) as NotionDatabase;
     console.log('✅ Structure de la base de données récupérée');
     
     // Analyser les propriétés de la base de données
     const properties = dbDetails.properties || {};
     
     // Trouver la propriété de type 'title'
-    const titleProperty = Object.entries(properties).find(([_, prop]) => prop.type === 'title')?.[0];
+    let titleProperty: string | null = null;
+    
+    for (const [name, prop] of Object.entries(properties)) {
+      if (prop.type === 'title') {
+        titleProperty = name;
+        break;
+      }
+    }
     
     if (titleProperty && titleProperty !== 'Name') {
       console.log(`🔄 Propriété titre identifiée: "${titleProperty}" (différente de "Name")`);
@@ -112,9 +134,9 @@ export const enrichWithRequiredProperties = async (
       console.log('✅ Propriété titre "Name" correcte ou non trouvée');
     }
     
-    // Analyser les propriétés potentiellement requises (rich_text avec is_required, etc.)
+    // Analyser les propriétés potentiellement requises
     const requiredProps = Object.entries(properties)
-      .filter(([name, prop]: [string, any]) => {
+      .filter(([name, prop]) => {
         // Si c'est la propriété titre, elle est déjà gérée
         if (name === titleProperty) return false;
         
@@ -129,7 +151,7 @@ export const enrichWithRequiredProperties = async (
         
         return false;
       })
-      .map(([name, _]: [string, any]) => name);
+      .map(([name, _]) => name);
       
     if (requiredProps.length > 0) {
       console.log('⚠️ Propriétés potentiellement requises dans la base:', requiredProps);
@@ -149,7 +171,7 @@ export const enrichWithRequiredProperties = async (
       if (propType === 'title') {
         if (propName !== titleProperty) {
           // C'est une propriété titre secondaire, copier le titre principal
-          createData.properties[propName] = createData.properties[titleProperty] || {
+          createData.properties[propName] = createData.properties[titleProperty || 'Name'] || {
             title: [{ text: { content: `Test ${new Date().toISOString()}` } }]
           };
           console.log(`🔄 Ajout de la propriété titre "${propName}" (copie de la principale)`);
@@ -168,7 +190,7 @@ export const enrichWithRequiredProperties = async (
           createData.properties[propName] = {
             select: { name: options[0].name }
           };
-          console.log(`🔄 Ajout de la propriété select "${propName}" = "${options[0].name}"`);
+          console.log(`🔄 Ajout de propriété select: "${propName}" = "${options[0].name}"`);
         }
       }
       else if (propType === 'multi_select') {
@@ -178,7 +200,7 @@ export const enrichWithRequiredProperties = async (
           createData.properties[propName] = {
             multi_select: [{ name: options[0].name }]
           };
-          console.log(`🔄 Ajout de la propriété multi_select "${propName}" = "${options[0].name}"`);
+          console.log(`🔄 Ajout de propriété multi_select: "${propName}" = "${options[0].name}"`);
         }
       }
       else if (propType === 'url') {

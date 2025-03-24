@@ -11,6 +11,21 @@ import {
   NotionCreateData 
 } from '@/utils/notionWriteTest';
 
+// Interface pour typer les propriétés Notion
+interface NotionProperty {
+  type: string;
+  [key: string]: any;
+}
+
+interface NotionDatabase {
+  id: string;
+  title?: Array<{plain_text?: string}>;
+  properties: {
+    [key: string]: NotionProperty;
+  };
+  [key: string]: any;
+}
+
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
 }
@@ -56,7 +71,7 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       // Récupérer d'abord la structure de la base de données
       console.log('1️⃣ Récupération de la structure de la base de données...');
       try {
-        const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
+        const dbDetails = await notionApi.databases.retrieve(dbId, apiKey) as NotionDatabase;
         console.log('✅ Structure récupérée:', dbDetails);
         
         // Extraire le titre de la base de données
@@ -68,7 +83,15 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         const properties = dbDetails.properties || {};
         
         // Trouver la propriété titre
-        const titleProperty = Object.entries(properties).find(([_, prop]) => prop.type === 'title')?.[0];
+        let titleProperty: string | null = null;
+        
+        for (const [name, prop] of Object.entries(properties)) {
+          if (prop.type === 'title') {
+            titleProperty = name;
+            break;
+          }
+        }
+        
         console.log(`🔑 Propriété titre identifiée: "${titleProperty || 'Name'}"`);
         
         // Résumé des propriétés

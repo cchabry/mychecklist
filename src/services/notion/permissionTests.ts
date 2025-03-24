@@ -29,7 +29,11 @@ export async function runPermissionTests(
       // Analyser les propriétés de la base de données
       const properties = dbInfo.properties || {};
       const propsSummary = Object.entries(properties)
-        .map(([name, prop]) => `${name} (${prop.type})`)
+        .map(([name, prop]) => {
+          // Utiliser une assertion de type pour accéder à la propriété 'type'
+          const propType = (prop as any).type || 'inconnu';
+          return `${name} (${propType})`;
+        })
         .join(', ');
       
       console.log(`📊 Structure de la base de données: ${propsSummary}`);
@@ -60,7 +64,15 @@ export async function runPermissionTests(
     
     // Trouver la propriété de type 'title'
     const properties = dbDetails.properties || {};
-    const titleProperty = Object.entries(properties).find(([_, prop]) => prop.type === 'title')?.[0] || 'Name';
+    let titleProperty = 'Name';
+    
+    // Parcourir les propriétés pour trouver celle de type 'title'
+    for (const [propName, propDetails] of Object.entries(properties)) {
+      if ((propDetails as any).type === 'title') {
+        titleProperty = propName;
+        break;
+      }
+    }
     
     console.log(`📝 Propriété titre identifiée: "${titleProperty}"`);
     
@@ -79,31 +91,37 @@ export async function runPermissionTests(
     for (const [name, prop] of Object.entries(properties)) {
       if (name === titleProperty) continue; // Déjà ajouté
       
-      if (prop.type === 'rich_text') {
+      const propType = (prop as any).type;
+      
+      if (propType === 'rich_text') {
         createData.properties[name] = { 
           rich_text: [{ text: { content: "Test de création via l'outil diagnostique" } }] 
         };
         console.log(`📝 Ajout de propriété rich_text: "${name}"`);
       } 
-      else if (prop.type === 'select' && prop.select?.options?.length > 0) {
-        createData.properties[name] = { 
-          select: { name: prop.select.options[0].name } 
-        };
-        console.log(`🔽 Ajout de propriété select: "${name}" = "${prop.select.options[0].name}"`);
+      else if (propType === 'select') {
+        // Utiliser la première option disponible si elle existe
+        const options = (prop as any).select?.options || [];
+        if (options.length > 0) {
+          createData.properties[name] = { 
+            select: { name: options[0].name } 
+          };
+          console.log(`🔽 Ajout de propriété select: "${name}" = "${options[0].name}"`);
+        }
       }
-      else if (prop.type === 'url') {
+      else if (propType === 'url') {
         createData.properties[name] = { 
           url: "https://tests.example.com/diagnostic" 
         };
         console.log(`🔗 Ajout de propriété url: "${name}"`);
       }
-      else if (prop.type === 'number') {
+      else if (propType === 'number') {
         createData.properties[name] = { 
           number: 42
         };
         console.log(`🔢 Ajout de propriété number: "${name}"`);
       }
-      else if (prop.type === 'checkbox') {
+      else if (propType === 'checkbox') {
         createData.properties[name] = { 
           checkbox: false
         };

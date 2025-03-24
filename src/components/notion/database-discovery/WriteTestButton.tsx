@@ -13,6 +13,23 @@ interface WriteTestButtonProps {
   label?: string;
 }
 
+// Interface pour typer les propriétés Notion
+interface NotionProperty {
+  type: string;
+  [key: string]: any;
+}
+
+interface NotionProperties {
+  [key: string]: NotionProperty;
+}
+
+interface NotionDatabase {
+  id: string;
+  title?: Array<{plain_text?: string}>;
+  properties: NotionProperties;
+  [key: string]: any;
+}
+
 const WriteTestButton: React.FC<WriteTestButtonProps> = ({ 
   databaseId, 
   apiKey, 
@@ -54,7 +71,7 @@ const WriteTestButton: React.FC<WriteTestButtonProps> = ({
       
       // 1. Récupérer la structure de la base de données pour comprendre les propriétés requises
       console.log('1️⃣ Récupération de la structure de la base de données...');
-      const dbDetails = await notionApi.databases.retrieve(databaseId, apiKey);
+      const dbDetails = await notionApi.databases.retrieve(databaseId, apiKey) as NotionDatabase;
       console.log('✅ Structure récupérée:', dbDetails);
       
       // Extraire le titre de la base de données
@@ -66,7 +83,14 @@ const WriteTestButton: React.FC<WriteTestButtonProps> = ({
       const properties = dbDetails.properties || {};
       
       // Identifier la propriété title (nécessaire pour toute page Notion)
-      const titleProperty = Object.entries(properties).find(([_, prop]) => prop.type === 'title')?.[0];
+      let titleProperty: string | null = null;
+      
+      for (const [name, prop] of Object.entries(properties)) {
+        if (prop.type === 'title') {
+          titleProperty = name;
+          break;
+        }
+      }
       
       if (!titleProperty) {
         throw new Error('Aucune propriété de type "title" trouvée dans la base de données');
@@ -76,7 +100,7 @@ const WriteTestButton: React.FC<WriteTestButtonProps> = ({
       
       // Construire un objet avec les propriétés minimales requises
       const timestamp = new Date().toISOString();
-      const testData = {
+      const testData: any = {
         parent: { database_id: databaseId },
         properties: {
           [titleProperty]: {
