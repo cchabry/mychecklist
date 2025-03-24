@@ -6,7 +6,6 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useOperationMode } from '@/services/operationMode';
-import { operationMode } from '@/services/operationMode';
 
 interface OperationModeSettingsProps {
   className?: string;
@@ -18,20 +17,12 @@ interface OperationModeSettingsProps {
 const OperationModeSettings: React.FC<OperationModeSettingsProps> = ({ className = "" }) => {
   const { 
     isDemoMode,
-    toggle 
+    simulatedErrorRate,
+    simulatedNetworkDelay,
+    toggle,
+    setErrorRate,
+    setNetworkDelay
   } = useOperationMode();
-  
-  // Accéder directement aux méthodes du service
-  const errorRate = operationMode.simulatedErrorRate;
-  const networkDelay = operationMode.simulatedNetworkDelay;
-  
-  const setErrorRate = (value: number) => {
-    operationMode.setSimulatedErrorRate(value);
-  };
-  
-  const setNetworkDelay = (value: number) => {
-    operationMode.setSimulatedNetworkDelay(value);
-  };
 
   return (
     <Card className={className}>
@@ -50,9 +41,9 @@ const OperationModeSettings: React.FC<OperationModeSettingsProps> = ({ className
         
         <div className="space-y-3">
           <div>
-            <Label className="font-medium">Taux d'erreur simulé: {errorRate}%</Label>
+            <Label className="font-medium">Taux d'erreur simulé: {simulatedErrorRate}%</Label>
             <Slider 
-              value={[errorRate]} 
+              value={[simulatedErrorRate]} 
               onValueChange={values => setErrorRate(values[0])}
               disabled={!isDemoMode}
               step={5}
@@ -63,9 +54,9 @@ const OperationModeSettings: React.FC<OperationModeSettingsProps> = ({ className
           </div>
           
           <div>
-            <Label className="font-medium">Délai réseau simulé: {networkDelay}ms</Label>
+            <Label className="font-medium">Délai réseau simulé: {simulatedNetworkDelay}ms</Label>
             <Slider 
-              value={[networkDelay]} 
+              value={[simulatedNetworkDelay]} 
               onValueChange={values => setNetworkDelay(values[0])}
               disabled={!isDemoMode}
               step={100}

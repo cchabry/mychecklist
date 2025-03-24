@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-// Correction des imports:
 import NotionApiKeyField from '@/components/notion/form/NotionApiKeyField';
 import NotionDatabaseField from '@/components/notion/form/NotionDatabaseField';
 import NotionConnectionTests from '@/components/notion/form/NotionConnectionTests';
@@ -14,11 +13,32 @@ import { useNotion } from '@/contexts/NotionContext';
 import { useNotionStorage } from '@/hooks/notion/useNotionStorage';
 import { operationMode } from '@/services/operationMode';
 import { useOperationMode } from '@/services/operationMode';
+import OperationModeStatusBadge from '@/components/operationMode/OperationModeStatusBadge';
 
 interface NotionConfigFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
 }
+
+const OperationModeStatus: React.FC<{ showToggle?: boolean }> = ({ showToggle = false }) => {
+  const { isDemoMode, toggle } = useOperationMode();
+  
+  return (
+    <div className="flex items-center gap-2">
+      <OperationModeStatusBadge />
+      {showToggle && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={toggle} 
+          className="text-xs"
+        >
+          {isDemoMode ? "Mode réel" : "Mode démo"}
+        </Button>
+      )}
+    </div>
+  );
+};
 
 export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   onSuccess,
