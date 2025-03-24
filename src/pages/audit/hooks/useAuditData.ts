@@ -1,126 +1,65 @@
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Audit } from '@/lib/types';
-import { useAuditProject } from './useAuditProject';
-import { useAuditSave } from './useAuditSave';
-import { useChecklistDatabase } from './useChecklistDatabase';
-import { useNotion } from '@/contexts/NotionContext';
 import { toast } from 'sonner';
-import { useAuditError } from './useAuditError';
-import { useOperationModeListener } from '@/hooks/useOperationModeListener';
-import { operationMode } from '@/services/operationMode';
+import { useParams, useNavigate } from 'react-router-dom';
+import useAuditProject from './useAuditProject';
+import { getAuditForProject } from '@/lib/notion';
+import { useOperationMode } from '@/services/operationMode';
 
 /**
- * Hook principal pour gérer les données d'audit
+ * Hook pour charger et gérer les données d'audit
  */
-export const useAuditData = (projectId: string | undefined) => {
-  console.log("useAuditData called with projectId:", projectId);
-  
-  // Utiliser le hook d'écoute du mode opérationnel
-  const { isDemoMode } = useOperationModeListener();
-  
-  // Accéder au contexte Notion
-  const { usingNotion } = useNotion();
-  
-  // Utiliser le hook de gestion d'erreurs
-  const { handleError, error: auditError } = useAuditError();
-  
-  // Déterminer si on utilise Notion en fonction du mode actif
-  const shouldUseNotion = usingNotion && !isDemoMode;
-  
-  // Utiliser des hooks spécialisés avec le mode réel si possible
-  const { project, audit, loading, notionError, setAudit, loadProject } = useAuditProject(projectId, shouldUseNotion);
-  const { isSaving, saveAudit } = useAuditSave(shouldUseNotion);
-  const { hasChecklistDb } = useChecklistDatabase();
-  
-  // Si nous avons une erreur Notion, l'envoyer au gestionnaire d'erreurs
-  useEffect(() => {
-    if (notionError) {
-      console.log("Handling Notion error in useAuditData:", notionError);
-      
-      // Convertir l'erreur Notion en format AuditError
-      const auditError = {
-        message: notionError.error,
-        details: notionError.context,
-        source: "Chargement des données d'audit"
-      };
-      
-      // Signaler l'erreur au hook d'audit
-      handleError(auditError);
-      
-      // Signaler également l'erreur au système operationMode
-      operationMode.handleConnectionError(
-        new Error(notionError.error || "Erreur inconnue"), 
-        notionError.context || "Chargement des données d'audit"
-      );
-    }
-  }, [notionError, handleError]);
-  
-  // Référence pour suivre si le projet a été chargé
-  const projectLoaded = useRef(false);
-  
-  // Charger les données du projet au montage du composant, une seule fois
-  useEffect(() => {
-    if (projectId && !projectLoaded.current) {
-      console.log("useAuditData effect - calling loadProject with projectId:", projectId);
-      loadProject();
-      projectLoaded.current = true;
-    } else if (!projectId) {
-      console.error("No projectId provided to useAuditData");
-      handleError({
-        message: "Identifiant de projet manquant",
-        isCritical: false
-      });
-    }
-  }, [projectId, loadProject, handleError]);
-  
-  // Handler pour la sauvegarde de l'audit
-  const handleSaveAudit = async () => {
-    console.log("handleSaveAudit called for project:", projectId);
-    if (!audit) {
-      console.error("Cannot save audit: No audit data available");
-      handleError({
-        message: "Erreur de sauvegarde",
-        details: "Aucune donnée d'audit disponible"
-      });
-      return;
-    }
+export const useAuditData = () => {
+  const { projectId } = useParams<{ projectId: string }>();
+  const [audit, setAudit] = useState<Audit | null>(null);
+  const [notionError, setNotionError] = useState<string | null>(null);
+  const { project, loading: projectLoading, error: projectError } = useAuditProject(projectId);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { isDemoMode } = useOperationMode();
+
+  // Charger le projet et l'audit
+  const loadProject = async () => {
+    if (!projectId) return;
+    
+    setLoading(true);
     
     try {
-      await saveAudit(audit);
-      toast.success("Audit sauvegardé avec succès");
-      
-      // Signaler l'opération réussie
-      operationMode.handleSuccessfulOperation();
+      // Charger l'audit pour ce projet
+      const auditData = await getAuditForProject(projectId);
+      setAudit(auditData);
     } catch (error) {
-      console.error("Error saving audit:", error);
+      console.error('Erreur lors du chargement de l\'audit:', error);
+      setNotionError(error instanceof Error ? error.message : 'Erreur lors du chargement de l\'audit');
       
-      // Signaler l'erreur au hook d'audit
-      handleError(error, "Sauvegarde de l'audit");
-      
-      // Signaler également l'erreur via operationMode
-      operationMode.handleConnectionError(error, "Sauvegarde de l'audit");
+      // Afficher une notification d'erreur
+      toast.error('Erreur de chargement', {
+        description: 'Impossible de charger les données d\'audit.'
+      });
+    } finally {
+      setLoading(false);
     }
   };
-  
-  console.log("useAuditData returning state:", { 
-    hasProject: !!project, 
-    hasAudit: !!audit, 
-    loading, 
-    hasError: !!auditError,
-    isDemoMode
-  });
-  
+
+  // Charger les données au montage du composant
+  useEffect(() => {
+    if (project) {
+      loadProject();
+    }
+  }, [project, projectId]);
+
   return {
     project,
     audit,
-    loading,
-    notionError: auditError || notionError,
-    hasChecklistDb,
-    isSaving,
-    mockModeActive: isDemoMode, // Gardé pour compatibilité
+    loading: loading || projectLoading,
+    error: projectError || notionError,
+    notionError,
     setAudit,
     loadProject,
-    handleSaveAudit
+    navigate,
+    isDemoMode
   };
 };
+
+export default useAuditData;

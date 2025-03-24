@@ -2,7 +2,8 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { NotionDiagnosticReport, NotionSolutionsSection, NotionConfigForm } from '@/components/notion';
+import { NotionDiagnosticReport, NotionSolutionsSection } from '@/components/notion';
+import NotionConfigForm from '@/components/notion/NotionConfigForm';
 import { useNotion } from '@/contexts/NotionContext';
 
 const Diagnostics = () => {
@@ -29,7 +30,7 @@ const Diagnostics = () => {
             </CardHeader>
             <CardContent>
               <NotionConfigForm 
-                onSubmit={() => {}} 
+                onSuccess={() => window.location.reload()}
                 onCancel={() => {}}
               />
             </CardContent>
