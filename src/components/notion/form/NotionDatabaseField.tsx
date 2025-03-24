@@ -9,7 +9,6 @@ interface NotionDatabaseFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   description?: string;
-  required?: boolean;
 }
 
 const NotionDatabaseField: React.FC<NotionDatabaseFieldProps> = ({ 
@@ -18,13 +17,12 @@ const NotionDatabaseField: React.FC<NotionDatabaseFieldProps> = ({
   value, 
   onChange, 
   placeholder = "https://www.notion.so/workspace/xxxxxxxx?v=yyyy ou juste l'ID",
-  description = "URL ou ID de votre base de données Notion",
-  required = false
+  description = "URL ou ID de votre base de données Notion"
 }) => {
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="text-sm font-medium">
-        {label}{required && <span className="text-red-500 ml-1">*</span>}
+        {label}
       </label>
       <Input
         id={id}
@@ -32,7 +30,6 @@ const NotionDatabaseField: React.FC<NotionDatabaseFieldProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="font-mono text-sm"
-        required={required}
       />
       <p className="text-xs text-muted-foreground">
         {description}

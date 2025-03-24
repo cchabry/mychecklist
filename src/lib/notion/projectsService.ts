@@ -4,7 +4,6 @@ import { ProjectData, ProjectsData } from './types';
 import { MOCK_PROJECTS } from '../mockData';
 import { notionApi } from '../notionProxy';
 import { toast } from 'sonner';
-import { SamplePage } from '@/lib/types';
 
 export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
   const dbId = localStorage.getItem('notion_database_id');
@@ -401,23 +400,4 @@ export const createProjectInNotion = async (name: string, url: string): Promise<
     
     throw error;
   }
-};
-
-// Fix for the SamplePage type issues in the function that processes them
-export const processSamplePage = (page: any): SamplePage | null => {
-  if (!page) return null;
-
-  // Extract properties from the Notion page
-  const notionProperties = page.properties || {};
-  
-  // Map to our SamplePage structure
-  return {
-    id: page.id,
-    projectId: notionProperties.ProjectId?.rich_text?.[0]?.plain_text || '',
-    url: notionProperties.URL?.url || notionProperties.Url?.url || '',
-    title: notionProperties.Title?.title?.[0]?.plain_text || 
-           notionProperties.Name?.title?.[0]?.plain_text || 'Sans titre',
-    description: notionProperties.Description?.rich_text?.[0]?.plain_text || '',
-    order: notionProperties.Order?.number || 0
-  };
 };

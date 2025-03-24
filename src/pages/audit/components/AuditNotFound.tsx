@@ -1,44 +1,83 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { NavigateFunction } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { operationMode } from '@/services/operationMode';
 
-export interface AuditNotFoundProps {
+interface AuditNotFoundProps {
   projectId?: string;
-  error?: string;
-  navigate: NavigateFunction;
+  auditId?: string;
+  reason?: string;
+  onRetry?: () => void;
 }
 
-const AuditNotFound: React.FC<AuditNotFoundProps> = ({ projectId, error, navigate }) => {
+/**
+ * Affiche un message d'erreur lorsqu'un audit n'est pas trouvé
+ */
+const AuditNotFound: React.FC<AuditNotFoundProps> = ({
+  projectId,
+  auditId,
+  reason = "L'audit demandé n'a pas été trouvé",
+  onRetry
+}) => {
+  const navigate = useNavigate();
+  
+  const handleRetry = () => {
+    // Réinitialiser le mode pour forcer une nouvelle tentative
+    operationMode.enableRealMode();
+    
+    // Appeler le callback de retry si fourni
+    if (onRetry) {
+      onRetry();
+    }
+  };
+  
+  const handleBackToProject = () => {
+    if (projectId) {
+      navigate(`/project/${projectId}`);
+    } else {
+      navigate('/');
+    }
+  };
+  
   return (
-    <div className="flex min-h-screen items-center justify-center p-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-xl text-red-600">Audit non trouvé</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 mb-4">
-            {error || `Impossible de charger l'audit pour ce projet.`}
-          </p>
-          {projectId && (
-            <p className="text-sm text-gray-500">
-              ID du projet: {projectId}
-            </p>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={() => navigate('/')}>
-            Retour à l'accueil
-          </Button>
-          {projectId && (
-            <Button onClick={() => navigate(`/project/${projectId}`)}>
-              Voir le projet
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Audit introuvable</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>
+            {reason}
+            {auditId && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                ID d'audit: <code className="text-xs bg-muted p-1 rounded">{auditId}</code>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button 
+          variant="outline" 
+          onClick={handleBackToProject}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour au projet
+        </Button>
+        <Button 
+          onClick={handleRetry}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Réessayer
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

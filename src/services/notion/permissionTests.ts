@@ -1,13 +1,12 @@
 
 import { TestResult } from '@/components/notion/diagnostic/NotionTestResult';
 import { notionApi } from '@/lib/notionProxy';
-import { extractNotionDatabaseId } from '@/lib/notion';
 
 export async function runPermissionTests(
   apiKey: string | null,
   projectsDbId: string | null,
   initialTests: TestResult[],
-  persistCreatedPage = false,
+  persistCreatedPage: boolean,
   onPageCreated?: (pageInfo: {id: string; title: string}) => void
 ): Promise<TestResult[]> {
   if (!apiKey || !projectsDbId) {
@@ -18,14 +17,13 @@ export async function runPermissionTests(
   
   // Test de lecture
   try {
-    const cleanDbId = extractNotionDatabaseId(projectsDbId);
-    const dbResponse = await notionApi.databases.retrieve(cleanDbId, apiKey);
+    const dbInfo = await notionApi.databases.retrieve(projectsDbId, apiKey);
     
-    if (dbResponse && dbResponse.id) {
+    if (dbInfo && dbInfo.id) {
       permissionResults[0] = { 
         ...initialTests[0], 
         status: 'success',
-        details: `Accès en lecture à la base de données: ${dbResponse.title?.[0]?.plain_text || cleanDbId}`
+        details: `Accès en lecture confirmé: ${dbInfo.title?.[0]?.plain_text || dbInfo.id}`
       };
     } else {
       permissionResults[0] = { 
@@ -44,65 +42,56 @@ export async function runPermissionTests(
   
   // Test d'écriture
   try {
-    const cleanDbId = extractNotionDatabaseId(projectsDbId);
     const timestamp = new Date().toISOString();
-    const testPageTitle = `Test de permission ${timestamp}`;
+    const testTitle = `Test diagnostique ${timestamp}`;
     
-    // Préparation des données de test
-    const testPageData = {
-      parent: { database_id: cleanDbId },
+    const createData = {
+      parent: { database_id: projectsDbId },
       properties: {
         Name: {
-          title: [
-            {
-              text: {
-                content: testPageTitle
-              }
-            }
-          ]
+          title: [{ text: { content: testTitle } }]
         },
-        Description: {
-          rich_text: [
-            {
-              text: {
-                content: "Page de test créée pour vérifier les permissions d'écriture"
-              }
-            }
-          ]
+        Status: { 
+          select: { name: "Test" } 
+        },
+        Description: { 
+          rich_text: [{ text: { content: "Test de création via l'outil diagnostique" } }] 
+        },
+        URL: { 
+          url: "https://tests.example.com/diagnostic" 
         }
       }
     };
     
-    // Tenter de créer une page
-    const pageResponse = await notionApi.pages.create(testPageData, apiKey);
+    const createdPage = await notionApi.pages.create(createData, apiKey);
     
-    if (pageResponse && pageResponse.id) {
+    if (createdPage && createdPage.id) {
+      let successMessage = `Test d'écriture réussi: Page créée avec ID ${createdPage.id.substring(0, 8)}...`;
+      
+      if (!persistCreatedPage) {
+        try {
+          await notionApi.pages.update(createdPage.id, {
+            archived: true
+          }, apiKey);
+          successMessage += " (page archivée)";
+        } catch (archiveError) {
+          successMessage += " (impossible d'archiver la page)";
+        }
+      } else {
+        if (onPageCreated) {
+          onPageCreated({
+            id: createdPage.id,
+            title: testTitle
+          });
+        }
+        successMessage += " (page conservée dans la base de données)";
+      }
+      
       permissionResults[1] = { 
         ...initialTests[1], 
         status: 'success',
-        details: `Page "${testPageTitle}" créée avec succès (ID: ${pageResponse.id})`
+        details: successMessage
       };
-      
-      // Notifier si demandé
-      if (onPageCreated) {
-        onPageCreated({
-          id: pageResponse.id,
-          title: testPageTitle
-        });
-      }
-      
-      // Archiver la page si on ne veut pas la conserver
-      if (!persistCreatedPage) {
-        try {
-          await notionApi.pages.update(pageResponse.id, {
-            archived: true
-          }, apiKey);
-          
-          permissionResults[1].details += " (archivée)";
-        } catch (archiveError) {
-          permissionResults[1].details += ` (échec de l'archivage: ${archiveError.message || 'Erreur inconnue'})`;
-        }
-      }
     } else {
       permissionResults[1] = { 
         ...initialTests[1], 

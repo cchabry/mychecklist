@@ -26,8 +26,8 @@ export const useAuditProject = (projectId: string | undefined) => {
       setError(null);
 
       try {
-        // Récupérer le projet - utiliser la méthode adéquate selon le module
-        const fetchedProject = await notionApi.getProject(projectId);
+        // Récupérer le projet
+        const fetchedProject = await notionApi.getProjectById(projectId);
         
         if (!fetchedProject) {
           setError('Projet non trouvé');
