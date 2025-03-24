@@ -7,6 +7,7 @@ import { NotionConfig } from '@/components/notion';
 import { Button } from '@/components/ui/button';
 import { Settings, Database, AlertTriangle } from 'lucide-react';
 import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
+import NotionDatabaseDiscovery from '@/components/notion/NotionDatabaseDiscovery';
 import { useNotion } from '@/contexts/NotionContext';
 import { useOperationMode } from '@/services/operationMode';
 
@@ -55,8 +56,9 @@ const HomePage = () => {
       />
       
       <Tabs defaultValue="structure" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-md mb-6">
           <TabsTrigger value="structure">Structure BDD</TabsTrigger>
+          <TabsTrigger value="discovery">Découverte BDD</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
         </TabsList>
         
@@ -100,6 +102,10 @@ const HomePage = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="discovery">
+          <NotionDatabaseDiscovery />
         </TabsContent>
         
         <TabsContent value="diagnostic">
