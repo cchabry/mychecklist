@@ -21,7 +21,7 @@ class OperationModeService {
   private listeners: Function[] = [];
   
   private settings: OperationModeSettings = {
-    mode: OperationMode.REAL, // Changed string to enum
+    mode: OperationMode.REAL,
     autoSwitchEnabled: false,
     failuresThreshold: 3,
     errorHandling: 'manual',
