@@ -1,8 +1,6 @@
+
 import { operationMode, operationModeUtils } from '@/services/operationMode';
 import { mockData } from '../mock/data';
-
-// Importer les types et l'API Notion si nécessaire
-// import { Client } from '@notionhq/client';
 
 // Pages API endpoints
 
@@ -54,7 +52,7 @@ export async function getPages(token?: string) {
  * @param id ID de la page
  * @param token Token d'authentification Notion (optionnel)
  */
-export async function getPageById(id: string, token?: string) {
+export async function retrieve(id: string, token?: string) {
   // Vérifier si on est en mode démonstration
   if (operationMode.isDemoMode) {
     // Appliquer un délai pour simuler une requête réseau
@@ -90,12 +88,121 @@ export async function getPageById(id: string, token?: string) {
   }
 }
 
-// Fonctions pour créer, mettre à jour et supprimer des pages
-// ...
+/**
+ * Create a page in Notion
+ * @param data Page data
+ * @param token Authentication token
+ */
+export async function create(data: any, token?: string) {
+  // Check if we're in demo mode
+  if (operationMode.isDemoMode) {
+    // Apply delay to simulate network request
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Simulate random network error
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
+    }
+    
+    // Return mock data
+    if (mockData.createPage) {
+      return mockData.createPage(data);
+    }
+    
+    // Fallback mock implementation
+    return {
+      id: `page_${Date.now()}`,
+      created_time: new Date().toISOString(),
+      last_edited_time: new Date().toISOString(),
+      ...data
+    };
+  }
+  
+  try {
+    // In real mode, try to use Notion API
+    if (!token) {
+      token = localStorage.getItem('notion_api_key') || '';
+      if (!token) {
+        throw new Error('Notion token required');
+      }
+    }
+    
+    // Implementation to be added
+    throw new Error('Notion API not implemented for creating a page');
+  } catch (error) {
+    console.error('Error creating Notion page:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a page in Notion
+ * @param id Page ID
+ * @param data Update data
+ * @param token Authentication token
+ */
+export async function update(id: string, data: any, token?: string) {
+  // Check if we're in demo mode
+  if (operationMode.isDemoMode) {
+    // Apply delay to simulate network request
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Simulate random network error
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
+    }
+    
+    // Return mock data
+    if (mockData.updatePage) {
+      return mockData.updatePage(id, data);
+    }
+    
+    // Fallback mock implementation
+    const page = mockData.getPage(id);
+    if (!page) {
+      throw new Error(`Page ${id} not found`);
+    }
+    
+    return {
+      ...page,
+      ...data,
+      last_edited_time: new Date().toISOString()
+    };
+  }
+  
+  try {
+    // In real mode, try to use Notion API
+    if (!token) {
+      token = localStorage.getItem('notion_api_key') || '';
+      if (!token) {
+        throw new Error('Notion token required');
+      }
+    }
+    
+    // Implementation to be added
+    throw new Error('Notion API not implemented for updating a page');
+  } catch (error) {
+    console.error(`Error updating Notion page ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get page by ID - Alias for retrieve for backward compatibility
+ */
+export const getPageById = retrieve;
 
 // Cette fonction vérifie si l'utilisateur est temporairement en mode réel
 export const isTemporarilyForcedReal = () => {
   return !operationMode.isDemoMode;
 };
 
-// Autres fonctions pour les pages...
+// Export an object to match the expected structure
+export default {
+  getPages,
+  retrieve,
+  create,
+  update,
+  getPageById,
+  isTemporarilyForcedReal
+};

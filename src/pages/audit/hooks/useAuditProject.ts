@@ -6,7 +6,7 @@ import { notionApi } from '@/lib/notionProxy';
 import { useOperationMode } from '@/services/operationMode';
 
 /**
- * Hook pour gérer les données d'un projet d'audit
+ * Hook for managing audit project data
  */
 export const useAuditProject = (projectId: string | undefined) => {
   const [project, setProject] = useState<Project | null>(null);
@@ -26,8 +26,8 @@ export const useAuditProject = (projectId: string | undefined) => {
       setError(null);
 
       try {
-        // Récupérer le projet
-        const fetchedProject = await notionApi.getProjectById(projectId);
+        // Retrieve the project
+        const fetchedProject = await notionApi.getProject(projectId);
         
         if (!fetchedProject) {
           setError('Projet non trouvé');
