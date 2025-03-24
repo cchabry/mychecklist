@@ -90,7 +90,7 @@ const NewProject: React.FC = () => {
           </CardHeader>
           <CardContent>
             {!projectsDbConfigured && !operationMode.isDemoMode && (
-              <Alert variant="warning" className="mb-4">
+              <Alert className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Base de données non configurée</AlertTitle>
                 <AlertDescription>
@@ -118,22 +118,14 @@ const NewProject: React.FC = () => {
                   id="projectUrl"
                   value={projectUrl}
                   onChange={(e) => setProjectUrl(e.target.value)}
-                  placeholder="https://example.com"
+                  placeholder="https://exemple.com"
                   type="url"
                 />
               </div>
               
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/')}
-                  disabled={isSubmitting}
-                >
-                  Annuler
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Création...' : 'Créer le projet'}
+              <div className="pt-2">
+                <Button type="submit" disabled={isSubmitting} className="w-full">
+                  {isSubmitting ? 'Création en cours...' : 'Créer le projet'}
                 </Button>
               </div>
             </form>

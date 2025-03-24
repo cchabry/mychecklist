@@ -4,14 +4,13 @@ import { notionApi } from '@/lib/notionProxy';
 import { Audit, Project, SamplePage, ChecklistItem } from '@/lib/types';
 import { cleanProjectId } from '@/lib/utils';
 import { operationModeUtils } from '@/services/operationMode/utils';
-import { mockUtils } from '@/lib/notionProxy/mock/utils';
 
 interface UseAuditProjectProps {
   projectId?: string;
   auditId?: string;
 }
 
-interface UseAuditProjectCallbacks {
+export interface UseAuditProjectCallbacks {
   onProjectLoaded?: (project: Project) => void;
   onAuditLoaded?: (audit: Audit) => void;
   onPagesLoaded?: (pages: SamplePage[]) => void;
@@ -61,18 +60,23 @@ export const useAuditProject = ({ projectId, auditId }: UseAuditProjectProps) =>
       console.log(`✅ Projet chargé: ${projectData.name}`);
       
       // Charger les pages de l'échantillon
-      const pagesData = await notionApi.getPagesByProject(cleanedProjectId);
-      setPages(pagesData);
-      
-      if (callbacks?.onPagesLoaded) {
-        callbacks.onPagesLoaded(pagesData);
+      try {
+        const pagesData = await notionApi.getSamplePages(cleanedProjectId);
+        setPages(pagesData);
+        
+        if (callbacks?.onPagesLoaded) {
+          callbacks.onPagesLoaded(pagesData);
+        }
+        
+        console.log(`✅ Pages chargées: ${pagesData.length}`);
+      } catch (pagesError) {
+        console.error('Erreur lors du chargement des pages:', pagesError);
+        // Ne pas propager cette erreur, car ce n'est pas bloquant
       }
-      
-      console.log(`✅ Pages chargées: ${pagesData.length}`);
       
       // Charger la checklist
       try {
-        const checklistData = await notionApi.getChecklist();
+        const checklistData = await notionApi.getChecklistItems();
         setChecklist(checklistData);
         
         if (callbacks?.onChecklistLoaded) {
@@ -102,23 +106,17 @@ export const useAuditProject = ({ projectId, auditId }: UseAuditProjectProps) =>
             
             console.log(`✅ Audit chargé: ${auditData.name}`);
           }
-        } catch (auditErr: any) {
+        } catch (auditErr) {
           console.error(`Erreur lors du chargement de l'audit ${auditId}:`, auditErr);
           // Ne pas propager cette erreur, car ce n'est pas bloquant
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erreur lors du chargement du projet:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
       
       if (callbacks?.onError) {
-        callbacks.onError(err);
-      }
-      
-      // En mode démonstration, appliquer une analyse simulée du scénario
-      if (mockUtils && mockUtils.getScenario) {
-        const scenario = mockUtils.getScenario('project-loading-error');
-        console.log('Scénario d\'erreur:', scenario);
+        callbacks.onError(err instanceof Error ? err : new Error(String(err)));
       }
     } finally {
       setIsLoading(false);
@@ -143,7 +141,7 @@ export const useAuditProject = ({ projectId, auditId }: UseAuditProjectProps) =>
       console.log(`✅ Audit créé: ${newAudit.name} (${newAudit.id})`);
       
       return newAudit;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erreur lors de la création de l\'audit:', err);
       throw err;
     }
@@ -158,19 +156,13 @@ export const useAuditProject = ({ projectId, auditId }: UseAuditProjectProps) =>
     try {
       console.log(`🔄 Sauvegarde de l'audit: ${auditData.id}`);
       
-      // En mode démonstration, appliquer un délai et vérifier si une erreur simulée doit être générée
-      if (mockUtils && mockUtils.getScenario) {
-        const scenario = mockUtils.getScenario('audit-saving');
-        console.log('Scénario de sauvegarde:', scenario);
-      }
-      
       const updatedAudit = await notionApi.updateAudit(auditData.id, auditData);
       
       setAudit(updatedAudit);
       console.log(`✅ Audit sauvegardé: ${updatedAudit.name}`);
       
       return updatedAudit;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erreur lors de la sauvegarde de l\'audit:', err);
       throw err;
     }

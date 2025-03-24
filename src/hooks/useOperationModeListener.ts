@@ -10,6 +10,11 @@ export function useOperationModeListener() {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
   const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
   
+  // Ajouter une fonction toggle
+  const toggleMode = () => {
+    operationMode.toggle();
+  };
+  
   useEffect(() => {
     // S'abonner aux changements du mode opérationnel
     const unsubscribe = operationMode.subscribe(() => {
@@ -23,6 +28,7 @@ export function useOperationModeListener() {
   
   return {
     mode,
-    isDemoMode
+    isDemoMode,
+    toggleMode
   };
 }

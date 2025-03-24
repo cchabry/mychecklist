@@ -1,9 +1,23 @@
 
-import { Audit, AuditAction } from '@/lib/types';
+import { Audit } from '@/lib/types';
 import { BaseServiceAbstract } from './BaseServiceAbstract';
 import { notionApi } from '@/lib/notionProxy';
 import { operationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
+
+// Définir l'interface AuditAction manquante
+export interface AuditAction {
+  id: string;
+  auditId: string;
+  evaluationId: string;
+  description: string;
+  assignee?: string;
+  status: 'pending' | 'inProgress' | 'completed';
+  dueDate?: string;
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt: string;
+}
 
 /**
  * Service pour la gestion des audits
@@ -38,6 +52,63 @@ class AuditsService extends BaseServiceAbstract<Audit> {
     } catch (error) {
       console.error('Erreur lors de la récupération des audits:', error);
       return [];
+    }
+  }
+  
+  /**
+   * Implémentation requise de createItem
+   */
+  protected async createItem(data: Partial<Audit>): Promise<Audit> {
+    if (!data.projectId) {
+      throw new Error('ID de projet non spécifié');
+    }
+    
+    try {
+      const audit = await notionApi.createAudit({
+        name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
+        projectId: data.projectId
+      });
+      
+      return audit;
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'audit:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Implémentation requise de updateItem
+   */
+  protected async updateItem(id: string, data: Partial<Audit>): Promise<Audit> {
+    try {
+      const updatedAudit = await notionApi.updateAudit(id, data);
+      
+      if (!updatedAudit) {
+        throw new Error(`Impossible de mettre à jour l'audit #${id}`);
+      }
+      
+      return updatedAudit;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'audit #${id}:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Implémentation requise de deleteItem
+   */
+  protected async deleteItem(id: string): Promise<boolean> {
+    try {
+      const success = await notionApi.deleteAudit(id);
+      
+      if (!success) {
+        throw new Error(`Impossible de supprimer l'audit #${id}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de l'audit #${id}:`, error);
+      throw error;
     }
   }
   
@@ -87,8 +158,8 @@ class AuditsService extends BaseServiceAbstract<Audit> {
       
       console.log("Audit créé:", audit);
       
-      // Invalider le cache
-      this.invalidateCache();
+      // Invalider le cache en utilisant la méthode du parent
+      this.clearCache();
       
       return audit;
     } catch (error) {
@@ -113,8 +184,8 @@ class AuditsService extends BaseServiceAbstract<Audit> {
         throw new Error(`Impossible de mettre à jour l'audit #${id}`);
       }
       
-      // Invalider le cache
-      this.invalidateCache();
+      // Invalider le cache en utilisant la méthode du parent
+      this.clearCache();
       
       return updatedAudit;
     } catch (error) {
@@ -143,8 +214,8 @@ class AuditsService extends BaseServiceAbstract<Audit> {
         throw new Error(`Impossible de supprimer l'audit #${id}`);
       }
       
-      // Invalider le cache
-      this.invalidateCache();
+      // Invalider le cache en utilisant la méthode du parent
+      this.clearCache();
       
       return true;
     } catch (error) {

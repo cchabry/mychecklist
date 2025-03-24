@@ -1,7 +1,7 @@
 
 import { cacheService } from './cache';
 import { operationMode } from '@/services/operationMode';
-import { shouldUseCache, getEffectiveTTL, reportCacheError, reportCacheSuccess } from './utils/operationModeIntegration';
+import { operationModeIntegration } from './utils/operationModeIntegration';
 
 /**
  * Service utilitaire qui simplifie l'utilisation du cache en fonction du mode opérationnel
@@ -38,13 +38,13 @@ export const cachingService = {
           onSuccess(data, false);
         }
         
-        reportCacheSuccess();
+        operationModeIntegration.reportCacheSuccess();
         return data;
       } catch (error) {
         if (error instanceof Error) {
-          reportCacheError(error, context);
+          operationModeIntegration.reportCacheError(error, context);
         } else {
-          reportCacheError(new Error(String(error)), context);
+          operationModeIntegration.reportCacheError(new Error(String(error)), context);
         }
         throw error;
       }
@@ -55,13 +55,13 @@ export const cachingService = {
       return await cacheService.getOrFetch(
         key, 
         fetcher,
-        getEffectiveTTL(ttl)
+        operationModeIntegration.getEffectiveTTL(ttl)
       );
     } catch (error) {
       if (error instanceof Error) {
-        reportCacheError(error, context);
+        operationModeIntegration.reportCacheError(error, context);
       } else {
-        reportCacheError(new Error(String(error)), context);
+        operationModeIntegration.reportCacheError(new Error(String(error)), context);
       }
       throw error;
     }
@@ -81,7 +81,7 @@ export const cachingService = {
    * Stocke une valeur dans le cache
    */
   set<T>(key: string, value: T, ttl?: number): string {
-    const effectiveTTL = getEffectiveTTL(ttl);
+    const effectiveTTL = operationModeIntegration.getEffectiveTTL(ttl);
     return cacheService.set(key, value, effectiveTTL);
   },
   
@@ -134,7 +134,7 @@ export const cachingService = {
    * Détermine si le cache doit être utilisé selon le mode opérationnel
    */
   shouldUseCache(): boolean {
-    return shouldUseCache();
+    return operationModeIntegration.shouldUseCache();
   },
   
   /**
