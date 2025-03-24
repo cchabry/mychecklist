@@ -11,8 +11,8 @@ import * as audits from './endpoints/audits';
 import * as evaluations from './endpoints/evaluations';
 import * as actions from './endpoints/actions';
 
-// Importer l'adaptateur mockMode (pour compatibilité)
-import mockMode from './mockMode';
+// Importer l'adaptateur mockMode
+import mockMode from './mock/mode';
 
 // Importer l'API Proxy
 import { proxyFetch, notionApiRequest } from './proxyFetch';

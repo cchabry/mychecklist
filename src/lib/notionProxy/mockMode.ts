@@ -1,70 +1,27 @@
 
-/**
- * FICHIER DE COMPATIBILITÉ TEMPORAIRE
- * 
- * @deprecated Ce fichier sera supprimé après la migration complète.
- * Utilisez directement operationMode à la place.
- */
 import { operationMode } from '@/services/operationMode';
 
-// Adaptateur mockMode pour compatibilité avec l'ancien code
+/**
+ * Re-export le mockMode depuis le nouveau chemin (pour compatibilité)
+ * @deprecated Utilisez operationMode depuis services/operationMode à la place
+ */
 export const mockMode = {
-  /**
-   * Vérifie si le mode démonstration est actif
-   * @deprecated Utilisez operationMode.isDemoMode
-   */
   isActive: () => operationMode.isDemoMode,
-  
-  /**
-   * Active le mode démonstration
-   * @deprecated Utilisez operationMode.enableDemoMode()
-   */
-  activate: () => operationMode.enableDemoMode('Activation via adaptateur (mockMode.activate)'),
-  
-  /**
-   * Désactive le mode démonstration (active le mode réel)
-   * @deprecated Utilisez operationMode.enableRealMode()
-   */
+  activate: () => operationMode.enableDemoMode('Activé via ancien API mockMode'),
   deactivate: () => operationMode.enableRealMode(),
-  
-  /**
-   * Bascule entre les modes
-   * @deprecated Utilisez operationMode.toggle()
-   */
   toggle: () => operationMode.toggle(),
-  
-  /**
-   * Désactive temporairement le mode démonstration
-   * @deprecated Cette fonctionnalité n'est plus supportée
-   */
+  forceReset: () => {
+    operationMode.setDemoMode(false);
+    operationMode.reset();
+  },
+  persist: () => operationMode.updateSettings({ persistentModeStorage: true }),
+  updateConfig: () => console.warn('[DEPRECATED] mockMode.updateConfig is deprecated and has no effect'),
   temporarilyForceReal: () => operationMode.enableRealMode(),
-  
-  /**
-   * Vérifie si le mode réel est temporairement forcé
-   * @deprecated Cette fonctionnalité n'est plus supportée
-   * @param _ Paramètre ignoré (pour compatibilité avec l'ancien code)
-   */
-  isTemporarilyForcedReal: (_?: boolean) => !operationMode.isDemoMode,
-  
-  /**
-   * Restaure l'état du mode après forçage temporaire
-   * @deprecated Cette fonctionnalité n'est plus supportée
-   * @param _ Paramètre ignoré (pour compatibilité avec l'ancien code)
-   */
-  restoreAfterForceReal: (_?: any) => {},
-  
-  /**
-   * Réinitialise complètement le mode et force le mode réel
-   * @deprecated Utilisez operationMode.enableRealMode()
-   */
-  forceReset: () => operationMode.enableRealMode(),
-  
-  /**
-   * Réinitialise le mode (alias pour forceReset)
-   * @deprecated Utilisez operationMode.enableRealMode()
-   */
-  reset: () => operationMode.enableRealMode()
+  isTemporarilyForcedReal: () => false,
+  restoreAfterForceReal: (restore = true) => {
+    if (restore) operationMode.setDemoMode(true);
+  }
 };
 
-// Exporter par défaut pour compatibilité
+// Export par défaut pour la compatibilité
 export default mockMode;

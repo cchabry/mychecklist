@@ -1,14 +1,24 @@
 
 import React from 'react';
-import OperationModeStatus from '@/components/OperationModeStatus';
+import { Button } from '@/components/ui/button';
+import { useOperationModeListener } from '@/hooks/useOperationModeListener';
 
 /**
- * Composant de compatibilité pour remplacer l'ancien MockModeToggle
- * @deprecated Utilisez directement OperationModeStatus ou OperationModeControl
+ * Composant temporaire pour remplacer l'ancien MockModeToggle
+ * (à remplacer par OperationModeControl)
  */
 const MockModeToggle = () => {
+  const { isDemoMode, toggleMode } = useOperationModeListener();
+  
   return (
-    <OperationModeStatus showToggle={true} />
+    <Button 
+      variant="outline"
+      size="sm"
+      onClick={() => toggleMode()}
+      className="text-xs"
+    >
+      {isDemoMode ? 'Mode Démo' : 'Mode Réel'}
+    </Button>
   );
 };
 
