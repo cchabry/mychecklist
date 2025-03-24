@@ -5,12 +5,10 @@ import { NotionDiagnosticTool } from '@/components/notion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotionConfig } from '@/components/notion';
 import { Button } from '@/components/ui/button';
-import { Settings, Database, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Settings, Database, AlertTriangle } from 'lucide-react';
 import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
-import NotionDatabaseDiscovery from '@/components/notion/NotionDatabaseDiscovery';
 import { useNotion } from '@/contexts/NotionContext';
 import { useOperationMode } from '@/services/operationMode';
-import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   const { openConfig, closeConfig, status, showConfig } = useNotion();
@@ -39,23 +37,15 @@ const HomePage = () => {
       </header>
       
       <div className="flex justify-end mb-4">
-        <div className="space-x-2">
-          <Link to="/database-discovery">
-            <Button variant="outline" className="gap-2">
-              <Database size={16} />
-              Découvrir les bases de données
-            </Button>
-          </Link>
-          <Button 
-            variant="outline" 
-            className="gap-2" 
-            onClick={openConfig}
-            id="notion-config-button"
-          >
-            <Settings size={16} />
-            Configurer Notion
-          </Button>
-        </div>
+        <Button 
+          variant="outline" 
+          className="gap-2" 
+          onClick={openConfig}
+          id="notion-config-button"
+        >
+          <Settings size={16} />
+          Configurer Notion
+        </Button>
       </div>
       
       {/* Configuration Notion (modal) */}
@@ -65,9 +55,8 @@ const HomePage = () => {
       />
       
       <Tabs defaultValue="structure" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full max-w-md mb-6">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
           <TabsTrigger value="structure">Structure BDD</TabsTrigger>
-          <TabsTrigger value="discovery">Découverte BDD</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
         </TabsList>
         
@@ -111,10 +100,6 @@ const HomePage = () => {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="discovery">
-          <NotionDatabaseDiscovery />
         </TabsContent>
         
         <TabsContent value="diagnostic">
