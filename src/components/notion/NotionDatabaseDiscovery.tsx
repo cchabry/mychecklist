@@ -47,10 +47,10 @@ const NotionDatabaseDiscovery: React.FC<NotionDatabaseDiscoveryProps> = ({
         notionApi.mockMode.temporarilyForceReal();
       }
       
-      // Récupérer la liste des bases de données
+      // Récupérer la liste des bases de données - CORRECTION : Utiliser POST avec le chemin correct
       const response = await notionApi.request(
-        'GET',
-        '/search',
+        'POST',  // Méthode POST pour l'endpoint search
+        '/search',  // Chemin de l'API
         {
           filter: {
             value: 'database',
