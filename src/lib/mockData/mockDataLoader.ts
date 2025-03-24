@@ -20,15 +20,15 @@ export const consolidatedMockData = {
   getProject: mockData.getProject,
   getAudits: mockData.getAudits,
   getAudit: mockData.getAudit,
-  getChecklistItems: mockData.getChecklistItems || mockData.getChecklist,
+  getChecklistItems: mockData.getChecklistItems || mockData.checklist,
   getChecklistItem: mockData.getChecklistItem,
   getPages: mockData.getPages,
   getPage: mockData.getPage,
   getProjectPages: mockData.getProjectPages,
   getExigences: mockData.getExigences,
   getExigence: mockData.getExigence,
-  getEvaluations: mockData.getEvaluations,
-  getEvaluation: mockData.getEvaluation || mockData.getEvaluations,
+  getEvaluations: mockData.getEvaluations, 
+  getEvaluation: mockData.getEvaluation || ((id) => mockData.evaluations.find(e => e.id === id)),
   getActions: mockData.getActions,
   getAction: mockData.getAction,
   
@@ -37,31 +37,67 @@ export const consolidatedMockData = {
   updateProject: mockData.updateProject,
   createEvaluation: mockData.createEvaluation || ((data) => {
     const now = new Date().toISOString();
-    return {
+    const newEval = {
       id: `eval_${Date.now()}`,
       ...data,
       createdAt: now,
       updatedAt: now
     };
+    mockData.evaluations.push(newEval);
+    return newEval;
   }),
   updateEvaluation: mockData.updateEvaluation || ((id, data) => {
-    return { id, ...data, updatedAt: new Date().toISOString() };
+    const index = mockData.evaluations.findIndex(e => e.id === id);
+    if (index >= 0) {
+      mockData.evaluations[index] = {
+        ...mockData.evaluations[index],
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+      return mockData.evaluations[index];
+    }
+    return null;
   }),
-  deleteEvaluation: mockData.deleteEvaluation || ((id) => true),
+  deleteEvaluation: mockData.deleteEvaluation || ((id) => {
+    const index = mockData.evaluations.findIndex(e => e.id === id);
+    if (index >= 0) {
+      mockData.evaluations.splice(index, 1);
+      return true;
+    }
+    return false;
+  }),
   createAction: mockData.createAction || ((data) => {
     const now = new Date().toISOString();
-    return {
+    const newAction = {
       id: `action_${Date.now()}`,
       progress: [],
       ...data,
       createdAt: now,
       updatedAt: now
     };
+    mockData.actions.push(newAction);
+    return newAction;
   }),
   updateAction: mockData.updateAction || ((id, data) => {
-    return { id, ...data, updatedAt: new Date().toISOString() };
+    const index = mockData.actions.findIndex(a => a.id === id);
+    if (index >= 0) {
+      mockData.actions[index] = {
+        ...mockData.actions[index],
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+      return mockData.actions[index];
+    }
+    return null;
   }),
-  deleteAction: mockData.deleteAction || ((id) => true),
+  deleteAction: mockData.deleteAction || ((id) => {
+    const index = mockData.actions.findIndex(a => a.id === id);
+    if (index >= 0) {
+      mockData.actions.splice(index, 1);
+      return true;
+    }
+    return false;
+  }),
   
   // Méthodes pour les pages d'échantillon
   createSamplePage: mockData.createSamplePage,

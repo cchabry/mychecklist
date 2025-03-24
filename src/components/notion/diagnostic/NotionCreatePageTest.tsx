@@ -60,7 +60,9 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onClose }) 
         }
       };
 
-      const response = await notionApi.request("pages", {
+      // Fix this line - use options object instead of direct parameters
+      const response = await notionApi.request({
+        endpoint: "pages",
         method: 'POST',
         body: JSON.stringify(createData),
         headers: {

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle2, RotateCw } from "lucide-react";
 import { notionApi } from '@/lib/notionProxy';
-import { consolidatedMockData } from '@/lib/mockData';
+import { mockData } from '@/lib/mockData';
 
 interface NotionCreatePageTestProps {
   onClose: () => void;
@@ -34,8 +34,8 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onClose }) 
       const urlParts = pageUrl.split('/');
       const projectId = urlParts[4] || 'default-project';
 
-      // Utiliser consolidatedMockData au lieu de createSamplePage directement
-      const newPage = consolidatedMockData.createSamplePage({
+      // Utiliser mockData au lieu de consolidatedMockData
+      const newPage = mockData.createSamplePage({
         projectId: projectId,
         url: pageUrl,
         title: `Page de test ${Date.now()}`,

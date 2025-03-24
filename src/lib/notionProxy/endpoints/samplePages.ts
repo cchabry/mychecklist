@@ -1,7 +1,8 @@
 
 import { notionApi } from '@/lib/notionProxy';
 import { Project, SamplePage } from '@/lib/types';
-import { mockData, consolidatedMockData } from '@/lib/mockData';
+import { mockData } from '@/lib/mockData';
+import { operationMode, operationModeUtils } from '@/services/operationMode';
 
 // Add this helper at the top of the file
 const addTimestamps = (obj: any) => {
@@ -24,9 +25,22 @@ export const samplePagesEndpoints = {
    */
   getSamplePages: async (projectId: string): Promise<SamplePage[]> => {
     try {
-      // Get sample pages using mockData
-      const pages = consolidatedMockData.getProjectPages(projectId);
-      return pages.map(page => addTimestamps(page));
+      // Use operationMode to determine which data source to use
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Get sample pages using mockData
+        const pages = mockData.getProjectPages(projectId);
+        return pages.map(page => addTimestamps(page));
+      }
+      
+      // If in real mode, use the Notion API
+      // This would be implemented with the actual Notion API integration
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error fetching sample pages:", error);
       throw error;
@@ -40,9 +54,20 @@ export const samplePagesEndpoints = {
    */
   getSamplePage: async (id: string): Promise<SamplePage> => {
     try {
-      // Get sample page using mockData
-      const page = consolidatedMockData.getPage(id);
-      return addTimestamps(page);
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Get sample page using mockData
+        const page = mockData.getPage(id);
+        return addTimestamps(page);
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error fetching sample page:", error);
       throw error;
@@ -56,9 +81,20 @@ export const samplePagesEndpoints = {
    */
   createSamplePage: async (data: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>): Promise<SamplePage> => {
     try {
-      // Create sample page using mockData
-      const newPage = consolidatedMockData.createSamplePage(data);
-      return addTimestamps(newPage);
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Create sample page using mockData
+        const newPage = mockData.createSamplePage(data);
+        return addTimestamps(newPage);
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error creating sample page:", error);
       throw error;
@@ -73,9 +109,20 @@ export const samplePagesEndpoints = {
    */
   updateSamplePage: async (id: string, data: Partial<SamplePage>): Promise<SamplePage> => {
     try {
-      // Update sample page using mockData
-      const updatedPage = consolidatedMockData.updateSamplePage(id, data);
-      return addTimestamps(updatedPage);
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Update sample page using mockData
+        const updatedPage = mockData.updateSamplePage(id, data);
+        return addTimestamps(updatedPage);
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error updating sample page:", error);
       throw error;
@@ -89,9 +136,20 @@ export const samplePagesEndpoints = {
    */
   deleteSamplePage: async (id: string): Promise<{ success: boolean }> => {
     try {
-      // Delete sample page using mockData
-      const result = consolidatedMockData.deleteSamplePage(id);
-      return result;
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Delete sample page using mockData
+        const result = mockData.deleteSamplePage(id);
+        return result;
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error deleting sample page:", error);
       return { success: false };
@@ -105,9 +163,20 @@ export const samplePagesEndpoints = {
    */
   createSamplePages: async (pages: Omit<SamplePage, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<SamplePage[]> => {
     try {
-      // Create multiple sample pages using mockData
-      const newPages = await Promise.all(pages.map(page => consolidatedMockData.createSamplePage(page)));
-      return newPages.map(page => addTimestamps(page));
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Create multiple sample pages using mockData
+        const newPages = await Promise.all(pages.map(page => mockData.createSamplePage(page)));
+        return newPages.map(page => addTimestamps(page));
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error creating sample pages:", error);
       throw error;
@@ -121,9 +190,20 @@ export const samplePagesEndpoints = {
    */
   updateSamplePages: async (pages: SamplePage[]): Promise<SamplePage[]> => {
     try {
-      // Update multiple sample pages using mockData
-      const updatedPages = await Promise.all(pages.map(page => consolidatedMockData.updateSamplePage(page.id, page)));
-      return updatedPages.map(page => addTimestamps(page));
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Update multiple sample pages using mockData
+        const updatedPages = await Promise.all(pages.map(page => mockData.updateSamplePage(page.id, page)));
+        return updatedPages.map(page => addTimestamps(page));
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error updating sample pages:", error);
       throw error;
@@ -137,9 +217,20 @@ export const samplePagesEndpoints = {
    */
   deleteSamplePages: async (ids: string[]): Promise<{ success: boolean }> => {
     try {
-      // Delete multiple sample pages using mockData
-      await Promise.all(ids.map(id => consolidatedMockData.deleteSamplePage(id)));
-      return { success: true };
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Delete multiple sample pages using mockData
+        await Promise.all(ids.map(id => mockData.deleteSamplePage(id)));
+        return { success: true };
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error deleting sample pages:", error);
       return { success: false };
@@ -153,16 +244,27 @@ export const samplePagesEndpoints = {
    */
   getProjectFromSamplePageId: async (pageId: string): Promise<Project | null> => {
     try {
-      // Get sample page using mockData
-      const page = consolidatedMockData.getPage(pageId);
-      if (!page) return null;
+      if (operationMode.isDemoMode) {
+        await operationModeUtils.applySimulatedDelay();
+        
+        if (operationModeUtils.shouldSimulateError()) {
+          throw new Error("Simulated network error");
+        }
+        
+        // Get sample page using mockData
+        const page = mockData.getPage(pageId);
+        if (!page) return null;
 
-      // Ensure the page has timestamps
-      const timestampedPage = addTimestamps(page);
+        // Ensure the page has timestamps
+        const timestampedPage = addTimestamps(page);
 
-      // Now you can safely access projectId
-      const project = consolidatedMockData.getProject(timestampedPage.projectId);
-      return project || null;
+        // Now you can safely access projectId
+        const project = mockData.getProject(timestampedPage.projectId);
+        return project || null;
+      }
+      
+      // Real mode implementation would go here
+      throw new Error("Real mode API not implemented");
     } catch (error: any) {
       console.error("Error getting project from sample page ID:", error);
       return null;
