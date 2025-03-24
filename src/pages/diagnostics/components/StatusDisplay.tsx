@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { useOperationMode, OperationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/services/operationMode';
+import { OperationMode } from '@/services/operationMode/types';
 
 interface StatusDisplayProps {
   className?: string;

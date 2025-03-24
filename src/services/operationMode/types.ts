@@ -1,7 +1,11 @@
 
 import { DEFAULT_SETTINGS } from './constants';
 
-export type OperationMode = 'real' | 'mock';
+// Change from type to enum
+export enum OperationMode {
+  REAL = 'real',
+  DEMO = 'mock'
+}
 
 export enum SwitchReason {
   ERROR = 'error',

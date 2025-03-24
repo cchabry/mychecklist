@@ -58,8 +58,16 @@ export interface Exigence {
   id: string;
   projectId: string;
   itemId: string;
-  importance: string;
+  importance: ImportanceLevel;
   comment?: string;
+}
+
+export interface ProjectRequirement {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment: string;
 }
 
 export interface Evaluation {
@@ -72,6 +80,7 @@ export interface Evaluation {
   attachments?: string[];
   createdAt: string;
   updatedAt: string;
+  status?: string; // Added to fix the type errors
 }
 
 export interface Audit {
@@ -88,6 +97,7 @@ export interface Audit {
   startDate?: string;
   endDate?: string;
   status?: string;
+  progress?: number; // Added to fix type errors
 }
 
 export interface PageResult {
@@ -136,6 +146,7 @@ export interface CorrectiveAction {
   createdAt: string;
   updatedAt: string;
   progress: ActionProgress[];
+  description?: string; // Added to fix type errors
 }
 
 export interface ActionProgress {
@@ -218,4 +229,3 @@ export interface NotionConfig {
 
 // Compatibilité avec l'ancien type ComplianceLevel
 export type ComplianceLevel = ComplianceStatus;
-

@@ -44,4 +44,19 @@ export interface AuditItem {
 export interface PageResult {
   pageId: string;
   status: string;
+  comment?: string;
+  attachments?: string[];
+}
+
+export interface NotionConfig {
+  apiKey: string;
+  databaseId: string;
+  checklistsDbId?: string;
+  projectsDbId?: string;
+  auditsDbId?: string;
+  exigencesDbId?: string;
+  samplePagesDbId?: string;
+  evaluationsDbId?: string;
+  actionsDbId?: string;
+  pagesDbId?: string;
 }

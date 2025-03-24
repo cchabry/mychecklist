@@ -16,6 +16,7 @@ export interface OperationModeState {
   failures: number;
   settings: OperationModeSettings;
   mode: OperationMode;
+  lastError?: Error | null;
 }
 
 const createGlobalState = <T>(initialState: T | (() => T)) => {
@@ -153,7 +154,7 @@ class OperationModeService {
     }
   }
 
-  enableDemoMode(reason: string = 'Changement manuel'): void {
+  enableDemoMode(reason: SwitchReason = SwitchReason.USER): void {
     this._isDemoMode = true;
     this._switchReason = reason;
     this.saveState();
@@ -171,7 +172,7 @@ class OperationModeService {
     if (this._isDemoMode) {
       this.enableRealMode();
     } else {
-      this.enableDemoMode('Basculement manuel');
+      this.enableDemoMode(SwitchReason.USER);
     }
   }
 
@@ -200,7 +201,7 @@ class OperationModeService {
       !this._isDemoMode &&
       this._failures >= this._settings.maxConsecutiveFailures
     ) {
-      this.enableDemoMode(`Basculement automatique après ${this._failures} échecs`);
+      this.enableDemoMode(SwitchReason.ERROR);
     }
   }
 
@@ -304,7 +305,7 @@ class OperationModeService {
 export const operationMode = new OperationModeService();
 
 // Exportation de operationModeUtils pour compatibilité
-export const operationModeUtils: OperationModeUtils = {
+export const operationModeUtils = {
   applySimulatedDelay: async (): Promise<void> => {
     await operationMode.simulateNetworkDelay();
   },
@@ -324,7 +325,7 @@ export const operationModeUtils: OperationModeUtils = {
 };
 
 // Exportation de l'énumération OperationMode
-export { OperationMode } from './operationMode/types';
+export { OperationMode, type SwitchReason } from './operationMode/types';
 
 // Hook pour utiliser le mode opérationnel dans les composants
 export function useOperationMode() {
@@ -341,7 +342,7 @@ export function useOperationMode() {
     operationMode.setSimulatedNetworkDelay(state.simulatedNetworkDelay);
     if (state.isDemoMode !== operationMode.isDemoMode) {
       if (state.isDemoMode) {
-        operationMode.enableDemoMode(state.switchReason || undefined);
+        operationMode.enableDemoMode(state.switchReason || SwitchReason.USER);
       } else {
         operationMode.enableRealMode();
       }
@@ -354,7 +355,7 @@ export function useOperationMode() {
       ...prev,
       isDemoMode: !prev.isDemoMode,
       mode: !prev.isDemoMode ? OperationMode.DEMO : OperationMode.REAL,
-      switchReason: !prev.isDemoMode ? 'Basculement manuel' : null
+      switchReason: !prev.isDemoMode ? SwitchReason.USER : null
     }));
   }, [setState]);
   
@@ -374,7 +375,7 @@ export function useOperationMode() {
     }));
   }, [setState]);
   
-  const enableDemoMode = useCallback((reason: string = 'Changement manuel') => {
+  const enableDemoMode = useCallback((reason: SwitchReason = SwitchReason.USER) => {
     operationMode.enableDemoMode(reason);
     setState(prev => ({
       ...prev,

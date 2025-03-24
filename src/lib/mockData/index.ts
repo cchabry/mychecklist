@@ -7,21 +7,20 @@ import { Project, Audit, ChecklistItem, Exigence, Evaluation, CorrectiveAction, 
 // Export mockData and its extensions
 export { mockData, mockDataExtensions, mockDataWithPages };
 
-// Re-export functions from mockData.ts
-export {
-  getMockAuditHistory,
-  getMockActionHistory,
-  getAllProjects,
-  getProjectById,
-  getPageById,
-  getPagesByProjectId,
-  createNewAudit,
-  createMockAudit,
-  MOCK_PROJECTS,
-  CATEGORIES,
-  CHECKLIST_ITEMS,
-  SAMPLE_PAGES
-} from '../mockData';
+// Export utility functions from mockData
+export const getAllProjects = () => mockData.projects;
+export const getProjectById = (id: string) => mockData.projects.find(p => p.id === id);
+export const getPageById = (id: string) => mockData.pages.find(p => p.id === id);
+export const getPagesByProjectId = (projectId: string) => mockData.pages.filter(p => p.projectId === projectId);
+export const createNewAudit = (projectId: string) => mockData.createNewAudit(projectId);
+export const getMockAuditHistory = (projectId: string) => mockData.audits.filter(a => a.projectId === projectId);
+export const getMockActionHistory = (evaluationId: string) => mockData.actions.filter(a => a.evaluationId === evaluationId);
+
+// Export collections from mockData
+export const MOCK_PROJECTS = mockData.projects;
+export const CATEGORIES = Array.from(new Set(mockData.checklist.map(item => item.category)));
+export const CHECKLIST_ITEMS = mockData.checklist;
+export const SAMPLE_PAGES = mockData.pages;
 
 // Export type-safe creator functions
 export const createMockProject = (data: Partial<Project>): Project => ({
