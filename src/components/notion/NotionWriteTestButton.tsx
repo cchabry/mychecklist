@@ -53,11 +53,41 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       console.log(`📝 Utilisation de la base de données: "${dbId}"`);
       console.log(`📝 Utilisation de la clé API: "${apiKey.substring(0, 8)}..."`);
       
+      // Récupérer d'abord la structure de la base de données
+      console.log('1️⃣ Récupération de la structure de la base de données...');
+      try {
+        const dbDetails = await notionApi.databases.retrieve(dbId, apiKey);
+        console.log('✅ Structure récupérée:', dbDetails);
+        
+        // Extraire le titre de la base de données
+        const dbTitle = dbDetails.title?.[0]?.plain_text || dbId;
+        console.log(`📊 Base de données: "${dbTitle}"`);
+        
+        // Analyser les propriétés pour trouver celles requises et leurs types
+        console.log('2️⃣ Analyse des propriétés de la base de données...');
+        const properties = dbDetails.properties || {};
+        
+        // Trouver la propriété titre
+        const titleProperty = Object.entries(properties).find(([_, prop]) => prop.type === 'title')?.[0];
+        console.log(`🔑 Propriété titre identifiée: "${titleProperty || 'Name'}"`);
+        
+        // Résumé des propriétés
+        const propsSummary = Object.entries(properties)
+          .map(([name, prop]) => `${name} (${prop.type})`)
+          .join(', ');
+        
+        console.log(`📊 Propriétés disponibles: ${propsSummary}`);
+      } catch (dbError) {
+        console.error('❌ Erreur lors de la récupération de la structure:', dbError);
+        console.log('⚠️ Continuation avec une structure générique...');
+      }
+      
       // Créer les données de test de base
       let createData = createTestPageData(timestamp);
       createData.parent.database_id = dbId;
       
       // Enrichir avec les propriétés requises
+      console.log('3️⃣ Enrichissement des données avec propriétés requises...');
       createData = await enrichWithRequiredProperties(createData, dbId, apiKey);
       
       console.log('📡 Envoi FINAL de la requête avec données:', JSON.stringify(createData, null, 2));
@@ -69,32 +99,38 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
         console.log('✅ Test d\'écriture réussi! ID de la page créée:', response.id);
         
         // Vérifier en lisant la page créée
+        console.log('4️⃣ Vérification de la page créée...');
         const pageData = await notionApi.pages.retrieve(response.id, apiKey);
         
         if (pageData && pageData.id === response.id) {
           console.log('✅ Lecture de la page créée réussie!');
-          setTestStatus('success');
-          toast.success('Test d\'écriture réussi', {
-            description: 'Une page de test a été créée et lue avec succès dans votre base de données Notion.'
-          });
+          console.log('📄 Données de la page créée:', pageData);
           
-          // Tentative d'archivage de la page de test
+          // Archiver la page de test
+          console.log('5️⃣ Archivage de la page de test...');
           try {
             await notionApi.pages.update(response.id, {
               archived: true
             }, apiKey);
             console.log('🧹 Nettoyage: Page de test archivée');
           } catch (cleanupError) {
-            console.log('⚠️ Impossible d\'archiver la page de test:', cleanupError);
+            console.error('⚠️ Impossible d\'archiver la page de test:', cleanupError);
           }
+          
+          setTestStatus('success');
+          toast.success('Test d\'écriture réussi', {
+            description: 'Une page de test a été créée et lue avec succès dans votre base de données Notion.'
+          });
           
           if (onSuccess) {
             onSuccess();
           }
         } else {
+          console.error('❌ Échec de la lecture après écriture:', pageData);
           throw new Error('Échec de la lecture après écriture');
         }
       } else {
+        console.error('❌ Réponse de création invalide:', response);
         throw new Error('La création a échoué (pas d\'ID retourné)');
       }
     } catch (error) {
