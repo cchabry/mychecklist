@@ -10,7 +10,7 @@ import {
   getProjectById,
   getPageById,
   mockData as centralMockData
-} from '@/lib/mockData/index';
+} from '@/lib/mockData';
 import { mockDataExtensions } from '@/lib/mockData/mockDataExtensions';
 import { ImportanceLevel } from '@/lib/types';
 
@@ -29,7 +29,7 @@ export const mockData = {
   actions: mergedMockData.actions || [],
 
   // Getters
-  getProjects: getAllProjects,
+  getProjects: getAllProjects || (() => MOCK_PROJECTS),
   getProject: getProjectById,
   getAudits: () => mergedMockData.audits || [],
   getAudit: (id: string) => mergedMockData.audits?.find(a => a.id === id),
@@ -37,6 +37,7 @@ export const mockData = {
   getChecklistItem: (id: string) => mergedMockData.checklist?.find(i => i.id === id),
   getPages: () => mergedMockData.pages || [],
   getPage: getPageById,
+  getProjectPages: (projectId: string) => mergedMockData.pages?.filter(page => page.projectId === projectId) || [],
   getExigences: () => mergedMockData.exigences || [],
   getExigence: (id: string) => mergedMockData.exigences?.find(e => e.id === id),
   getEvaluations: () => mergedMockData.evaluations || [],
@@ -47,6 +48,11 @@ export const mockData = {
   // Create/Update/Delete
   createProject: mergedMockData.createProject || ((data) => ({ ...data, id: `proj_${Date.now()}` })),
   updateProject: (id: string, data: any) => ({...getProjectById(id), ...data}),
+  createPage: mergedMockData.createPage || ((data: any) => ({...data, id: `page_${Date.now()}`})),
+  updatePage: mergedMockData.updatePage || ((id: string, data: any) => ({...data, id})),
+  deletePage: mergedMockData.deletePage || ((id: string) => ({success: true, id})),
+  createSamplePage: mergedMockData.createSamplePage || ((data: any) => ({...data, id: `page_${Date.now()}`})),
+  updateSamplePage: mergedMockData.updateSamplePage || ((id: string, data: any) => ({...data, id})),
   createEvaluation: mergedMockData.createEvaluation || ((data: any) => ({...data, id: `eval_${Date.now()}`})),
   updateEvaluation: mergedMockData.updateEvaluation || ((id: string, data: any) => ({...(mergedMockData.evaluations?.find(e => e.id === id) || {}), ...data})),
   deleteEvaluation: mergedMockData.deleteEvaluation || (() => true),
@@ -67,4 +73,4 @@ export const mockData = {
 };
 
 // Exporter aussi les données mockées directement
-export { MOCK_PROJECTS } from '@/lib/mockData/index';
+export { MOCK_PROJECTS } from '@/lib/mockData';

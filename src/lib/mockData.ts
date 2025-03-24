@@ -5,7 +5,7 @@ import { Project, Audit, ChecklistItem, Exigence, Evaluation, Action, SamplePage
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
 // Données de démonstration pour les projets
-const projects: Project[] = [
+export const MOCK_PROJECTS: Project[] = [
   {
     id: 'project-1',
     name: 'Site institutionnel',
@@ -565,7 +565,7 @@ const auditItemsProject1 = checklist.map(item => {
 
 // Export des données mockées
 export const mockData = {
-  projects,
+  projects: MOCK_PROJECTS,
   audits,
   checklist,
   pages: samplePages,
@@ -575,8 +575,8 @@ export const mockData = {
   auditItemsProject1,
   
   // Méthodes utilitaires pour manipuler les données mockées
-  getProjects: () => projects,
-  getProject: (id: string) => projects.find(project => project.id === id),
+  getProjects: () => MOCK_PROJECTS,
+  getProject: (id: string) => MOCK_PROJECTS.find(project => project.id === id),
   getAudits: () => audits,
   getAudit: (id: string) => audits.find(audit => audit.id === id),
   getAuditsByProject: (projectId: string) => audits.filter(audit => audit.projectId === projectId),
@@ -601,28 +601,28 @@ export const mockData = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    projects.push(newProject);
+    MOCK_PROJECTS.push(newProject);
     return newProject;
   },
   
   updateProject: (id: string, data: Partial<Project>) => {
-    const index = projects.findIndex(project => project.id === id);
+    const index = MOCK_PROJECTS.findIndex(project => project.id === id);
     if (index === -1) return null;
     
-    projects[index] = {
-      ...projects[index],
+    MOCK_PROJECTS[index] = {
+      ...MOCK_PROJECTS[index],
       ...data,
       updatedAt: new Date().toISOString()
     };
     
-    return projects[index];
+    return MOCK_PROJECTS[index];
   },
   
   deleteProject: (id: string) => {
-    const index = projects.findIndex(project => project.id === id);
+    const index = MOCK_PROJECTS.findIndex(project => project.id === id);
     if (index === -1) return false;
     
-    projects.splice(index, 1);
+    MOCK_PROJECTS.splice(index, 1);
     return true;
   },
   
@@ -640,11 +640,21 @@ export const mockData = {
   // Méthodes CRUD pour les pages d'échantillon
   createPage: (data: any) => {
     const newId = `page_${Date.now()}`;
-    return { id: newId, ...data };
+    return { 
+      id: newId, 
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString() 
+    };
   },
 
   updatePage: (id: string, data: any) => {
-    return { id, ...data, updated: true };
+    return { 
+      id, 
+      ...data, 
+      updated: true,
+      updatedAt: new Date().toISOString() 
+    };
   },
 
   getProjectPages: (projectId: string) => {
@@ -688,3 +698,30 @@ export const mockData = {
     return { success: true, id: pageId };
   }
 };
+
+// Create a utility function to create a mock audit - used in multiple places
+export const createMockAudit = (projectId: string) => {
+  return {
+    id: `audit_${Date.now()}`,
+    name: `Audit ${new Date().toLocaleDateString()}`,
+    projectId,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    score: 0,
+    items: [],
+    version: '1.0'
+  };
+};
+
+// Create a new audit without any existing data
+export const createNewAudit = createMockAudit;
+
+// Helper to get project by ID
+export const getProjectById = (id: string) => MOCK_PROJECTS.find(project => project.id === id);
+
+// Helper to get pages by project ID
+export const getPagesByProjectId = (projectId: string) => samplePages.filter(page => page.projectId === projectId);
+
+// Export some commonly used mock data directly
+export { checklist as CHECKLIST_ITEMS };
+export { samplePages as SAMPLE_PAGES };
