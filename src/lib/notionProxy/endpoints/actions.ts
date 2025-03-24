@@ -1,118 +1,103 @@
-
 import { operationMode, operationModeUtils } from '@/services/operationMode';
 import { mockData } from '../mock/data';
-import { CorrectiveAction, ActionStatus, ComplianceStatus, ActionPriority } from '@/lib/types';
 
-/**
- * Get action by ID
- */
-export async function getAction(actionId: string) {
+// Actions API endpoints
+export async function getActions() {
+  // Vérifier si on est en mode démonstration
   if (operationMode.isDemoMode) {
+    // Appliquer un délai pour simuler une requête réseau
     await operationModeUtils.applySimulatedDelay();
     
-    const action = mockData.actions.find(a => a.id === actionId);
-    if (!action) {
-      throw new Error('Action not found');
-    }
-    return action;
-  }
-  
-  throw new Error('Not implemented in real mode yet');
-}
-
-/**
- * Get actions for evaluation
- */
-export async function getActionsForEvaluation(evaluationId: string) {
-  if (operationMode.isDemoMode) {
-    await operationModeUtils.applySimulatedDelay();
-    
-    const actions = mockData.actions.filter(a => a.evaluationId === evaluationId);
-    return actions;
-  }
-  
-  throw new Error('Not implemented in real mode yet');
-}
-
-/**
- * Create a new action
- */
-export async function createAction(action: Partial<CorrectiveAction>) {
-  if (operationMode.isDemoMode) {
-    await operationModeUtils.applySimulatedDelay();
-    
-    // Create a new action with defaults
-    const newAction: CorrectiveAction = {
-      id: `action_${Date.now()}`,
-      evaluationId: action.evaluationId || '',
-      targetScore: action.targetScore || ComplianceStatus.Compliant,
-      priority: action.priority || ActionPriority.Medium,
-      dueDate: action.dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      responsible: action.responsible || 'Unassigned',
-      comment: action.comment || '',
-      status: action.status || ActionStatus.ToDo,
-      pageId: action.pageId || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      progress: []
-    };
-    
-    // Add to mock data
-    mockData.actions.push(newAction);
-    
-    return newAction;
-  }
-  
-  throw new Error('Not implemented in real mode yet');
-}
-
-/**
- * Update action
- */
-export async function updateAction(actionId: string, data: Partial<CorrectiveAction>) {
-  if (operationMode.isDemoMode) {
-    await operationModeUtils.applySimulatedDelay();
-    
-    // Find action index
-    const actionIndex = mockData.actions.findIndex(a => a.id === actionId);
-    if (actionIndex === -1) {
-      throw new Error('Action not found');
+    // Simuler une erreur réseau aléatoire
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
     }
     
-    // Update the action
-    const updatedAction = {
-      ...mockData.actions[actionIndex],
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-    
-    // Update in-place
-    mockData.actions[actionIndex] = updatedAction;
-    
-    return updatedAction;
+    // Renvoyer les données de démonstration
+    return mockData.getActions();
   }
   
-  throw new Error('Not implemented in real mode yet');
+  // En mode réel, tenter d'utiliser l'API Notion
+  // Implémentation à venir
+  throw new Error('API Notion non implémentée pour les actions');
 }
 
-/**
- * Delete action
- */
-export async function deleteAction(actionId: string) {
+export async function getActionById(id: string) {
+  // Vérifier si on est en mode démonstration
   if (operationMode.isDemoMode) {
+    // Appliquer un délai pour simuler une requête réseau
     await operationModeUtils.applySimulatedDelay();
     
-    // Find action index
-    const actionIndex = mockData.actions.findIndex(a => a.id === actionId);
-    if (actionIndex === -1) {
-      return false;
+    // Simuler une erreur réseau aléatoire
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
     }
     
-    // Remove from mock data
-    mockData.actions.splice(actionIndex, 1);
-    
-    return true;
+    // Renvoyer les données de démonstration
+    return mockData.getAction(id);
   }
   
-  throw new Error('Not implemented in real mode yet');
+  // En mode réel, tenter d'utiliser l'API Notion
+  // Implémentation à venir
+  throw new Error('API Notion non implémentée pour les actions');
+}
+
+export async function createAction(data: any) {
+  // Vérifier si on est en mode démonstration
+  if (operationMode.isDemoMode) {
+    // Appliquer un délai pour simuler une requête réseau
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Simuler une erreur réseau aléatoire
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
+    }
+    
+    // Créer une action simulée
+    return mockData.createAction(data);
+  }
+  
+  // En mode réel, tenter d'utiliser l'API Notion
+  // Implémentation à venir
+  throw new Error('API Notion non implémentée pour la création d\'actions');
+}
+
+export async function updateAction(id: string, data: any) {
+  // Vérifier si on est en mode démonstration
+  if (operationMode.isDemoMode) {
+    // Appliquer un délai pour simuler une requête réseau
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Simuler une erreur réseau aléatoire
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
+    }
+    
+    // Mettre à jour l'action simulée
+    return mockData.updateAction(id, data);
+  }
+  
+  // En mode réel, tenter d'utiliser l'API Notion
+  // Implémentation à venir
+  throw new Error('API Notion non implémentée pour la mise à jour d\'actions');
+}
+
+export async function deleteAction(id: string) {
+  // Vérifier si on est en mode démonstration
+  if (operationMode.isDemoMode) {
+    // Appliquer un délai pour simuler une requête réseau
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Simuler une erreur réseau aléatoire
+    if (operationModeUtils.shouldSimulateError()) {
+      operationModeUtils.simulateConnectionError();
+    }
+    
+    // Supprimer l'action simulée
+    return mockData.deleteAction(id);
+  }
+  
+  // En mode réel, tenter d'utiliser l'API Notion
+  // Implémentation à venir
+  throw new Error('API Notion non implémentée pour la suppression d\'actions');
 }

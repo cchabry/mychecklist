@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 interface NotionFormActionsProps {
   onCancel: () => void;
   onReset: () => void;
-  isSubmitting?: boolean;
+  isSubmitting: boolean;
 }
 
 const NotionFormActions: React.FC<NotionFormActionsProps> = ({ 
   onCancel, 
   onReset, 
-  isSubmitting = false
+  isSubmitting 
 }) => {
   return (
     <div className="flex justify-between pt-4">

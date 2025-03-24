@@ -1,24 +1,18 @@
 
 import React from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface NotionApiKeyFieldProps {
   apiKey: string;
   onChange: (value: string) => void;
-  className?: string;
 }
 
-const NotionApiKeyField: React.FC<NotionApiKeyFieldProps> = ({ 
-  apiKey, 
-  onChange,
-  className = ''
-}) => {
+const NotionApiKeyField: React.FC<NotionApiKeyFieldProps> = ({ apiKey, onChange }) => {
   return (
-    <div className={`space-y-2 ${className}`}>
-      <Label htmlFor="apiKey" className="text-sm font-medium">
+    <div className="space-y-2">
+      <label htmlFor="apiKey" className="text-sm font-medium">
         Clé d'API Notion
-      </Label>
+      </label>
       <Input
         id="apiKey"
         type="password"

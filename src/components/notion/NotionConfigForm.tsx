@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import NotionApiKeyField from '@/components/notion/form/NotionApiKeyField';
-import NotionDatabaseField from '@/components/notion/form/NotionDatabaseField';
-import NotionConnectionTests from '@/components/notion/form/NotionConnectionTests';
-import NotionFormActions from '@/components/notion/form/NotionFormActions';
+import { NotionApiKeyField } from '@/components/notion/form/NotionApiKeyField';
+import { NotionDatabaseField } from '@/components/notion/form/NotionDatabaseField';
+import { NotionConnectionTests } from '@/components/notion/form/NotionConnectionTests';
+import { NotionFormActions } from '@/components/notion/form/NotionFormActions';
 import { useNotion } from '@/contexts/NotionContext';
 import { useNotionStorage } from '@/hooks/notion/useNotionStorage';
 import { operationMode } from '@/services/operationMode';
@@ -18,17 +18,15 @@ import { useOperationMode } from '@/services/operationMode';
 interface NotionConfigFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
-  onSubmit?: (apiKey: string, projectsDbId: string, checklistsDbId: string) => Promise<void>;
 }
 
 export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
   onSuccess,
-  onCancel,
-  onSubmit
+  onCancel
 }) => {
   // Hooks pour accéder aux données et fonctions
   const { status, testConnection } = useNotion();
-  const { getStoredConfig, updateStoredConfig, clearStoredConfig } = useNotionStorage();
+  const { loadKeys, saveKeys, clearKeys } = useNotionStorage();
   const { enableRealMode } = useOperationMode();
   
   // État local pour les champs du formulaire
@@ -43,66 +41,53 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
     evaluations: '',
     actions: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Charger les valeurs sauvegardées au démarrage
   useEffect(() => {
-    const config = getStoredConfig();
-    if (config.apiKey) setApiKey(config.apiKey);
-    if (config.databaseId) setDatabaseId(config.databaseId);
+    const keys = loadKeys();
+    if (keys.apiKey) setApiKey(keys.apiKey);
+    if (keys.databaseId) setDatabaseId(keys.databaseId);
     
     // Charger les bases de données additionnelles
-    if (config.checklistsDbId) setAdditionalDatabases(prev => ({ ...prev, checklists: config.checklistsDbId || '' }));
-    if (config.projectsDbId) setAdditionalDatabases(prev => ({ ...prev, projects: config.projectsDbId || '' }));
-    if (config.auditsDbId) setAdditionalDatabases(prev => ({ ...prev, audits: config.auditsDbId || '' }));
-    if (config.exigencesDbId) setAdditionalDatabases(prev => ({ ...prev, exigences: config.exigencesDbId || '' }));
-    if (config.samplePagesDbId) setAdditionalDatabases(prev => ({ ...prev, samplePages: config.samplePagesDbId || '' }));
-    if (config.evaluationsDbId) setAdditionalDatabases(prev => ({ ...prev, evaluations: config.evaluationsDbId || '' }));
-    if (config.actionsDbId) setAdditionalDatabases(prev => ({ ...prev, actions: config.actionsDbId || '' }));
-  }, []);
+    if (keys.checklistsDbId) setAdditionalDatabases(prev => ({ ...prev, checklists: keys.checklistsDbId }));
+    if (keys.projectsDbId) setAdditionalDatabases(prev => ({ ...prev, projects: keys.projectsDbId }));
+    if (keys.auditsDbId) setAdditionalDatabases(prev => ({ ...prev, audits: keys.auditsDbId }));
+    if (keys.exigencesDbId) setAdditionalDatabases(prev => ({ ...prev, exigences: keys.exigencesDbId }));
+    if (keys.samplePagesDbId) setAdditionalDatabases(prev => ({ ...prev, samplePages: keys.samplePagesDbId }));
+    if (keys.evaluationsDbId) setAdditionalDatabases(prev => ({ ...prev, evaluations: keys.evaluationsDbId }));
+    if (keys.actionsDbId) setAdditionalDatabases(prev => ({ ...prev, actions: keys.actionsDbId }));
+  }, [loadKeys]);
   
   // Gérer la soumission du formulaire
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    try {
-      // Enregistrer les clés
-      updateStoredConfig({
-        apiKey,
-        databaseId,
-        checklistsDbId: additionalDatabases.checklists,
-        projectsDbId: additionalDatabases.projects,
-        auditsDbId: additionalDatabases.audits,
-        exigencesDbId: additionalDatabases.exigences,
-        samplePagesDbId: additionalDatabases.samplePages,
-        evaluationsDbId: additionalDatabases.evaluations,
-        actionsDbId: additionalDatabases.actions
-      });
-      
-      // Réinitialiser le mode et tester la connexion
-      enableRealMode();
-      
-      // Si un handler de soumission personnalisé est fourni, l'utiliser
-      if (onSubmit) {
-        await onSubmit(apiKey, databaseId, additionalDatabases.checklists);
-      } else {
-        // Sinon, utiliser le test de connexion par défaut
-        testConnection();
-        
-        // Appeler le callback de succès si fourni
-        if (onSuccess) onSuccess();
-      }
-    } catch (error) {
-      console.error("Erreur lors de la soumission du formulaire:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Enregistrer les clés
+    saveKeys({
+      apiKey,
+      databaseId,
+      checklistsDbId: additionalDatabases.checklists,
+      projectsDbId: additionalDatabases.projects,
+      auditsDbId: additionalDatabases.audits,
+      exigencesDbId: additionalDatabases.exigences,
+      samplePagesDbId: additionalDatabases.samplePages,
+      evaluationsDbId: additionalDatabases.evaluations,
+      actionsDbId: additionalDatabases.actions
+    });
+    
+    // Réinitialiser le mode et tester la connexion
+    enableRealMode();
+    
+    // Tester la connexion
+    testConnection();
+    
+    // Appeler le callback de succès si fourni
+    if (onSuccess) onSuccess();
   };
   
   // Gérer le reset complet
   const handleReset = () => {
-    clearStoredConfig();
+    clearKeys();
     setApiKey('');
     setDatabaseId('');
     setAdditionalDatabases({
@@ -134,15 +119,16 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       <Separator className="my-4" />
       
       <NotionApiKeyField
-        apiKey={apiKey}
+        value={apiKey}
         onChange={setApiKey}
+        className="mb-6"
       />
       
       <NotionDatabaseField
-        id="main-database"
         label="Base de données principale"
         value={databaseId}
         onChange={setDatabaseId}
+        id="main-database"
         required
       />
       
@@ -182,13 +168,14 @@ export const NotionConfigForm: React.FC<NotionConfigFormProps> = ({
       
       <NotionConnectionTests
         className="my-6"
-        onSuccess={onSuccess}
+        apiKey={apiKey}
+        databaseId={databaseId}
       />
       
       <NotionFormActions
-        onCancel={onCancel || (() => {})}
+        onSubmit={handleSubmit}
         onReset={handleReset}
-        isSubmitting={isSubmitting}
+        onCancel={onCancel}
       />
     </form>
   );
