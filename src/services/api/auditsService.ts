@@ -4,7 +4,7 @@ import { Audit } from '@/lib/types';
 import { handleDemoMode } from './baseService';
 import { mockAudits } from '@/lib/mockData/index';
 import { notionApi } from '@/lib/notionProxy';
-import { operationMode } from '@/services/operationMode';
+import { operationMode } from '@/services/operationMode/operationModeService';
 
 class AuditsService {
   async getAll(): Promise<Audit[]> {
@@ -23,8 +23,8 @@ class AuditsService {
           return audits;
         } catch (error) {
           console.error('Erreur lors de la récupération des audits:', error);
-          // En cas d'erreur, utiliser les données mockées comme fallback
-          return mockAudits || [];
+          // Propager l'erreur pour affichage à l'utilisateur
+          throw error;
         }
       },
       async () => {
@@ -50,8 +50,8 @@ class AuditsService {
           return audit;
         } catch (error) {
           console.error(`Erreur lors de la récupération de l'audit ${id}:`, error);
-          // En cas d'erreur, utiliser les données mockées comme fallback
-          return mockAudits.find(audit => audit.id === id) || null;
+          // Propager l'erreur pour affichage à l'utilisateur
+          throw error;
         }
       },
       async () => {
@@ -71,9 +71,8 @@ class AuditsService {
           const auditsDbId = localStorage.getItem('notion_audits_database_id');
           if (!auditsDbId) {
             console.warn('Base de données des audits non configurée, création en mode démonstration');
-            // Créer un nouvel audit mocké
-            const newMockAudit = this.createMockAudit(data);
-            return newMockAudit;
+            // Notifier l'utilisateur de la configuration manquante
+            throw new Error('La base de données des audits n\'est pas configurée dans Notion. Configurez-la dans les paramètres.');
           }
           
           // Utiliser l'API Notion via proxy
@@ -82,16 +81,7 @@ class AuditsService {
           return newAudit;
         } catch (error) {
           console.error('Erreur lors de la création de l\'audit:', error);
-          
-          // Si l'erreur est liée à CORS ou à une configuration manquante, créer un mock
-          if (error.message?.includes('Failed to fetch') || 
-              error.message?.includes('Configuration') ||
-              error.message?.includes('CORS')) {
-            console.log('Fallback en mode démonstration suite à une erreur');
-            return this.createMockAudit(data);
-          }
-          
-          // Sinon propager l'erreur
+          // Propager l'erreur pour affichage à l'utilisateur
           throw error;
         }
       },
@@ -129,14 +119,7 @@ class AuditsService {
           const auditsDbId = localStorage.getItem('notion_audits_database_id');
           if (!auditsDbId) {
             console.warn('Base de données des audits non configurée, mise à jour en mode démonstration');
-            // Mettre à jour un audit mocké
-            const audit = mockAudits.find(audit => audit.id === id);
-            if (!audit) {
-              throw new Error(`Audit with id ${id} not found`);
-            }
-            
-            const updatedAudit = { ...audit, ...data, updatedAt: new Date().toISOString() };
-            return updatedAudit;
+            throw new Error('La base de données des audits n\'est pas configurée dans Notion. Configurez-la dans les paramètres.');
           }
           
           // Utiliser l'API Notion via proxy
@@ -144,19 +127,7 @@ class AuditsService {
           return updatedAudit;
         } catch (error) {
           console.error(`Erreur lors de la mise à jour de l'audit ${id}:`, error);
-          
-          // Si l'erreur est liée à CORS, utiliser un mock
-          if (error.message?.includes('Failed to fetch')) {
-            // Mettre à jour un audit mocké comme fallback
-            const audit = mockAudits.find(audit => audit.id === id);
-            if (!audit) {
-              throw new Error(`Audit with id ${id} not found`);
-            }
-            
-            const updatedAudit = { ...audit, ...data, updatedAt: new Date().toISOString() };
-            return updatedAudit;
-          }
-          
+          // Propager l'erreur pour affichage à l'utilisateur
           throw error;
         }
       },
@@ -181,7 +152,7 @@ class AuditsService {
           const auditsDbId = localStorage.getItem('notion_audits_database_id');
           if (!auditsDbId) {
             console.warn('Base de données des audits non configurée, suppression en mode démonstration');
-            return true;
+            throw new Error('La base de données des audits n\'est pas configurée dans Notion. Configurez-la dans les paramètres.');
           }
           
           // Utiliser l'API Notion via proxy
@@ -189,12 +160,7 @@ class AuditsService {
           return success;
         } catch (error) {
           console.error(`Erreur lors de la suppression de l'audit ${id}:`, error);
-          
-          // Si l'erreur est liée à CORS, simuler un succès
-          if (error.message?.includes('Failed to fetch')) {
-            return true;
-          }
-          
+          // Propager l'erreur pour affichage à l'utilisateur
           throw error;
         }
       },

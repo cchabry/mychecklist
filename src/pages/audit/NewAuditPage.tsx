@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { auditsService } from '@/services/api/auditsService';
-import { operationMode } from '@/services/operationMode';
+import { operationMode } from '@/services/operationMode/operationModeService';
 import { operationModeUtils } from '@/services/operationMode/utils';
 import { useNotion } from '@/contexts/NotionContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -50,11 +50,10 @@ const NewAuditPage: React.FC = () => {
         console.log(`Base de données des audits configurée: ${!!auditsDbId}`);
         
         if (!auditsDbId) {
+          // Avertir l'utilisateur mais continuer (l'erreur sera affichée)
           toast.warning("Base de données des audits non configurée", {
-            description: "L'application utilisera le mode démonstration pour cette fonctionnalité."
+            description: "Configurez la base de données des audits dans les paramètres."
           });
-          // Force demo mode for this operation only
-          operationMode.temporarilyActivateDemoMode();
         }
       }
 
@@ -77,18 +76,10 @@ const NewAuditPage: React.FC = () => {
     } catch (error) {
       console.error("Erreur détaillée:", error);
       
-      // Afficher un message d'erreur
+      // Afficher un message d'erreur avec plus de détails
       toast.error(`Erreur lors de la création de l'audit`, {
         description: error.message || "Erreur inconnue lors de la création"
       });
-      
-      // Activer le mode démo en cas d'erreur persistante
-      if (!operationMode.isDemoMode) {
-        operationMode.handleConnectionError(
-          error, 
-          "Création d'audit"
-        );
-      }
     } finally {
       setIsCreating(false);
     }
@@ -104,12 +95,12 @@ const NewAuditPage: React.FC = () => {
         <CardContent>
           <div className="grid gap-4">
             {usingNotion && !operationMode.isDemoMode && !auditsDbConfigured && (
-              <Alert variant="warning" className="mb-4">
+              <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Base de données manquante</AlertTitle>
                 <AlertDescription>
                   La base de données des audits n'est pas configurée dans Notion. 
-                  L'application utilisera le mode démonstration pour cette fonctionnalité.
+                  Veuillez la configurer dans les paramètres avant de créer un audit.
                 </AlertDescription>
               </Alert>
             )}

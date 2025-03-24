@@ -11,18 +11,14 @@ export { operationMode } from './operationModeService';
 export { useOperationMode } from './hooks/useOperationMode';
 
 // Exporter les types
-export type { 
-  OperationModeSettings, 
-  SwitchReason,
-  IOperationModeService,
-  OperationModeHook 
-} from './types';
+export type { OperationModeType } from './operationModeService';
 
 // Exporter l'énumération OperationMode directement pour simplifier l'usage
-export { OperationMode } from './types';
+export enum OperationMode {
+  REAL = 'real',
+  DEMO = 'demo',
+  AUTO = 'auto'
+}
 
 // Exporter les utilitaires
 export { operationModeUtils } from './utils';
-
-// Exporter les constantes pour les personnes qui en ont besoin
-export { DEFAULT_SETTINGS } from './constants';
