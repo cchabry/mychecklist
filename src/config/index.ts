@@ -16,7 +16,7 @@ export { APP_VERSION, getCurrentVersion } from './version';
  * Initialise les configurations globales de l'application
  */
 export function initAppConfig() {
-  const { APP_VERSION } = require('./version');
+  // Utiliser l'import direct au lieu de require
   console.log('Application configurée avec version:', APP_VERSION.toString());
   // Autres initialisations de configuration peuvent être ajoutées ici
 }
