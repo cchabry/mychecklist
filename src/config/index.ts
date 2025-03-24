@@ -5,7 +5,7 @@
  */
 
 // Importer et initialiser le versioning de l'application
-import './version';
+import { APP_VERSION, getCurrentVersion } from './version';
 
 // Exporter le système de versioning pour un accès global
 export { APP_VERSION, getCurrentVersion } from './version';
