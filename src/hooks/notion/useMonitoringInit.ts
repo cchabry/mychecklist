@@ -34,11 +34,15 @@ export function useMonitoringInit(options: {
       jsonOutput: enableJsonOutput
     });
     
+    // Variables pour stocker les gestionnaires d'origine
+    let originalWindowOnError: OnErrorEventHandler | null = null;
+    let originalWindowOnUnhandledRejection: ((this: Window, ev: PromiseRejectionEvent) => any) | null = null;
+    
     // Installer un gestionnaire d'erreurs global si demandé
     if (automaticErrorLogging) {
       // Stocker les gestionnaires d'origine
-      const originalOnError = window.onerror;
-      const originalOnUnhandledRejection = window.onunhandledrejection;
+      originalWindowOnError = window.onerror;
+      originalWindowOnUnhandledRejection = window.onunhandledrejection;
       
       // Gérer les erreurs non interceptées
       window.onerror = function(message, source, lineno, colno, error) {
@@ -52,8 +56,8 @@ export function useMonitoringInit(options: {
         );
         
         // Appeler le gestionnaire original s'il existe
-        if (originalOnError) {
-          return originalOnError.call(this, message, source, lineno, colno, error);
+        if (originalWindowOnError) {
+          return originalWindowOnError.call(this, message, source, lineno, colno, error);
         }
         
         return false;
@@ -71,8 +75,8 @@ export function useMonitoringInit(options: {
         );
         
         // Appeler le gestionnaire original s'il existe
-        if (originalOnUnhandledRejection) {
-          return originalOnUnhandledRejection.call(this, event);
+        if (originalWindowOnUnhandledRejection) {
+          return originalWindowOnUnhandledRejection.call(this, event);
         }
       };
     }
@@ -83,8 +87,8 @@ export function useMonitoringInit(options: {
     return () => {
       if (automaticErrorLogging) {
         // Restaurer les gestionnaires d'origine
-        window.onerror = originalOnError;
-        window.onunhandledrejection = originalOnUnhandledRejection;
+        window.onerror = originalWindowOnError;
+        window.onunhandledrejection = originalWindowOnUnhandledRejection;
       }
     };
   }, [options]);

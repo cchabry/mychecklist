@@ -1,70 +1,61 @@
 
+/**
+ * Point d'entrée pour les services de monitoring
+ * Ce module initialise et configure les services de monitoring
+ */
+
 import { structuredLogger } from '../logging/structuredLogger';
 import { errorCounter } from './errorCounter';
-import { ErrorReport } from '../errorHandling/types';
+import { ErrorCounterOptions } from '../errorHandling/types';
+
+/**
+ * Interface des options de configuration du monitoring
+ */
+export interface MonitoringOptions {
+  /**
+   * Options de configuration du compteur d'erreurs
+   */
+  errorCounter?: ErrorCounterOptions;
+  
+  /**
+   * Active ou désactive le monitoring
+   */
+  enabled?: boolean;
+  
+  /**
+   * Niveau de détail des logs
+   */
+  logLevel?: string;
+}
 
 /**
  * Initialise le système de monitoring
  */
-export function initMonitoring() {
-  // Logger l'initialisation
-  structuredLogger.info('Initialisation du système de monitoring Notion', {
-    timestamp: new Date().toISOString()
-  });
+export function initMonitoring(options: MonitoringOptions = {}) {
+  const { enabled = true, errorCounter: errorCounterOptions } = options;
   
-  // Initialiser les compteurs d'erreur
-  errorCounter.reset();
+  if (!enabled) {
+    console.log('Système de monitoring désactivé');
+    return { structuredLogger, errorCounter };
+  }
   
-  // Enregistrer un rapport d'initialisation pour le diagnostic
-  structuredLogger.info('Système de monitoring prêt', {
-    environment: process.env.NODE_ENV,
-    browser: getBrowserInfo(),
-    deployment: getDeploymentInfo()
-  });
+  // Initialiser le compteur d'erreurs avec les options fournies
+  if (errorCounterOptions) {
+    // Configuration du compteur d'erreurs, si l'API le permet
+    if (typeof errorCounter.configure === 'function') {
+      errorCounter.configure(errorCounterOptions);
+    }
+  }
   
-  // Retourner les outils de monitoring
+  console.log('Système de monitoring initialisé');
+  
   return {
     structuredLogger,
-    errorCounter,
-    
-    // Utilitaire pour créer un rapport d'erreur
-    createErrorReport(error: Error, context?: string): ErrorReport {
-      // Incrémenter les compteurs appropriés
-      errorCounter.increment(error);
-      
-      // Créer un rapport structuré
-      return {
-        message: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString(),
-        context: context || 'Erreur non contextualisée',
-        browser: getBrowserInfo(),
-        counters: errorCounter.getStats()
-      };
-    }
+    errorCounter
   };
 }
 
-/**
- * Récupère des informations sur le navigateur
- */
-function getBrowserInfo() {
-  return {
-    userAgent: navigator.userAgent,
-    language: navigator.language,
-    online: navigator.onLine,
-    doNotTrack: navigator.doNotTrack,
-    cookiesEnabled: navigator.cookieEnabled
-  };
-}
-
-/**
- * Récupère des informations sur le déploiement
- */
-function getDeploymentInfo() {
-  return {
-    environment: process.env.NODE_ENV,
-    buildTime: process.env.BUILD_TIME || 'unknown',
-    version: process.env.VERSION || 'dev'
-  };
-}
+export {
+  structuredLogger,
+  errorCounter
+};

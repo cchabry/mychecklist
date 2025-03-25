@@ -5,8 +5,158 @@
  */
 
 import { notionService } from '../client';
-import { NotionAPIResponse, ConnectionStatus, NotionAPIListResponse, NotionAPIPage } from '../client/legacy';
+import { NotionAPIResponse, ConnectionStatus, NotionAPIListResponse, NotionAPIPage, NotionAPIError } from '../client/legacy';
 import { updateConfig, getStoredConfig } from '../config';
+
+// Service adapté avec toutes les méthodes nécessaires
+const adaptedNotionService = {
+  ...notionService,
+  
+  // API Bases de données (ajout)
+  databases: {
+    query: async (databaseId: string, query = {}): Promise<any> => {
+      try {
+        if (notionService.databases && typeof notionService.databases.query === 'function') {
+          return await notionService.databases.query(databaseId, query);
+        }
+        throw new Error('Méthode databases.query non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    },
+    
+    retrieve: async (databaseId: string): Promise<any> => {
+      try {
+        if (notionService.databases && typeof notionService.databases.retrieve === 'function') {
+          return await notionService.databases.retrieve(databaseId);
+        }
+        throw new Error('Méthode databases.retrieve non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    }
+  },
+  
+  // API Pages (ajout)
+  pages: {
+    retrieve: async (pageId: string): Promise<any> => {
+      try {
+        if (notionService.pages && typeof notionService.pages.retrieve === 'function') {
+          return await notionService.pages.retrieve(pageId);
+        }
+        throw new Error('Méthode pages.retrieve non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    },
+    
+    create: async (data: any): Promise<any> => {
+      try {
+        if (notionService.pages && typeof notionService.pages.create === 'function') {
+          return await notionService.pages.create(data);
+        }
+        throw new Error('Méthode pages.create non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    },
+    
+    update: async (pageId: string, data: any): Promise<any> => {
+      try {
+        if (notionService.pages && typeof notionService.pages.update === 'function') {
+          return await notionService.pages.update(pageId, data);
+        }
+        throw new Error('Méthode pages.update non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    }
+  },
+  
+  // API Utilisateurs (ajout)
+  users: {
+    me: async (): Promise<any> => {
+      try {
+        if (notionService.users && typeof notionService.users.me === 'function') {
+          return await notionService.users.me();
+        }
+        throw new Error('Méthode users.me non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    },
+    
+    list: async (): Promise<any> => {
+      try {
+        if (notionService.users && typeof notionService.users.list === 'function') {
+          return await notionService.users.list();
+        }
+        throw new Error('Méthode users.list non disponible');
+      } catch (error) {
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
+      }
+    }
+  },
+  
+  // API Recherche (ajout)
+  search: async (query: string, options = {}): Promise<any> => {
+    try {
+      if (typeof notionService.search === 'function') {
+        return await notionService.search(query, options);
+      }
+      throw new Error('Méthode search non disponible');
+    } catch (error) {
+      return { 
+        success: false, 
+        error: { message: error instanceof Error ? error.message : String(error) } 
+      };
+    }
+  },
+  
+  // Test de connexion enrichi pour la compatibilité
+  testConnection: async (): Promise<NotionAPIResponse<{ user: string }>> => {
+    try {
+      const result = await notionService.testConnection();
+      
+      return {
+        success: result.success,
+        data: result.success ? { user: result.user || 'Unknown user' } : undefined,
+        error: !result.success ? { 
+          message: result.error || 'Unknown error'
+        } as NotionAPIError : undefined,
+        user: result.success ? result.user || 'Unknown user' : undefined
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Une erreur inconnue est survenue'
+        }
+      };
+    }
+  }
+};
 
 // Objet d'adaptateur qui expose l'API compatible avec l'ancien client
 export const notionClientAdapter = {
@@ -36,141 +186,8 @@ export const notionClientAdapter = {
     console.log('✅ Notion configuration updated via compatibility adapter');
   },
   
-  // Test de connexion
-  testConnection: async (): Promise<NotionAPIResponse<{ user: string }>> => {
-    try {
-      const result = await notionService.testConnection();
-      
-      return {
-        success: result.success,
-        data: result.success ? { user: result.user || 'Unknown user' } : undefined,
-        error: !result.success ? { message: result.error || 'Unknown error' } : undefined,
-        user: result.success ? result.user || 'Unknown user' : undefined
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message: error instanceof Error ? error.message : 'Une erreur inconnue est survenue'
-        }
-      };
-    }
-  },
-  
-  // Gestion de l'état de connexion
-  getConnectionStatus: (): ConnectionStatus => {
-    return notionService.getConnectionStatus();
-  },
-  
-  setConnectionStatus: (status: ConnectionStatus): void => {
-    notionService.setConnectionStatus(status);
-  },
-  
-  // Proxy pour les opérations de l'API Notion (databases, users, pages, etc.)
-  databases: {
-    query: async (databaseId: string, query = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
-      try {
-        const result = await notionService.databases.query(databaseId, query);
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    retrieve: async (databaseId: string): Promise<NotionAPIResponse<any>> => {
-      try {
-        const result = await notionService.databases.retrieve(databaseId);
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    }
-  },
-  
-  // API Pages
-  pages: {
-    retrieve: async (pageId: string): Promise<NotionAPIResponse<NotionAPIPage>> => {
-      try {
-        const result = await notionService.pages.retrieve(pageId);
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    create: async (data: any): Promise<NotionAPIResponse<NotionAPIPage>> => {
-      try {
-        const result = await notionService.pages.create(data);
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    update: async (pageId: string, data: any): Promise<NotionAPIResponse<NotionAPIPage>> => {
-      try {
-        const result = await notionService.pages.update(pageId, data);
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    }
-  },
-  
-  // API Utilisateurs
-  users: {
-    me: async (): Promise<NotionAPIResponse<any>> => {
-      try {
-        const result = await notionService.users.me();
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    list: async (): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
-      try {
-        const result = await notionService.users.list();
-        return { success: true, data: result.data };
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    }
-  },
-  
-  // API Recherche
-  search: async (query: string, options = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
-    try {
-      const result = await notionService.search(query, options);
-      return { success: true, data: result.data };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: { message: error instanceof Error ? error.message : String(error) } 
-      };
-    }
-  }
+  // Exporter toutes les méthodes du service adapté
+  ...adaptedNotionService
 };
 
 export default notionClientAdapter;

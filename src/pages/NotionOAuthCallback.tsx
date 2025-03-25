@@ -16,7 +16,7 @@ const NotionOAuthCallback: React.FC = () => {
   
   const location = useLocation();
   const navigate = useNavigate();
-  const { handleOAuthCallback } = useNotionOAuth({
+  const { handleCallback } = useNotionOAuth({
     onAuthError: (error) => setError(error.message)
   });
   
@@ -27,10 +27,10 @@ const NotionOAuthCallback: React.FC = () => {
         const params = new URLSearchParams(location.search);
         const code = params.get('code');
         const state = params.get('state');
-        const error = params.get('error');
+        const errorParam = params.get('error');
         
-        if (error) {
-          setError(`Erreur d'authentification: ${error}`);
+        if (errorParam) {
+          setError(`Erreur d'authentification: ${errorParam}`);
           setIsProcessing(false);
           return;
         }
@@ -42,8 +42,8 @@ const NotionOAuthCallback: React.FC = () => {
         }
         
         // Traiter le callback OAuth
-        await handleOAuthCallback(code, state);
-        setSuccess(true);
+        const callbackSuccess = await handleCallback(code, state);
+        setSuccess(callbackSuccess);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -52,7 +52,7 @@ const NotionOAuthCallback: React.FC = () => {
     };
     
     processOAuthCallback();
-  }, [location.search, handleOAuthCallback]);
+  }, [location.search, handleCallback]);
   
   // Rediriger vers la page d'accueil après un délai en cas de succès
   useEffect(() => {
