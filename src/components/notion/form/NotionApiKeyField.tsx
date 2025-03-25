@@ -1,23 +1,32 @@
 
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { validateTokenFormat, NotionTokenType } from '@/services/notion/security/tokenValidation';
-import { Key, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { validateTokenFormat, verifyTokenWithAPI, NotionTokenType } from '@/services/notion/security/tokenValidation';
+import { Key, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { TokenStorage } from '@/services/notion/security/tokenStorage';
 
 interface NotionApiKeyFieldProps {
   apiKey: string;
   onChange: (value: string) => void;
   showValidation?: boolean;
+  allowOAuthFlow?: boolean;
+  onOAuthClick?: () => void;
+  isOAuthLoading?: boolean;
 }
 
 const NotionApiKeyField: React.FC<NotionApiKeyFieldProps> = ({ 
   apiKey, 
   onChange,
-  showValidation = true
+  showValidation = true,
+  allowOAuthFlow = false,
+  onOAuthClick,
+  isOAuthLoading = false
 }) => {
   const [isValid, setIsValid] = useState(false);
   const [tokenType, setTokenType] = useState<NotionTokenType>(NotionTokenType.UNKNOWN);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   
   // Valider le token lors des changements
   useEffect(() => {
@@ -35,6 +44,25 @@ const NotionApiKeyField: React.FC<NotionApiKeyFieldProps> = ({
     setTokenType(validation.type);
     setErrorMessage(validation.error || null);
   }, [apiKey]);
+  
+  // Vérifier le token avec l'API Notion
+  const handleVerifyToken = async () => {
+    if (!apiKey || !isValid) return;
+    
+    setIsVerifying(true);
+    try {
+      const result = await verifyTokenWithAPI(apiKey);
+      setIsValid(result.isValid);
+      if (!result.isValid && result.error) {
+        setErrorMessage(result.error);
+      }
+    } catch (error) {
+      setIsValid(false);
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsVerifying(false);
+    }
+  };
   
   // Déterminer la couleur et l'icône selon la validité et le type
   const getValidationColor = () => {
@@ -74,7 +102,7 @@ const NotionApiKeyField: React.FC<NotionApiKeyFieldProps> = ({
         <Input
           id="apiKey"
           type="password"
-          placeholder="secret_xxxx..."
+          placeholder="secret_xxxx... ou ntn_xxxx..."
           value={apiKey}
           onChange={(e) => onChange(e.target.value)}
           className={`font-mono text-sm pl-9 ${isValid ? 'pr-10' : ''}`}
@@ -97,6 +125,46 @@ const NotionApiKeyField: React.FC<NotionApiKeyFieldProps> = ({
           {getTokenTypeLabel()}
         </p>
       )}
+      
+      <div className="flex gap-2">
+        {allowOAuthFlow && onOAuthClick && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={onOAuthClick}
+            disabled={isOAuthLoading}
+            className="flex items-center gap-1 text-purple-600 border-purple-300 hover:bg-purple-50"
+          >
+            {isOAuthLoading ? (
+              <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <Key className="h-3.5 w-3.5 mr-1" />
+            )}
+            Se connecter avec OAuth
+          </Button>
+        )}
+        
+        {apiKey && isValid && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleVerifyToken}
+            disabled={isVerifying}
+            className="text-xs"
+          >
+            {isVerifying ? (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
+                Vérification...
+              </>
+            ) : (
+              'Vérifier le token'
+            )}
+          </Button>
+        )}
+      </div>
       
       <p className="text-xs text-muted-foreground">
         Clé d'intégration de votre application Notion ou token OAuth

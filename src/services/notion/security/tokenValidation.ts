@@ -1,6 +1,5 @@
 
 import { NotionErrorType } from '@/services/notion/errorHandling/types';
-import { createNotionError } from '@/services/notion/errorHandling/notionError';
 import { structuredLogger } from '@/services/notion/logging/structuredLogger';
 
 /**
@@ -153,7 +152,12 @@ export async function verifyTokenWithAPI(token: string): Promise<TokenValidation
     
     // Créer un message d'erreur approprié
     let errorMessage = "Erreur lors de la validation du token";
-    if (error.status === 401) {
+    
+    // Vérifier si c'est une erreur d'expiration pour les tokens OAuth
+    const tokenType = identifyTokenType(token);
+    if (tokenType === NotionTokenType.OAUTH && error.status === 401) {
+      errorMessage = "Token OAuth expiré";
+    } else if (error.status === 401) {
       errorMessage = "Token non autorisé";
     } else if (error.status === 403) {
       errorMessage = "Token sans permission suffisante";
@@ -215,9 +219,10 @@ export function obfuscateToken(token: string): string {
  * Crée une erreur de token adaptée
  */
 export function createTokenError(message: string, details?: any): Error {
-  return createNotionError({
-    message,
-    type: NotionErrorType.AUTH,
-    details
-  });
+  const error = new Error(message);
+  // @ts-ignore
+  error.type = NotionErrorType.AUTH;
+  // @ts-ignore
+  error.details = details;
+  return error;
 }

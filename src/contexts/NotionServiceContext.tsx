@@ -2,6 +2,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { notionService, ConnectionStatus, NotionAPIResponse } from '@/services/notion/client';
+import OAuthTokenMonitor from '@/components/notion/security/OAuthTokenMonitor';
+import { useNotionOAuth } from '@/hooks/notion/useNotionOAuth';
+import { identifyTokenType, NotionTokenType } from '@/services/notion/security/tokenValidation';
 
 // Types pour le context
 interface NotionServiceContextType {
@@ -11,10 +14,16 @@ interface NotionServiceContextType {
   lastError: Error | null;
   isConnected: boolean;
   isLoading: boolean;
+  isOAuthToken: boolean;
   
   // Configuration
   setNotionConfig: (apiKey: string, databaseId: string, checklistsDbId?: string) => void;
   testConnection: () => Promise<NotionAPIResponse<any>>;
+  
+  // OAuth
+  startOAuthFlow: () => void;
+  refreshOAuthToken: () => Promise<void>;
+  logoutOAuth: () => Promise<void>;
   
   // Accès aux services
   notion: typeof notionService;
@@ -27,9 +36,14 @@ const defaultContext: NotionServiceContextType = {
   lastError: null,
   isConnected: false,
   isLoading: false,
+  isOAuthToken: false,
   
   setNotionConfig: () => {},
   testConnection: async () => ({ success: false, error: { message: 'Non initialisé' } }),
+  
+  startOAuthFlow: () => {},
+  refreshOAuthToken: async () => {},
+  logoutOAuth: async () => {},
   
   notion: notionService
 };
@@ -48,6 +62,20 @@ export const NotionServiceProvider: React.FC<NotionServiceProviderProps> = ({ ch
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(ConnectionStatus.Disconnected);
   const [lastError, setLastError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [apiKeyType, setApiKeyType] = useState<NotionTokenType>(NotionTokenType.UNKNOWN);
+  
+  // Utiliser notre hook OAuth
+  const { 
+    startOAuthFlow, 
+    refreshToken, 
+    logout, 
+    isAuthenticated 
+  } = useNotionOAuth({
+    onTokenRefreshed: () => {
+      // Retester la connexion après un rafraîchissement de token
+      testConnection();
+    }
+  });
   
   // Initialiser à partir de la configuration stockée
   useEffect(() => {
@@ -56,6 +84,11 @@ export const NotionServiceProvider: React.FC<NotionServiceProviderProps> = ({ ch
       setIsConfigured(hasConfig);
       
       if (hasConfig) {
+        // Déterminer le type de token
+        const apiKey = localStorage.getItem('notion_api_key') || '';
+        const tokenType = identifyTokenType(apiKey);
+        setApiKeyType(tokenType);
+        
         setIsLoading(true);
         try {
           const response = await notionService.testConnection();
@@ -82,6 +115,11 @@ export const NotionServiceProvider: React.FC<NotionServiceProviderProps> = ({ ch
   const setNotionConfig = (apiKey: string, databaseId: string, checklistsDbId?: string) => {
     try {
       notionService.configure(apiKey, databaseId, checklistsDbId);
+      
+      // Déterminer le type de token
+      const tokenType = identifyTokenType(apiKey);
+      setApiKeyType(tokenType);
+      
       setIsConfigured(true);
       toast.success('Configuration Notion sauvegardée');
     } catch (error) {
@@ -136,6 +174,18 @@ export const NotionServiceProvider: React.FC<NotionServiceProviderProps> = ({ ch
     }
   };
   
+  // Rafraîchir un token OAuth
+  const refreshOAuthToken = async (): Promise<void> => {
+    if (apiKeyType !== NotionTokenType.OAUTH) {
+      return;
+    }
+    
+    await refreshToken();
+    
+    // Retester la connexion après le rafraîchissement
+    await testConnection();
+  };
+  
   // Calculer si connecté
   const isConnected = connectionStatus === ConnectionStatus.Connected;
   
@@ -146,9 +196,14 @@ export const NotionServiceProvider: React.FC<NotionServiceProviderProps> = ({ ch
     lastError,
     isConnected,
     isLoading,
+    isOAuthToken: apiKeyType === NotionTokenType.OAUTH,
     
     setNotionConfig,
     testConnection,
+    
+    startOAuthFlow,
+    refreshOAuthToken,
+    logoutOAuth: logout,
     
     notion: notionService
   };
@@ -156,6 +211,11 @@ export const NotionServiceProvider: React.FC<NotionServiceProviderProps> = ({ ch
   return (
     <NotionServiceContext.Provider value={contextValue}>
       {children}
+      {/* Intégrer le moniteur OAuth */}
+      <OAuthTokenMonitor 
+        disabled={apiKeyType !== NotionTokenType.OAUTH || !isAuthenticated}
+        onTokenRefreshed={() => testConnection()}
+      />
     </NotionServiceContext.Provider>
   );
 };
