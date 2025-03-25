@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -8,41 +9,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Project, ActionStatus } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useProjectAudits } from '@/hooks/useProjectAudits';
 
 interface ProjectCardProps {
   project: Project;
 }
 
-// Données fictives pour les audits - à remplacer par des données réelles
-const mockAudits = [{
-  id: '1',
-  name: 'Audit initial',
-  updatedAt: new Date('2023-06-15').toISOString(),
-  progress: 65,
-  itemsCount: 24,
-  actionsCount: {
-    total: 12,
-    [ActionStatus.ToDo]: 5,
-    [ActionStatus.InProgress]: 4,
-    [ActionStatus.Done]: 3
-  }
-}, {
-  id: '2',
-  name: 'Audit de suivi',
-  updatedAt: new Date('2023-09-22').toISOString(),
-  progress: 30,
-  itemsCount: 18,
-  actionsCount: {
-    total: 8,
-    [ActionStatus.ToDo]: 6,
-    [ActionStatus.InProgress]: 2,
-    [ActionStatus.Done]: 0
-  }
-}];
-
 const ProjectCard: React.FC<ProjectCardProps> = ({
   project
 }) => {
+  // Récupérer les audits réels depuis Notion
+  const { audits, isLoading: isLoadingAudits, error: auditsError } = useProjectAudits(project.id);
+
   // Vérifier et normaliser l'ID du projet
   const getCleanProjectId = () => {
     if (!project || !project.id) {
@@ -76,12 +55,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
   
   const cleanProjectId = getCleanProjectId();
-  
-  // Log pour le débogage
-  useEffect(() => {
-    console.log(`ProjectCard - ID Brut: "${project.id}", Type: ${typeof project.id}, ID nettoyé: "${cleanProjectId}", Type: ${typeof cleanProjectId}`);
-  }, [project.id, cleanProjectId]);
-  
+
   return (
     <Card className="bg-[#fff8f0] backdrop-blur-md rounded-lg border border-tmw-teal/20 shadow-md transition-shadow hover:shadow-lg">
       <CardHeader className="relative">
@@ -105,8 +79,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-5">
-        {mockAudits.length > 0 ? (
-          mockAudits.map(audit => (
+        {isLoadingAudits ? (
+          // État de chargement
+          <div className="space-y-4">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+        ) : auditsError ? (
+          // Erreur de chargement
+          <div className="bg-red-50 p-3 rounded-md border border-red-200 text-red-800">
+            <p className="text-sm font-medium">Erreur de chargement</p>
+            <p className="text-xs mt-1">Impossible de récupérer les audits de ce projet.</p>
+          </div>
+        ) : audits.length > 0 ? (
+          // Afficher les audits récupérés
+          audits.map(audit => (
             <div key={audit.id} className="bg-white/70 p-3 rounded-md border border-gray-100 relative">
               <Link 
                 to={`/audit/${cleanProjectId}/${audit.id}`}
@@ -118,19 +105,24 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               
               <div className="mb-2">
                 <h4 className="font-medium text-gray-800">{audit.name}</h4>
+                <p className="text-xs text-gray-500">
+                  Dernière mise à jour: {new Date(audit.updatedAt).toLocaleDateString('fr-FR')}
+                </p>
               </div>
               
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs">Progression</span>
-                    <span className="text-xs">{audit.progress}%</span>
+                    <span className="text-xs">{audit.progress || 0}%</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
-                      <Progress value={audit.progress} className="h-2" />
+                      <Progress value={audit.progress || 0} className="h-2" />
                       <p className="text-xs mt-1 text-muted-foreground">
-                        {Math.round(audit.progress * audit.itemsCount / 100)} / {audit.itemsCount} critères évalués
+                        {audit.itemsCount 
+                          ? `${Math.round((audit.progress || 0) * audit.itemsCount / 100)} / ${audit.itemsCount} critères évalués`
+                          : "Aucune donnée d'évaluation"}
                       </p>
                     </div>
                   </div>
@@ -147,13 +139,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                       <FileText size={12} />
                       Plan d'action
                       <Circle size={12} className="ml-1 text-red-500" />
-                      <span className="text-red-500">{audit.actionsCount[ActionStatus.ToDo]}</span>
+                      <span className="text-red-500">{audit.actionsCount?.[ActionStatus.ToDo] || 0}</span>
                       <span className="mx-0.5 text-muted-foreground">|</span>
                       <Clock size={12} className="text-blue-500" />
-                      <span className="text-blue-500">{audit.actionsCount[ActionStatus.InProgress]}</span>
+                      <span className="text-blue-500">{audit.actionsCount?.[ActionStatus.InProgress] || 0}</span>
                       <span className="mx-0.5 text-muted-foreground">|</span>
                       <CheckCircle size={12} className="text-green-500" />
-                      <span className="text-green-500">{audit.actionsCount[ActionStatus.Done]}</span>
+                      <span className="text-green-500">{audit.actionsCount?.[ActionStatus.Done] || 0}</span>
                     </Link>
                   </Button>
                 </div>
@@ -161,6 +153,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           ))
         ) : (
+          // Aucun audit trouvé
           <div className="bg-white/70 p-4 rounded-md border border-gray-100 text-center">
             <p className="text-muted-foreground mb-3">Aucun audit pour ce projet</p>
           </div>

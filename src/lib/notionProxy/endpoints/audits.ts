@@ -1,4 +1,3 @@
-
 import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
 import { Audit } from '@/lib/types';
@@ -334,5 +333,88 @@ export const getAudit = async (id: string): Promise<Audit | null> => {
   } catch (error) {
     console.error(`Erreur lors de la récupération de l'audit #${cleanId}:`, error);
     return null;
+  }
+};
+
+/**
+ * Récupère tous les audits pour un projet spécifique
+ */
+export const getAuditsByProject = async (projectId: string): Promise<Audit[]> => {
+  // Si nous sommes en mode démo, retourner des données simulées
+  if (operationMode.isDemoMode) {
+    console.log('Using demo audits data for project:', projectId);
+    // Créer des données de démo adaptées au projet
+    return [
+      {
+        id: uuidv4(), // Utiliser un UUID standard
+        projectId: projectId,
+        name: 'Audit initial',
+        items: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        score: 75,
+        version: '1.0'
+      },
+      {
+        id: uuidv4(), // Utiliser un UUID standard
+        projectId: projectId,
+        name: 'Audit de suivi',
+        items: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        score: 35,
+        version: '1.0'
+      }
+    ];
+  }
+
+  // Récupérer depuis Notion avec filtre sur le projectId
+  const apiKey = localStorage.getItem('notion_api_key');
+  const dbId = localStorage.getItem('notion_audit_database_id');
+
+  if (!apiKey || !dbId) {
+    console.warn('Configuration Notion incomplète pour récupérer les audits');
+    return [];
+  }
+
+  try {
+    console.log(`🔍 Récupération des audits pour le projet ${projectId} depuis Notion`);
+    
+    // Requête à la base de données Notion avec filtre sur la relation Project
+    const response = await notionApiRequest(
+      `/databases/${dbId}/query`,
+      'POST',
+      {
+        filter: {
+          property: "Project",
+          relation: {
+            contains: projectId
+          }
+        }
+      },
+      apiKey
+    );
+
+    console.log(`✅ Réponse reçue de Notion pour les audits du projet ${projectId}`);
+    
+    // Mapper les résultats en audits
+    return response.results.map((page: any) => {
+      const properties = page.properties;
+      
+      return {
+        id: page.id,
+        projectId: projectId,
+        name: properties.Name?.title?.[0]?.plain_text || 'Audit sans nom',
+        createdAt: page.created_time,
+        updatedAt: page.last_edited_time,
+        score: properties.Score?.number || 0,
+        items: [],
+        version: properties.Version?.rich_text?.[0]?.plain_text || '1.0'
+      };
+    });
+  } catch (error) {
+    console.error(`❌ Erreur lors de la récupération des audits pour le projet ${projectId}:`, error);
+    // En cas d'erreur, retourner un tableau vide
+    return [];
   }
 };

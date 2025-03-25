@@ -53,7 +53,10 @@ export const notionApi = {
   ...actions,
   
   // Système de mode mock (pour compatibilité)
-  mockMode
+  mockMode,
+  
+  // Méthode pour récupérer les audits par projet
+  getAuditsByProject: audits.getAuditsByProject
 };
 
 // Exporter par défaut
