@@ -23,6 +23,22 @@ export type DatabaseStructureCheck = {
   hasAllRequired: boolean;
 };
 
+// Interface pour la structure de la réponse de l'API Notion pour une base de données
+interface NotionDatabaseResponse {
+  id: string;
+  title?: Array<{
+    type: string;
+    plain_text?: string;
+    [key: string]: any;
+  }>;
+  properties?: Record<string, {
+    type: string;
+    name?: string;
+    [key: string]: any;
+  }>;
+  [key: string]: any;
+}
+
 export function useNotionDatabaseStructure() {
   const notionRequest = useNotionRequest();
   const { config } = useNotion();
@@ -52,7 +68,7 @@ export function useNotionDatabaseStructure() {
     
     try {
       // Récupérer les informations de la base de données
-      const dbInfo = await notionRequest.execute(`/databases/${databaseId}`, 'GET', undefined, config.apiKey);
+      const dbInfo = await notionRequest.execute(`/databases/${databaseId}`, 'GET', undefined, config.apiKey) as NotionDatabaseResponse;
       
       if (!dbInfo) {
         throw new Error("Échec de récupération des informations de base de données");
@@ -60,9 +76,9 @@ export function useNotionDatabaseStructure() {
       
       // Mapper les propriétés requises avec celles trouvées
       const propertiesCheck = requiredProperties.map(required => {
-        const foundProperty = Object.entries(dbInfo.properties || {}).find(
+        const foundProperty = dbInfo.properties ? Object.entries(dbInfo.properties).find(
           ([key, prop]) => key.toLowerCase() === required.name.toLowerCase()
-        );
+        ) : null;
         
         return {
           name: required.name,
@@ -87,7 +103,7 @@ export function useNotionDatabaseStructure() {
       // Construire le résultat
       const structureCheck: DatabaseStructureCheck = {
         id: databaseId,
-        name: dbInfo.title?.[0]?.plain_text || databaseId,
+        name: dbInfo.title && dbInfo.title[0] && dbInfo.title[0].plain_text ? dbInfo.title[0].plain_text : databaseId,
         isLoading: false,
         error: null,
         properties: propertiesCheck,
