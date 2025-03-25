@@ -1,3 +1,4 @@
+
 /**
  * Service pour la gestion des exigences
  * Adapté pour utiliser le service centralisé
@@ -6,6 +7,58 @@
 import { notionCentralService } from './notionCentralService';
 import { Exigence, ImportanceLevel } from '@/lib/types';
 import { operationMode } from '@/services/operationMode';
+
+/**
+ * Service exigences exposé publiquement
+ */
+export const exigencesService = {
+  /**
+   * Récupère les exigences d'un projet
+   */
+  getExigencesByProject: async (projectId: string, forceRefresh = false): Promise<Exigence[]> => {
+    if (operationMode.isDemoMode) {
+      return getMockExigences(projectId);
+    }
+
+    try {
+      // Utiliser le service centralisé avec les nouveaux formats de paramètres
+      const response = await notionCentralService.get(`/projects/${projectId}/exigences`);
+      return response;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des exigences du projet ${projectId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Sauvegarde une exigence (création ou mise à jour)
+   */
+  saveExigence: async (exigence: Exigence): Promise<Exigence> => {
+    if (exigence.id && exigence.id !== 'new') {
+      // Mise à jour d'une exigence existante
+      return updateExigence(
+        exigence.id,
+        exigence.importance,
+        exigence.comment
+      );
+    } else {
+      // Création d'une nouvelle exigence
+      return createExigence(
+        exigence.projectId,
+        exigence.itemId,
+        exigence.importance,
+        exigence.comment
+      );
+    }
+  },
+
+  /**
+   * Supprime une exigence
+   */
+  deleteExigence: async (exigenceId: string, projectId: string): Promise<boolean> => {
+    return deleteExigence(exigenceId);
+  }
+};
 
 /**
  * Récupère les exigences d'un projet
