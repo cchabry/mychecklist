@@ -210,37 +210,104 @@ export const notionCentralService = {
   
   // API pour les projets, checklists, exigences, etc.
   projects: {
-    getAll: (token?: string) => notionRequest({
-      endpoint: '/projects',
-      method: 'GET',
-      token
-    }),
+    getAll: async (token?: string) => {
+      return await notionRequest({
+        endpoint: '/projects',
+        method: 'GET',
+        token
+      });
+    },
     
-    getById: (projectId: string, token?: string) => notionRequest({
-      endpoint: `/projects/${projectId}`,
-      method: 'GET',
-      token
-    }),
+    getById: async (projectId: string, token?: string) => {
+      return await notionRequest({
+        endpoint: `/projects/${projectId}`,
+        method: 'GET',
+        token
+      });
+    },
     
-    create: (data: any, token?: string) => notionRequest({
-      endpoint: '/projects',
-      method: 'POST',
-      body: data,
-      token
-    }),
+    create: async (data: any, token?: string) => {
+      return await notionRequest({
+        endpoint: '/projects',
+        method: 'POST',
+        body: data,
+        token
+      });
+    },
     
-    update: (projectId: string, data: any, token?: string) => notionRequest({
-      endpoint: `/projects/${projectId}`,
-      method: 'PATCH',
-      body: data,
-      token
-    }),
+    update: async (projectId: string, data: any, token?: string) => {
+      return await notionRequest({
+        endpoint: `/projects/${projectId}`,
+        method: 'PATCH',
+        body: data,
+        token
+      });
+    },
     
-    delete: (projectId: string, token?: string) => notionRequest({
-      endpoint: `/projects/${projectId}`,
-      method: 'DELETE',
-      token
-    })
+    delete: async (projectId: string, token?: string) => {
+      return await notionRequest({
+        endpoint: `/projects/${projectId}`,
+        method: 'DELETE',
+        token
+      });
+    }
+  },
+  
+  // Méthodes pour les audits
+  audits: {
+    getById: async (auditId: string, token?: string) => {
+      return await notionRequest({
+        endpoint: `/audits/${auditId}`,
+        method: 'GET',
+        token
+      });
+    },
+    
+    getByProject: async (projectId: string, token?: string) => {
+      return await notionRequest({
+        endpoint: `/projects/${projectId}/audits`,
+        method: 'GET',
+        token
+      });
+    },
+    
+    create: async (data: any, token?: string) => {
+      return await notionRequest({
+        endpoint: '/audits',
+        method: 'POST',
+        body: data,
+        token
+      });
+    },
+    
+    update: async (auditId: string, data: any, token?: string) => {
+      return await notionRequest({
+        endpoint: `/audits/${auditId}`,
+        method: 'PATCH',
+        body: data,
+        token
+      });
+    }
+  },
+  
+  // Méthodes pour les pages d'échantillon
+  samplePages: {
+    create: async (data: any, token?: string) => {
+      return await notionRequest({
+        endpoint: '/sample-pages',
+        method: 'POST',
+        body: data,
+        token
+      });
+    },
+    
+    getByProject: async (projectId: string, token?: string) => {
+      return await notionRequest({
+        endpoint: `/projects/${projectId}/sample-pages`,
+        method: 'GET',
+        token
+      });
+    }
   },
   
   // Test de connexion

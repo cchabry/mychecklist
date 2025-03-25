@@ -1,158 +1,152 @@
+/**
+ * Service pour la gestion des exigences
+ * Adapté pour utiliser le service centralisé
+ */
 
-import { notionApi } from '@/lib/notionProxy';
+import { notionCentralService } from './notionCentralService';
 import { Exigence, ImportanceLevel } from '@/lib/types';
-import { cacheService } from '../cache';
-
-// Clé de cache pour les exigences par projet
-const getCacheKey = (projectId: string) => `exigences_${projectId}`;
+import { operationMode } from '@/services/operationMode';
 
 /**
- * Service pour gérer les exigences des projets dans Notion
+ * Récupère les exigences d'un projet
  */
-const exigencesService = {
-  /**
-   * Récupère toutes les exigences pour un projet
-   * @param projectId ID du projet
-   * @param forceRefresh Forcer le rafraîchissement du cache
-   */
-  async getExigencesByProject(projectId: string, forceRefresh = false): Promise<Exigence[]> {
-    const cacheKey = getCacheKey(projectId);
-    
-    // Vérifier le cache si on ne force pas le rafraîchissement
-    if (!forceRefresh) {
-      const cachedData = cacheService.get<Exigence[]>(cacheKey);
-      if (cachedData) {
-        return cachedData;
-      }
-    }
-    
-    try {
-      // Appeler l'API Notion via le proxy
-      const response = await notionApi.request(`/exigences/${projectId}`);
-      
-      if (response) {
-        // Mettre en cache les résultats
-        cacheService.set(cacheKey, response);
-        
-        return response;
-      } else {
-        console.error('Erreur lors de la récupération des exigences');
-        throw new Error('Erreur lors de la récupération des exigences');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la récupération des exigences:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Sauvegarde une exigence (création ou mise à jour)
-   * @param exigence Exigence à sauvegarder
-   */
-  async saveExigence(exigence: Exigence): Promise<Exigence> {
-    try {
-      // Si c'est une nouvelle exigence, créer. Sinon, mettre à jour.
-      if (exigence.id === 'new' || !exigence.id) {
-        return this.createExigence(exigence);
-      } else {
-        return this.updateExigence(exigence.id, exigence);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\'exigence:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Crée une nouvelle exigence
-   * @param exigence Données de l'exigence
-   */
-  async createExigence(exigence: Exigence): Promise<Exigence> {
-    try {
-      const response = await notionApi.request('/exigences', 'POST', {
-        projectId: exigence.projectId,
-        itemId: exigence.itemId,
-        importance: exigence.importance,
-        comment: exigence.comment || ''
-      });
-      
-      if (response) {
-        // Invalider le cache pour ce projet
-        cacheService.remove(getCacheKey(exigence.projectId));
-        
-        return response;
-      } else {
-        console.error('Erreur lors de la création de l\'exigence');
-        throw new Error('Erreur lors de la création de l\'exigence');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la création de l\'exigence:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Met à jour une exigence existante
-   * @param exigenceId ID de l'exigence
-   * @param data Données à mettre à jour
-   */
-  async updateExigence(exigenceId: string, data: Partial<Exigence>): Promise<Exigence> {
-    try {
-      const response = await notionApi.request(`/exigences/${exigenceId}`, 'PUT', {
-        importance: data.importance,
-        comment: data.comment || ''
-      });
-      
-      if (response) {
-        // Invalider le cache pour ce projet
-        if (data.projectId) {
-          cacheService.remove(getCacheKey(data.projectId));
-        }
-        
-        return response;
-      } else {
-        console.error('Erreur lors de la mise à jour de l\'exigence');
-        throw new Error('Erreur lors de la mise à jour de l\'exigence');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'exigence:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Supprime une exigence
-   * @param exigenceId ID de l'exigence
-   * @param projectId ID du projet
-   */
-  async deleteExigence(exigenceId: string, projectId: string): Promise<boolean> {
-    try {
-      const response = await notionApi.request(`/exigences/${exigenceId}`, 'DELETE');
-      
-      if (response) {
-        // Invalider le cache pour ce projet
-        cacheService.remove(getCacheKey(projectId));
-        
-        return true;
-      } else {
-        console.error('Erreur lors de la suppression de l\'exigence');
-        throw new Error('Erreur lors de la suppression de l\'exigence');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la suppression de l\'exigence:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Vide le cache
-   */
-  clearCache(): void {
-    // On ne peut pas supprimer toutes les exigences en une seule fois
-    // car les clés sont basées sur les projets.
-    // Il faudrait connaître tous les projectId pour lesquels on a mis en cache des exigences.
-    console.log('Cache des exigences vidé pour tous les projets (à implémenter)');
+export const getProjectExigences = async (projectId: string): Promise<Exigence[]> => {
+  if (operationMode.isDemoMode) {
+    return getMockExigences(projectId);
+  }
+
+  try {
+    // Utiliser le service centralisé avec les nouveaux formats de paramètres
+    const response = await notionCentralService.get(`/projects/${projectId}/exigences`);
+    return response;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des exigences du projet ${projectId}:`, error);
+    throw error;
   }
 };
 
-export { exigencesService };
+/**
+ * Crée une exigence pour un projet
+ */
+export const createExigence = async (
+  projectId: string, 
+  itemId: string, 
+  importance: ImportanceLevel, 
+  comment?: string
+): Promise<Exigence> => {
+  if (operationMode.isDemoMode) {
+    return createMockExigence(projectId, itemId, importance, comment);
+  }
+
+  try {
+    const response = await notionCentralService.post(`/projects/${projectId}/exigences`, {
+      itemId,
+      importance,
+      comment
+    });
+    return response;
+  } catch (error) {
+    console.error(`Erreur lors de la création d'une exigence pour le projet ${projectId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour une exigence
+ */
+export const updateExigence = async (
+  exigenceId: string, 
+  importance: ImportanceLevel, 
+  comment?: string
+): Promise<Exigence> => {
+  if (operationMode.isDemoMode) {
+    return updateMockExigence(exigenceId, importance, comment);
+  }
+
+  try {
+    const response = await notionCentralService.patch(`/exigences/${exigenceId}`, {
+      importance,
+      comment
+    });
+    return response;
+  } catch (error) {
+    console.error(`Erreur lors de la mise à jour de l'exigence ${exigenceId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime une exigence
+ */
+export const deleteExigence = async (exigenceId: string): Promise<boolean> => {
+  if (operationMode.isDemoMode) {
+    return deleteMockExigence(exigenceId);
+  }
+
+  try {
+    await notionCentralService.delete(`/exigences/${exigenceId}`);
+    return true;
+  } catch (error) {
+    console.error(`Erreur lors de la suppression de l'exigence ${exigenceId}:`, error);
+    throw error;
+  }
+};
+
+// Fonctions mockes pour le mode démo
+const getMockExigences = (projectId: string): Exigence[] => {
+  // Simuler une liste d'exigences mock pour le projet
+  const mockExigences: Exigence[] = [
+    {
+      id: 'mock-exigence-1',
+      projectId: projectId,
+      itemId: 'mock-item-1',
+      importance: ImportanceLevel.Majeur,
+      comment: 'Exigence mock pour le projet ' + projectId
+    },
+    {
+      id: 'mock-exigence-2',
+      projectId: projectId,
+      itemId: 'mock-item-2',
+      importance: ImportanceLevel.Moyen,
+      comment: 'Autre exigence mock pour le projet ' + projectId
+    }
+  ];
+  return mockExigences;
+};
+
+const createMockExigence = (
+  projectId: string,
+  itemId: string,
+  importance: ImportanceLevel,
+  comment?: string
+): Exigence => {
+  const newMockExigence: Exigence = {
+    id: 'mock-new-exigence-' + Date.now(),
+    projectId: projectId,
+    itemId: itemId,
+    importance: importance,
+    comment: comment || 'Nouvelle exigence mock'
+  };
+  console.log('Exigence mock créée:', newMockExigence);
+  return newMockExigence;
+};
+
+const updateMockExigence = (
+  exigenceId: string,
+  importance: ImportanceLevel,
+  comment?: string
+): Exigence => {
+  console.log(`Exigence mock ${exigenceId} mise à jour avec importance=${importance}, comment=${comment}`);
+  return {
+    id: exigenceId,
+    projectId: 'mock-project',
+    itemId: 'mock-item',
+    importance: importance,
+    comment: comment || 'Exigence mock mise à jour'
+  };
+};
+
+const deleteMockExigence = (exigenceId: string): boolean => {
+  console.log(`Exigence mock ${exigenceId} supprimée`);
+  return true;
+};
