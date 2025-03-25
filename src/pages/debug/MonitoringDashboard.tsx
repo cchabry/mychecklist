@@ -1,156 +1,135 @@
-
-import React, { useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ErrorStatsDisplay from '@/components/notion/error/ErrorStatsDisplay';
-import StructuredLogsDisplay from '@/components/notion/logging/StructuredLogsDisplay';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Bug, Database, Activity, Play } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { useStructuredLogger } from '@/hooks/notion/useStructuredLogger';
-import { useErrorCounter } from '@/hooks/notion/useErrorCounter';
-import { notionErrorService } from '@/services/notion/errorHandling';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling/types';
+import { notionErrorService, LogLevel, NotionErrorType, NotionErrorSeverity } from '@/services/notion/types/unified';
+import { StructuredLogsDisplay } from '@/components/notion/logging';
+import { NotionErrorMonitor } from '@/components/notion/error';
+import { ArrowUpDown, RefreshCw, AlertTriangle, Bug, Database } from 'lucide-react';
 
-/**
- * Page de tableau de bord pour le monitoring et les diagnostics
- */
 const MonitoringDashboard: React.FC = () => {
-  const { info, error } = useStructuredLogger();
-  const { recordError } = useErrorCounter();
+  const loggerHook = useStructuredLogger();
+  const { logs, clearLogs, logger } = loggerHook;
   
-  // Générer des logs et erreurs de test
-  const generateTestLogs = () => {
-    info('Log de test généré manuellement', { timestamp: Date.now() }, {
-      source: 'TestGenerator',
-      tags: ['test', 'manual']
-    });
-    
-    // Générer différents niveaux de logs
-    for (let i = 0; i < 5; i++) {
-      info(`Test log info #${i+1}`, { iteration: i }, {
-        source: 'TestGenerator',
-        tags: ['test', 'bulk']
-      });
+  // Adapter l'interface pour les méthodes logger.info et logger.error
+  const loggerAdapter = {
+    info: (message: string, data?: any) => {
+      if (logger && typeof logger.info === 'function') {
+        logger.info(message, data);
+      }
+    },
+    error: (message: string, data?: any) => {
+      if (logger && typeof logger.error === 'function') {
+        logger.error(message, data);
+      }
     }
-    
-    error('Erreur de test générée manuellement', new Error('Test error message'), {
-      source: 'TestGenerator',
-      tags: ['test', 'error', 'manual']
-    });
   };
   
-  // Générer une erreur pour le compteur
+  const [lastAction, setLastAction] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('logs');
+  
+  // Générer des logs de test
+  const generateTestLogs = () => {
+    if (logger) {
+      if (typeof logger.debug === 'function') {
+        logger.debug('Test debug message', { source: 'MonitoringDashboard' });
+      }
+      loggerAdapter.info('Test info message', { component: 'MonitoringDashboard', user: 'Admin' });
+      if (typeof logger.warn === 'function') {
+        logger.warn('Test warning message', { alertLevel: 'medium' });
+      }
+      loggerAdapter.error('Test error message', new Error('This is a test error'));
+    }
+    setLastAction('Logs de test générés');
+  };
+  
+  // Générer une erreur de test
   const generateTestError = () => {
-    // Créer une erreur de test
-    const testError = new Error('Erreur de test pour le compteur');
-    
-    // Enregistrer l'erreur dans le compteur
-    recordError(testError, '/api/test/endpoint');
-    
-    // Également la signaler au service d'erreur Notion
-    notionErrorService.reportError(testError, 'Test d\'erreur');
-  };
-  
-  // Générer une erreur avec un type spécifique
-  const generateTypedError = (type: NotionErrorType) => {
-    const error = notionErrorService.createError(`Erreur de test de type ${type}`, {
-      type,
-      severity: type === NotionErrorType.AUTH ? NotionErrorSeverity.CRITICAL : NotionErrorSeverity.ERROR,
-      context: {
-        testGenerated: true,
-        timestamp: new Date().toISOString()
-      },
-      operation: `/api/test/${type}`
+    const error = notionErrorService.createError('Erreur de test pour le monitoring', {
+      type: NotionErrorType.UNKNOWN,
+      severity: NotionErrorSeverity.WARNING,
+      context: JSON.stringify({ 
+        testGenerated: true, 
+        timestamp: new Date().toISOString() 
+      }),
+      retryable: true
     });
     
-    notionErrorService.reportError(error);
-    recordError(error, `/api/test/${type}`);
-  };
-  
-  // Simuler une activité régulière pour la démo
-  useEffect(() => {
-    const interval = setInterval(() => {
-      info('Activité périodique de monitoring', { timestamp: Date.now() }, {
-        source: 'MonitoringSystem',
-        tags: ['background', 'heartbeat']
-      });
-    }, 30000); // Toutes les 30 secondes
+    notionErrorService.reportError(error as Error);
+    loggerAdapter.error('Une erreur Notion a été générée', error);
     
-    return () => clearInterval(interval);
-  }, [info]);
+    setLastAction('Erreur de test générée');
+  };
   
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Tableau de bord de monitoring</h1>
-        <p className="text-muted-foreground">
-          Visualiser et analyser les logs et erreurs de l'application
-        </p>
-      </div>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">Tableau de bord de monitoring</h1>
       
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Outils de test</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
-              onClick={generateTestLogs}
-            >
-              <Database className="mr-2 h-4 w-4 text-blue-500" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="logs">
+            <ArrowUpDown className="mr-2 h-4 w-4" />
+            Logs
+          </TabsTrigger>
+          <TabsTrigger value="errors">
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Erreurs
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="logs" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Logs structurés</CardTitle>
+              <CardDescription>Visualisation des logs applicatifs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StructuredLogsDisplay />
+            </CardContent>
+          </Card>
+          
+          <div className="flex justify-between items-center">
+            <Button variant="outline" size="sm" onClick={generateTestLogs}>
+              <Bug className="mr-2 h-4 w-4" />
               Générer des logs de test
             </Button>
             
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
-              onClick={generateTestError}
-            >
-              <Bug className="mr-2 h-4 w-4 text-red-500" />
-              Générer une erreur de test
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
-              onClick={() => generateTypedError(NotionErrorType.AUTH)}
-            >
-              <Activity className="mr-2 h-4 w-4 text-amber-500" />
-              Simuler erreur d'authentification
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
-              onClick={() => generateTypedError(NotionErrorType.RATE_LIMIT)}
-            >
-              <Play className="mr-2 h-4 w-4 text-green-500" />
-              Simuler erreur de limite d'API
-            </Button>
-          </CardContent>
-        </Card>
+            {lastAction && (
+              <Badge variant="secondary">
+                Dernière action: {lastAction}
+              </Badge>
+            )}
+          </div>
+        </TabsContent>
         
-        <Card className="xl:col-span-3">
-          <CardContent className="pt-6">
-            <Tabs defaultValue="stats" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="stats">Statistiques d'erreurs</TabsTrigger>
-                <TabsTrigger value="logs">Logs structurés</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="stats" className="mt-0">
-                <ErrorStatsDisplay />
-              </TabsContent>
-              
-              <TabsContent value="logs" className="mt-0">
-                <StructuredLogsDisplay />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="errors" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Erreurs Notion</CardTitle>
+              <CardDescription>Suivi des erreurs liées à l'API Notion</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NotionErrorMonitor />
+            </CardContent>
+          </Card>
+          
+          <div className="flex justify-between items-center">
+            <Button variant="destructive" size="sm" onClick={generateTestError}>
+              <Database className="mr-2 h-4 w-4" />
+              Générer une erreur Notion
+            </Button>
+            
+            {lastAction && (
+              <Badge variant="secondary">
+                Dernière action: {lastAction}
+              </Badge>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

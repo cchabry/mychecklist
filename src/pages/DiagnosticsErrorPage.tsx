@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { NotionErrorsList } from '@/components/notion/error';
 import { 
-  notionErrorService, 
+  notionErrorService,
   NotionErrorType, 
   NotionErrorSeverity
 } from '@/services/notion/errorHandling';
 import { AlertTriangle, Database, RefreshCw, Router } from 'lucide-react';
-import { useNotionErrorService } from '@/services/notion/errorHandling';
+import { useNotionErrorService } from '@/hooks/notion/useNotionErrorService';
 
 const DiagnosticsErrorPage: React.FC = () => {
   const { reportError } = useNotionErrorService();
@@ -26,12 +27,12 @@ const DiagnosticsErrorPage: React.FC = () => {
     const error = notionErrorService.createError('Token d\'API invalide ou expiré', {
       type: NotionErrorType.AUTH,
       severity: NotionErrorSeverity.ERROR,
-      context: { 
+      context: JSON.stringify({ 
         httpCode: 401,
         apiVersion: '2022-02-22'
-      }
+      })
     });
-    notionErrorService.reportError(error);
+    reportError(error as Error);
     setLastAction('Erreur d\'authentification générée');
   };
   
@@ -40,13 +41,13 @@ const DiagnosticsErrorPage: React.FC = () => {
     const error = notionErrorService.createError('Limite de requêtes API dépassée', {
       type: NotionErrorType.RATE_LIMIT,
       severity: NotionErrorSeverity.WARNING,
-      context: { 
+      context: JSON.stringify({ 
         httpCode: 429,
         retryAfter: 30,
         limit: '3 requêtes par seconde'
-      }
+      })
     });
-    notionErrorService.reportError(error);
+    reportError(error as Error);
     setLastAction('Erreur de limite de taux générée');
   };
   
@@ -55,12 +56,12 @@ const DiagnosticsErrorPage: React.FC = () => {
     const error = notionErrorService.createError('Base de données introuvable', {
       type: NotionErrorType.DATABASE,
       severity: NotionErrorSeverity.ERROR,
-      context: { 
+      context: JSON.stringify({ 
         databaseId: '12345678-1234-5678-1234-567812345678',
         httpCode: 404
-      }
+      })
     });
-    notionErrorService.reportError(error);
+    reportError(error as Error);
     setLastAction('Erreur de base de données générée');
   };
   

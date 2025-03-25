@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   AlertCircle, 
   XCircle, 
   RefreshCw,
   ServerCrash,
-  Database,
   FileWarning,
+  Database,
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
@@ -21,7 +21,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { NotionError, NotionErrorType } from '@/services/notion/types/unified';
 import { useRetryQueue } from '@/services/notion/errorHandling';
 import { notionErrorService } from '@/services/notion/errorHandling/errorService';
 
@@ -53,16 +53,16 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   if (!error) return null;
   
   // Normaliser l'erreur en objet NotionError si nécessaire
-  const normalizeError = (): NotionError => {
+  const normalizeError = useCallback((): NotionError => {
     if (typeof error === 'string') {
       return notionErrorService.createError(error, {
-        context,
+        context: context as string,
         retryable: false,
         recoverable: false
       });
     } else if (error instanceof Error) {
       return notionErrorService.createError(error.message, {
-        context,
+        context: context as string,
         cause: error,
         stack: error.stack,
         retryable: false,
@@ -75,11 +75,11 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
     
     // Cas par défaut
     return notionErrorService.createError(String(error), {
-      context,
+      context: context as string,
       retryable: false,
       recoverable: false
     });
-  };
+  }, [error, context]);
   
   const errorObj = normalizeError();
   const errorMessage = errorObj.message || 'Erreur inconnue';
@@ -112,7 +112,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   };
 
   // Formater le contexte pour l'affichage
-  const formatContext = (): React.ReactNode => {
+  const formatContext = useCallback((): React.ReactNode => {
     // Prioriser le contexte passé directement en prop
     const contextToFormat = context || errorObj.context;
     
@@ -127,7 +127,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
     } catch (e) {
       return '[Contexte non affichable]';
     }
-  };
+  }, [context, errorObj.context]);
   
   const renderActions = () => {
     if (!actions || actions.length === 0) return null;

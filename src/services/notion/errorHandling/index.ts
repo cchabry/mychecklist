@@ -15,5 +15,5 @@ export { useRetryQueue } from './useRetryQueue';
 export { useAutoRetry } from './useAutoRetry';
 
 // Exporter les types et utilitaires
-export * from './types';
+export * from '../types/unified';
 export * from './utils';

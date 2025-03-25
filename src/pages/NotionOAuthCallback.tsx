@@ -6,6 +6,12 @@ import { RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 
+// Fonction de remplacement pour handleCallback si elle n'existe pas
+const defaultHandleCallback = async (code: string, state: string): Promise<boolean> => {
+  console.warn('handleCallback non disponible dans useNotionOAuth');
+  return false;
+};
+
 /**
  * Page de callback pour l'authentification OAuth Notion
  */
@@ -16,9 +22,14 @@ const NotionOAuthCallback: React.FC = () => {
   
   const location = useLocation();
   const navigate = useNavigate();
-  const { handleCallback } = useNotionOAuth({
+  
+  // Obtenir le hook OAuth et gérer le cas où handleCallback n'existe pas
+  const oauthHook = useNotionOAuth({
     onAuthError: (error) => setError(error.message)
   });
+  
+  // Fournir un fallback pour handleCallback si nécessaire
+  const handleCallback = oauthHook.handleCallback || defaultHandleCallback;
   
   // Traiter les paramètres d'URL au chargement
   useEffect(() => {

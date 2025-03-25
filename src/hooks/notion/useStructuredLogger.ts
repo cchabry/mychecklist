@@ -1,35 +1,6 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { LogLevel } from '@/services/notion/errorHandling/types';
-
-// Définition du type StructuredLog pour éviter l'import manquant
-export interface StructuredLog {
-  id: string;
-  timestamp: number;
-  level: LogLevel;
-  message: string;
-  data?: any;
-  source?: string;
-  context?: Record<string, any>;
-  tags?: string[];
-}
-
-/**
- * Interface pour le logger structuré
- */
-interface StructuredLogger {
-  log: (level: LogLevel, message: string, data?: any, context?: Record<string, any>) => void;
-  debug: (message: string, data?: any, context?: Record<string, any>) => void;
-  info: (message: string, data?: any, context?: Record<string, any>) => void;
-  warn: (message: string, data?: any, context?: Record<string, any>) => void;
-  error: (message: string, data?: any, context?: Record<string, any>) => void;
-  trace: (message: string, data?: any, context?: Record<string, any>) => void;
-  fatal: (message: string, data?: any, context?: Record<string, any>) => void;
-  getRecentLogs: (count?: number) => StructuredLog[];
-  subscribe: (callback: (logs: StructuredLog[]) => void) => () => void;
-  setMinLevel: (level: LogLevel) => void;
-  getMinLevel: () => LogLevel;
-}
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { LogLevel, StructuredLog } from '@/services/notion/types/unified';
 
 // Référence au logger structuré global, si disponible
 let structuredLogger: any;
@@ -59,6 +30,8 @@ try {
  */
 export function useStructuredLogger() {
   const [logs, setLogs] = useState<StructuredLog[]>([]);
+  const [filter, setFilter] = useState('');
+  const [levelFilter, setLevelFilter] = useState<LogLevel | 'all'>('all');
   
   useEffect(() => {
     // S'abonner aux logs
@@ -72,9 +45,58 @@ export function useStructuredLogger() {
     return unsubscribe;
   }, []);
   
+  // Filtrer les logs selon les critères
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesText = filter ? 
+        log.message.toLowerCase().includes(filter.toLowerCase()) || 
+        (log.data && JSON.stringify(log.data).toLowerCase().includes(filter.toLowerCase())) : 
+        true;
+      
+      const matchesLevel = levelFilter !== 'all' ? 
+        log.level === levelFilter : 
+        true;
+      
+      return matchesText && matchesLevel;
+    });
+  }, [logs, filter, levelFilter]);
+  
+  // Mettre à jour le filtre
+  const updateFilter = useCallback((value: string) => {
+    setFilter(value);
+  }, []);
+  
+  // Effacer le filtre
+  const clearFilter = useCallback(() => {
+    setFilter('');
+    setLevelFilter('all');
+  }, []);
+  
+  // Effacer les logs
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+  }, []);
+  
+  // Exposer des méthodes helpers pour logging
+  const info = useCallback((message: string, data?: any, context?: Record<string, any>) => {
+    structuredLogger.info(message, data, context);
+  }, []);
+  
+  const error = useCallback((message: string, data?: any, context?: Record<string, any>) => {
+    structuredLogger.error(message, data, context);
+  }, []);
+  
   return {
-    logs,
+    logs: filteredLogs,
     logger: structuredLogger,
-    clearLogs: useCallback(() => setLogs([]), [])
+    clearLogs,
+    filteredLogs,
+    updateFilter,
+    clearFilter,
+    filter,
+    levelFilter,
+    setLevelFilter,
+    info,
+    error
   };
 }

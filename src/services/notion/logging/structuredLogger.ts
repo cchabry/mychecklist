@@ -1,232 +1,219 @@
 
-import { StructuredLog, LogLevel, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { v4 as uuidv4 } from 'uuid';
+import { 
+  StructuredLog, 
+  LogLevel 
+} from '../types/unified';
 
 /**
- * Interface pour les options de configuration du logger
- */
-interface LoggerConfig {
-  level: LogLevel;
-  consoleOutput: boolean;
-  jsonOutput: boolean;
-  maxLogsToKeep: number;
-}
-
-/**
- * Logger structuré pour les événements Notion
+ * Logger structuré pour l'écosystème Notion
  */
 class StructuredLogger {
+  private static instance: StructuredLogger;
   private logs: StructuredLog[] = [];
-  private config: LoggerConfig = {
-    level: LogLevel.INFO,
-    consoleOutput: true,
-    jsonOutput: false,
-    maxLogsToKeep: 1000,
-  };
-  private subscribers: ((log: StructuredLog) => void)[] = [];
+  private subscribers: Array<(logs: StructuredLog[]) => void> = [];
+  private maxLogs: number = 1000;
+  private minLevel: LogLevel = LogLevel.INFO;
+
+  private constructor() {}
 
   /**
-   * Configure les options du logger
+   * Obtenir l'instance unique du logger
    */
-  configure(config: Partial<LoggerConfig>): void {
-    this.config = { ...this.config, ...config };
-  }
-
-  /**
-   * S'abonner aux nouveaux logs
-   */
-  subscribe(callback: (log: StructuredLog) => void): () => void {
-    this.subscribers.push(callback);
-    return () => {
-      this.subscribers = this.subscribers.filter(cb => cb !== callback);
-    };
-  }
-
-  /**
-   * Récupérer les logs récents
-   */
-  getRecentLogs(): StructuredLog[] {
-    return [...this.logs];
-  }
-
-  /**
-   * Effacer tous les logs
-   */
-  clearLogs(): void {
-    this.logs = [];
-  }
-
-  /**
-   * Créer un log et le diffuser
-   */
-  private createLog(
-    level: LogLevel,
-    message: string,
-    contextOrError?: Record<string, any> | Error,
-    options?: {
-      source?: string;
-      tags?: string[];
+  public static getInstance(): StructuredLogger {
+    if (!StructuredLogger.instance) {
+      StructuredLogger.instance = new StructuredLogger();
     }
-  ): StructuredLog {
-    // Extraire l'erreur et le contexte
-    let error: Error | undefined;
-    let context: Record<string, any> = {};
+    return StructuredLogger.instance;
+  }
 
-    if (contextOrError instanceof Error) {
-      error = contextOrError;
-      // Si des options contiennent un contexte, l'utiliser
-      if (options && options.hasOwnProperty('context')) {
-        context = (options as any).context || {};
-      }
-    } else if (contextOrError && typeof contextOrError === 'object') {
-      context = contextOrError;
-    }
-
-    // Créer l'objet de log
-    const log: StructuredLog = {
-      level,
-      message,
-      timestamp: Date.now(),
-      context,
-      source: options?.source || 'notion',
-      tags: options?.tags || [],
-    };
-
-    // Ajouter l'erreur si présente
-    if (error) {
-      log.error = {
-        message: error.message,
-        type: NotionErrorType.UNKNOWN,
-        stack: error.stack,
+  /**
+   * Log générique avec niveau spécifié
+   */
+  public log(level: LogLevel, message: string, data?: any, context?: Record<string, any>): void {
+    // Vérifier le niveau minimum de log
+    if (this.isLevelEnabled(level)) {
+      const timestamp = Date.now();
+      const source = context?.source || 'app';
+      const tags = context?.tags || [];
+      
+      // Créer l'objet de log
+      const logEntry: StructuredLog = {
+        id: uuidv4(),
+        timestamp,
+        level,
+        message,
+        data,
+        source,
+        context: context || {},
+        tags
       };
+      
+      // Ajouter le log
+      this.addLog(logEntry);
+      
+      // Afficher dans la console
+      this.printToConsole(logEntry);
     }
+  }
 
-    // Ajouter le log à l'historique
-    this.logs.push(log);
+  /**
+   * Log de niveau TRACE
+   */
+  public trace(message: string, data?: any, context?: Record<string, any>): void {
+    this.log(LogLevel.TRACE, message, data, context);
+  }
+
+  /**
+   * Log de niveau DEBUG
+   */
+  public debug(message: string, data?: any, context?: Record<string, any>): void {
+    this.log(LogLevel.DEBUG, message, data, context);
+  }
+
+  /**
+   * Log de niveau INFO
+   */
+  public info(message: string, data?: any, context?: Record<string, any>): void {
+    this.log(LogLevel.INFO, message, data, context);
+  }
+
+  /**
+   * Log de niveau WARN
+   */
+  public warn(message: string, data?: any, context?: Record<string, any>): void {
+    this.log(LogLevel.WARN, message, data, context);
+  }
+
+  /**
+   * Log de niveau ERROR
+   */
+  public error(message: string, data?: any, context?: Record<string, any>): void {
+    this.log(LogLevel.ERROR, message, data, context);
+  }
+
+  /**
+   * Log de niveau FATAL
+   */
+  public fatal(message: string, data?: any, context?: Record<string, any>): void {
+    this.log(LogLevel.FATAL, message, data, context);
+  }
+
+  /**
+   * Obtenir les logs récents
+   */
+  public getRecentLogs(count: number = 100): StructuredLog[] {
+    return this.logs.slice(0, Math.min(count, this.logs.length));
+  }
+
+  /**
+   * S'abonner aux logs
+   */
+  public subscribe(callback: (logs: StructuredLog[]) => void): () => void {
+    this.subscribers.push(callback);
+    
+    // Notifier immédiatement avec les logs actuels
+    callback([...this.logs]);
+    
+    // Retourner une fonction de désabonnement
+    return () => {
+      this.subscribers = this.subscribers.filter(sub => sub !== callback);
+    };
+  }
+
+  /**
+   * Définir le niveau minimum de log
+   */
+  public setMinLevel(level: LogLevel): void {
+    this.minLevel = level;
+  }
+
+  /**
+   * Obtenir le niveau minimum de log
+   */
+  public getMinLevel(): LogLevel {
+    return this.minLevel;
+  }
+
+  /**
+   * Vérifier si un niveau de log est activé
+   */
+  private isLevelEnabled(level: LogLevel): boolean {
+    const levels: LogLevel[] = [
+      LogLevel.TRACE,
+      LogLevel.DEBUG,
+      LogLevel.INFO,
+      LogLevel.WARN,
+      LogLevel.ERROR,
+      LogLevel.FATAL
+    ];
+    
+    const minLevelIndex = levels.indexOf(this.minLevel);
+    const logLevelIndex = levels.indexOf(level);
+    
+    return logLevelIndex >= minLevelIndex;
+  }
+
+  /**
+   * Ajouter un log à la liste et notifier les abonnés
+   */
+  private addLog(log: StructuredLog): void {
+    // Ajouter au début pour avoir les plus récents en premier
+    this.logs.unshift(log);
     
     // Limiter le nombre de logs stockés
-    if (this.logs.length > this.config.maxLogsToKeep) {
-      this.logs.shift();
+    if (this.logs.length > this.maxLogs) {
+      this.logs = this.logs.slice(0, this.maxLogs);
     }
-
+    
     // Notifier les abonnés
-    this.subscribers.forEach(callback => callback(log));
+    this.notifySubscribers();
+  }
 
-    // Afficher dans la console si configuré
-    this.outputToConsole(log);
-
-    return log;
+  /**
+   * Notifier les abonnés
+   */
+  private notifySubscribers(): void {
+    const logsCopy = [...this.logs];
+    
+    this.subscribers.forEach(callback => {
+      try {
+        callback(logsCopy);
+      } catch (error) {
+        console.error('Erreur lors de la notification d\'un abonné aux logs:', error);
+      }
+    });
   }
 
   /**
    * Afficher un log dans la console
    */
-  private outputToConsole(log: StructuredLog): void {
-    if (!this.config.consoleOutput) return;
+  private printToConsole(log: StructuredLog): void {
+    const timestamp = new Date(log.timestamp).toISOString();
+    const prefix = `${timestamp} [${log.level.toUpperCase()}] ${log.source}:`;
     
-    // Ne pas logger si le niveau est inférieur au niveau configuré
-    if (log.level < this.config.level) return;
-
-    const formattedTime = new Date(log.timestamp).toISOString();
-    
-    // Récupérer la méthode de log appropriée
-    let consoleMethod: keyof Console;
     switch (log.level) {
       case LogLevel.TRACE:
       case LogLevel.DEBUG:
-        consoleMethod = 'debug';
+        console.debug(prefix, log.message, log.data || '');
         break;
       case LogLevel.INFO:
-        consoleMethod = 'info';
+        console.info(prefix, log.message, log.data || '');
         break;
       case LogLevel.WARN:
-        consoleMethod = 'warn';
+        console.warn(prefix, log.message, log.data || '');
         break;
       case LogLevel.ERROR:
-        consoleMethod = 'error';
-        break;
       case LogLevel.FATAL:
-        consoleMethod = 'error';
+        console.error(prefix, log.message, log.data || '');
+        // Afficher l'erreur complète si disponible
+        if (log.data instanceof Error) {
+          console.error(log.data);
+        }
         break;
-      default:
-        consoleMethod = 'log';
     }
-
-    // Formater le message
-    const prefix = `[${formattedTime}] [${LogLevel[log.level]}] [${log.source}]`;
-    
-    // Si format JSON est activé
-    if (this.config.jsonOutput) {
-      console[consoleMethod](JSON.stringify(log));
-    } else {
-      // Utiliser un format plus lisible
-      if (log.error) {
-        console[consoleMethod](`${prefix} ${log.message}`, log.error, log.context);
-      } else if (Object.keys(log.context).length > 0) {
-        console[consoleMethod](`${prefix} ${log.message}`, log.context);
-      } else {
-        console[consoleMethod](`${prefix} ${log.message}`);
-      }
-    }
-  }
-
-  /**
-   * Log de niveau trace
-   */
-  trace(message: string, context?: Record<string, any>, options?: { source?: string; tags?: string[] }): StructuredLog {
-    return this.createLog(LogLevel.TRACE, message, context, options);
-  }
-
-  /**
-   * Log de niveau debug
-   */
-  debug(message: string, context?: Record<string, any>, options?: { source?: string; tags?: string[] }): StructuredLog {
-    return this.createLog(LogLevel.DEBUG, message, context, options);
-  }
-
-  /**
-   * Log de niveau info
-   */
-  info(message: string, context?: Record<string, any>, options?: { source?: string; tags?: string[] }): StructuredLog {
-    return this.createLog(LogLevel.INFO, message, context, options);
-  }
-
-  /**
-   * Log de niveau warn
-   */
-  warn(message: string, context?: Record<string, any>, options?: { source?: string; tags?: string[] }): StructuredLog {
-    return this.createLog(LogLevel.WARN, message, context, options);
-  }
-
-  /**
-   * Log de niveau error
-   */
-  error(
-    message: string,
-    errorOrContext?: Error | Record<string, any>,
-    options?: {
-      context?: Record<string, any>;
-      source?: string;
-      tags?: string[];
-    }
-  ): StructuredLog {
-    return this.createLog(LogLevel.ERROR, message, errorOrContext, options);
-  }
-
-  /**
-   * Log de niveau fatal
-   */
-  fatal(
-    message: string,
-    errorOrContext?: Error | Record<string, any>,
-    options?: {
-      context?: Record<string, any>;
-      source?: string;
-      tags?: string[];
-    }
-  ): StructuredLog {
-    return this.createLog(LogLevel.FATAL, message, errorOrContext, options);
   }
 }
 
-// Créer et exporter une instance singleton
-export const structuredLogger = new StructuredLogger();
+// Exporter une instance singleton
+export const structuredLogger = StructuredLogger.getInstance();

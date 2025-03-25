@@ -1,5 +1,12 @@
 
-import { NotionError, NotionErrorType, NotionErrorSeverity, NotionErrorOptions, NotionErrorSubscriber } from './types';
+import { v4 as uuidv4 } from 'uuid';
+import { 
+  NotionError, 
+  NotionErrorType, 
+  NotionErrorSeverity,
+  NotionErrorOptions,
+  ErrorSubscriber
+} from '../types/unified';
 
 /**
  * Service centralisé de gestion des erreurs Notion
@@ -7,7 +14,7 @@ import { NotionError, NotionErrorType, NotionErrorSeverity, NotionErrorOptions, 
 export class NotionErrorService {
   private static instance: NotionErrorService;
   private errors: NotionError[] = [];
-  private subscribers: NotionErrorSubscriber[] = [];
+  private subscribers: ErrorSubscriber[] = [];
   private maxErrors: number = 50; // Nombre maximum d'erreurs à conserver
 
   private constructor() {}
@@ -38,7 +45,7 @@ export class NotionErrorService {
     } = options;
 
     const error: NotionError = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `err-${Date.now()}`,
+      id: uuidv4(),
       message,
       type,
       severity,
@@ -46,7 +53,7 @@ export class NotionErrorService {
       cause,
       recoveryActions: recoveryActions || [],
       recoverable,
-      retryable, // Ajout du champ manquant
+      retryable,
       timestamp: Date.now(),
       name,
       stack: options.stack
@@ -58,7 +65,7 @@ export class NotionErrorService {
   /**
    * Enregistrer une erreur et notifier les abonnés
    */
-  public reportError(error: Error | NotionError, context?: string): NotionError {
+  public reportError(error: Error | NotionError | string, context?: string): NotionError {
     // Convertir en NotionError si nécessaire
     const notionError = this.ensureNotionError(error, context);
     
@@ -79,7 +86,7 @@ export class NotionErrorService {
   /**
    * S'abonner aux notifications d'erreur
    */
-  public subscribe(subscriber: NotionErrorSubscriber): () => void {
+  public subscribe(subscriber: ErrorSubscriber): () => void {
     this.subscribers.push(subscriber);
     
     // Retourner une fonction pour se désabonner
@@ -113,7 +120,7 @@ export class NotionErrorService {
   /**
    * Vérifier si une erreur est critique
    */
-  public isCriticalError(error: Error | NotionError): boolean {
+  public isCriticalError(error: Error | NotionError | string): boolean {
     const notionError = this.ensureNotionError(error);
     return notionError.severity === NotionErrorSeverity.CRITICAL;
   }
@@ -121,7 +128,7 @@ export class NotionErrorService {
   /**
    * Vérifier si une erreur est récupérable
    */
-  public isRecoverableError(error: Error | NotionError): boolean {
+  public isRecoverableError(error: Error | NotionError | string): boolean {
     const notionError = this.ensureNotionError(error);
     return notionError.recoverable === true;
   }
@@ -129,8 +136,8 @@ export class NotionErrorService {
   /**
    * Convertir une erreur standard en NotionError
    */
-  private ensureNotionError(error: Error | NotionError, context?: string): NotionError {
-    if ('type' in error && 'severity' in error && 'timestamp' in error && 'retryable' in error) {
+  private ensureNotionError(error: Error | NotionError | string, context?: string): NotionError {
+    if (typeof error === 'object' && 'type' in error && 'severity' in error && 'timestamp' in error && 'retryable' in error) {
       return error as NotionError;
     }
     
@@ -138,33 +145,42 @@ export class NotionErrorService {
     let type = NotionErrorType.UNKNOWN;
     let severity = NotionErrorSeverity.ERROR;
     let retryable = false;
+    let message = '';
     
-    // Analyser le message d'erreur
-    const message = error.message.toLowerCase();
-    if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
-      type = NotionErrorType.NETWORK;
-      retryable = true;
-    } else if (message.includes('auth') || message.includes('unauthorized') || message.includes('401')) {
-      type = NotionErrorType.AUTH;
-      severity = NotionErrorSeverity.CRITICAL;
-    } else if (message.includes('permission') || message.includes('forbidden') || message.includes('403')) {
-      type = NotionErrorType.PERMISSION;
-      severity = NotionErrorSeverity.CRITICAL;
-    } else if (message.includes('rate limit') || message.includes('429')) {
-      type = NotionErrorType.RATE_LIMIT;
-      retryable = true;
+    if (typeof error === 'string') {
+      message = error;
+    } else if (error instanceof Error) {
+      message = error.message;
+      
+      // Analyser le message d'erreur
+      const errorMsg = message.toLowerCase();
+      if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('timeout')) {
+        type = NotionErrorType.NETWORK;
+        retryable = true;
+      } else if (errorMsg.includes('auth') || errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
+        type = NotionErrorType.AUTH;
+        severity = NotionErrorSeverity.CRITICAL;
+      } else if (errorMsg.includes('permission') || errorMsg.includes('forbidden') || errorMsg.includes('403')) {
+        type = NotionErrorType.PERMISSION;
+        severity = NotionErrorSeverity.CRITICAL;
+      } else if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
+        type = NotionErrorType.RATE_LIMIT;
+        retryable = true;
+      }
+    } else {
+      message = String(error);
     }
     
     return {
-      id: crypto.randomUUID ? crypto.randomUUID() : `err-${Date.now()}`,
+      id: uuidv4(),
       timestamp: Date.now(),
-      message: error.message,
+      message,
       type,
       severity,
-      cause: error,
+      cause: error instanceof Error ? error : undefined,
       context: context ? { context } : undefined,
-      name: error.name || 'NotionError',
-      stack: error.stack,
+      name: error instanceof Error ? error.name : 'NotionError',
+      stack: error instanceof Error ? error.stack : undefined,
       retryable,
       recoverable: false,
       recoveryActions: []
@@ -183,6 +199,31 @@ export class NotionErrorService {
         console.error('Erreur lors de la notification d\'un abonné:', err);
       }
     });
+  }
+  
+  /**
+   * Génère un message utilisateur à partir d'une erreur
+   */
+  public createUserFriendlyMessage(error: NotionError): string {
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+        return "Erreur d'authentification Notion. Veuillez vérifier vos identifiants.";
+        
+      case NotionErrorType.PERMISSION:
+        return "Erreur de permission Notion. L'application n'a pas accès à cette ressource.";
+        
+      case NotionErrorType.RATE_LIMIT:
+        return "Limite de requêtes Notion atteinte. Veuillez réessayer dans quelques instants.";
+        
+      case NotionErrorType.CORS:
+        return "Erreur de connexion à l'API Notion. Vérifiez votre configuration CORS.";
+        
+      case NotionErrorType.DATABASE:
+        return "Erreur de base de données Notion. Vérifiez la structure de vos bases.";
+        
+      default:
+        return `Erreur Notion: ${error.message}`;
+    }
   }
 }
 
