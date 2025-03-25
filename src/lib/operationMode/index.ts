@@ -1,15 +1,14 @@
 
-import { 
-  operationMode, 
-  operationModeUtils, 
-  OperationMode, 
-  useOperationMode 
-} from '@/services/operationMode';
+/**
+ * Re-export du module OperationMode pour faciliter l'accès
+ */
 
-// Re-export from the services/operationMode module
-export { 
-  operationMode, 
-  operationModeUtils, 
+import { operationMode, operationModeUtils, OperationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/services/operationMode/useOperationMode';
+
+export {
+  operationMode,
+  operationModeUtils,
   OperationMode,
   useOperationMode
 };

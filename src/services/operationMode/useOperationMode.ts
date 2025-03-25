@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { operationMode } from './operationModeAdapter';
 import { OperationMode, OperationModeSettings, SwitchReason, OperationModeHook } from './types';
+import { DEFAULT_SETTINGS } from './constants';
 
 /**
  * Hook React pour accéder au système de gestion des modes opérationnels
@@ -104,7 +105,6 @@ export function useOperationMode(): OperationModeHook {
     // Propriétés calculées
     isDemoMode,
     isRealMode,
-    currentMode,
     connectionHealth,
     
     // Actions
@@ -121,6 +121,9 @@ export function useOperationMode(): OperationModeHook {
     isOperationCritical,
     temporarilyForceReal,
     restorePreviousMode,
-    restoreMode
+    restoreMode,
+    
+    // Pour compatibilité avec useConnectionMode
+    currentMode
   };
 }
