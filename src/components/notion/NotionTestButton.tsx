@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RotateCw, Check, XCircle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
+import { operationMode } from '@/services/operationMode';
 
 interface NotionTestButtonProps {
   onSuccess?: () => void;
@@ -31,20 +32,20 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
     try {
       console.log('🔄 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
       
-      // Désactiver temporairement le mode mock pour ce test
-      const wasInMockMode = notionApi.mockMode.isActive();
-      if (wasInMockMode) {
-        notionApi.mockMode.deactivate();
+      // Désactiver temporairement le mode démo pour ce test
+      const wasInDemoMode = operationMode.isDemoMode;
+      if (wasInDemoMode) {
+        operationMode.enableRealMode();
       }
       
       // Tenter de récupérer l'utilisateur Notion (me)
-      const user = await notionApi.users.me(apiKey);
-      console.log('✅ Notion API connection successful, user:', user.name);
+      const response = await notionApi.users.me(apiKey);
+      console.log('✅ Notion API connection successful, user:', response.data?.user);
       
       // Test réussi
       setTestStatus('success');
       toast.success('Connexion à Notion réussie', {
-        description: `Connecté en tant que ${user.name}`
+        description: `Connecté en tant que ${response.data?.user || 'Utilisateur Notion'}`
       });
       
       // Si un callback onSuccess est fourni, l'appeler
@@ -57,7 +58,7 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
       
       // Afficher une erreur détaillée
       toast.error('Erreur de connexion à Notion', {
-        description: error.message || 'Vérifiez votre configuration Notion'
+        description: error instanceof Error ? error.message : 'Vérifiez votre configuration Notion'
       });
     } finally {
       setIsTesting(false);
