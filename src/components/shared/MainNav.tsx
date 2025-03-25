@@ -1,19 +1,18 @@
 
 import { Link } from "react-router-dom";
-
-import { Icons } from "@/components/icons"
-import { useSiteConfig } from "@/hooks/use-site-config"
-
-// Inclure Database comme icône
 import { Home, Settings, FilePlus, ClipboardList, Database } from 'lucide-react';
+import { useSiteConfig } from "@/hooks/use-site-config";
+import { Icons } from "@/components/icons";
 
 export function MainNav() {
+  const { name } = useSiteConfig();
+  
   return (
     <nav className="flex items-center space-x-4 lg:space-x-6">
       <Link to="/" className="flex items-center space-x-2">
         <Icons.logo className="h-6 w-6" />
         <span className="hidden font-bold sm:inline-block">
-          {useSiteConfig().name}
+          {name}
         </span>
       </Link>
       <Link
