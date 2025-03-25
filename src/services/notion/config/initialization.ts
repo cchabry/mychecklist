@@ -1,160 +1,161 @@
 
 /**
- * Gestion de l'initialisation de la configuration
- * S'occupe du chargement, de la validation et de l'application de la configuration au démarrage
+ * Initialisation de la configuration Notion
  */
 
-import { getStoredConfig, updateConfig, isConfigValid, NotionConfig } from './index';
-import { initializeFromEnvironment, validateEnvironmentConfig } from './environment';
+import { getEnvironmentConfig, validateEnvironmentConfig } from './environment';
+import { NotionConfig } from './types';
+import { notionErrorService } from '../errorHandling';
+import { structuredLogger } from '../logging/structuredLogger';
+import { notionClientAdapter } from '../compatibility/notionClientAdapter';
 
-// État de validation de la configuration
-export interface ConfigValidationState {
-  valid: boolean;
-  missingRequired: string[];
-  warnings: string[];
-  loadedFrom: 'localStorage' | 'environment' | 'defaults' | 'mixed';
+/**
+ * Initialise la configuration Notion à partir des variables d'environnement
+ */
+export function initializeConfiguration(): NotionConfig {
+  // Récupérer la configuration à partir des variables d'environnement
+  const envConfig = getEnvironmentConfig();
+  
+  // Valider la configuration
+  const missingFields = validateEnvironmentConfig(envConfig);
+  
+  if (missingFields.length > 0) {
+    structuredLogger.warn(
+      'Configuration Notion incomplète', 
+      { missingFields },
+      { source: 'NotionConfig' }
+    );
+  }
+  
+  return envConfig;
 }
 
 /**
- * Initialise la configuration au démarrage de l'application
- * Priorise la configuration stockée, puis les variables d'environnement, puis les valeurs par défaut
+ * Configure le client Notion avec les paramètres donnés
  */
-export function initializeConfiguration(options: {
-  prioritizeEnvironment?: boolean;
-  validateOnly?: boolean;
-  silent?: boolean;
-} = {}): ConfigValidationState {
-  const { prioritizeEnvironment = false, validateOnly = false, silent = false } = options;
-  
-  // Vérifier la configuration stockée
-  const storedConfig = getStoredConfig();
-  const storedValid = isConfigValid(storedConfig);
-  
-  // Vérifier les variables d'environnement
-  const envConfig = initializeFromEnvironment();
-  const missingEnvVars = validateEnvironmentConfig();
-  const envValid = missingEnvVars.length === 0;
-  
-  // Déterminer la source de configuration à utiliser
-  let configSource: 'localStorage' | 'environment' | 'defaults' | 'mixed' = 'defaults';
-  let warnings: string[] = [];
-  
-  if (storedValid && !prioritizeEnvironment) {
-    configSource = 'localStorage';
-    if (!silent) console.log('✅ Utilisation de la configuration stockée dans localStorage');
-    
-    // Ajouter un avertissement si des variables d'environnement sont disponibles mais ignorées
-    if (envValid) {
-      warnings.push(
-        'Des variables d\'environnement valides sont disponibles mais ignorées car une configuration valide existe dans localStorage'
+export function configureNotionClient(config: NotionConfig): void {
+  try {
+    // Vérifier si nous avons les informations minimales nécessaires
+    if (!config.apiKey || !config.databaseIds?.projects) {
+      structuredLogger.warn(
+        'Configuration Notion insuffisante pour initialiser le client',
+        { 
+          hasApiKey: !!config.apiKey, 
+          hasProjectsDb: !!config.databaseIds?.projects 
+        },
+        { source: 'NotionConfig' }
       );
+      return;
     }
-  } else if (envValid) {
-    configSource = 'environment';
-    if (!silent) console.log('✅ Utilisation de la configuration depuis les variables d\'environnement');
     
-    // Ajouter un avertissement si une configuration stockée est disponible mais ignorée
-    if (storedValid) {
-      warnings.push(
-        'Une configuration localStorage valide est disponible mais ignorée car priorité donnée aux variables d\'environnement'
+    // Configurer le client Notion via l'adaptateur
+    notionClientAdapter.configure(
+      config.apiKey,
+      config.databaseIds.projects,
+      config.databaseIds?.checklists
+    );
+    
+    structuredLogger.info(
+      'Client Notion configuré avec succès',
+      { 
+        hasChecklistDb: !!config.databaseIds?.checklists 
+      },
+      { source: 'NotionConfig' }
+    );
+  } catch (error) {
+    // Capturer et signaler l'erreur
+    notionErrorService.reportError(
+      error,
+      'Configuration du client Notion',
+      { 
+        type: 'config',
+        severity: 'error'
+      }
+    );
+    
+    structuredLogger.error(
+      'Erreur lors de la configuration du client Notion',
+      error,
+      { source: 'NotionConfig' }
+    );
+  }
+}
+
+/**
+ * Tente de tester la connexion à l'API Notion
+ */
+export async function testNotionConnection(config: NotionConfig): Promise<boolean> {
+  try {
+    // Vérifier si nous avons les informations minimales nécessaires
+    if (!config.apiKey || !config.databaseIds?.projects) {
+      structuredLogger.warn(
+        'Configuration Notion insuffisante pour tester la connexion',
+        { 
+          hasApiKey: !!config.apiKey, 
+          hasProjectsDb: !!config.databaseIds?.projects 
+        },
+        { source: 'NotionConfig' }
       );
+      return false;
     }
-  } else if (storedValid) {
-    configSource = 'localStorage';
-    if (!silent) console.log('✅ Utilisation de la configuration stockée par défaut');
-    warnings.push('Variables d\'environnement incomplètes, utilisation de localStorage à la place');
-  } else {
-    configSource = 'mixed';
-    if (!silent) console.warn('⚠️ Configuration incomplète, utilisation d\'une combinaison de sources');
     
-    // Ajouter les problèmes détectés
-    if (missingEnvVars.length > 0) {
-      warnings.push(`Variables d'environnement manquantes: ${missingEnvVars.join(', ')}`);
+    // Tester la connexion via l'adaptateur
+    const testResult = await notionClientAdapter.testConnection();
+    
+    if (testResult.success) {
+      structuredLogger.info(
+        'Test de connexion Notion réussi',
+        { user: testResult.data?.user },
+        { source: 'NotionConfig' }
+      );
+      return true;
+    } else {
+      structuredLogger.warn(
+        'Test de connexion Notion échoué',
+        { error: testResult.error },
+        { source: 'NotionConfig' }
+      );
+      return false;
     }
-    if (!storedConfig.apiKey) {
-      warnings.push('Clé API Notion manquante dans localStorage');
-    }
-    if (!storedConfig.databaseIds.projects) {
-      warnings.push('ID de base de données des projets manquant dans localStorage');
-    }
+  } catch (error) {
+    // Capturer et signaler l'erreur
+    notionErrorService.reportError(
+      error,
+      'Test de connexion Notion',
+      { 
+        type: 'network',
+        severity: 'warning'
+      }
+    );
+    
+    structuredLogger.error(
+      'Erreur lors du test de connexion Notion',
+      error,
+      { source: 'NotionConfig' }
+    );
+    
+    return false;
   }
-  
-  // Si on ne fait que valider, ne pas appliquer les changements
-  if (validateOnly) {
-    return {
-      valid: storedValid || envValid,
-      missingRequired: [...missingEnvVars],
-      warnings,
-      loadedFrom: configSource
-    };
-  }
-  
-  // Appliquer la configuration
-  if (configSource === 'environment' || (configSource === 'mixed' && prioritizeEnvironment)) {
-    // Mettre à jour la configuration stockée avec les valeurs de l'environnement
-    updateConfig(envConfig);
-  }
-  
-  return {
-    valid: storedValid || envValid,
-    missingRequired: [...missingEnvVars],
-    warnings,
-    loadedFrom: configSource
-  };
 }
 
 /**
- * Réinitialise la configuration en fonction des variables d'environnement
- * Écrase les valeurs stockées dans localStorage
+ * Initialise complètement le client Notion
  */
-export function resetConfigurationFromEnvironment(): ConfigValidationState {
-  // Récupérer la configuration depuis l'environnement
-  const envConfig = initializeFromEnvironment();
+export async function initializeNotionClient(): Promise<{
+  config: NotionConfig;
+  isConnected: boolean;
+}> {
+  // Initialiser la configuration
+  const config = initializeConfiguration();
   
-  // Appliquer la configuration
-  updateConfig(envConfig);
+  // Configurer le client
+  configureNotionClient(config);
   
-  // Valider la nouvelle configuration
-  const missingEnvVars = validateEnvironmentConfig();
-  const valid = missingEnvVars.length === 0;
+  // Tester la connexion
+  const isConnected = await testNotionConnection(config);
   
   return {
-    valid,
-    missingRequired: [...missingEnvVars],
-    warnings: [],
-    loadedFrom: 'environment'
+    config,
+    isConnected
   };
 }
-
-/**
- * Valide une configuration en vérifiant les champs requis
- */
-export function validateConfiguration(config: NotionConfig): {
-  valid: boolean;
-  missingRequired: string[];
-} {
-  const missingRequired: string[] = [];
-  
-  if (!config.apiKey) {
-    missingRequired.push('API Key');
-  }
-  
-  if (!config.databaseIds.projects) {
-    missingRequired.push('Database Projects ID');
-  }
-  
-  return {
-    valid: missingRequired.length === 0,
-    missingRequired
-  };
-}
-
-// Exporter des utilitaires pratiques
-export const configUtils = {
-  initialize: initializeConfiguration,
-  reset: resetConfigurationFromEnvironment,
-  validate: validateConfiguration
-};
-
-// Exporter l'état de la configuration courante
-export const configState = initializeConfiguration({ validateOnly: true, silent: true });

@@ -1,193 +1,202 @@
 
 /**
- * Adaptateur pour assurer la compatibilité avec l'ancien client Notion
- * Permet la transition en douceur vers la nouvelle API
+ * Adaptateur de compatibilité pour le client Notion
+ * Permet d'utiliser l'ancien client notionApi avec la nouvelle architecture
  */
 
-import { notionService } from '../client';
-import { NotionAPIResponse, ConnectionStatus, NotionAPIListResponse, NotionAPIPage, NotionAPIError } from '../client/legacy';
-import { updateConfig, getStoredConfig } from '../config';
+import { notionApi } from '@/lib/notionProxy';
+import { NotionAPIResponse } from '@/lib/types';
+import { ConnectionStatus } from '@/hooks/useNotionConnection';
 
-// Service adapté avec toutes les méthodes nécessaires
-const adaptedNotionService = {
-  ...notionService,
-  
-  // API Bases de données (ajout)
-  databases: {
-    query: async (databaseId: string, query = {}): Promise<any> => {
-      try {
-        if (notionService.databases && typeof notionService.databases.query === 'function') {
-          return await notionService.databases.query(databaseId, query);
-        }
-        throw new Error('Méthode databases.query non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    retrieve: async (databaseId: string): Promise<any> => {
-      try {
-        if (notionService.databases && typeof notionService.databases.retrieve === 'function') {
-          return await notionService.databases.retrieve(databaseId);
-        }
-        throw new Error('Méthode databases.retrieve non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
+/**
+ * Adaptateur qui fournit un wrapper autour de l'ancien notionApi
+ * pour le rendre compatible avec la nouvelle architecture
+ */
+class NotionClientAdapter {
+  /**
+   * Méthode de proxy pour accéder à databases.query
+   */
+  public async queryDatabase(databaseId: string, query: any, token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).databases?.query === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).databases.query(databaseId, query, token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode databases.query n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: queryDatabase');
     }
-  },
-  
-  // API Pages (ajout)
-  pages: {
-    retrieve: async (pageId: string): Promise<any> => {
-      try {
-        if (notionService.pages && typeof notionService.pages.retrieve === 'function') {
-          return await notionService.pages.retrieve(pageId);
-        }
-        throw new Error('Méthode pages.retrieve non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    create: async (data: any): Promise<any> => {
-      try {
-        if (notionService.pages && typeof notionService.pages.create === 'function') {
-          return await notionService.pages.create(data);
-        }
-        throw new Error('Méthode pages.create non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    update: async (pageId: string, data: any): Promise<any> => {
-      try {
-        if (notionService.pages && typeof notionService.pages.update === 'function') {
-          return await notionService.pages.update(pageId, data);
-        }
-        throw new Error('Méthode pages.update non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
+  }
+
+  /**
+   * Méthode de proxy pour accéder à databases.retrieve
+   */
+  public async retrieveDatabase(databaseId: string, token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).databases?.retrieve === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).databases.retrieve(databaseId, token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode databases.retrieve n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: retrieveDatabase');
     }
-  },
-  
-  // API Utilisateurs (ajout)
-  users: {
-    me: async (): Promise<any> => {
-      try {
-        if (notionService.users && typeof notionService.users.me === 'function') {
-          return await notionService.users.me();
-        }
-        throw new Error('Méthode users.me non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
-    },
-    
-    list: async (): Promise<any> => {
-      try {
-        if (notionService.users && typeof notionService.users.list === 'function') {
-          return await notionService.users.list();
-        }
-        throw new Error('Méthode users.list non disponible');
-      } catch (error) {
-        return { 
-          success: false, 
-          error: { message: error instanceof Error ? error.message : String(error) } 
-        };
-      }
+  }
+
+  /**
+   * Méthode de proxy pour accéder à pages.retrieve
+   */
+  public async retrievePage(pageId: string, token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).pages?.retrieve === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).pages.retrieve(pageId, token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode pages.retrieve n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: retrievePage');
     }
-  },
-  
-  // API Recherche (ajout)
-  search: async (query: string, options = {}): Promise<any> => {
+  }
+
+  /**
+   * Méthode de proxy pour accéder à pages.update
+   */
+  public async updatePage(pageId: string, properties: any, token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).pages?.update === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).pages.update(pageId, properties, token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode pages.update n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: updatePage');
+    }
+  }
+
+  /**
+   * Méthode de proxy pour accéder à pages.create
+   */
+  public async createPage(parent: any, properties: any, token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).pages?.create === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).pages.create(parent, properties, token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode pages.create n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: createPage');
+    }
+  }
+
+  /**
+   * Méthode de proxy pour accéder à users.me
+   */
+  public async me(token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).users?.me === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).users.me(token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode users.me n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: me');
+    }
+  }
+
+  /**
+   * Méthode de proxy pour accéder à users.list
+   */
+  public async listUsers(token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).users?.list === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).users.list(token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode users.list n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: listUsers');
+    }
+  }
+
+  /**
+   * Méthode de proxy pour accéder à search
+   */
+  public async search(query: any, token?: string): Promise<any> {
+    // Vérifier si la méthode existe sur l'API d'origine
+    if (typeof (notionApi as any).search === 'function') {
+      // Utiliser la méthode d'origine si elle existe
+      return (notionApi as any).search(query, token);
+    } else {
+      // Implémenter un fallback si l'API d'origine n'a pas cette méthode
+      console.warn('La méthode search n\'est pas disponible dans notionApi, utilisation d\'un fallback');
+      throw new Error('Méthode non implémentée: search');
+    }
+  }
+
+  /**
+   * Teste la connexion à l'API Notion
+   */
+  public async testConnection(): Promise<NotionAPIResponse<{ user: string }>> {
     try {
-      if (typeof notionService.search === 'function') {
-        return await notionService.search(query, options);
-      }
-      throw new Error('Méthode search non disponible');
-    } catch (error) {
-      return { 
-        success: false, 
-        error: { message: error instanceof Error ? error.message : String(error) } 
-      };
-    }
-  },
-  
-  // Test de connexion enrichi pour la compatibilité
-  testConnection: async (): Promise<NotionAPIResponse<{ user: string }>> => {
-    try {
-      const result = await notionService.testConnection();
+      const response = await notionApi.testConnection();
       
-      return {
-        success: result.success,
-        data: result.success ? { user: result.user || 'Unknown user' } : undefined,
-        error: !result.success ? { 
-          message: result.error || 'Unknown error'
-        } as NotionAPIError : undefined,
-        user: result.success ? result.user || 'Unknown user' : undefined
-      };
+      // Si la réponse ne contient pas la propriété "user", l'ajouter
+      if (!response.data || !response.data.user) {
+        return {
+          ...response,
+          data: { 
+            ...response.data, 
+            user: (response as any).user || 'Unknown User'
+          }
+        };
+      }
+      
+      return response;
     } catch (error) {
       return {
         success: false,
-        error: {
-          message: error instanceof Error ? error.message : 'Une erreur inconnue est survenue'
-        }
+        error: error.message,
+        data: { user: 'Unknown User' }
       };
     }
   }
-};
 
-// Objet d'adaptateur qui expose l'API compatible avec l'ancien client
-export const notionClientAdapter = {
-  // Vérification de la configuration
-  isConfigured: (): boolean => {
-    const config = getStoredConfig();
-    return !!config.apiKey && !!config.databaseIds.projects;
-  },
-  
-  // Configuration du client
-  configure: (apiKey: string, databaseId: string, checklistsDbId?: string): void => {
-    // Adapter les paramètres au nouveau format de configuration
-    updateConfig({
-      apiKey,
-      databaseIds: {
-        projects: databaseId,
-        checklists: checklistsDbId || null,
-        exigences: null,
-        pages: null,
-        audits: null,
-        evaluations: null,
-        actions: null,
-        progress: null
-      }
-    });
-    
-    console.log('✅ Notion configuration updated via compatibility adapter');
-  },
-  
-  // Exporter toutes les méthodes du service adapté
-  ...adaptedNotionService
-};
+  /**
+   * Vérifie si le client Notion est configuré
+   */
+  public isConfigured(): boolean {
+    return notionApi.isConfigured();
+  }
 
+  /**
+   * Configure le client Notion
+   */
+  public configure(apiKey: string, databaseId: string, checklistsDbId?: string): void {
+    notionApi.configure(apiKey, databaseId, checklistsDbId);
+  }
+
+  /**
+   * Obtient l'état de connexion
+   */
+  public getConnectionStatus(): ConnectionStatus {
+    return {
+      isConnected: notionApi.isConfigured(),
+      isLoading: false,
+      error: null
+    };
+  }
+
+  /**
+   * Définit l'état de connexion (non utilisé, pour compatibilité)
+   */
+  public setConnectionStatus(status: ConnectionStatus): void {
+    // Cette méthode est un placeholder pour compatibilité
+    console.log('setConnectionStatus appelé avec:', status);
+  }
+}
+
+// Créer une instance singleton
+export const notionClientAdapter = new NotionClientAdapter();
+
+// Exporter l'instance par défaut
 export default notionClientAdapter;

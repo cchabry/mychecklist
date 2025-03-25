@@ -6,7 +6,7 @@
 
 import { structuredLogger } from '../logging/structuredLogger';
 import { errorCounter } from './errorCounter';
-import { ErrorCounterOptions } from '../errorHandling/types';
+import { AlertThresholdConfig } from '../errorHandling/types';
 
 /**
  * Interface des options de configuration du monitoring
@@ -15,7 +15,12 @@ export interface MonitoringOptions {
   /**
    * Options de configuration du compteur d'erreurs
    */
-  errorCounter?: ErrorCounterOptions;
+  errorCounter?: {
+    maxStorageTime?: number;
+    cleanupInterval?: number;
+    alertThresholds?: AlertThresholdConfig;
+    logErrors?: boolean;
+  };
   
   /**
    * Active ou désactive le monitoring

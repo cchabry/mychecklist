@@ -1,4 +1,9 @@
 
+/**
+ * Service de comptage des erreurs
+ * Ce service permet de suivre les erreurs survenues dans l'application
+ */
+
 import { 
   ErrorCounterOptions, 
   ErrorCounterStats, 
@@ -9,18 +14,21 @@ import {
 /**
  * Format des erreurs pour méthode toString
  */
-const ERROR_FORMAT: Record<NotionErrorType, string> = {
+const ERROR_FORMAT: Partial<Record<NotionErrorType, string>> = {
   [NotionErrorType.UNKNOWN]: 'Erreur inconnue',
   [NotionErrorType.NETWORK]: 'Erreur réseau',
   [NotionErrorType.TIMEOUT]: 'Délai dépassé',
   [NotionErrorType.AUTH]: 'Erreur d\'authentification',
   [NotionErrorType.RATE_LIMIT]: 'Limitation de débit',
   [NotionErrorType.SERVER]: 'Erreur serveur',
-  [NotionErrorType.CLIENT]: 'Erreur client',
   [NotionErrorType.VALIDATION]: 'Erreur de validation',
   [NotionErrorType.NOT_FOUND]: 'Ressource non trouvée',
-  [NotionErrorType.FORBIDDEN]: 'Accès interdit',
-  [NotionErrorType.API]: 'Erreur API'
+  [NotionErrorType.PERMISSION]: 'Accès interdit',
+  [NotionErrorType.API]: 'Erreur API',
+  [NotionErrorType.DATABASE]: 'Erreur de base de données',
+  [NotionErrorType.CORS]: 'Erreur CORS',
+  [NotionErrorType.PROXY]: 'Erreur de proxy',
+  [NotionErrorType.CONFIG]: 'Erreur de configuration'
 };
 
 /**
@@ -44,7 +52,7 @@ class ErrorCounter {
     
     this.stats = {
       total: 0,
-      byType: {},
+      byType: {} as Partial<Record<NotionErrorType, number>>,
       byEndpoint: {},
       byHour: {},
       byMinute: {}
@@ -205,8 +213,9 @@ class ErrorCounter {
       return NotionErrorType.NOT_FOUND;
     }
     
-    if (errorMessage.includes('forbidden') || errorMessage.includes('403')) {
-      return NotionErrorType.FORBIDDEN;
+    if (errorMessage.includes('forbidden') || errorMessage.includes('403') || 
+        errorMessage.includes('permission')) {
+      return NotionErrorType.PERMISSION;
     }
     
     if (errorMessage.includes('validation') || errorMessage.includes('invalid') || 
@@ -264,13 +273,13 @@ class ErrorCounter {
     
     // Vérifier le seuil d'erreurs total par heure
     const totalErrorsThisHour = this.stats.byHour?.[currentHour] || 0;
-    if (totalErrorsThisHour >= this.thresholds.totalErrorsPerHour) {
+    if (this.thresholds.totalErrorsPerHour && totalErrorsThisHour >= this.thresholds.totalErrorsPerHour) {
       newAlerts.push(`Le nombre total d'erreurs par heure (${totalErrorsThisHour}) a dépassé le seuil (${this.thresholds.totalErrorsPerHour})`);
     }
     
     // Vérifier le seuil d'erreurs total par minute
     const totalErrorsThisMinute = this.stats.byMinute?.[currentMinute] || 0;
-    if (totalErrorsThisMinute >= this.thresholds.totalErrorsPerMinute) {
+    if (this.thresholds.totalErrorsPerMinute && totalErrorsThisMinute >= this.thresholds.totalErrorsPerMinute) {
       newAlerts.push(`Le nombre total d'erreurs par minute (${totalErrorsThisMinute}) a dépassé le seuil (${this.thresholds.totalErrorsPerMinute})`);
     }
     
@@ -298,7 +307,7 @@ class ErrorCounter {
    * Convertit un type d'erreur en chaîne formatée
    */
   public formatErrorType(type: NotionErrorType): string {
-    return ERROR_FORMAT[type] || ERROR_FORMAT[NotionErrorType.UNKNOWN];
+    return ERROR_FORMAT[type] || ERROR_FORMAT[NotionErrorType.UNKNOWN] || 'Erreur inconnue';
   }
 }
 
