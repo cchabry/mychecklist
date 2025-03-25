@@ -1,503 +1,443 @@
 
+import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
+import { proxyManager } from '@/services/apiProxy';
+import { encryptData, decryptData } from './encryption';
+import { validateToken, identifyTokenType, NotionTokenType } from './tokenValidation';
+
 /**
- * Service de gestion OAuth pour Notion
- * Gère le flux d'authentification, le rafraîchissement des tokens et l'expiration
+ * Configuration pour le gestionnaire OAuth Notion
  */
-
-import { tokenStorage } from './tokenStorage';
-import { structuredLogger } from '../logging/structuredLogger';
-import { identifyTokenType, NotionTokenType } from './tokenValidation';
-import { createTokenError } from './tokenValidation';
-
-// Temps par défaut avant expiration (en millisecondes)
-// Les tokens OAuth Notion expirent généralement après 8 heures
-const DEFAULT_EXPIRATION_TIME = 8 * 60 * 60 * 1000; // 8 heures
-
-// Clés de stockage
-const OAUTH_TOKEN_KEY = 'notion_oauth_token';
-const OAUTH_REFRESH_TOKEN_KEY = 'notion_oauth_refresh_token';
-const OAUTH_EXPIRATION_KEY = 'notion_oauth_expiration';
-const OAUTH_WORKSPACE_ID_KEY = 'notion_oauth_workspace_id';
-const OAUTH_USER_ID_KEY = 'notion_oauth_user_id';
-
-// Interface pour les données du token OAuth
-export interface OAuthTokenData {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: Date;
-  workspaceId?: string;
-  userId?: string;
+export interface NotionOAuthConfig {
+  // ID client pour l'application OAuth Notion
+  clientId: string;
+  
+  // Secret client pour l'application OAuth Notion (ne devrait être utilisé que côté serveur)
+  clientSecret?: string;
+  
+  // URL de redirection après authentification
+  redirectUri: string;
+  
+  // Scopes d'accès demandés
+  scopes?: string[];
+  
+  // Fonction de rappel pour les erreurs d'authentification
+  onAuthError?: (error: Error) => void;
+  
+  // Fonction de rappel après rafraîchissement du token
+  onTokenRefreshed?: () => void;
+  
+  // Fonction de rappel après déconnexion
+  onLogout?: () => void;
+  
+  // Activer le rafraîchissement automatique des tokens
+  autoRefresh?: boolean;
 }
 
 /**
- * Interface pour les options de rafraîchissement
+ * Interface pour les jetons OAuth Notion
  */
-export interface RefreshOptions {
-  forceRefresh?: boolean;
-  silent?: boolean;
-  onRefreshFailed?: (error: Error) => void;
+export interface NotionOAuthTokens {
+  // Jeton d'accès pour l'API Notion
+  access_token: string;
+  
+  // Date d'expiration du jeton d'accès (timestamp)
+  expires_at: number;
+  
+  // Jeton de rafraîchissement pour obtenir un nouveau jeton d'accès
+  refresh_token?: string;
+  
+  // Type du jeton (bearer)
+  token_type: string;
+  
+  // ID de l'espace de travail Notion
+  workspace_id?: string;
+  
+  // Identifiant de propriétaire du jeton
+  owner?: {
+    user?: {
+      id: string;
+      name?: string;
+    }
+  };
 }
 
 /**
- * Classe pour gérer l'authentification OAuth Notion
+ * Clés de stockage pour les données OAuth
+ */
+const STORAGE_KEYS = {
+  TOKENS: 'notion_oauth_tokens',
+  STATE: 'notion_oauth_state',
+};
+
+/**
+ * Configuration par défaut pour OAuth Notion
+ */
+const DEFAULT_CONFIG: NotionOAuthConfig = {
+  clientId: process.env.VITE_NOTION_OAUTH_CLIENT_ID || '123456789',
+  redirectUri: `${window.location.origin}/notion-callback`,
+  scopes: ['read_user', 'read_databases', 'read_pages', 'update_pages', 'read_blocks', 'update_blocks'],
+};
+
+/**
+ * Classe principale pour gérer l'authentification OAuth avec Notion
  */
 export class NotionOAuthManager {
-  // Délai avant expiration pour déclencher un rafraîchissement anticipé (ms)
-  private refreshBuffer: number = 10 * 60 * 1000; // 10 minutes
+  private config: NotionOAuthConfig;
+  private tokens: NotionOAuthTokens | null = null;
+  private tokenRefreshTimeout: ReturnType<typeof setTimeout> | null = null;
   
-  // URL du serveur d'authentification OAuth Notion
-  private authServerUrl: string = 'https://api.notion.com/v1/oauth';
-  
-  // Paramètres de l'application
-  private clientId: string = '';
-  private clientSecret: string = '';
-  private redirectUri: string = '';
-  
-  // État de l'authentification
-  private isRefreshing: boolean = false;
-  private listeners: Array<(token: string) => void> = [];
-  
-  /**
-   * Initialise le gestionnaire OAuth
-   */
-  constructor() {
-    structuredLogger.debug('Initialisation du gestionnaire OAuth Notion');
-  }
-  
-  /**
-   * Configure le gestionnaire OAuth
-   */
-  configure(config: {
-    clientId: string;
-    clientSecret?: string;
-    redirectUri: string;
-    refreshBuffer?: number;
-    authServerUrl?: string;
-  }) {
-    this.clientId = config.clientId;
-    this.clientSecret = config.clientSecret || '';
-    this.redirectUri = config.redirectUri;
+  constructor(config: Partial<NotionOAuthConfig> = {}) {
+    // Fusion de la configuration par défaut avec celle fournie
+    this.config = { ...DEFAULT_CONFIG, ...config };
     
-    if (config.refreshBuffer) {
-      this.refreshBuffer = config.refreshBuffer;
+    // Charger les tokens s'ils existent
+    this.loadTokens();
+    
+    // Configurer le rafraîchissement automatique si activé
+    if (this.config.autoRefresh && this.tokens) {
+      this.scheduleTokenRefresh();
     }
-    
-    if (config.authServerUrl) {
-      this.authServerUrl = config.authServerUrl;
-    }
-    
-    structuredLogger.info('Gestionnaire OAuth configuré', {
-      clientId: this.clientId,
-      redirectUri: this.redirectUri,
-      hasClientSecret: !!this.clientSecret
-    });
-    
-    return this;
-  }
-  
-  /**
-   * Obtient l'URL d'autorisation pour démarrer le flux OAuth
-   */
-  getAuthorizationUrl(state: string, options: {
-    scope?: string[];
-    responseType?: 'code';
-    owner?: 'user' | 'workspace';
-  } = {}) {
-    if (!this.clientId) {
-      throw new Error('OAuth non configuré: clientId manquant');
-    }
-    
-    if (!this.redirectUri) {
-      throw new Error('OAuth non configuré: redirectUri manquant');
-    }
-    
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      redirect_uri: this.redirectUri,
-      response_type: options.responseType || 'code',
-      state,
-      owner: options.owner || 'user'
-    });
-    
-    if (options.scope && options.scope.length > 0) {
-      params.append('scope', options.scope.join(' '));
-    }
-    
-    return `${this.authServerUrl}/authorize?${params.toString()}`;
-  }
-  
-  /**
-   * Échange un code d'autorisation contre un token
-   */
-  async exchangeCodeForToken(code: string): Promise<OAuthTokenData> {
-    if (!this.clientId) {
-      throw new Error('OAuth non configuré: clientId manquant');
-    }
-    
-    if (!this.clientSecret) {
-      throw new Error('OAuth non configuré: clientSecret manquant');
-    }
-    
-    try {
-      // Cette implémentation doit être faite côté serveur pour sécuriser le client_secret
-      // Ici nous supposons l'existence d'un service proxy pour traiter cette opération
-      const response = await fetch('/api/notion-oauth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: this.redirectUri,
-          client_id: this.clientId,
-          client_secret: this.clientSecret
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error_description || 'Erreur d'échange de code');
-      }
-      
-      const data = await response.json();
-      
-      // Calculer la date d'expiration
-      const expiresAt = new Date(Date.now() + (data.expires_in * 1000 || DEFAULT_EXPIRATION_TIME));
-      
-      // Stocker les informations du token
-      const tokenData: OAuthTokenData = {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt,
-        workspaceId: data.workspace_id,
-        userId: data.owner?.user?.id
-      };
-      
-      this.saveTokenData(tokenData);
-      
-      structuredLogger.info('Token OAuth obtenu avec succès', {
-        expiresAt: expiresAt.toISOString(),
-        hasRefreshToken: !!data.refresh_token
-      });
-      
-      return tokenData;
-    } catch (error) {
-      structuredLogger.error('Erreur lors de l\'échange du code OAuth', error, {
-        source: 'OAuthManager',
-        tags: ['oauth', 'token-exchange']
-      });
-      throw error;
-    }
-  }
-  
-  /**
-   * Rafraîchit le token OAuth
-   */
-  async refreshToken(options: RefreshOptions = {}): Promise<OAuthTokenData> {
-    const refreshToken = tokenStorage.getToken(OAUTH_REFRESH_TOKEN_KEY);
-    
-    if (!refreshToken) {
-      const error = new Error('Pas de refresh token disponible');
-      if (!options.silent) {
-        structuredLogger.error('Échec du rafraîchissement: pas de refresh token', error, {
-          source: 'OAuthManager',
-          tags: ['oauth', 'refresh']
-        });
-      }
-      
-      if (options.onRefreshFailed) {
-        options.onRefreshFailed(error);
-      }
-      
-      throw error;
-    }
-    
-    // Si déjà en cours de rafraîchissement, attendre
-    if (this.isRefreshing) {
-      return new Promise((resolve, reject) => {
-        this.listeners.push((token) => {
-          try {
-            const tokenData = this.getTokenData();
-            if (tokenData) {
-              resolve(tokenData);
-            } else {
-              reject(new Error('Échec de récupération des données du token après rafraîchissement'));
-            }
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
-    }
-    
-    this.isRefreshing = true;
-    
-    try {
-      // Cette opération doit être effectuée côté serveur pour protéger le client_secret
-      const response = await fetch('/api/notion-oauth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-          client_id: this.clientId,
-          client_secret: this.clientSecret
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error_description || 'Erreur de rafraîchissement de token');
-      }
-      
-      const data = await response.json();
-      
-      // Calculer la date d'expiration
-      const expiresAt = new Date(Date.now() + (data.expires_in * 1000 || DEFAULT_EXPIRATION_TIME));
-      
-      // Stocker les informations du token
-      const tokenData: OAuthTokenData = {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token || refreshToken, // Conserver l'ancien si pas de nouveau
-        expiresAt,
-        workspaceId: data.workspace_id || tokenStorage.getToken(OAUTH_WORKSPACE_ID_KEY),
-        userId: data.owner?.user?.id || tokenStorage.getToken(OAUTH_USER_ID_KEY)
-      };
-      
-      this.saveTokenData(tokenData);
-      
-      structuredLogger.info('Token OAuth rafraîchi avec succès', {
-        expiresAt: expiresAt.toISOString(),
-        hasNewRefreshToken: !!data.refresh_token
-      });
-      
-      // Notifier les listeners
-      this.listeners.forEach(listener => listener(data.access_token));
-      this.listeners = [];
-      
-      return tokenData;
-    } catch (error) {
-      if (!options.silent) {
-        structuredLogger.error('Erreur lors du rafraîchissement du token OAuth', error, {
-          source: 'OAuthManager',
-          tags: ['oauth', 'refresh']
-        });
-      }
-      
-      if (options.onRefreshFailed) {
-        options.onRefreshFailed(error instanceof Error ? error : new Error(String(error)));
-      }
-      
-      throw error;
-    } finally {
-      this.isRefreshing = false;
-    }
-  }
-  
-  /**
-   * Vérifie si un rafraîchissement est nécessaire
-   */
-  shouldRefreshToken(): boolean {
-    try {
-      const expirationStr = tokenStorage.getToken(OAUTH_EXPIRATION_KEY);
-      if (!expirationStr) return false;
-      
-      const expiresAt = new Date(expirationStr);
-      const now = new Date();
-      
-      // Si le token expire bientôt (dans moins que le buffer défini)
-      return (expiresAt.getTime() - now.getTime()) < this.refreshBuffer;
-    } catch (error) {
-      structuredLogger.warn('Erreur lors de la vérification d\'expiration du token', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return false;
-    }
-  }
-  
-  /**
-   * Vérifie si le token est expiré
-   */
-  isTokenExpired(): boolean {
-    try {
-      const expirationStr = tokenStorage.getToken(OAUTH_EXPIRATION_KEY);
-      if (!expirationStr) return false;
-      
-      const expiresAt = new Date(expirationStr);
-      const now = new Date();
-      
-      return now > expiresAt;
-    } catch (error) {
-      structuredLogger.warn('Erreur lors de la vérification d\'expiration du token', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return false;
-    }
-  }
-  
-  /**
-   * Obtient le token actuel, rafraîchissant si nécessaire
-   */
-  async getToken(options?: RefreshOptions): Promise<string> {
-    const token = tokenStorage.getToken(OAUTH_TOKEN_KEY);
-    
-    // Si pas de token, impossible de continuer
-    if (!token) {
-      const error = createTokenError('Pas de token OAuth disponible');
-      
-      if (options?.onRefreshFailed) {
-        options.onRefreshFailed(error);
-      }
-      
-      throw error;
-    }
-    
-    // Si le token est expiré ou expire bientôt, essayer de le rafraîchir
-    if (options?.forceRefresh || this.shouldRefreshToken()) {
-      try {
-        const newTokenData = await this.refreshToken(options);
-        return newTokenData.accessToken;
-      } catch (error) {
-        // Si le rafraîchissement échoue, utiliser le token existant si pas expiré
-        if (!this.isTokenExpired()) {
-          return token;
-        }
-        
-        // Sinon relancer l'erreur
-        throw error;
-      }
-    }
-    
-    return token;
-  }
-  
-  /**
-   * Enregistre les données du token
-   */
-  private saveTokenData(tokenData: OAuthTokenData): void {
-    tokenStorage.saveToken(tokenData.accessToken, OAUTH_TOKEN_KEY);
-    
-    if (tokenData.refreshToken) {
-      tokenStorage.saveToken(tokenData.refreshToken, OAUTH_REFRESH_TOKEN_KEY);
-    }
-    
-    if (tokenData.expiresAt) {
-      tokenStorage.saveToken(tokenData.expiresAt.toISOString(), OAUTH_EXPIRATION_KEY);
-    }
-    
-    if (tokenData.workspaceId) {
-      tokenStorage.saveToken(tokenData.workspaceId, OAUTH_WORKSPACE_ID_KEY);
-    }
-    
-    if (tokenData.userId) {
-      tokenStorage.saveToken(tokenData.userId, OAUTH_USER_ID_KEY);
-    }
-  }
-  
-  /**
-   * Récupère les données du token
-   */
-  getTokenData(): OAuthTokenData | null {
-    const accessToken = tokenStorage.getToken(OAUTH_TOKEN_KEY);
-    if (!accessToken) return null;
-    
-    const refreshToken = tokenStorage.getToken(OAUTH_REFRESH_TOKEN_KEY);
-    const expirationStr = tokenStorage.getToken(OAUTH_EXPIRATION_KEY);
-    const workspaceId = tokenStorage.getToken(OAUTH_WORKSPACE_ID_KEY);
-    const userId = tokenStorage.getToken(OAUTH_USER_ID_KEY);
-    
-    return {
-      accessToken,
-      refreshToken: refreshToken || undefined,
-      expiresAt: expirationStr ? new Date(expirationStr) : undefined,
-      workspaceId: workspaceId || undefined,
-      userId: userId || undefined
-    };
-  }
-  
-  /**
-   * Efface les tokens OAuth stockés
-   */
-  clearTokens(): void {
-    tokenStorage.removeToken(OAUTH_TOKEN_KEY);
-    tokenStorage.removeToken(OAUTH_REFRESH_TOKEN_KEY);
-    tokenStorage.removeToken(OAUTH_EXPIRATION_KEY);
-    tokenStorage.removeToken(OAUTH_WORKSPACE_ID_KEY);
-    tokenStorage.removeToken(OAUTH_USER_ID_KEY);
-    
-    structuredLogger.info('Tokens OAuth effacés');
-  }
-  
-  /**
-   * Déconnecte l'utilisateur en révoquant le token et nettoyant le stockage
-   */
-  async logout(): Promise<void> {
-    const token = tokenStorage.getToken(OAUTH_TOKEN_KEY);
-    
-    if (token) {
-      try {
-        // Tenter de révoquer le token côté serveur
-        await fetch('/api/notion-oauth/revoke', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            token,
-            client_id: this.clientId,
-            client_secret: this.clientSecret
-          })
-        });
-      } catch (error) {
-        structuredLogger.warn('Erreur lors de la révocation du token', {
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }
-    
-    // Nettoyer le stockage même si la révocation échoue
-    this.clearTokens();
-  }
-  
-  /**
-   * Vérifie si un token est un token OAuth
-   */
-  isOAuthToken(token: string): boolean {
-    return identifyTokenType(token) === NotionTokenType.OAUTH;
   }
   
   /**
    * Vérifie si l'utilisateur est authentifié
    */
   isAuthenticated(): boolean {
-    const token = tokenStorage.getToken(OAUTH_TOKEN_KEY);
-    return !!token && !this.isTokenExpired();
+    return !!this.tokens?.access_token;
   }
   
   /**
-   * Obtient la date d'expiration du token
+   * Obtient le jeton d'accès actuel
    */
-  getExpiration(): Date | null {
-    const expirationStr = tokenStorage.getToken(OAUTH_EXPIRATION_KEY);
-    return expirationStr ? new Date(expirationStr) : null;
+  getAccessToken(): string | null {
+    return this.tokens?.access_token || null;
   }
   
   /**
-   * Ajoute un listener pour les événements de rafraîchissement
+   * Obtient toutes les informations sur les jetons
    */
-  addRefreshListener(listener: (token: string) => void): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+  getTokenInfo(): {
+    accessToken: string | null;
+    tokenType: NotionTokenType;
+    expiresAt: Date | null;
+    workspaceId: string | null;
+    userName: string | null;
+    isExpired: boolean;
+    willExpireSoon: boolean;
+  } {
+    const now = new Date();
+    const expiresAt = this.tokens?.expires_at ? new Date(this.tokens.expires_at) : null;
+    
+    // Calculer si le token est expiré ou expire bientôt (moins de 30 minutes)
+    const isExpired = expiresAt ? now > expiresAt : false;
+    const willExpireSoon = expiresAt ? 
+      now > new Date(expiresAt.getTime() - 30 * 60 * 1000) : 
+      false;
+    
+    return {
+      accessToken: this.tokens?.access_token || null,
+      tokenType: this.tokens ? NotionTokenType.OAUTH : NotionTokenType.NONE,
+      expiresAt,
+      workspaceId: this.tokens?.workspace_id || null,
+      userName: this.tokens?.owner?.user?.name || null,
+      isExpired,
+      willExpireSoon
     };
+  }
+  
+  /**
+   * Démarre le flux d'authentification OAuth
+   */
+  startAuthFlow(): void {
+    try {
+      // Générer un état pour la sécurité CSRF
+      const state = uuidv4();
+      localStorage.setItem(STORAGE_KEYS.STATE, state);
+      
+      // Construire l'URL d'autorisation
+      const authUrl = new URL('https://api.notion.com/v1/oauth/authorize');
+      authUrl.searchParams.append('client_id', this.config.clientId);
+      authUrl.searchParams.append('redirect_uri', this.config.redirectUri);
+      authUrl.searchParams.append('response_type', 'code');
+      authUrl.searchParams.append('state', state);
+      
+      if (this.config.scopes && this.config.scopes.length > 0) {
+        authUrl.searchParams.append('scope', this.config.scopes.join(','));
+      }
+      
+      // Rediriger vers la page d'autorisation Notion
+      window.location.href = authUrl.toString();
+    } catch (error) {
+      console.error('Erreur lors du démarrage du flux OAuth:', error);
+      
+      if (this.config.onAuthError) {
+        this.config.onAuthError(error instanceof Error ? error : new Error(String(error)));
+      }
+      
+      toast.error('Erreur de connexion', {
+        description: 'Impossible de démarrer le processus d\'authentification Notion'
+      });
+    }
+  }
+  
+  /**
+   * Traite le callback OAuth après redirection de Notion
+   */
+  async handleCallback(code: string, state: string): Promise<boolean> {
+    // Vérifier l'état pour la sécurité CSRF
+    const savedState = localStorage.getItem(STORAGE_KEYS.STATE);
+    if (!savedState || savedState !== state) {
+      const error = new Error('État OAuth invalide, possible tentative CSRF');
+      
+      if (this.config.onAuthError) {
+        this.config.onAuthError(error);
+      }
+      
+      toast.error('Erreur de sécurité', {
+        description: 'Validation de l\'authentification échouée. Veuillez réessayer.'
+      });
+      
+      return false;
+    }
+    
+    try {
+      // Effacer l'état stocké
+      localStorage.removeItem(STORAGE_KEYS.STATE);
+      
+      // Échanger le code contre des tokens
+      const response = await proxyManager.post('/v1/oauth/token', {
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: this.config.redirectUri,
+        client_id: this.config.clientId
+      });
+      
+      if (!response.success || !response.data) {
+        throw new Error('Échec de l\'échange de code: ' + 
+          (response.error?.message || 'Réponse invalide'));
+      }
+      
+      // Calculer la date d'expiration
+      const expiresAt = Date.now() + (response.data.expires_in * 1000);
+      
+      // Enregistrer les tokens
+      const tokens: NotionOAuthTokens = {
+        ...response.data,
+        expires_at: expiresAt
+      };
+      
+      this.saveTokens(tokens);
+      
+      // Configurer le rafraîchissement automatique si activé
+      if (this.config.autoRefresh) {
+        this.scheduleTokenRefresh();
+      }
+      
+      toast.success('Connexion réussie à Notion', {
+        description: 'Vous êtes maintenant connecté via OAuth'
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Erreur lors du traitement du callback OAuth:', error);
+      
+      if (this.config.onAuthError) {
+        this.config.onAuthError(error instanceof Error ? error : new Error(String(error)));
+      }
+      
+      toast.error('Échec de connexion', {
+        description: error instanceof Error ? error.message : 'Erreur lors de l\'authentification'
+      });
+      
+      return false;
+    }
+  }
+  
+  /**
+   * Rafraîchit le token OAuth
+   */
+  async refreshToken(): Promise<boolean> {
+    if (!this.tokens || !this.tokens.refresh_token) {
+      console.error('Aucun token de rafraîchissement disponible');
+      return false;
+    }
+    
+    try {
+      // Annuler tout rafraîchissement programmé
+      if (this.tokenRefreshTimeout) {
+        clearTimeout(this.tokenRefreshTimeout);
+        this.tokenRefreshTimeout = null;
+      }
+      
+      // Appeler l'API pour rafraîchir le token
+      const response = await proxyManager.post('/v1/oauth/token', {
+        grant_type: 'refresh_token',
+        refresh_token: this.tokens.refresh_token,
+        client_id: this.config.clientId
+      });
+      
+      if (!response.success || !response.data) {
+        throw new Error('Échec du rafraîchissement du token: ' + 
+          (response.error?.message || 'Réponse invalide'));
+      }
+      
+      // Calculer la nouvelle date d'expiration
+      const expiresAt = Date.now() + (response.data.expires_in * 1000);
+      
+      // Mettre à jour les tokens avec les nouvelles valeurs
+      this.saveTokens({
+        ...this.tokens,
+        ...response.data,
+        expires_at: expiresAt
+      });
+      
+      // Reprogrammer le rafraîchissement si nécessaire
+      if (this.config.autoRefresh) {
+        this.scheduleTokenRefresh();
+      }
+      
+      // Appeler le callback de rafraîchissement
+      if (this.config.onTokenRefreshed) {
+        this.config.onTokenRefreshed();
+      }
+      
+      console.log('Token OAuth rafraîchi avec succès');
+      return true;
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement du token OAuth:', error);
+      
+      if (this.config.onAuthError) {
+        this.config.onAuthError(error instanceof Error ? error : new Error(String(error)));
+      }
+      
+      toast.error('Échec du rafraîchissement', {
+        description: 'Impossible de rafraîchir la session Notion. Reconnexion nécessaire.'
+      });
+      
+      return false;
+    }
+  }
+  
+  /**
+   * Se déconnecte et supprime les tokens
+   */
+  logout(): void {
+    // Annuler tout rafraîchissement programmé
+    if (this.tokenRefreshTimeout) {
+      clearTimeout(this.tokenRefreshTimeout);
+      this.tokenRefreshTimeout = null;
+    }
+    
+    // Supprimer les tokens
+    localStorage.removeItem(STORAGE_KEYS.TOKENS);
+    this.tokens = null;
+    
+    // Appeler le callback de déconnexion
+    if (this.config.onLogout) {
+      this.config.onLogout();
+    }
+    
+    toast.info('Déconnexion', {
+      description: 'Vous avez été déconnecté de Notion'
+    });
+  }
+  
+  /**
+   * Programme le rafraîchissement automatique du token
+   */
+  private scheduleTokenRefresh(): void {
+    // Annuler tout rafraîchissement déjà programmé
+    if (this.tokenRefreshTimeout) {
+      clearTimeout(this.tokenRefreshTimeout);
+      this.tokenRefreshTimeout = null;
+    }
+    
+    if (!this.tokens || !this.tokens.expires_at) {
+      return;
+    }
+    
+    // Calculer quand rafraîchir (5 minutes avant expiration)
+    const now = Date.now();
+    const expiresAt = this.tokens.expires_at;
+    const refreshTime = expiresAt - now - (5 * 60 * 1000);
+    
+    if (refreshTime <= 0) {
+      // Le token est déjà expiré ou expire dans moins de 5 minutes, rafraîchir immédiatement
+      this.refreshToken();
+      return;
+    }
+    
+    // Programmer le rafraîchissement
+    this.tokenRefreshTimeout = setTimeout(() => {
+      this.refreshToken();
+    }, refreshTime);
+    
+    console.log(`Token OAuth programmé pour rafraîchissement dans ${Math.round(refreshTime / 60000)} minutes`);
+  }
+  
+  /**
+   * Charge les tokens depuis le stockage
+   */
+  private loadTokens(): void {
+    try {
+      const encryptedTokens = localStorage.getItem(STORAGE_KEYS.TOKENS);
+      if (!encryptedTokens) {
+        return;
+      }
+      
+      // Déchiffrer les tokens
+      const decryptedTokens = decryptData(encryptedTokens);
+      if (!decryptedTokens) {
+        console.error('Impossible de déchiffrer les tokens OAuth');
+        return;
+      }
+      
+      this.tokens = JSON.parse(decryptedTokens);
+      
+      // Vérifier si le token est expiré
+      if (this.tokens && this.tokens.expires_at) {
+        const now = Date.now();
+        const expiresAt = this.tokens.expires_at;
+        
+        if (now >= expiresAt) {
+          console.log('Token OAuth expiré, tentative de rafraîchissement');
+          // Tenter de rafraîchir si possible
+          if (this.tokens.refresh_token) {
+            this.refreshToken();
+          } else {
+            console.warn('Token OAuth expiré sans token de rafraîchissement');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des tokens OAuth:', error);
+      // En cas d'erreur, supprimer les tokens pour éviter des problèmes futurs
+      localStorage.removeItem(STORAGE_KEYS.TOKENS);
+      this.tokens = null;
+    }
+  }
+  
+  /**
+   * Enregistre les tokens dans le stockage
+   */
+  private saveTokens(tokens: NotionOAuthTokens): void {
+    try {
+      this.tokens = tokens;
+      
+      // Chiffrer les tokens avant stockage
+      const encrypted = encryptData(JSON.stringify(tokens));
+      localStorage.setItem(STORAGE_KEYS.TOKENS, encrypted);
+      
+      console.log('Tokens OAuth enregistrés avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement des tokens OAuth:', error);
+    }
   }
 }
 
 // Exporter une instance par défaut
 export const oauthManager = new NotionOAuthManager();
 
-// Export par défaut
+// Exporter par défaut
 export default oauthManager;
