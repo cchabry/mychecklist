@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { corsProxy } from '@/services/corsProxy';
-import { CorsProxy, ProxyTestResult } from '@/services/corsProxy/types';
+import { ProxyInfo, ProxyTestResult } from '@/services/corsProxy/types';
 
 // Type définition pour le statut du proxy
 export type ProxyStatus = {
@@ -56,7 +56,7 @@ export function useProxyStatus() {
           error: 'Aucun proxy configuré'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la vérification du proxy:', error);
       
       setProxyStatus(prev => ({
@@ -93,7 +93,7 @@ export function useProxyStatus() {
           error: 'Impossible de trouver un proxy fonctionnel'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       setProxyStatus(prev => ({
         ...prev,
         error: error.message || 'Erreur lors de la recherche d\'un proxy'

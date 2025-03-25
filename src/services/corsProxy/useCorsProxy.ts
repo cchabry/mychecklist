@@ -18,10 +18,12 @@ export function useCorsProxy() {
       const current = corsProxy.getCurrentProxy();
       setCurrentProxy(current);
       setProxies(corsProxy.getEnabledProxies());
-      return () => {}; // Fonction de nettoyage vide
     };
     
-    return initializeState();
+    initializeState();
+    
+    // Aucune fonction de nettoyage nécessaire
+    return () => {};
   }, []);
   
   // Tester un proxy spécifique
@@ -42,11 +44,12 @@ export function useCorsProxy() {
       }
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         latency: 0,
-        error: error.message
+        error: error.message,
+        proxyName: 'CORS Proxy'
       };
     } finally {
       setIsLoading(false);

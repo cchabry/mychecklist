@@ -56,7 +56,12 @@ class CorsProxyService {
     const enabledProxies = this.getEnabledProxies();
     return enabledProxies.length > 0 
       ? enabledProxies[0]
-      : { url: 'https://cors-anywhere.herokuapp.com/', lastTested: 0, success: false, latency: 0 };
+      : { 
+          url: 'https://cors-anywhere.herokuapp.com/', 
+          lastTested: 0, 
+          success: false, 
+          latency: 0 
+        };
   }
   
   // Réinitialiser le cache des proxies
@@ -87,12 +92,13 @@ class CorsProxyService {
       }
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`🔴 Erreur lors du test du proxy ${proxyUrl}:`, error);
       return {
         success: false,
         latency: 0,
-        error: error.message
+        error: error.message,
+        proxyName: 'CORS Proxy'
       };
     }
   }
@@ -156,12 +162,15 @@ class CorsProxyService {
   
   // Obtenir la liste des proxies disponibles
   getEnabledProxies(): ProxyInfo[] {
-    return availableProxies.filter(proxy => proxy.enabled).map(proxy => ({
-      url: proxy.url,
-      lastTested: 0,
-      success: false,
-      latency: 0
-    }));
+    return availableProxies
+      .filter(proxy => proxy.enabled)
+      .map(proxy => ({
+        url: proxy.url,
+        lastTested: 0,
+        success: false,
+        latency: 0,
+        name: proxy.name
+      }));
   }
 }
 

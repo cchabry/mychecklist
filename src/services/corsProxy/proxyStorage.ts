@@ -1,35 +1,44 @@
 
+import { ProxyInfo } from './types';
+
+// Clé pour stocker le proxy dans localStorage
+const PROXY_STORAGE_KEY = 'notion_cors_proxy';
+
 /**
- * Utilitaires pour gérer le stockage des données de proxy
+ * Service pour gérer le stockage des informations de proxy
  */
 export const proxyStorage = {
   /**
-   * Charge l'état depuis localStorage
-   * @param key Clé de stockage
-   * @param onLoad Callback à appeler avec les données chargées
+   * Charge le proxy sauvegardé dans le stockage local
    */
-  loadFromStorage(key: string, onLoad: (data: any) => void): void {
+  loadProxy(): ProxyInfo | null {
     try {
-      const storedData = localStorage.getItem(key);
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        onLoad(data);
-      }
+      const storedValue = localStorage.getItem(PROXY_STORAGE_KEY);
+      if (!storedValue) return null;
+      
+      const proxy = JSON.parse(storedValue);
+      return proxy;
     } catch (e) {
-      console.error(`Erreur lors du chargement de l'état du proxy depuis localStorage`, e);
+      console.error('Erreur lors du chargement du proxy:', e);
+      return null;
     }
   },
-
+  
   /**
-   * Sauvegarde l'état dans localStorage
-   * @param key Clé de stockage
-   * @param state État à sauvegarder
+   * Sauvegarde un proxy dans le stockage local
    */
-  saveToStorage(key: string, state: any): void {
+  saveProxy(proxy: ProxyInfo): void {
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      localStorage.setItem(PROXY_STORAGE_KEY, JSON.stringify(proxy));
     } catch (e) {
-      console.error(`Erreur lors de la sauvegarde de l'état du proxy dans localStorage`, e);
+      console.error('Erreur lors de la sauvegarde du proxy:', e);
     }
+  },
+  
+  /**
+   * Efface le cache des proxies
+   */
+  clearProxyCache(): void {
+    localStorage.removeItem(PROXY_STORAGE_KEY);
   }
 };

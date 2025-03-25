@@ -1,37 +1,45 @@
 
 /**
- * Configuration d'un proxy CORS
+ * Interface pour un proxy CORS
  */
 export interface CorsProxy {
-  name: string;
   url: string;
-  enabled: boolean;
-  requiresActivation?: boolean;
-  activationUrl?: string;
-  description?: string;
-}
-
-/**
- * État du gestionnaire de proxy CORS
- */
-export interface CorsProxyState {
-  currentProxyIndex: number;
-  lastWorkingProxyIndex: number | null;
-  selectedProxyUrl: string | null;
-}
-
-/**
- * Résultat d'un test de proxy
- */
-export interface ProxyTestResult {
-  success: boolean;
-  proxyName: string;
-  statusCode?: number;
-  error?: string;
+  name?: string;
+  enabled?: boolean;
+  lastTested?: number;
+  success?: boolean;
   latency?: number;
 }
 
 /**
- * Type d'information sur le proxy pour la compatibilité
+ * Interface étendue pour les informations de proxy
  */
-export type ProxyInfo = CorsProxy;
+export interface ProxyInfo {
+  url: string;
+  lastTested: number;
+  success: boolean;
+  latency: number;
+  name?: string;
+}
+
+/**
+ * Interface pour le résultat de test d'un proxy
+ */
+export interface ProxyTestResult {
+  success: boolean;
+  latency: number;
+  error?: string;
+  proxyName?: string;
+}
+
+/**
+ * Interface pour le service de proxy CORS
+ */
+export interface CorsProxyService {
+  getCurrentProxy: () => ProxyInfo | null;
+  setCurrentProxy: (proxy: ProxyInfo) => void;
+  testProxy: (proxyUrl: string, testToken?: string) => Promise<ProxyTestResult>;
+  findWorkingProxy: (testToken?: string) => Promise<ProxyInfo | null>;
+  resetProxyCache: () => void;
+  getEnabledProxies: () => ProxyInfo[];
+}

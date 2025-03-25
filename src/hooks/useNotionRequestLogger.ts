@@ -36,8 +36,8 @@ export const useNotionRequestLogger = () => {
         notionRequestLogger.logResponse(
           requestId,
           200, // Status OK par défaut pour les requêtes réussies
-          true,
-          responseTime
+          responseTime,
+          true
         );
         
         return response;
@@ -53,8 +53,8 @@ export const useNotionRequestLogger = () => {
         notionRequestLogger.logResponse(
           requestId,
           status,
-          false,
           responseTime,
+          false,
           error.message
         );
         

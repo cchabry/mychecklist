@@ -1,6 +1,18 @@
 
 import { useState, useCallback } from 'react';
-import { NotionErrorType } from '@/services/notion/errorHandling';
+
+/**
+ * Types pour les erreurs Notion
+ */
+export enum NotionErrorType {
+  UNKNOWN = "unknown",
+  AUTH = "auth",
+  PERMISSION = "permission",
+  NOT_FOUND = "notFound",
+  NETWORK = "network",
+  TIMEOUT = "timeout",
+  CORS = "cors"
+}
 
 /**
  * Type pour les détails d'erreur Notion
@@ -85,12 +97,36 @@ export const useNotionError = () => {
     setNotionErrorDetails(null);
   }, []);
   
+  // Ajouter les méthodes manquantes
+  const showError = useCallback((error: string | Error, context?: string) => {
+    captureNotionError(error, context);
+  }, [captureNotionError]);
+  
+  const clearError = clearNotionError;
+  
+  const openErrorModal = useCallback((error: string | Error, context?: string) => {
+    captureNotionError(error, context);
+  }, [captureNotionError]);
+  
+  const closeErrorModal = hideNotionError;
+  
   return {
     notionErrorDetails,
     setNotionErrorDetails,
     captureNotionError,
     hideNotionError,
     clearNotionError,
-    categorizeNotionError
+    categorizeNotionError,
+    // Méthodes supplémentaires pour compatibilité
+    showError,
+    clearError,
+    openErrorModal,
+    closeErrorModal,
+    // Propriétés calculées pour compatibilité
+    errorDetails: notionErrorDetails,
+    showErrorModal: notionErrorDetails ? notionErrorDetails.show : false
   };
 };
+
+// Réexporter le type pour éviter les ambiguïtés
+export type { NotionErrorDetails };

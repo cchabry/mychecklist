@@ -13,6 +13,26 @@ import * as projects from './endpoints/projects';
 import * as samplePages from './endpoints/samplePages';
 import * as users from './endpoints/users';
 
+// Méthodes de compatibilité pour les projets
+const projectsCompat = {
+  list: () => legacyApiAdapter('/v1/databases/projects/query', 'POST'),
+  retrieve: (id: string) => legacyApiAdapter(`/projects/${id}`, 'GET'),
+  create: (data: any) => legacyApiAdapter('/projects', 'POST', data),
+  update: (id: string, data: any) => legacyApiAdapter(`/projects/${id}`, 'PATCH', data),
+  delete: (id: string) => legacyApiAdapter(`/projects/${id}`, 'DELETE')
+};
+
+// Méthodes de compatibilité pour les audits
+const auditsCompat = {
+  retrieve: (id: string) => legacyApiAdapter(`/audits/${id}`, 'GET'),
+  listByProject: (projectId: string) => legacyApiAdapter(`/projects/${projectId}/audits`, 'GET')
+};
+
+// Méthodes de compatibilité pour les pages d'échantillon
+const samplePagesCompat = {
+  create: (data: any) => legacyApiAdapter('/sample-pages', 'POST', data)
+};
+
 // Créer un API wrapper qui expose toutes les fonctions
 export const notionApi = {
   // API de bas niveau
@@ -35,16 +55,16 @@ export const notionApi = {
   users,
   
   // Méthodes de compatibilité pour les appellants existants
-  getProjects: () => projects.list(),
-  getProject: (id: string) => projects.retrieve(id),
-  createProject: (data: any) => projects.create(data),
-  updateProject: (id: string, data: any) => projects.update(id, data),
-  deleteProject: (id: string) => projects.delete(id),
+  getProjects: () => projectsCompat.list(),
+  getProject: (id: string) => projectsCompat.retrieve(id),
+  createProject: (data: any) => projectsCompat.create(data),
+  updateProject: (id: string, data: any) => projectsCompat.update(id, data),
+  deleteProject: (id: string) => projectsCompat.delete(id),
   
-  getAudit: (id: string) => audits.retrieve(id),
-  getAuditsByProject: (projectId: string) => audits.listByProject(projectId),
+  getAudit: (id: string) => auditsCompat.retrieve(id),
+  getAuditsByProject: (projectId: string) => auditsCompat.listByProject(projectId),
   
-  createSamplePage: (data: any) => samplePages.create(data)
+  createSamplePage: (data: any) => samplePagesCompat.create(data)
 };
 
 // Compatibilité avec les importations existantes
