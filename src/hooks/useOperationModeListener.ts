@@ -1,26 +1,32 @@
 
 import { useState, useEffect } from 'react';
 import { operationMode } from '@/services/operationMode';
-import { useOperationMode } from '@/services/operationMode';
+import { OperationMode, SwitchReason } from '@/services/operationMode/types';
 
 /**
- * Hook pour écouter les changements de mode opérationnel
- * et fournir des méthodes simples pour interagir avec le mode
+ * Hook pour surveiller les changements de mode opérationnel
+ * Version simplifiée du hook useOperationMode qui ne s'intéresse qu'au mode actif
  */
-export function useOperationModeListener() {
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
-  const { toggle, enableRealMode, enableDemoMode } = useOperationMode();
+export const useOperationModeListener = () => {
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode());
+  const [reason, setReason] = useState<SwitchReason | null>(operationMode.getSwitchReason());
 
-  // S'abonner aux changements du mode opérationnel
   useEffect(() => {
-    const unsubscribe = operationMode.onModeChange(setIsDemoMode);
+    // S'abonner aux changements de mode
+    const unsubscribe = operationMode.subscribe((newMode: OperationMode, newReason: SwitchReason | null) => {
+      setIsDemoMode(newMode === OperationMode.DEMO);
+      setReason(newReason);
+    });
+    
+    // Se désabonner à la destruction du composant
     return unsubscribe;
   }, []);
 
   return {
     isDemoMode,
-    toggleMode: toggle,
-    enableRealMode,
-    enableDemoMode
+    isRealMode: !isDemoMode,
+    reason
   };
-}
+};
+
+export default useOperationModeListener;

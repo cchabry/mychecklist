@@ -62,6 +62,35 @@ function sendError(statusCode, message, details = {}) {
 }
 
 /**
+ * Normalise un endpoint pour s'assurer qu'il est au bon format
+ */
+function normalizeEndpoint(endpoint) {
+  // Enlever les barres obliques de début et de fin pour la normalisation
+  let cleanedEndpoint = endpoint.trim();
+  
+  // Remplacer les placeholders potentiels
+  if (cleanedEndpoint.includes('YOUR_DATABASE_ID')) {
+    logDebug('⚠️ Attention: Placeholder YOUR_DATABASE_ID détecté dans l\'endpoint');
+    return sendError(400, 'Placeholder non remplacé dans l\'endpoint', {
+      endpoint: cleanedEndpoint,
+      details: 'L\'endpoint contient le placeholder YOUR_DATABASE_ID qui devrait être remplacé par un identifiant valide'
+    });
+  }
+  
+  // Gérer le cas spécial où l'endpoint est déjà complet avec /v1
+  if (cleanedEndpoint.startsWith('/v1/')) {
+    cleanedEndpoint = cleanedEndpoint.substring(3); // Enlever le /v1 préfixe
+  }
+  
+  // S'assurer que l'endpoint commence par une barre oblique
+  if (!cleanedEndpoint.startsWith('/')) {
+    cleanedEndpoint = '/' + cleanedEndpoint;
+  }
+  
+  return cleanedEndpoint;
+}
+
+/**
  * Fonction principale de gestion des requêtes
  */
 exports.handler = async (event, context) => {
@@ -165,16 +194,19 @@ exports.handler = async (event, context) => {
   }
   
   // Normaliser l'endpoint
-  let normalizedEndpoint = endpoint;
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
   
-  // S'assurer que l'endpoint commence par /
-  if (!normalizedEndpoint.startsWith('/')) {
-    normalizedEndpoint = `/${normalizedEndpoint}`;
+  // Si normalizeEndpoint a retourné une erreur (c'est un objet avec statusCode)
+  if (normalizedEndpoint.statusCode) {
+    return normalizedEndpoint;
   }
   
-  // Vérifier si l'endpoint commence par /v1 et l'ajuster si nécessaire
-  if (normalizedEndpoint.startsWith('/v1/')) {
-    normalizedEndpoint = normalizedEndpoint.substring(3); // Supprimer le /v1 préfixe
+  // Vérifier si l'endpoint contient toujours un placeholder
+  if (normalizedEndpoint.includes('YOUR_DATABASE_ID')) {
+    return sendError(400, 'Placeholder non remplacé dans l\'endpoint', {
+      endpoint: normalizedEndpoint,
+      detail: 'L\'endpoint contient un placeholder qui doit être remplacé par un identifiant valide'
+    });
   }
   
   const targetUrl = `${NOTION_API_BASE}${normalizedEndpoint}`;

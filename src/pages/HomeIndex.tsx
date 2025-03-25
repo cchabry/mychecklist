@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { getProjectsFromNotion } from '@/lib/notion';
 import { Project } from '@/lib/types';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
+import { OperationModeControl } from '@/components/operationMode/OperationModeControl';
 
 const IndexPage = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -20,7 +22,7 @@ const IndexPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [notionConfigOpen, setNotionConfigOpen] = useState(false);
   
-  const { isDemoMode, enableDemoMode } = useOperationMode();
+  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
   const notionConfigured = isNotionConfigured();
   
   // Fetch projects on component mount
@@ -101,32 +103,10 @@ const IndexPage = () => {
           </div>
         </div>
         
-        {isDemoMode && (
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
-            <h2 className="text-sm font-medium text-amber-800 flex items-center gap-2">
-              <TestTube size={16} className="text-amber-600" />
-              Mode démonstration actif
-            </h2>
-            <p className="text-xs text-amber-700 mt-1">
-              L'application utilise des données fictives. {notionConfigured ? 
-              'Votre configuration Notion est présente mais le mode démonstration est activé.' : 
-              'Aucune configuration Notion n\'a été trouvée.'}
-            </p>
-            {notionConfigured && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2 border-amber-300 bg-amber-100 hover:bg-amber-200 text-amber-800"
-                onClick={() => {
-                  enableDemoMode();
-                  window.location.reload();
-                }}
-              >
-                Désactiver le mode démonstration
-              </Button>
-            )}
-          </div>
-        )}
+        {/* Contrôle du mode opérationnel */}
+        <div className="mb-4">
+          <OperationModeControl />
+        </div>
         
         {error && !isDemoMode && (
           <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
