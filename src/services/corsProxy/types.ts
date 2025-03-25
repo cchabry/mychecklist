@@ -30,3 +30,8 @@ export interface ProxyTestResult {
   error?: string;
   latency?: number;
 }
+
+/**
+ * Type d'information sur le proxy pour la compatibilité
+ */
+export type ProxyInfo = CorsProxy;

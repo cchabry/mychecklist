@@ -1,7 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
-import { corsProxy, CorsProxy, ProxyTestResult } from '@/services/corsProxy';
+import { corsProxy } from '@/services/corsProxy';
+import { CorsProxy, ProxyTestResult } from '@/services/corsProxy/types';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -46,7 +47,7 @@ const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({ isDemoMode 
     
     try {
       // Pour le test, on utilise un token factice
-      const result: ProxyTestResult = await corsProxy.testProxy(currentProxy, 'Bearer test_token_for_proxy_test');
+      const result = await corsProxy.testProxy(currentProxy, 'Bearer test_token_for_proxy_test');
       
       if (result.success) {
         const newStatus = {

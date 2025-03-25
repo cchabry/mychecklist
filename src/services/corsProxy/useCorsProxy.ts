@@ -61,7 +61,6 @@ export function useCorsProxy() {
     buildProxyUrl: corsProxyService.buildProxyUrl.bind(corsProxyService),
     rotateProxy: corsProxyService.rotateProxy.bind(corsProxyService),
     setSelectedProxy: corsProxyService.setSelectedProxy.bind(corsProxyService),
-    reset: corsProxyService.reset.bind(corsProxyService),
     resetProxyCache: corsProxyService.resetProxyCache.bind(corsProxyService),
     requiresActivation: corsProxyService.requiresActivation.bind(corsProxyService),
     getActivationUrl: corsProxyService.getActivationUrl.bind(corsProxyService)

@@ -1,4 +1,3 @@
-
 import { operationMode } from '@/services/operationMode';
 import { operationModeUtils } from '@/services/operationMode/utils';
 import { corsProxy } from '@/services/corsProxy';
@@ -142,10 +141,9 @@ export const proxyFetch = async (
           throw new Error('Aucun proxy CORS disponible');
         }
         
-        // Construire l'URL complète
+        // Construction de l'URL avec le proxy
         const targetUrl = `${NOTION_API_BASE}${normalizedEndpoint}`;
-        // Utiliser une méthode sécurisée pour construire l'URL
-        const proxyUrl = `${currentProxy.url}${encodeURIComponent(targetUrl)}`;
+        const proxyUrl = corsProxy.buildProxyUrl(targetUrl);
         
         console.log(`🔍 [${requestId}] useCorsProxy - URL complète: ${proxyUrl}`);
         
@@ -184,7 +182,7 @@ export const proxyFetch = async (
           // En cas d'erreur 403, essayer de changer de proxy pour la prochaine fois
           if (response.status === 403) {
             console.warn(`🔍 [${requestId}] useCorsProxy - Erreur 403, rotation du proxy pour la prochaine requête`);
-            corsProxy.setSelectedProxy(corsProxy.getEnabledProxies()[0]?.url || '');
+            corsProxy.rotateProxy();
           }
           
           throw new Error(`Erreur HTTP ${response.status} ${statusText ? `(${statusText})` : ''}`);
