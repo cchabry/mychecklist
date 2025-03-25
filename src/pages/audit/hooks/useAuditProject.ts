@@ -279,14 +279,16 @@ export const useAuditProject = (projectId: string | undefined, usingNotion: bool
       const demoScenario = operationModeUtils.getScenario('create-audit');
       
       if (demoScenario) {
-        const mockAudit = createMockAudit(demoScenario.projectId);
+        // Fix: Le scénario est soit un objet avec une propriété projectId, soit null
+        // Dans tous les cas, pour ce prototype, on utilise l'ID du projet courant
+        const mockAudit = createMockAudit(projectId || '');
         setAudit(mockAudit);
         setLoading(false);
         return;
       }
       
       // Créer un nouvel audit avec un échantillon de base
-      const mockAudit = createNewAudit(projectId);
+      const mockAudit = createNewAudit(projectId || '');
       setAudit(mockAudit);
       setLoading(false);
     } catch (error) {
