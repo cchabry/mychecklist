@@ -118,8 +118,15 @@ const validateDatabase = async (
   expectedStructure: DatabaseStructure
 ): Promise<DatabaseValidationResult> => {
   try {
-    // Utiliser la fonction databases.retrieve au lieu de getDatabaseStructure
-    const response = await notionApi.databases.retrieve(databaseId);
+    // Récupérer la clé API Notion depuis localStorage
+    const apiKey = localStorage.getItem('notion_api_key');
+    
+    if (!apiKey) {
+      throw new Error('Clé API Notion non configurée');
+    }
+    
+    // Utiliser la fonction databases.retrieve avec deux arguments: databaseId et apiKey
+    const response = await notionApi.databases.retrieve(databaseId, apiKey);
     
     // Utiliser une assertion de type avec vérification pour les propriétés de la réponse
     if (!response || typeof response !== 'object') {
