@@ -22,27 +22,37 @@ export function useRetryQueue() {
   
   // S'abonner aux mises à jour des statistiques
   useEffect(() => {
-    const unsubscribe = notionRetryQueue.subscribe((updatedStats) => {
-      setStats(updatedStats);
+    // Vérifier si la méthode subscribe existe sur le service
+    if (typeof notionRetryQueue.subscribe === 'function') {
+      const unsubscribe = notionRetryQueue.subscribe((updatedStats) => {
+        setStats(updatedStats);
+        
+        // Si la file d'attente expose les opérations, les récupérer
+        if (typeof notionRetryQueue.getQueuedOperations === 'function') {
+          setQueuedOperations(notionRetryQueue.getQueuedOperations());
+        } else {
+          // Fallback: créer un tableau vide
+          setQueuedOperations([]);
+        }
+      });
       
-      // Si la file d'attente expose les opérations, les récupérer
+      // Charger les stats initiales
+      setStats(notionRetryQueue.getStats());
+      
+      // Charger les opérations initiales si disponibles
       if (typeof notionRetryQueue.getQueuedOperations === 'function') {
         setQueuedOperations(notionRetryQueue.getQueuedOperations());
-      } else {
-        // Fallback: créer un tableau vide
-        setQueuedOperations([]);
       }
-    });
-    
-    // Charger les stats initiales
-    setStats(notionRetryQueue.getStats());
-    
-    // Charger les opérations initiales si disponibles
-    if (typeof notionRetryQueue.getQueuedOperations === 'function') {
-      setQueuedOperations(notionRetryQueue.getQueuedOperations());
+      
+      return unsubscribe;
+    } else {
+      // Polling en fallback si pas de système d'abonnement
+      const interval = setInterval(() => {
+        setStats(notionRetryQueue.getStats());
+      }, 2000);
+      
+      return () => clearInterval(interval);
     }
-    
-    return unsubscribe;
   }, []);
   
   /**
@@ -103,6 +113,38 @@ export function useRetryQueue() {
   }, []);
   
   /**
+   * Mettre en pause la file d'attente
+   */
+  const pauseQueue = useCallback((): void => {
+    if (typeof notionRetryQueue.pauseQueue === 'function') {
+      notionRetryQueue.pauseQueue();
+    } else {
+      console.warn('Method pauseQueue not available on notionRetryQueue');
+    }
+  }, []);
+  
+  /**
+   * Reprendre le traitement de la file d'attente
+   */
+  const resumeQueue = useCallback((): void => {
+    if (typeof notionRetryQueue.resumeQueue === 'function') {
+      notionRetryQueue.resumeQueue();
+    } else {
+      console.warn('Method resumeQueue not available on notionRetryQueue');
+    }
+  }, []);
+  
+  /**
+   * Vérifier si la file d'attente est en pause
+   */
+  const isPaused = useCallback((): boolean => {
+    if (typeof notionRetryQueue.isPaused === 'function') {
+      return notionRetryQueue.isPaused();
+    }
+    return false;
+  }, []);
+  
+  /**
    * Exécuter une opération avec réessai automatique
    */
   const executeWithRetry = useCallback(async <T>(
@@ -151,6 +193,9 @@ export function useRetryQueue() {
     processNow,
     cancelOperation,
     clearQueue,
+    pauseQueue,
+    resumeQueue,
+    isPaused,
     executeWithRetry
   };
 }

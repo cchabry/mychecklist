@@ -9,7 +9,8 @@ export enum LogLevel {
   INFO = 1,
   WARN = 2,
   ERROR = 3,
-  FATAL = 4
+  FATAL = 4,
+  TRACE = -1 // Ajout de TRACE pour rétrocompatibilité
 }
 
 /**
@@ -23,7 +24,16 @@ export enum NotionErrorType {
   PERMISSIONS = 'permissions',
   DATABASE_STRUCTURE = 'database_structure',
   VALIDATION = 'validation',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
+  // Ajout des types manquants
+  API = 'api',
+  AUTH = 'auth',
+  PERMISSION = 'permission',
+  TIMEOUT = 'timeout',
+  DATABASE = 'database',
+  CORS = 'cors',
+  NOT_FOUND = 'not_found',
+  CONFIG = 'config'
 }
 
 /**
@@ -42,7 +52,9 @@ export enum NotionErrorSeverity {
 export enum NotionTokenType {
   INTEGRATION = 'integration',
   OAUTH = 'oauth',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
+  OAUTH_TEMP = 'oauth_temp',
+  NONE = 'none'
 }
 
 /**
@@ -55,6 +67,20 @@ export interface StructuredLogMessage {
   data?: any;
   context?: Record<string, any>;
   source?: string;
+}
+
+/**
+ * Interface pour un log structuré (utilisé par useStructuredLogger)
+ */
+export interface StructuredLog {
+  id: string;
+  timestamp: number;
+  level: LogLevel;
+  message: string;
+  data?: any;
+  source?: string;
+  context?: Record<string, any>;
+  tags?: string[];
 }
 
 /**
@@ -82,6 +108,9 @@ export interface StructuredLogger {
   clear(): void;
   setMinLevel(level: LogLevel): void;
   configure?(options: Partial<StructuredLoggerOptions>): void;
+  getRecentLogs?(): StructuredLog[];
+  exportLogs?(): string;
+  subscribe?(callback: (logs: StructuredLog[]) => void): () => void;
 }
 
 /**
@@ -95,6 +124,7 @@ export interface RetryOperationOptions {
   onSuccess?: (result: any) => void;
   onFailure?: (error: Error) => void;
   skipRetryIf?: (error: Error) => boolean;
+  retryableStatusCodes?: number[];
 }
 
 /**
@@ -142,10 +172,54 @@ export interface RetryQueueService {
   processNow?(operationId: string): Promise<any>;
   subscribe?(callback: (stats: RetryQueueStats) => void): () => void;
   getQueuedOperations?(): QueuedOperation[];
+  pauseQueue?(): void;
+  resumeQueue?(): void;
+  isPaused?(): boolean;
 }
 
 /**
- * Informations sur une erreur Notion
+ * Interface pour les erreurs Notion (rétrocompatibilité avec les deux systèmes)
+ */
+export interface NotionError {
+  id: string;
+  message: string;
+  type: NotionErrorType;
+  severity: NotionErrorSeverity;
+  timestamp: number;
+  context?: string | Record<string, any>;
+  originalError?: Error;
+  retryable: boolean;
+  metadata?: Record<string, any>;
+  
+  // Propriétés additionnelles pour certaines implémentations
+  name?: string;
+  stack?: string;
+  operation?: string;
+  details?: string | Record<string, any>;
+  cause?: Error | unknown;
+  recoverable?: boolean;
+  recoveryActions?: Array<{ label: string, action: () => void }>;
+}
+
+/**
+ * Options pour créer une erreur Notion
+ */
+export interface NotionErrorOptions {
+  type?: NotionErrorType;
+  severity?: NotionErrorSeverity;
+  context?: string | Record<string, any>;
+  details?: string | Record<string, any>;
+  operation?: string;
+  retryable?: boolean;
+  recoverable?: boolean;
+  recoveryActions?: Array<{ label: string, action: () => void }>;
+  cause?: Error | unknown;
+  stack?: string;
+  name?: string;
+}
+
+/**
+ * Informations sur une erreur Notion (format alternatif)
  */
 export interface NotionErrorInfo {
   id: string;
@@ -187,4 +261,17 @@ export interface NotionErrorService {
   hasErrors(severity?: NotionErrorSeverity): boolean;
   getMostRecentError(): NotionErrorInfo | null;
   subscribe?(callback: (errors: NotionErrorInfo[]) => void): () => void;
+}
+
+/**
+ * Type pour les fonctions d'abonnement aux erreurs
+ */
+export type ErrorSubscriber = (errors: NotionError[]) => void;
+
+/**
+ * Interface pour une souscription d'erreur
+ */
+export interface ErrorSubscription {
+  id: string;
+  callback: ErrorSubscriber;
 }

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogLevel, StructuredLog } from '@/services/notion/types/unified';
+import { LogLevel, StructuredLog, StructuredLogMessage } from '@/services/notion/types/unified';
 
 // Référence au logger structuré global, si disponible
 let structuredLogger: any;
@@ -21,7 +21,8 @@ try {
     getRecentLogs: () => [],
     subscribe: () => () => {},
     setMinLevel: () => {},
-    getMinLevel: () => LogLevel.INFO
+    getMinLevel: () => LogLevel.INFO,
+    exportLogs: () => JSON.stringify([])
   };
 }
 
@@ -74,7 +75,7 @@ export function useStructuredLogger() {
   
   // Effacer les logs
   const clearLogs = useCallback(() => {
-    setLogs([]);
+    structuredLogger.clear();
   }, []);
   
   // Exposer des méthodes helpers pour logging
@@ -85,6 +86,14 @@ export function useStructuredLogger() {
   const error = useCallback((message: string, data?: any, context?: Record<string, any>) => {
     structuredLogger.error(message, data, context);
   }, []);
+  
+  // Exporter les logs
+  const exportLogs = useCallback(() => {
+    if (typeof structuredLogger.exportLogs === 'function') {
+      return structuredLogger.exportLogs();
+    }
+    return JSON.stringify(logs);
+  }, [logs]);
   
   return {
     logs: filteredLogs,
@@ -97,6 +106,7 @@ export function useStructuredLogger() {
     levelFilter,
     setLevelFilter,
     info,
-    error
+    error,
+    exportLogs
   };
 }
