@@ -1,9 +1,18 @@
+
 /**
  * Configuration centralisée pour les services Notion
  */
 
 import { NotionClientConfig } from '../client/types';
-import { detectEnvironment, DeploymentEnvironment } from '@/services/apiProxy/environmentDetector';
+import { detectEnvironment } from '@/services/apiProxy/environmentDetector';
+
+// Enum pour les environnements de déploiement
+export enum DeploymentEnvironment {
+  Local = 'local',
+  Vercel = 'vercel',
+  Netlify = 'netlify',
+  Other = 'other'
+}
 
 // Types pour la configuration
 export interface NotionConfig {
@@ -47,7 +56,7 @@ export interface NotionConfig {
 }
 
 // Clés de stockage
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   API_KEY: 'notion_api_key',
   DATABASE_PROJECTS: 'notion_database_id',
   DATABASE_CHECKLISTS: 'notion_checklists_database_id',
@@ -222,48 +231,57 @@ export function generateEnvironmentConfig(): Partial<NotionConfig> {
   const env = detectEnvironment();
   
   switch (env) {
-    case DeploymentEnvironment.Netlify:
+    case 'netlify':
       return {
         client: {
           debug: false
         },
         errors: {
           logLevel: 'error',
+          maxRetries: 3,
+          retryDelay: 1000,
           showToasts: true
         },
         cache: {
           enabled: true,
-          ttl: 10 * 60 * 1000 // 10 minutes pour production
+          ttl: 10 * 60 * 1000, // 10 minutes pour production
+          storageKey: 'notion_api_cache'
         }
       };
       
-    case DeploymentEnvironment.Vercel:
+    case 'vercel':
       return {
         client: {
           debug: false
         },
         errors: {
           logLevel: 'error',
+          maxRetries: 3,
+          retryDelay: 1000,
           showToasts: true
         },
         cache: {
           enabled: true,
-          ttl: 10 * 60 * 1000 // 10 minutes pour production
+          ttl: 10 * 60 * 1000, // 10 minutes pour production
+          storageKey: 'notion_api_cache'
         }
       };
       
-    case DeploymentEnvironment.Local:
+    case 'local':
       return {
         client: {
           debug: true
         },
         errors: {
           logLevel: 'debug',
+          maxRetries: 3,
+          retryDelay: 1000,
           showToasts: true
         },
         cache: {
           enabled: true,
-          ttl: 2 * 60 * 1000 // 2 minutes pour développement
+          ttl: 2 * 60 * 1000, // 2 minutes pour développement
+          storageKey: 'notion_api_cache'
         }
       };
       

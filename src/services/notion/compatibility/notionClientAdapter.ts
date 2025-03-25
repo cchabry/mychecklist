@@ -1,120 +1,157 @@
 
 /**
- * Adaptateur pour assurer la compatibilité avec le code existant
- * Ce fichier sert de pont entre l'ancienne API et la nouvelle
+ * Adaptateur pour assurer la compatibilité avec l'ancien client Notion
+ * Permet la transition en douceur vers la nouvelle API
  */
 
 import { notionService } from '../client';
-import { ApiResponse } from '@/services/apiProxy';
-import { currentConfig } from '../config';
+import { NotionAPIResponse, ConnectionStatus, NotionAPIListResponse, NotionAPIPage } from '../client/legacy';
+import { updateConfig, getStoredConfig } from '../config';
 
-/**
- * Version compatible de l'ancien client Notion qui utilise la nouvelle architecture
- */
+// Objet d'adaptateur qui expose l'API compatible avec l'ancien client
 export const notionClientAdapter = {
-  /**
-   * Vérifie si le client est configuré
-   */
+  // Vérification de la configuration
   isConfigured: (): boolean => {
-    return notionService.client.isConfigured();
+    const config = getStoredConfig();
+    return !!config.apiKey && !!config.databaseIds.projects;
   },
   
-  /**
-   * Configure le client avec les informations d'identification
-   */
+  // Configuration du client
   configure: (apiKey: string, databaseId: string, checklistsDbId?: string): void => {
-    // Mettre à jour la configuration
-    const updateData = {
+    // Adapter les paramètres au nouveau format de configuration
+    updateConfig({
       apiKey,
       databaseIds: {
         projects: databaseId,
-        checklists: checklistsDbId || null
+        checklists: checklistsDbId || null,
+        exigences: null,
+        pages: null,
+        audits: null,
+        evaluations: null,
+        actions: null,
+        progress: null
       }
-    };
-    
-    // Enregistrer dans le système de configuration
-    import('../config').then(({ updateConfig }) => {
-      updateConfig(updateData);
     });
+    
+    console.log('✅ Notion configuration updated via compatibility adapter');
   },
   
-  /**
-   * Teste la connexion à l'API Notion
-   */
-  testConnection: async (): Promise<any> => {
-    const response = await notionService.users.testConnection();
-    
-    // Transformer la réponse au format attendu par l'ancien code
-    if (response.success) {
+  // Test de connexion
+  testConnection: async (): Promise<NotionAPIResponse<{ user: string }>> => {
+    try {
+      const result = await notionService.users.testConnection();
+      
       return {
-        success: true,
-        user: response.user,
-        // Ajouter des informations supplémentaires pour compatibilité
-        projectsDbName: currentConfig.databaseIds.projects || '(Non configurée)',
-        checklistsDbName: currentConfig.databaseIds.checklists || '(Non configurée)',
-        hasChecklistsDb: !!currentConfig.databaseIds.checklists
+        success: result.success,
+        data: result.success ? { user: result.user || 'Unknown user' } : undefined,
+        error: !result.success ? { message: result.error || 'Unknown error' } : undefined
       };
-    } else {
+    } catch (error) {
       return {
         success: false,
-        error: response.error || 'Erreur inconnue',
-        details: response.details
+        error: {
+          message: error.message || 'Une erreur inconnue est survenue'
+        }
       };
     }
   },
   
-  /**
-   * Effectue une requête GET à l'API Notion
-   */
-  get: async <T>(endpoint: string, params: Record<string, any> = {}): Promise<any> => {
-    const response = await notionService.client.get<T>(endpoint);
-    return transformResponse(response);
+  // Gestion de l'état de connexion
+  getConnectionStatus: (): ConnectionStatus => {
+    // Obtenir le statut depuis le service principal
+    const { client } = notionService;
+    return client._connectionStatus || ConnectionStatus.Disconnected;
   },
   
-  /**
-   * Effectue une requête POST à l'API Notion
-   */
-  post: async <T>(endpoint: string, data: any): Promise<any> => {
-    const response = await notionService.client.post<T>(endpoint, data);
-    return transformResponse(response);
+  setConnectionStatus: (status: ConnectionStatus): void => {
+    // Définir le statut dans le service principal
+    const { client } = notionService;
+    client._connectionStatus = status;
   },
   
-  /**
-   * Effectue une requête PATCH à l'API Notion
-   */
-  patch: async <T>(endpoint: string, data: any): Promise<any> => {
-    const response = await notionService.client.patch<T>(endpoint, data);
-    return transformResponse(response);
+  // Proxy pour les opérations de l'API Notion (databases, users, pages, etc.)
+  databases: {
+    query: async (databaseId: string, query = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
+      try {
+        const { client } = notionService;
+        const result = await client.databases.query(databaseId, query);
+        return { success: true, data: result };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    },
+    
+    retrieve: async (databaseId: string): Promise<NotionAPIResponse<any>> => {
+      try {
+        const { client } = notionService;
+        const result = await client.databases.retrieve(databaseId);
+        return { success: true, data: result };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    }
   },
   
-  /**
-   * Effectue une requête DELETE à l'API Notion
-   */
-  delete: async <T>(endpoint: string): Promise<any> => {
-    const response = await notionService.client.delete<T>(endpoint);
-    return transformResponse(response);
+  pages: {
+    retrieve: async (pageId: string): Promise<NotionAPIResponse<NotionAPIPage>> => {
+      try {
+        const { client } = notionService;
+        const result = await client.pages.retrieve(pageId);
+        return { success: true, data: result };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    },
+    
+    create: async (data: any): Promise<NotionAPIResponse<NotionAPIPage>> => {
+      try {
+        const { client } = notionService;
+        const result = await client.pages.create(data);
+        return { success: true, data: result };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    },
+    
+    update: async (pageId: string, data: any): Promise<NotionAPIResponse<NotionAPIPage>> => {
+      try {
+        const { client } = notionService;
+        const result = await client.pages.update(pageId, data);
+        return { success: true, data: result };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    }
+  },
+  
+  users: {
+    me: async (): Promise<NotionAPIResponse<any>> => {
+      try {
+        const result = await notionService.users.me();
+        return { success: true, data: result.data };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    },
+    
+    list: async (): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
+      try {
+        const result = await notionService.users.list();
+        return { success: true, data: result.data };
+      } catch (error) {
+        return { success: false, error: { message: error.message } };
+      }
+    }
+  },
+  
+  search: async (query: string, options = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
+    try {
+      const result = await notionService.search.search(query, options);
+      return { success: true, data: result.data };
+    } catch (error) {
+      return { success: false, error: { message: error.message } };
+    }
   }
 };
 
-/**
- * Transforme une réponse du nouveau format vers l'ancien format
- */
-function transformResponse<T>(response: ApiResponse<T>): any {
-  if (response.success && response.data) {
-    // Si réussite, retourner directement les données
-    return response.data;
-  } else {
-    // Si échec, lancer une erreur pour maintenir la compatibilité
-    const error = new Error(response.error?.message || 'Erreur inconnue');
-    
-    // Ajouter des détails supplémentaires à l'erreur si disponibles
-    if (response.error?.details) {
-      (error as any).details = response.error.details;
-    }
-    
-    throw error;
-  }
-}
-
-// Exporter par défaut pour utilisation directe
 export default notionClientAdapter;
