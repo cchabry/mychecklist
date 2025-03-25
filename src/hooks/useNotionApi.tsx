@@ -61,7 +61,7 @@ export function useNotionApi() {
     setError(null);
     
     try {
-      // Utiliser notionApiRequest via la fonction Netlify au lieu d'un appel direct
+      // CORRECTION: Utiliser EXCLUSIVEMENT la fonction Netlify pour tous les appels
       const response = await fetch('/.netlify/functions/notion-proxy', {
         method: 'POST',
         headers: {

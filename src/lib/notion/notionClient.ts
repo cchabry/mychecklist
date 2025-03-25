@@ -53,8 +53,10 @@ export const testNotionConnection = async () => {
       return { success: false, error: 'Configuration Notion manquante' };
     }
     
-    // Test de connexion à l'API Notion via la fonction Netlify
+    // CORRECTION: Utiliser exclusivement la fonction Netlify
     try {
+      console.log('Test de connexion à l\'API Notion via la fonction Netlify');
+      
       // Tester directement la fonction Netlify au lieu d'appeler l'API Notion
       const response = await fetch('/.netlify/functions/notion-proxy', {
         method: 'POST',
@@ -69,7 +71,9 @@ export const testNotionConnection = async () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${await response.text()}`);
+        const errorText = await response.text();
+        console.error(`❌ Erreur lors du test de connexion: ${response.status} - ${errorText}`);
+        throw new Error(`Erreur ${response.status}: ${errorText}`);
       }
       
       const user = await response.json();
@@ -80,6 +84,8 @@ export const testNotionConnection = async () => {
       
       // Test d'accès à la base de données des projets
       try {
+        console.log(`Test d'accès à la base de données des projets: ${dbId}`);
+        
         const dbResponse = await fetch('/.netlify/functions/notion-proxy', {
           method: 'POST',
           headers: {
@@ -93,7 +99,9 @@ export const testNotionConnection = async () => {
         });
         
         if (!dbResponse.ok) {
-          throw new Error(`Erreur ${dbResponse.status}: ${await dbResponse.text()}`);
+          const dbErrorText = await dbResponse.text();
+          console.error(`❌ Erreur d'accès à la base de données: ${dbResponse.status} - ${dbErrorText}`);
+          throw new Error(`Erreur ${dbResponse.status}: ${dbErrorText}`);
         }
         
         const dbInfo = await dbResponse.json();
@@ -110,6 +118,8 @@ export const testNotionConnection = async () => {
       // Test d'accès à la base de données des checklists si configurée
       if (checklistsDbId) {
         try {
+          console.log(`Test d'accès à la base de données des checklists: ${checklistsDbId}`);
+          
           const checklistDbResponse = await fetch('/.netlify/functions/notion-proxy', {
             method: 'POST',
             headers: {
@@ -123,7 +133,9 @@ export const testNotionConnection = async () => {
           });
           
           if (!checklistDbResponse.ok) {
-            throw new Error(`Erreur ${checklistDbResponse.status}: ${await checklistDbResponse.text()}`);
+            const checklistDbErrorText = await checklistDbResponse.text();
+            console.error(`❌ Erreur d'accès à la base de données des checklists: ${checklistDbResponse.status} - ${checklistDbErrorText}`);
+            throw new Error(`Erreur ${checklistDbResponse.status}: ${checklistDbErrorText}`);
           }
           
           const checklistDbInfo = await checklistDbResponse.json();

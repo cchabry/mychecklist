@@ -30,15 +30,38 @@ export const notionApiRequest = async (
   let formattedToken = authToken;
   if (!formattedToken.startsWith('Bearer ')) {
     if (formattedToken.startsWith('secret_') || formattedToken.startsWith('ntn_')) {
-      formattedToken = `Bearer ${formattedToken}`;
+      formattedToken = `${formattedToken}`; // La fonction serverless ajoutera 'Bearer '
     }
   }
   
   try {
-    // Utiliser la fonction Netlify pour les appels à l'API Notion
-    return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
+    // Utiliser exclusivement la fonction Netlify
+    console.log(`📡 Requête via fonction Netlify: ${method} ${normalizedEndpoint}`);
+    
+    const response = await fetch('/.netlify/functions/notion-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        endpoint: normalizedEndpoint,
+        method,
+        body,
+        token: formattedToken
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Erreur du proxy Netlify: ${response.status} - ${errorText}`);
+      throw new Error(`Erreur du proxy Netlify: ${response.status} ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log(`✅ Réponse reçue via fonction Netlify: ${method} ${normalizedEndpoint}`);
+    return data;
   } catch (error) {
-    console.error('Erreur lors de l\'appel à la fonction Netlify:', error);
+    console.error(`❌ Erreur lors de l'appel à la fonction Netlify: ${error.message}`);
     throw error;
   }
 };
@@ -64,46 +87,6 @@ function normalizeEndpoint(endpoint: string): string {
 }
 
 /**
- * Utilise exclusivement les fonctions serverless (Netlify) pour appeler l'API Notion
- */
-async function useServerlessProxy(
-  endpoint: string,
-  method: string = 'GET',
-  body?: any,
-  token?: string
-): Promise<any> {
-  console.log(`📡 Requête via fonction Netlify: ${method} ${endpoint}`);
-  
-  try {
-    // Utiliser directement le chemin Netlify
-    const netlifyResponse = await fetch('/.netlify/functions/notion-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        endpoint,
-        method,
-        body,
-        token
-      })
-    });
-    
-    if (!netlifyResponse.ok) {
-      const errorText = await netlifyResponse.text();
-      console.error('Réponse d\'erreur de la fonction Netlify:', errorText);
-      throw new Error(`Erreur du proxy Netlify: ${netlifyResponse.status} ${errorText}`);
-    }
-    
-    return netlifyResponse.json();
-  } catch (error) {
-    console.error('Erreur lors de l\'appel à la fonction Netlify:', error);
-    throw error;
-  }
-}
-
-/**
- * Fonction proxy pour les requêtes Notion, alias de notionApiRequest
- * Maintenue pour la compatibilité avec le code existant
+ * Fonction alias pour la rétrocompatibilité
  */
 export const proxyFetch = notionApiRequest;

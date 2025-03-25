@@ -35,7 +35,7 @@ function normalizeToken(token) {
   }
   
   // Format inconnu, utiliser tel quel
-  return token;
+  return `Bearer ${token}`;
 }
 
 /**
@@ -81,8 +81,8 @@ exports.handler = async (event, context) => {
     };
   }
   
-  // Vérification de l'état du proxy (requête GET simple)
-  if (event.httpMethod === 'GET' && !event.queryStringParameters) {
+  // Vérification de l'état du proxy (requête ping simple)
+  if (event.httpMethod === 'GET' || (event.body && JSON.parse(event.body)?.ping === true)) {
     logDebug('Requête de vérification d\'état reçue');
     return {
       statusCode: 200,
@@ -180,7 +180,10 @@ exports.handler = async (event, context) => {
       'Content-Type': 'application/json'
     };
     
-    logDebug(`Envoi de requête à Notion: ${method} ${targetUrl}`);
+    logDebug(`Envoi de requête à Notion: ${method} ${targetUrl}`, {
+      headers: notionHeaders,
+      hasBody: !!body
+    });
     
     // Effectuer la requête à l'API Notion
     const startTime = Date.now();

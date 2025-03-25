@@ -29,6 +29,8 @@ export const useNotionRequest = <T>(
     setError(null);
 
     try {
+      console.log(`Exécution d'une requête Notion: ${method} ${endpoint}`);
+      
       // Exécuter la requête via le proxy Netlify
       const result = await notionApiRequest(endpoint, method, body, token) as T;
       setData(result);
@@ -42,6 +44,8 @@ export const useNotionRequest = <T>(
       // Gérer l'erreur
       const formattedError = error instanceof Error ? error : new Error(String(error));
       setError(formattedError);
+      
+      console.error(`Erreur dans la requête Notion ${method} ${endpoint}:`, formattedError);
       
       if (onError) {
         onError(formattedError);
