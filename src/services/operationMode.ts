@@ -6,279 +6,140 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { OperationMode, OperationModeSettings, SwitchReason } from './operationMode/types';
 
 // Clé de stockage local pour le mode d'opération
 const OPERATION_MODE_KEY = 'operation_mode';
+// Valeurs possibles pour le mode d'opération
+const DEMO_MODE = 'demo';
+const REAL_MODE = 'real';
 
 // Paramètres par défaut pour le mode démo
-const DEFAULT_SETTINGS: OperationModeSettings = {
-  // Bascule automatique en mode démo après un certain nombre d'échecs
-  autoSwitchOnFailure: true,
-  
-  // Nombre d'échecs consécutifs avant basculement automatique
-  maxConsecutiveFailures: 3,
-  
-  // Conserver le mode entre les sessions
-  persistentModeStorage: true,
-  
-  // Afficher les notifications de changement de mode
-  showNotifications: true,
-  
-  // Utiliser le cache en mode réel
-  useCacheInRealMode: true,
-  
-  // Taux d'erreurs simulées en mode démo (pourcentage)
-  errorSimulationRate: 10,
-  
-  // Délai réseau simulé en mode démo (ms)
-  simulatedNetworkDelay: 300
+const DEFAULT_SETTINGS = {
+  simulatedNetworkDelay: 300, // ms
+  errorSimulationRate: 0, // pourcentage (0-100)
+  saveToLocalStorage: true, // sauvegarder les modifications localement
+  purgeOnExit: false, // purger les données locales lors de la déconnexion
 };
 
 // Interface pour les événements de mode d'opération
 interface OperationModeEvent {
   type: 'mode_change' | 'settings_change' | 'connection_error' | 'success';
-  mode?: OperationMode;
+  mode?: string;
   detail?: any;
 }
 
 /**
  * Service principal pour gérer le mode d'opération
  */
-class OperationModeService {
+export const operationMode = {
   // État courant du mode d'opération
-  private _mode: OperationMode = OperationMode.REAL;
-  private _switchReason: SwitchReason | null = null;
-  private _settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
-  private _consecutiveFailures: number = 0;
-  private _lastError: Error | null = null;
-  private _previousMode: OperationMode | null = null;
-  private _temporarilyForcedReal: boolean = false;
-  private _criticalOperations: Set<string> = new Set();
+  isDemoMode: false,
+  
+  // Paramètres du mode démo
+  settings: { ...DEFAULT_SETTINGS },
   
   // Liste des écouteurs d'événements
-  private _listeners: Set<(event: OperationModeEvent) => void> = new Set();
+  listeners: new Set<(event: OperationModeEvent) => void>(),
   
   /**
    * Initialise le service
    */
-  constructor() {
-    this.initialize();
-  }
-  
-  public initialize() {
+  initialize() {
     // Charger le mode depuis le localStorage
-    if (this._settings.persistentModeStorage) {
-      const savedMode = localStorage.getItem(OPERATION_MODE_KEY);
-      if (savedMode === OperationMode.DEMO) {
-        this._mode = OperationMode.DEMO;
-        this._switchReason = localStorage.getItem('operation_mode_reason') || 'Précédemment configuré';
-      }
-    }
+    const savedMode = localStorage.getItem(OPERATION_MODE_KEY);
+    this.isDemoMode = savedMode === DEMO_MODE;
     
     // Notifier du mode initial
     this._notifyListeners({
       type: 'mode_change',
-      mode: this._mode
+      mode: this.isDemoMode ? DEMO_MODE : REAL_MODE
     });
     
     console.log(`Mode d'opération initialisé: ${this.isDemoMode ? 'Démo' : 'Réel'}`);
-  }
-  
-  // Accesseurs
-  public get isDemoMode(): boolean {
-    return this._mode === OperationMode.DEMO;
-  }
-  
-  public get isRealMode(): boolean {
-    return this._mode === OperationMode.REAL;
-  }
-  
-  public getMode(): OperationMode {
-    return this._mode;
-  }
-  
-  public getSwitchReason(): SwitchReason | null {
-    return this._switchReason;
-  }
-  
-  public getSettings(): OperationModeSettings {
-    return { ...this._settings };
-  }
-  
-  public getConsecutiveFailures(): number {
-    return this._consecutiveFailures;
-  }
-  
-  public getLastError(): Error | null {
-    return this._lastError;
-  }
-  
-  // Méthodes de gestion des opérations critiques
-  public markOperationAsCritical(operationContext: string): void {
-    this._criticalOperations.add(operationContext);
-  }
-  
-  public unmarkOperationAsCritical(operationContext: string): void {
-    this._criticalOperations.delete(operationContext);
-  }
-  
-  public isOperationCritical(operationContext: string): boolean {
-    return this._criticalOperations.has(operationContext);
-  }
+  },
   
   /**
    * Active le mode démo
    */
-  public enableDemoMode(reason: SwitchReason = 'Changement manuel'): void {
-    if (this._mode !== OperationMode.DEMO) {
-      if (!this._temporarilyForcedReal) {
-        this._previousMode = this._mode;
-      }
-      
-      this._mode = OperationMode.DEMO;
-      this._switchReason = reason;
-      this._temporarilyForcedReal = false;
-      
-      if (this._settings.persistentModeStorage) {
-        localStorage.setItem(OPERATION_MODE_KEY, OperationMode.DEMO);
-        localStorage.setItem('operation_mode_reason', reason);
-      }
-      
-      if (this._settings.showNotifications) {
-        toast.success('Mode démonstration activé', {
-          description: 'L\'application utilise maintenant des données simulées'
-        });
-      }
+  enableDemoMode() {
+    if (!this.isDemoMode) {
+      this.isDemoMode = true;
+      localStorage.setItem(OPERATION_MODE_KEY, DEMO_MODE);
       
       // Notifier du changement
       this._notifyListeners({
         type: 'mode_change',
-        mode: this._mode
+        mode: DEMO_MODE
       });
       
-      console.log('Mode démo activé - Raison:', reason);
+      toast.success('Mode démonstration activé', {
+        description: 'L\'application utilise maintenant des données de démonstration.'
+      });
+      
+      console.log('Mode démo activé');
     }
-  }
+  },
   
   /**
    * Active le mode réel
    */
-  public enableRealMode(): void {
-    if (this._mode !== OperationMode.REAL) {
-      if (!this._temporarilyForcedReal) {
-        this._previousMode = this._mode;
-      }
-      
-      this._mode = OperationMode.REAL;
-      this._switchReason = null;
-      this._temporarilyForcedReal = false;
-      
-      if (this._settings.persistentModeStorage) {
-        localStorage.setItem(OPERATION_MODE_KEY, OperationMode.REAL);
-        localStorage.removeItem('operation_mode_reason');
-      }
-      
-      // Réinitialiser les compteurs d'échec
-      this._consecutiveFailures = 0;
-      this._lastError = null;
-      
-      if (this._settings.showNotifications) {
-        toast.success('Mode réel activé', {
-          description: 'L\'application utilise maintenant l\'API Notion'
-        });
-      }
+  enableRealMode() {
+    if (this.isDemoMode) {
+      this.isDemoMode = false;
+      localStorage.setItem(OPERATION_MODE_KEY, REAL_MODE);
       
       // Notifier du changement
       this._notifyListeners({
         type: 'mode_change',
-        mode: this._mode
+        mode: REAL_MODE
+      });
+      
+      toast.success('Mode réel activé', {
+        description: 'L\'application utilise maintenant l\'API Notion.'
       });
       
       console.log('Mode réel activé');
     }
-  }
+  },
   
   /**
    * Bascule entre les modes démo et réel
    */
-  public toggle(): void {
-    if (this._mode === OperationMode.REAL) {
-      this.enableDemoMode('Basculement manuel');
-    } else {
+  toggleMode() {
+    if (this.isDemoMode) {
       this.enableRealMode();
-    }
-  }
-  
-  /**
-   * Alias pour toggle()
-   */
-  public toggleMode(): void {
-    this.toggle();
-  }
-  
-  /**
-   * Set directement le mode démo
-   */
-  public setDemoMode(value: boolean): void {
-    if (value) {
-      this.enableDemoMode('Changement manuel');
     } else {
-      this.enableRealMode();
+      this.enableDemoMode();
     }
-  }
+  },
   
   /**
-   * Force temporairement le mode réel
+   * Met à jour les paramètres du mode démo
    */
-  public temporarilyForceReal(): void {
-    if (this.isDemoMode && !this._temporarilyForcedReal) {
-      this._previousMode = this._mode;
-      this._temporarilyForcedReal = true;
-      this._mode = OperationMode.REAL;
-      
-      // Notifier du changement
-      this._notifyListeners({
-        type: 'mode_change',
-        mode: this._mode
-      });
-      
-      console.log('Mode démo temporairement désactivé');
-    }
-  }
-  
-  /**
-   * Restaure le mode précédent
-   */
-  public restorePreviousMode(): void {
-    if (this._temporarilyForcedReal && this._previousMode) {
-      this._mode = this._previousMode;
-      this._previousMode = null;
-      this._temporarilyForcedReal = false;
-      
-      // Notifier du changement
-      this._notifyListeners({
-        type: 'mode_change',
-        mode: this._mode
-      });
-      
-      console.log('Mode précédent restauré');
-    }
-  }
+  updateSettings(newSettings: Partial<typeof DEFAULT_SETTINGS>) {
+    this.settings = {
+      ...this.settings,
+      ...newSettings
+    };
+    
+    // Notifier du changement
+    this._notifyListeners({
+      type: 'settings_change',
+      detail: this.settings
+    });
+    
+    console.log('Paramètres du mode démo mis à jour:', this.settings);
+  },
   
   /**
    * Gère une erreur de connexion et active automatiquement le mode démo
    */
-  public handleConnectionError(error: Error, context: string = 'Opération', isNonCritical: boolean = false): void {
-    this._lastError = error;
+  handleConnectionError(error: Error, context: string) {
+    console.error(`Erreur de connexion dans ${context}:`, error);
     
-    const isCriticalOperation = this.isOperationCritical(context);
-    
-    // Augmenter le compteur d'échecs uniquement pour les erreurs non temporaires
-    if (!isNonCritical || isCriticalOperation) {
-      this._consecutiveFailures++;
-      console.warn(`[OperationMode] Erreur détectée (${context}): ${error.message}`);
-      console.warn(`[OperationMode] Échecs consécutifs: ${this._consecutiveFailures}/${this._settings.maxConsecutiveFailures}`);
+    // Si on est déjà en mode démo, ne rien faire
+    if (this.isDemoMode) {
+      return;
     }
     
     // Notifier de l'erreur
@@ -287,124 +148,38 @@ class OperationModeService {
       detail: { error, context }
     });
     
-    // Déterminer s'il faut basculer automatiquement en mode démo
-    const shouldSwitch = 
-      this._settings.autoSwitchOnFailure && 
-      this._mode === OperationMode.REAL &&
-      this._consecutiveFailures >= this._settings.maxConsecutiveFailures;
+    // Activer automatiquement le mode démo
+    this.enableDemoMode();
     
-    if (shouldSwitch) {
-      const reason = `Basculement automatique après ${this._consecutiveFailures} échecs`;
-      this.enableDemoMode(reason);
-    }
-  }
+    // Afficher une notification
+    toast.error('Problème de connexion', {
+      description: 'Mode démonstration activé automatiquement suite à une erreur de connexion.'
+    });
+  },
   
   /**
    * Signale une opération réussie
    */
-  public handleSuccessfulOperation(): void {
-    if (this._consecutiveFailures > 0) {
-      this._consecutiveFailures = 0;
-      this._lastError = null;
-      
-      // Notifier du succès
-      this._notifyListeners({
-        type: 'success'
-      });
-    }
-  }
-  
-  /**
-   * Met à jour les paramètres du mode démo
-   */
-  public updateSettings(newSettings: Partial<OperationModeSettings>): void {
-    this._settings = {
-      ...this._settings,
-      ...newSettings
-    };
-    
-    // Sauvegarder les paramètres dans le localStorage
-    if (this._settings.persistentModeStorage) {
-      localStorage.setItem('operation_mode_settings', JSON.stringify(this._settings));
-    }
-    
-    // Notifier du changement
+  handleSuccessfulOperation() {
+    // Notifier du succès
     this._notifyListeners({
-      type: 'settings_change',
-      detail: this._settings
+      type: 'success'
     });
-    
-    console.log('Paramètres du mode démo mis à jour:', this._settings);
-  }
-  
-  /**
-   * Réinitialise l'état
-   */
-  public reset(): void {
-    this._consecutiveFailures = 0;
-    this._lastError = null;
-    this._settings = { ...DEFAULT_SETTINGS };
-    this._criticalOperations.clear();
-    
-    // Notifier du changement
-    this._notifyListeners({
-      type: 'settings_change',
-      detail: this._settings
-    });
-    
-    console.log('État réinitialisé');
-  }
+  },
   
   /**
    * Ajoute un écouteur d'événements
    */
-  public subscribe(callback: (mode: OperationMode, reason?: SwitchReason | null) => void): () => void {
-    const adapter = (event: OperationModeEvent) => {
-      if (event.type === 'mode_change' && event.mode) {
-        callback(event.mode, this._switchReason);
-      }
-    };
-    
-    this._listeners.add(adapter);
-    return () => this._listeners.delete(adapter);
-  }
-  
-  /**
-   * Ajoute un écouteur pour les changements de mode
-   */
-  public onModeChange(callback: (isDemoMode: boolean) => void): () => void {
-    const adapter = (event: OperationModeEvent) => {
-      if (event.type === 'mode_change') {
-        callback(this.isDemoMode);
-      }
-    };
-    
-    this._listeners.add(adapter);
-    return () => this._listeners.delete(adapter);
-  }
-  
-  /**
-   * Supprime un écouteur pour les changements de mode
-   */
-  public offModeChange(callback: (isDemoMode: boolean) => void): void {
-    // La suppression effective est difficile car nous n'avons pas de référence directe
-    // à l'adaptateur créé dans onModeChange. Cette méthode est incluse pour la compatibilité.
-    console.warn('offModeChange: Cette méthode n\'est pas complètement implémentée');
-  }
-  
-  /**
-   * Ajoute un écouteur d'événements générique
-   */
-  public addEventListener(callback: (event: OperationModeEvent) => void): () => void {
-    this._listeners.add(callback);
-    return () => this._listeners.delete(callback);
-  }
+  addEventListener(callback: (event: OperationModeEvent) => void): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  },
   
   /**
    * Notifie tous les écouteurs d'un événement
    */
-  private _notifyListeners(event: OperationModeEvent): void {
-    this._listeners.forEach(listener => {
+  _notifyListeners(event: OperationModeEvent) {
+    this.listeners.forEach(listener => {
       try {
         listener(event);
       } catch (e) {
@@ -412,114 +187,49 @@ class OperationModeService {
       }
     });
   }
-}
+};
 
-// Créer et exporter une instance unique du service
-export const operationMode = new OperationModeService();
+// Initialiser le service au chargement
+operationMode.initialize();
 
 /**
  * Hook pour utiliser le mode d'opération dans les composants React
  */
 export function useOperationMode() {
-  const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
-  const [switchReason, setSwitchReason] = useState<SwitchReason | null>(operationMode.getSwitchReason());
-  const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
-  const [lastError, setLastError] = useState<Error | null>(operationMode.getLastError());
-  const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
+  const [isDemoMode, setIsDemoMode] = useState(operationMode.isDemoMode);
+  const [settings, setSettings] = useState(operationMode.settings);
   
   // Écouter les changements de mode
   useEffect(() => {
     const unsubscribe = operationMode.addEventListener((event) => {
       if (event.type === 'mode_change') {
-        setMode(operationMode.getMode());
-        setSwitchReason(operationMode.getSwitchReason());
-        setFailures(operationMode.getConsecutiveFailures());
-        setLastError(operationMode.getLastError());
+        setIsDemoMode(event.mode === DEMO_MODE);
       } else if (event.type === 'settings_change') {
-        setSettings(operationMode.getSettings());
-      } else if (event.type === 'connection_error') {
-        setFailures(operationMode.getConsecutiveFailures());
-        setLastError(operationMode.getLastError());
-      } else if (event.type === 'success') {
-        setFailures(operationMode.getConsecutiveFailures());
-        setLastError(operationMode.getLastError());
+        setSettings(event.detail);
       }
     });
     
     return unsubscribe;
   }, []);
   
-  // Calculer les propriétés dérivées
-  const isDemoMode = mode === OperationMode.DEMO;
-  const isRealMode = mode === OperationMode.REAL;
-  
   // Actions exposées par le hook
-  const enableDemoMode = useCallback((reason?: SwitchReason) => operationMode.enableDemoMode(reason), []);
+  const enableDemoMode = useCallback(() => operationMode.enableDemoMode(), []);
   const enableRealMode = useCallback(() => operationMode.enableRealMode(), []);
-  const toggle = useCallback(() => operationMode.toggle(), []);
+  const toggleMode = useCallback(() => operationMode.toggleMode(), []);
   const updateSettings = useCallback(
-    (newSettings: Partial<OperationModeSettings>) => operationMode.updateSettings(newSettings),
-    []
-  );
-  const handleConnectionError = useCallback(
-    (error: Error, context?: string, isNonCritical?: boolean) => 
-      operationMode.handleConnectionError(error, context, isNonCritical),
-    []
-  );
-  const handleSuccessfulOperation = useCallback(
-    () => operationMode.handleSuccessfulOperation(),
-    []
-  );
-  const reset = useCallback(() => operationMode.reset(), []);
-  const markOperationAsCritical = useCallback(
-    (context: string) => operationMode.markOperationAsCritical(context),
-    []
-  );
-  const unmarkOperationAsCritical = useCallback(
-    (context: string) => operationMode.unmarkOperationAsCritical(context),
-    []
-  );
-  const isOperationCritical = useCallback(
-    (context: string) => operationMode.isOperationCritical(context),
-    []
-  );
-  const temporarilyForceReal = useCallback(
-    () => operationMode.temporarilyForceReal(),
-    []
-  );
-  const restorePreviousMode = useCallback(
-    () => operationMode.restorePreviousMode(),
+    (newSettings: Partial<typeof DEFAULT_SETTINGS>) => operationMode.updateSettings(newSettings),
     []
   );
   
   return {
-    // État
-    mode,
-    switchReason,
-    failures,
-    lastError,
-    settings,
-    
-    // Propriétés calculées
     isDemoMode,
-    isRealMode,
-    
-    // Actions
+    settings,
     enableDemoMode,
     enableRealMode,
-    toggle,
-    toggleMode: toggle,
-    updateSettings,
-    handleConnectionError,
-    handleSuccessfulOperation,
-    reset,
-    markOperationAsCritical,
-    unmarkOperationAsCritical,
-    isOperationCritical,
-    temporarilyForceReal,
-    restorePreviousMode
+    toggleMode,
+    updateSettings
   };
 }
 
-// Export par défaut pour un accès facile
+// Exporter par défaut pour un accès facile
 export default operationMode;

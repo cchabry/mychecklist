@@ -11,7 +11,7 @@ import { toast } from 'sonner';
  * Permet de basculer entre le mode réel et le mode démo
  */
 const OperationModeControl: React.FC = () => {
-  const { isDemoMode, toggle } = useOperationMode();
+  const { isDemoMode, toggleMode } = useOperationMode();
   const [isChanging, setIsChanging] = React.useState(false);
   
   // Gérer le changement de mode
@@ -23,7 +23,7 @@ const OperationModeControl: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Basculer le mode
-      toggle();
+      toggleMode();
       
       // Message de toast spécifique au mode
       toast.success(

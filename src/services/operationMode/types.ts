@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from './constants';
 
 export enum OperationMode {
   REAL = 'real',
@@ -84,12 +85,11 @@ export interface OperationModeHook {
   isRealMode: boolean;
   switchReason: SwitchReason | null;
   failures: number;
-  lastError: Error | null;
+  lastError: Error | null; // Ajout de la propriété lastError manquante
   settings: OperationModeSettings;
   enableDemoMode: (reason?: SwitchReason) => void;
   enableRealMode: () => void;
   toggle: () => void;
-  toggleMode: () => void;
   updateSettings: (settings: Partial<OperationModeSettings>) => void;
   reset: () => void;
   handleConnectionError: (error: Error, context?: string, isNonCritical?: boolean) => void;
