@@ -47,7 +47,7 @@ export const getAudits = async (): Promise<Audit[]> => {
     
     return {
       id: page.id,
-      projectId: properties.ProjectId?.rich_text?.[0]?.plain_text || '',
+      projectId: properties.Project?.relation?.[0]?.id || '', // Récupérer l'ID depuis la relation
       name: properties.Name?.title?.[0]?.plain_text || 'Audit sans nom',
       createdAt: page.created_time,
       updatedAt: page.last_edited_time,
@@ -88,9 +88,18 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
     throw new Error('Configuration Notion manquante');
   }
 
+  // Vérifier si on a un projectId valide
+  if (!data.projectId) {
+    console.error('❌ Erreur: ProjectId manquant pour la création d\'audit');
+    throw new Error('ProjectId manquant pour la création d\'audit');
+  }
+  
+  // Utiliser le champ relation "Project" au lieu de "ProjectId"
   const properties = {
     "Name": { title: [{ text: { content: data.name || `Audit du ${new Date().toLocaleDateString()}` } }] },
-    "ProjectId": { rich_text: [{ text: { content: data.projectId || '' } }] },
+    "Project": { 
+      relation: [{ id: data.projectId }]  // Format correct pour une relation Notion
+    },
     "Score": { number: 0 },
     "Version": { rich_text: [{ text: { content: '1.0' } }] }
   };
@@ -197,6 +206,10 @@ export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Aud
   
   if (data.score !== undefined) {
     properties.Score = { number: data.score };
+  }
+  
+  if (data.projectId) {
+    properties.Project = { relation: [{ id: data.projectId }] };
   }
   
   if (data.version) {
@@ -311,7 +324,7 @@ export const getAudit = async (id: string): Promise<Audit | null> => {
     return {
       id: response.id,
       name: properties.Name?.title?.[0]?.plain_text || `Audit sans nom`,
-      projectId: properties.ProjectId?.rich_text?.[0]?.plain_text || '',
+      projectId: properties.Project?.relation?.[0]?.id || '', // Modifier pour utiliser la relation
       createdAt: response.created_time,
       updatedAt: response.last_edited_time,
       score: properties.Score?.number || 0,
