@@ -44,13 +44,6 @@ const NewAuditPage: React.FC = () => {
         // Forcer la réinitialisation du cache pour cette vérification
         localStorage.removeItem('projects_cache');
         
-        // Si nous sommes en mode mock, désactiver temporairement
-        const wasMockActive = notionApi.mockMode.isActive();
-        if (wasMockActive) {
-          console.log('🔄 NewAuditPage - Désactivation temporaire du mode mock pour vérification');
-          notionApi.mockMode.forceReset();
-        }
-        
         // Vérifier directement via l'API
         const projectData = await notionApi.getProject(projectId);
         console.log('Résultat de la vérification du projet:', projectData);
@@ -63,11 +56,6 @@ const NewAuditPage: React.FC = () => {
           setAuditName(`Audit ${projectData.name} - ${new Date().toLocaleDateString('fr-FR')}`);
         } else {
           setProjectExists(false);
-          
-          // Restaurer le mode mock si nécessaire
-          if (wasMockActive) {
-            notionApi.mockMode.activate();
-          }
         }
       } catch (error) {
         console.error('Erreur lors de la vérification du projet:', error);
@@ -152,11 +140,8 @@ const NewAuditPage: React.FC = () => {
         // Vider le cache des audits pour forcer un rechargement
         localStorage.removeItem('audit_cache');
         
-        // Attendre un court instant avant de rediriger
-        setTimeout(() => {
-          // Rediriger vers la page de l'audit
-          navigate(`/audit/${projectId}/${newAudit.id}`);
-        }, 500);
+        // Rediriger vers la page de l'audit
+        navigate(`/audit/${projectId}/${newAudit.id}`);
       } else {
         throw new Error("Échec de la création de l'audit");
       }

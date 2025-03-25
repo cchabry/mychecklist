@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
@@ -266,14 +265,7 @@ export function useErrorHandling() {
       toast.error(normalizedError.message, toastOptions);
     }
     
-    // Basculer automatiquement en mode démo pour certaines erreurs critiques
-    if (critical && category === 'network' && context?.includes('repeated') && !isDemoMode) {
-      enableDemoMode('Basculement automatique suite à des erreurs réseau répétées');
-      
-      toast.warning('Passage automatique en mode démonstration', {
-        description: 'Plusieurs erreurs réseau ont été détectées. L\'application utilise maintenant des données fictives.'
-      });
-    }
+    
     
     return errorDetails;
   }, [

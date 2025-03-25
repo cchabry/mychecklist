@@ -44,16 +44,23 @@ const NewProject: React.FC = () => {
         // Vider le cache des projets pour forcer un rechargement
         localStorage.removeItem('projects_cache');
         
-        // Attendre un court instant pour permettre au cache de se vider
-        setTimeout(() => {
-          navigate(`/project/edit/${newProject.id}`);
-        }, 500);
+        // Rediriger vers la page d'édition du projet
+        navigate(`/project/edit/${newProject.id}`);
       } else {
         throw new Error('Erreur lors de la création du projet');
       }
     } catch (error: any) {
       console.error('Erreur lors de la création du projet:', error);
       toast.error(`Erreur: ${error.message || 'Impossible de créer le projet'}`);
+      
+      // Malgré l'erreur, le projet a peut-être été créé, proposer de naviguer vers l'accueil
+      toast.info('Le projet a peut-être été créé malgré l\'erreur', {
+        action: {
+          label: 'Aller à l\'accueil',
+          onClick: () => navigate('/')
+        },
+        duration: 8000
+      });
     } finally {
       setIsSubmitting(false);
     }
