@@ -5,8 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { corsProxy } from '@/services/corsProxy';
 
+interface TestResult {
+  name: string;
+  success: boolean;
+  error?: string;
+  message?: string; // Added message property to fix the type errors
+}
+
 const CorsProxyDiagnostics: React.FC = () => {
-  const [testResults, setTestResults] = useState<Array<{name: string, success: boolean, error?: string}>>([]);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   // Test d'un proxy spécifique

@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { NotionTokenType } from '@/services/notion/errorHandling/types';
+import { NotionTokenType } from '@/services/notion/security/tokenValidation';
 
 export interface UseNotionOAuthOptions {
   clientId?: string;
@@ -45,12 +45,4 @@ export function useNotionOAuth(options: UseNotionOAuthOptions = {}) {
     refreshToken,
     logout
   };
-}
-
-// Types pour compatibilité
-export enum NotionTokenType {
-  NONE = 'none',
-  INTEGRATION = 'integration',
-  OAUTH = 'oauth',
-  UNKNOWN = 'unknown'
 }
