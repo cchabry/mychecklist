@@ -2,6 +2,12 @@
 import { operationMode } from '@/services/operationMode';
 import { operationModeUtils } from '@/services/operationMode/utils';
 import { corsProxy } from '@/services/corsProxy';
+import { 
+  getDeploymentType, 
+  isNetlifyDeployment, 
+  isLovablePreview,
+  isDeploymentDebuggingEnabled 
+} from './config';
 
 /**
  * Fonction utilitaire pour effectuer des requêtes à l'API Notion via un proxy
@@ -17,6 +23,13 @@ export const notionApiRequest = async (
   body?: any,
   token?: string
 ): Promise<any> => {
+  // Log de débogage pour le type de déploiement
+  const deploymentType = getDeploymentType();
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🌍 Type de déploiement détecté: ${deploymentType}`);
+    console.log(`🔧 Requête Notion (${method}): ${endpoint}`);
+  }
+
   // Normaliser l'endpoint pour garantir le format correct
   const normalizedEndpoint = normalizeEndpoint(endpoint);
   
@@ -53,22 +66,44 @@ export const notionApiRequest = async (
   }
   
   try {
-    // Essayer d'abord d'utiliser les fonctions serverless
-    try {
-      console.log('🔄 Tentative d\'utilisation des fonctions serverless pour:', normalizedEndpoint);
-      return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
-    } catch (serverlessError) {
-      console.log('⚠️ Fonctions serverless non disponibles, tentative d\'utilisation du proxy CORS:', serverlessError);
-      
-      // Si aucun proxy n'est configuré, essayer d'en trouver un automatiquement
-      const currentProxy = corsProxy.getCurrentProxy();
-      if (!currentProxy) {
-        console.log('⚠️ Aucun proxy CORS configuré, recherche automatique...');
-        await corsProxy.findWorkingProxy();
+    // Adapter la stratégie en fonction du type de déploiement
+    if (isNetlifyDeployment()) {
+      // Sur Netlify, utiliser directement les fonctions Netlify
+      if (isDeploymentDebuggingEnabled()) {
+        console.log('📡 Environnement Netlify détecté, utilisation directe des fonctions Netlify');
       }
       
-      // Ensuite essayer d'utiliser le proxy CORS
-      return await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
+      try {
+        return await useNetlifyProxy(normalizedEndpoint, method, body, formattedToken);
+      } catch (netlifyError) {
+        console.error('❌ Erreur avec la fonction Netlify:', netlifyError);
+        // En cas d'échec, utiliser le proxy CORS
+        return await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
+      }
+    } else {
+      // Pour les autres environnements, essayer d'abord les fonctions serverless génériques
+      try {
+        if (isDeploymentDebuggingEnabled()) {
+          console.log('🔄 Tentative d\'utilisation des fonctions serverless pour:', normalizedEndpoint);
+        }
+        return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
+      } catch (serverlessError) {
+        if (isDeploymentDebuggingEnabled()) {
+          console.log('⚠️ Fonctions serverless non disponibles, tentative d\'utilisation du proxy CORS:', serverlessError);
+        }
+        
+        // Si aucun proxy n'est configuré, essayer d'en trouver un automatiquement
+        const currentProxy = corsProxy.getCurrentProxy();
+        if (!currentProxy) {
+          if (isDeploymentDebuggingEnabled()) {
+            console.log('⚠️ Aucun proxy CORS configuré, recherche automatique...');
+          }
+          await corsProxy.findWorkingProxy();
+        }
+        
+        // Ensuite essayer d'utiliser le proxy CORS
+        return await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
+      }
     }
   } catch (error) {
     // En cas d'erreur, signaler au système operationMode
@@ -107,7 +142,52 @@ function normalizeEndpoint(endpoint: string): string {
 }
 
 /**
+ * Utilise les fonctions Netlify spécifiquement pour appeler l'API Notion
+ * Optimisé pour les déploiements Netlify
+ */
+async function useNetlifyProxy(
+  endpoint: string,
+  method: string = 'GET',
+  body?: any,
+  token?: string
+): Promise<any> {
+  // Pour les fonctions Netlify, on doit retirer le préfixe /v1
+  const serverlessEndpoint = endpoint.startsWith('/v1/')
+    ? endpoint.substring(3) // Enlever le /v1 car il sera ajouté par le proxy serverless
+    : endpoint;
+  
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🔄 Préparation endpoint Netlify: "${serverlessEndpoint}" (depuis "${endpoint}")`);
+  }
+  
+  // Utiliser directement le chemin Netlify
+  const netlifyResponse = await fetch('/.netlify/functions/notion-proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      endpoint: serverlessEndpoint,
+      method,
+      body,
+      token
+    })
+  });
+  
+  if (!netlifyResponse.ok) {
+    const errorText = await netlifyResponse.text();
+    throw new Error(`Erreur du proxy Netlify: ${netlifyResponse.status} ${errorText}`);
+  }
+  
+  // Signaler une opération réussie au système operationMode
+  operationMode.handleSuccessfulOperation();
+  
+  return netlifyResponse.json();
+}
+
+/**
  * Utilise le proxy serverless (Vercel, Netlify) pour appeler l'API Notion
+ * Version générique qui essaie plusieurs endpoints
  */
 async function useServerlessProxy(
   endpoint: string,
@@ -120,7 +200,9 @@ async function useServerlessProxy(
     ? endpoint.substring(3) // Enlever le /v1 car il sera ajouté par le proxy serverless
     : endpoint;
   
-  console.log(`🔄 Préparation endpoint serverless: "${serverlessEndpoint}" (depuis "${endpoint}")`);
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🔄 Préparation endpoint serverless: "${serverlessEndpoint}" (depuis "${endpoint}")`);
+  }
   
   // Essayer d'abord le proxy Vercel
   try {
@@ -147,31 +229,12 @@ async function useServerlessProxy(
     
     return vercelResponse.json();
   } catch (vercelError) {
-    console.log('⚠️ Proxy Vercel non disponible, tentative d\'utilisation du proxy Netlify:', vercelError);
-    
-    // Ensuite essayer le proxy Netlify
-    const netlifyResponse = await fetch('/.netlify/functions/notion-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        endpoint: serverlessEndpoint,
-        method,
-        body,
-        token
-      })
-    });
-    
-    if (!netlifyResponse.ok) {
-      const errorText = await netlifyResponse.text();
-      throw new Error(`Erreur du proxy Netlify: ${netlifyResponse.status} ${errorText}`);
+    if (isDeploymentDebuggingEnabled()) {
+      console.log('⚠️ Proxy Vercel non disponible, tentative d\'utilisation du proxy Netlify:', vercelError);
     }
     
-    // Signaler une opération réussie au système operationMode
-    operationMode.handleSuccessfulOperation();
-    
-    return netlifyResponse.json();
+    // Ensuite essayer le proxy Netlify
+    return useNetlifyProxy(endpoint, method, body, token);
   }
 }
 
@@ -193,7 +256,9 @@ async function useCorsProxy(
   const baseUrl = 'https://api.notion.com';
   const url = `${baseUrl}${corsEndpoint}`;
   
-  console.log(`📡 Requête Notion via proxy CORS: ${method} ${url}`);
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`📡 Requête Notion via proxy CORS: ${method} ${url}`);
+  }
   
   // Obtenir le proxy CORS
   const currentProxy = corsProxy.getCurrentProxy();
@@ -203,7 +268,9 @@ async function useCorsProxy(
   
   // Construire l'URL du proxy
   const proxiedUrl = corsProxy.proxify(url);
-  console.log(`🔄 Utilisation du proxy CORS: ${currentProxy.url} pour appeler ${url}`);
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🔄 Utilisation du proxy CORS: ${currentProxy.url} pour appeler ${url}`);
+  }
   
   // Configurer les options de la requête
   const options: RequestInit = {
