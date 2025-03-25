@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
+import { notionWriteService } from '@/services/notion/notionWriteService';
 
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -26,13 +26,19 @@ const NewProject: React.FC = () => {
     
     try {
       setIsSubmitting(true);
-      const newProject = await notionApi.createProject({
+      
+      // Utiliser directement notionWriteService pour la création
+      const newProject = await notionWriteService.createProject({
         name: projectName,
         url: projectUrl,
       });
       
-      toast.success('Projet créé avec succès');
-      navigate(`/project/edit/${newProject.id}`);
+      if (newProject) {
+        toast.success('Projet créé avec succès');
+        navigate(`/project/edit/${newProject.id}`);
+      } else {
+        throw new Error('Erreur lors de la création du projet');
+      }
     } catch (error: any) {
       console.error('Erreur lors de la création du projet:', error);
       toast.error(`Erreur: ${error.message || 'Impossible de créer le projet'}`);
