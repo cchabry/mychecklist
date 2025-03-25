@@ -166,13 +166,19 @@ class OperationModeService implements IOperationModeService {
   
   // Gestion des erreurs avec une logique améliorée
   public handleConnectionError(error: Error, context: string = 'Opération', isNonCritical: boolean = false): void {
+    console.log(`🔍 [DEBUG] handleConnectionError appelé - Context: ${context}, isNonCritical: ${isNonCritical}`);
+    console.log(`🔍 [DEBUG] Message d'erreur:`, error.message);
+    console.log(`🔍 [DEBUG] Mode actuel:`, this.mode);
+    
     this.lastError = error;
     
     // Vérifier si l'erreur semble temporaire (réseau, CORS, etc.)
     const isTemporaryError = this.isTemporaryError(error);
+    console.log(`🔍 [DEBUG] Est-ce une erreur temporaire?`, isTemporaryError);
     
     // Vérifier si l'opération est marquée comme critique
     const isCriticalOperation = this.isOperationCritical(context);
+    console.log(`🔍 [DEBUG] Est-ce une opération critique?`, isCriticalOperation);
     
     // Ne pas incrémenter le compteur d'échecs pour:
     // - les erreurs temporaires 
@@ -191,14 +197,22 @@ class OperationModeService implements IOperationModeService {
     // - nous sommes en mode réel
     // - le nombre d'échecs atteint le seuil
     // - l'erreur n'est pas temporaire ou non critique
-    if (
+    console.log(`🔍 [DEBUG] autoSwitchOnFailure activé?`, this.settings.autoSwitchOnFailure);
+    console.log(`🔍 [DEBUG] Nombre d'échecs:`, this.consecutiveFailures);
+    console.log(`🔍 [DEBUG] Seuil d'échecs:`, this.settings.maxConsecutiveFailures);
+    
+    const shouldSwitch = 
       this.settings.autoSwitchOnFailure && 
       this.mode === OperationMode.REAL &&
       this.consecutiveFailures >= this.settings.maxConsecutiveFailures &&
       !isTemporaryError && 
-      !isNonCritical
-    ) {
+      !isNonCritical;
+    
+    console.log(`🔍 [DEBUG] Faut-il basculer en mode démo?`, shouldSwitch);
+    
+    if (shouldSwitch) {
       const reason = `Basculement automatique après ${this.consecutiveFailures} échecs`;
+      console.log(`🔍 [DEBUG] Basculement en mode démo avec raison:`, reason);
       this.enableDemoMode(reason);
       
       // Notification spécifique pour le switch automatique
@@ -211,6 +225,7 @@ class OperationModeService implements IOperationModeService {
     }
     
     this.notifySubscribers();
+    console.log(`🔍 [DEBUG] Fin de handleConnectionError - Mode actuel:`, this.mode);
   }
 
   // Vérifier si une erreur est probablement temporaire (réseau, CORS)

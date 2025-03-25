@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { notionWriteService } from '@/services/notion/notionWriteService';
+import { operationMode } from '@/services/operationMode';
 
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -10,12 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useNotionRequestLogger } from '@/hooks/useNotionRequestLogger';
+import { useCriticalOperation } from '@/hooks/useCriticalOperation';
 
 const NewProject: React.FC = () => {
   const navigate = useNavigate();
   const [projectName, setProjectName] = React.useState('');
   const [projectUrl, setProjectUrl] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  
+  // Utiliser le hook d'opération critique pour éviter la bascule en mode démo
+  const { executeCritical } = useCriticalOperation('create-project');
   
   // Activer l'interception des requêtes Notion
   useNotionRequestLogger();
@@ -31,30 +36,48 @@ const NewProject: React.FC = () => {
     try {
       setIsSubmitting(true);
       
-      // Utiliser directement notionWriteService pour la création
-      const newProject = await notionWriteService.createProject({
-        name: projectName,
-        url: projectUrl,
+      console.log('🔍 Début de création du projet - Mode démo actif?', operationMode.isDemoMode);
+      
+      // Utiliser notre hook d'opération critique
+      const newProject = await executeCritical(async () => {
+        console.log('🔍 Exécution de createProject en tant qu\'opération critique');
+        
+        return await notionWriteService.createProject({
+          name: projectName,
+          url: projectUrl,
+        });
       });
+      
+      console.log('🔍 Après création du projet - Mode démo actif?', operationMode.isDemoMode);
+      console.log('🔍 Résultat de la création:', newProject);
       
       if (newProject) {
         toast.success('Projet créé avec succès');
-        console.log('Projet créé:', newProject);
+        console.log('✅ Projet créé:', newProject);
         
         // Vider le cache des projets pour forcer un rechargement
         localStorage.removeItem('projects_cache');
         
         // Attendre un court instant pour permettre au cache de se vider
         setTimeout(() => {
+          console.log('🔍 Redirection vers le projet créé:', newProject.id);
           navigate(`/project/edit/${newProject.id}`);
         }, 500);
       } else {
+        console.error('❌ Erreur: Aucun projet retourné par la création');
         throw new Error('Erreur lors de la création du projet');
       }
     } catch (error: any) {
-      console.error('Erreur lors de la création du projet:', error);
+      console.error('❌ Erreur détaillée lors de la création du projet:', error);
+      console.error('❌ Stack trace:', error.stack);
+      
+      if (error.response) {
+        console.error('❌ Réponse d\'erreur:', error.response);
+      }
+      
       toast.error(`Erreur: ${error.message || 'Impossible de créer le projet'}`);
     } finally {
+      console.log('🔍 Fin de création du projet - Mode démo actif?', operationMode.isDemoMode);
       setIsSubmitting(false);
     }
   };

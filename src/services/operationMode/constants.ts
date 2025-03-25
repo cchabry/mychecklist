@@ -5,11 +5,11 @@ import { OperationModeSettings } from './types';
  * Paramètres par défaut pour le système operationMode
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
-  // Bascule automatique en mode démo après un certain nombre d'échecs - DÉSACTIVÉE
+  // Bascule automatique en mode démo après un certain nombre d'échecs - COMPLÈTEMENT DÉSACTIVÉE
   autoSwitchOnFailure: false,
   
   // Nombre d'échecs consécutifs avant basculement automatique - considérablement augmenté
-  maxConsecutiveFailures: 10,
+  maxConsecutiveFailures: 50, // Augmenté à 50 pour effectivement désactiver le mécanisme
   
   // Conserver le mode entre les sessions
   persistentModeStorage: true,
