@@ -7,28 +7,28 @@
  * mais sans fonctionnalité active.
  */
 
-// Interface vide pour compatibilité
-interface DummyProxyInfo {
+// Interface pour les informations de proxy
+export interface ProxyInfo {
   url: string;
   success: boolean;
 }
 
 class DisabledCorsProxyService {
-  getCurrentProxy(): null {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
-    return null;
-  }
-  
-  setSelectedProxy(): void {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
-  }
-  
-  async testProxy(): Promise<DummyProxyInfo> {
+  getCurrentProxy(): ProxyInfo | null {
     console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: 'netlify-proxy', success: true };
   }
   
-  async findWorkingProxy(): Promise<DummyProxyInfo | null> {
+  setSelectedProxy(url?: string): void {
+    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+  }
+  
+  async testProxy(url?: string, token?: string): Promise<ProxyInfo> {
+    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+    return { url: url || 'netlify-proxy', success: true };
+  }
+  
+  async findWorkingProxy(token?: string): Promise<ProxyInfo | null> {
     console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: 'netlify-proxy', success: true };
   }
@@ -37,7 +37,7 @@ class DisabledCorsProxyService {
     console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
   }
   
-  async autoSetup(): Promise<DummyProxyInfo | null> {
+  async autoSetup(token?: string): Promise<ProxyInfo | null> {
     console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: 'netlify-proxy', success: true };
   }

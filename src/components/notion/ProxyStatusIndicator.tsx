@@ -48,7 +48,7 @@ const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({ isDemoMode 
               {hasProxy ? "Proxy CORS configuré" : "Proxy CORS non configuré"}
             </h3>
             <p className="text-xs text-amber-700 mt-1">
-              {hasProxy 
+              {hasProxy && currentProxy
                 ? `Le proxy est configuré à l'adresse: ${currentProxy.url}`
                 : "Aucun proxy CORS n'est configuré. Les appels directs à l'API Notion seront bloqués par le navigateur."}
             </p>

@@ -25,7 +25,9 @@ const DeploymentDebugger: React.FC = () => {
     setDeploymentType(getDeploymentType());
     
     const proxy = corsProxy.getCurrentProxy();
-    setCurrentProxy(proxy?.url || null);
+    if (proxy) {
+      setCurrentProxy(proxy.url);
+    }
   }, []);
   
   // Gérer l'activation/désactivation du débogage

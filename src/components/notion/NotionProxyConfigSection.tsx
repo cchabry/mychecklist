@@ -4,7 +4,7 @@ import { Wifi, Globe, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 import { PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';
-import { corsProxy } from '@/services/corsProxy';
+import { corsProxy, ProxyInfo } from '@/services/corsProxy';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
 import OperationModeControl from '@/components/OperationModeControl';
@@ -63,7 +63,7 @@ const NotionProxyConfigSection: React.FC = () => {
     setTesting('auto');
     try {
       // Ajout du token de test comme argument
-      const bestProxy = await corsProxy.findWorkingProxy("test_token");
+      const bestProxy = await corsProxy.findWorkingProxy();
       
       if (bestProxy) {
         setSelectedProxyState(bestProxy.url);

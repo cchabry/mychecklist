@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,14 +30,11 @@ const CorsProxyDiagnostics: React.FC = () => {
     setIsTestingProxies(true);
     const results: Record<string, boolean> = {};
     
-    // Utiliser un token fictif pour le test
-    const testToken = "Bearer test_token_for_proxy";
-    
     try {
       for (const proxy of availableProxies) {
         try {
           // Maintenant testProxy retourne un objet ProxyInfo
-          const proxyResult = await corsProxy.testProxy(proxy.url, testToken);
+          const proxyResult = await corsProxy.testProxy(proxy.url);
           results[proxy.name] = proxyResult.success;
           
           if (proxyResult.success) {
