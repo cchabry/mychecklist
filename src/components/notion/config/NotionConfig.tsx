@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,14 +7,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { extractNotionDatabaseId } from '@/lib/notion';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
-import { Info, Database, Key, RefreshCw, AlertTriangle, Search } from 'lucide-react';
+import { Info, Database, Key, RefreshCw, AlertTriangle, Search, FileText } from 'lucide-react';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
 import NotionDatabaseDiscovery, { NotionDatabaseTarget } from '../NotionDatabaseDiscovery';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { notionWriteService } from '@/services/notion/notionWriteService';
 
-// Structure pour stocker les informations de chaque base de données
 interface DatabaseConfig {
   id: string;
   key: string;
@@ -46,7 +45,6 @@ const NotionConfig: React.FC = () => {
   const [showDatabaseDiscovery, setShowDatabaseDiscovery] = useState(false);
   const { isDemoMode } = useOperationMode();
 
-  // Définition des bases de données
   const DATABASE_DEFINITIONS: Record<string, DatabaseConfig[]> = {
     core: [
       { 
@@ -110,7 +108,6 @@ const NotionConfig: React.FC = () => {
     ]
   };
 
-  // Charger la date de dernière configuration
   useEffect(() => {
     const lastConfigDate = localStorage.getItem('notion_last_config_date');
     if (lastConfigDate) {
@@ -134,10 +131,8 @@ const NotionConfig: React.FC = () => {
       return;
     }
     
-    // Sauvegarder la clé API
     localStorage.setItem('notion_api_key', apiKey);
     
-    // Sauvegarder tous les IDs de base de données
     Object.entries(databaseConfigs).forEach(([dbType, dbId]) => {
       const storageKey = dbType === 'projects' 
         ? 'notion_database_id' 
@@ -152,11 +147,9 @@ const NotionConfig: React.FC = () => {
       }
     });
     
-    // Sauvegarder la date de configuration
     localStorage.setItem('notion_last_config_date', new Date().toISOString());
     setLastSaved(new Date().toLocaleString());
     
-    // Si en mode démo, demander à l'utilisateur s'il veut essayer le mode réel
     if (isDemoMode) {
       toast.success('Configuration Notion sauvegardée', {
         description: 'Souhaitez-vous essayer de passer en mode réel?',
@@ -175,17 +168,14 @@ const NotionConfig: React.FC = () => {
   };
   
   const resetConfig = () => {
-    // Réinitialiser la clé API
     setApiKey('');
     
-    // Réinitialiser tous les IDs de base de données
     const emptyConfigs = Object.keys(databaseConfigs).reduce(
       (acc, key) => ({ ...acc, [key]: '' }), 
       {} as Record<NotionDatabaseTarget, string>
     );
     setDatabaseConfigs(emptyConfigs);
     
-    // Supprimer toutes les entrées de localStorage
     localStorage.removeItem('notion_api_key');
     localStorage.removeItem('notion_database_id');
     
@@ -213,19 +203,15 @@ const NotionConfig: React.FC = () => {
     setIsTesting(true);
     
     try {
-      // Désactiver temporairement le mode mock pour le test
       const wasMockMode = notionApi.mockMode.isActive();
       if (wasMockMode) {
         notionApi.mockMode.temporarilyForceReal();
       }
       
-      // Tester la connexion à l'API
       const userResponse = await notionApi.users.me(apiKey);
       
-      // Tester l'accès aux bases de données configurées
       const dbTestResults: {id: string, name: string, success: boolean, error?: string}[] = [];
       
-      // Vérifier l'accès à chaque base de données configurée
       for (const [dbType, dbId] of Object.entries(databaseConfigs)) {
         if (!dbId) continue;
         
@@ -251,7 +237,6 @@ const NotionConfig: React.FC = () => {
         }
       }
       
-      // Afficher un récapitulatif des tests
       const successCount = dbTestResults.filter(r => r.success).length;
       const totalTests = dbTestResults.length;
       
@@ -265,7 +250,6 @@ const NotionConfig: React.FC = () => {
             description: `Certaines bases de données ne sont pas accessibles`
           });
           
-          // Afficher les erreurs pour chaque base de données en échec
           dbTestResults.filter(r => !r.success).forEach(result => {
             toast.error(`Erreur d'accès: ${result.name}`, {
               description: result.error
@@ -278,17 +262,14 @@ const NotionConfig: React.FC = () => {
         });
       }
       
-      // Passer en mode réel si le test a réussi
       if (isDemoMode) {
         operationMode.enableRealMode();
       }
-      
     } catch (error: any) {
       toast.error('Erreur de connexion à Notion', {
         description: error.message || 'Vérifiez votre clé API'
       });
       
-      // Signaler l'erreur
       operationMode.handleConnectionError(
         error instanceof Error ? error : new Error(String(error))
       );
@@ -315,7 +296,6 @@ const NotionConfig: React.FC = () => {
     setShowDatabaseDiscovery(true);
   };
 
-  // Nouvelle fonction pour gérer la sélection d'une base de données
   const handleSelectDatabase = (id: string, target: NotionDatabaseTarget) => {
     const cleanId = extractNotionDatabaseId(id);
     
@@ -329,7 +309,6 @@ const NotionConfig: React.FC = () => {
     });
   };
 
-  // Rendu des champs de base de données selon l'onglet actif
   const renderDatabaseFields = (tabId: string) => {
     return DATABASE_DEFINITIONS[tabId]?.map(db => (
       <div key={db.id} className="space-y-2">
@@ -349,6 +328,39 @@ const NotionConfig: React.FC = () => {
         </p>
       </div>
     ));
+  };
+
+  const handleTestWrite = async () => {
+    if (!apiKey || !databaseConfigs.projects) {
+      toast.error('Configuration incomplète', {
+        description: 'Veuillez saisir une clé API et un ID de base de données Projets'
+      });
+      return;
+    }
+
+    try {
+      const timestamp = new Date().toISOString();
+      const testProject = {
+        name: `Test d'écriture ${timestamp}`,
+        description: "Projet de test pour vérifier l'écriture dans Notion",
+        url: "https://exemple.fr/test",
+        status: "Test"
+      };
+
+      const result = await notionWriteService.createProject(testProject);
+
+      if (result) {
+        toast.success('Test d\'écriture réussi', {
+          description: `Projet de test créé avec succès à ${timestamp}`
+        });
+      } else {
+        toast.error('Échec du test d\'écriture');
+      }
+    } catch (error) {
+      toast.error('Erreur lors du test d\'écriture', {
+        description: error.message
+      });
+    }
   };
 
   return (
@@ -431,16 +443,12 @@ const NotionConfig: React.FC = () => {
           </AlertDescription>
         </Alert>
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={resetConfig}>
-            Réinitialiser
-          </Button>
-          
+      <CardFooter className="flex justify-between">
+        <div className="flex gap-2">
           <Button 
-            variant="outline" 
             onClick={testConnection} 
             disabled={isTesting}
+            variant="outline"
             className="gap-1"
           >
             {isTesting ? (
@@ -454,6 +462,16 @@ const NotionConfig: React.FC = () => {
                 Tester la connexion
               </>
             )}
+          </Button>
+          
+          <Button 
+            onClick={handleTestWrite} 
+            variant="outline"
+            className="gap-1"
+            disabled={isTesting || !apiKey || !databaseConfigs.projects}
+          >
+            <FileText className="h-4 w-4" />
+            Tester l'écriture
           </Button>
         </div>
         
