@@ -109,7 +109,10 @@ const LogEntryDisplay: React.FC<LogEntryDisplayProps> = ({ log, compact = false 
         <div className="pl-4 mt-2 space-y-2">
           {log.context && (
             <div className="text-xs">
-              <span className="text-gray-500">Contexte:</span> {log.context}
+              <span className="text-gray-500">Contexte:</span> {typeof log.context === 'object' 
+                ? JSON.stringify(log.context) 
+                : String(log.context)
+              }
             </div>
           )}
           
