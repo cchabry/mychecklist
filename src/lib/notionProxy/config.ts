@@ -23,7 +23,8 @@ export const STORAGE_KEYS = {
   MOCK_MODE: 'notion_mock_mode',
   CORS_PROXY_CACHE: 'notion_cors_proxy_cache',
   LAST_CONNECTION_TEST: 'notion_last_connection_test',
-  DEBUG_MODE: 'notion_debug_mode'
+  DEBUG_MODE: 'notion_debug_mode',
+  LAST_CONFIG_DATE: 'notion_last_config_date' // Ajout de la clé manquante
 };
 
 // Clés de timeout
@@ -64,6 +65,20 @@ export function getDeploymentType(): DeploymentType {
   }
   
   return 'unknown';
+}
+
+/**
+ * Vérifie si le token est un token OAuth Notion (commence par ntn_)
+ */
+export function isOAuthToken(token: string): boolean {
+  return token.trim().startsWith('ntn_');
+}
+
+/**
+ * Vérifie si le token est une clé d'intégration Notion (commence par secret_)
+ */
+export function isIntegrationKey(token: string): boolean {
+  return token.trim().startsWith('secret_');
 }
 
 /**
