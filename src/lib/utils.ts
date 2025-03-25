@@ -1,3 +1,4 @@
+
 /**
  * Nettoie l'ID d'un audit en retirant les préfixes "audit_" ou "audit-"
  * @param id Identifiant d'audit possiblement préfixé
@@ -29,4 +30,43 @@ export function cleanProjectId(id?: string): string {
   
   // Retirer les guillemets si présents
   return id.replace(/"/g, '');
+}
+
+/**
+ * Utilitaire pour fusionner des classes Tailwind conditionnellement
+ * Utilisé principalement par les composants shadcn/ui
+ */
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+/**
+ * Réinitialise l'état global de l'application 
+ * (préférences, configurations, cache, etc.)
+ */
+export function resetApplicationState() {
+  // Suppression des clés de stockage local liées à l'application
+  const keysToRemove = [
+    'notion_api_key',
+    'notion_mock_mode',
+    'notion_force_real',
+    'notion_databases_config',
+    'notion_last_projects',
+    'cors_proxy_config'
+  ];
+  
+  keysToRemove.forEach(key => {
+    try {
+      localStorage.removeItem(key);
+      console.log(`Clé ${key} supprimée du stockage local`);
+    } catch (err) {
+      console.error(`Erreur lors de la suppression de la clé ${key}:`, err);
+    }
+  });
+  
+  // Rafraîchir la page pour réinitialiser l'état de l'application
+  console.log("État de l'application réinitialisé");
 }
