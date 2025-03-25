@@ -26,17 +26,6 @@ export function useProjectAudits(projectId: string) {
       
       try {
         console.log(`🔍 Récupération des audits pour le projet: ${projectId}`);
-        
-        // Vérifier si la configuration nécessaire existe
-        const auditDbId = localStorage.getItem('notion_audit_database_id');
-        const mainDbId = localStorage.getItem('notion_database_id');
-        
-        console.log('📊 Configuration pour récupération des audits:', {
-          'Base de données des audits configurée': !!auditDbId,
-          'Base de données principale configurée': !!mainDbId,
-          'Mode démo actif': isDemoMode
-        });
-        
         const fetchedAudits = await notionApi.getAuditsByProject(projectId);
         
         // Enrichir les audits avec les propriétés nécessaires pour les cartes
