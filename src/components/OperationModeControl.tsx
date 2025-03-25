@@ -7,14 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Database, Zap, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface OperationModeControlProps {
+export interface OperationModeControlProps {
   onToggle?: () => void;
+  simplified?: boolean;
 }
 
 /**
  * Composant permettant de contrôler le mode opérationnel de l'application
  */
-const OperationModeControl: React.FC<OperationModeControlProps> = ({ onToggle }) => {
+const OperationModeControl: React.FC<OperationModeControlProps> = ({ 
+  onToggle,
+  simplified = false
+}) => {
   const { mode, isDemoMode, enableRealMode, enableDemoMode, failures, switchReason } = useOperationMode();
   const [reason, setReason] = useState('');
   
@@ -37,6 +41,32 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({ onToggle })
     }
   };
   
+  // Version simplifiée pour l'en-tête
+  if (simplified) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex items-center">
+          {isDemoMode ? (
+            <Database className="mr-1 h-4 w-4 text-blue-500" />
+          ) : (
+            <Zap className="mr-1 h-4 w-4 text-green-500" />
+          )}
+          <span className="text-xs font-medium">
+            {isDemoMode ? 'Démo' : 'API'}
+          </span>
+        </div>
+        <Switch
+          checked={!isDemoMode}
+          onCheckedChange={handleToggleMode}
+          size="sm"
+          className="scale-75 data-[state=checked]:bg-green-500"
+          aria-label="Toggle operation mode"
+        />
+      </div>
+    );
+  }
+  
+  // Version complète
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">

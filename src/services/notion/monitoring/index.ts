@@ -1,42 +1,70 @@
 
-// Exporter les services
-export { errorCounter } from './errorCounter';
-export { structuredLogger } from '@/services/notion/logging/structuredLogger';
+import { structuredLogger } from '../logging/structuredLogger';
+import { errorCounter } from './errorCounter';
+import { ErrorReport } from '../errorHandling/types';
 
-// Exporter les types
-export * from '@/services/notion/errorHandling/types';
-
-// Initialiser le système de monitoring
-export const initMonitoring = () => {
-  // Configurer le logger
-  structuredLogger.configure({
-    level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-    consoleOutput: true,
-    jsonOutput: false
+/**
+ * Initialise le système de monitoring
+ */
+export function initMonitoring() {
+  // Logger l'initialisation
+  structuredLogger.info('Initialisation du système de monitoring Notion', {
+    timestamp: new Date().toISOString()
   });
   
-  // Log initial
-  structuredLogger.info('Système de monitoring Notion initialisé', {
+  // Initialiser les compteurs d'erreur
+  errorCounter.reset();
+  
+  // Enregistrer un rapport d'initialisation pour le diagnostic
+  structuredLogger.info('Système de monitoring prêt', {
     environment: process.env.NODE_ENV,
-    timestamp: Date.now()
-  }, {
-    source: 'MonitoringSystem',
-    tags: ['startup', 'monitoring']
+    browser: getBrowserInfo(),
+    deployment: getDeploymentInfo()
   });
   
-  // Configurer les seuils d'alerte par défaut
-  errorCounter.configureThresholds({
-    errorRatePerMinute: 10,
-    errorRatePerHour: 50,
-    byErrorType: {
-      'auth': 3,
-      'permission': 3,
-      'rate_limit': 5
-    }
-  });
-  
+  // Retourner les outils de monitoring
   return {
     structuredLogger,
-    errorCounter
+    errorCounter,
+    
+    // Utilitaire pour créer un rapport d'erreur
+    createErrorReport(error: Error, context?: string): ErrorReport {
+      // Incrémenter les compteurs appropriés
+      errorCounter.increment(error);
+      
+      // Créer un rapport structuré
+      return {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+        context: context || 'Erreur non contextualisée',
+        browser: getBrowserInfo(),
+        counters: errorCounter.getStats()
+      };
+    }
   };
-};
+}
+
+/**
+ * Récupère des informations sur le navigateur
+ */
+function getBrowserInfo() {
+  return {
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    online: navigator.onLine,
+    doNotTrack: navigator.doNotTrack,
+    cookiesEnabled: navigator.cookieEnabled
+  };
+}
+
+/**
+ * Récupère des informations sur le déploiement
+ */
+function getDeploymentInfo() {
+  return {
+    environment: process.env.NODE_ENV,
+    buildTime: process.env.BUILD_TIME || 'unknown',
+    version: process.env.VERSION || 'dev'
+  };
+}

@@ -1,4 +1,3 @@
-
 /**
  * Types pour la gestion d'erreur
  */
@@ -177,6 +176,31 @@ export interface AlertThresholdConfig {
   consecutiveFailures?: number;       // Nombre d'échecs consécutifs
   byErrorType?: Partial<Record<NotionErrorType, number>>;  // Seuils par type d'erreur
   byEndpoint?: Record<string, number>;  // Seuils par endpoint
+}
+
+/**
+ * Interface pour les options de configuration du logger
+ */
+export interface LoggerConfig {
+  /**
+   * Niveau minimum de log à afficher
+   */
+  level: LogLevel;
+  
+  /**
+   * Activer l'affichage des logs dans la console
+   */
+  consoleOutput: boolean;
+  
+  /**
+   * Activer le format JSON pour les logs
+   */
+  jsonOutput: boolean;
+  
+  /**
+   * Nombre maximum de logs à conserver
+   */
+  maxLogsToKeep: number;
 }
 
 // Alias pour la compatibilité avec les anciens fichiers

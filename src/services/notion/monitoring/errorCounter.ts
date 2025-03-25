@@ -1,198 +1,190 @@
 
-import { 
-  ErrorCounterStats, 
-  AlertThresholdConfig, 
-  NotionErrorType 
-} from '@/services/notion/errorHandling/types';
+import { NotionErrorType } from '../errorHandling/types';
 
 /**
- * Service pour suivre et agréger les erreurs de l'API Notion
+ * Interface pour les statistiques de compteurs d'erreurs
+ */
+export interface ErrorCounterStats {
+  // Compteurs par type d'erreur
+  byType: Record<NotionErrorType, number>;
+  
+  // Compteur total d'erreurs
+  total: number;
+  
+  // Taux d'erreur (erreurs / tentatives)
+  errorRate: number;
+  
+  // Nombre de tentatives d'opérations
+  attempts: number;
+  
+  // Date de dernière mise à jour
+  lastUpdated: number;
+}
+
+/**
+ * Classe pour suivre les compteurs d'erreurs
  */
 class ErrorCounter {
-  private stats: ErrorCounterStats = {
-    total: 0,
-    byType: {},
-    byEndpoint: {},
-    byMinute: {},
-    byHour: {},
-    lastUpdated: null
-  };
-
-  private thresholds: AlertThresholdConfig = {
-    errorRatePerMinute: 10,
-    errorRatePerHour: 50,
-    byErrorType: {}
-  };
-
-  private subscribers: ((stats: ErrorCounterStats, alerts: string[]) => void)[] = [];
-  private alertCache: string[] = [];
-
+  private counters: Record<NotionErrorType, number> = Object.values(NotionErrorType).reduce((acc, type) => {
+    acc[type] = 0;
+    return acc;
+  }, {} as Record<NotionErrorType, number>);
+  
+  private totalErrors = 0;
+  private totalAttempts = 0;
+  private lastReset = Date.now();
+  private lastUpdated = Date.now();
+  
   /**
-   * Configure les seuils d'alerte
+   * Incrémente le compteur pour un type d'erreur spécifique
    */
-  configureThresholds(thresholds: AlertThresholdConfig): void {
-    this.thresholds = {
-      ...this.thresholds,
-      ...thresholds
-    };
+  increment(errorOrType: Error | NotionErrorType): void {
+    // Déterminer le type d'erreur
+    let errorType: NotionErrorType;
+    
+    if (typeof errorOrType === 'string' && Object.values(NotionErrorType).includes(errorOrType as NotionErrorType)) {
+      // C'est déjà un type d'erreur
+      errorType = errorOrType as NotionErrorType;
+    } else if (errorOrType instanceof Error) {
+      // C'est une erreur, déterminer son type
+      errorType = this.detectErrorType(errorOrType);
+    } else {
+      // Type inconnu, utiliser UNKNOWN
+      errorType = NotionErrorType.UNKNOWN;
+    }
+    
+    // Incrémenter le compteur spécifique
+    this.counters[errorType] = (this.counters[errorType] || 0) + 1;
+    
+    // Incrémenter le total
+    this.totalErrors++;
+    
+    // Mettre à jour le timestamp
+    this.lastUpdated = Date.now();
   }
-
+  
   /**
-   * S'abonner aux mises à jour de statistiques
+   * Enregistre une tentative d'opération (réussie ou non)
    */
-  subscribe(callback: (stats: ErrorCounterStats, alerts: string[]) => void): () => void {
-    this.subscribers.push(callback);
-    return () => {
-      this.subscribers = this.subscribers.filter(cb => cb !== callback);
-    };
+  recordAttempt(): void {
+    this.totalAttempts++;
+    this.lastUpdated = Date.now();
   }
-
+  
   /**
-   * Récupérer les statistiques actuelles
+   * Réinitialise tous les compteurs
+   */
+  reset(): void {
+    // Réinitialiser tous les compteurs par type
+    Object.values(NotionErrorType).forEach(type => {
+      this.counters[type] = 0;
+    });
+    
+    // Réinitialiser les totaux
+    this.totalErrors = 0;
+    this.totalAttempts = 0;
+    
+    // Mettre à jour les timestamps
+    this.lastReset = Date.now();
+    this.lastUpdated = Date.now();
+  }
+  
+  /**
+   * Récupère toutes les statistiques actuelles
    */
   getStats(): ErrorCounterStats {
-    return { ...this.stats };
-  }
-
-  /**
-   * Enregistrer une erreur
-   */
-  recordError(error: Error, endpoint?: string): void {
-    const now = Date.now();
-    const currentMinute = Math.floor(now / 60000);
-    const currentHour = Math.floor(now / 3600000);
-
-    // Déterminer le type d'erreur
-    let errorType: NotionErrorType = NotionErrorType.UNKNOWN;
-    const message = error.message.toLowerCase();
-
-    if (message.includes('auth') || message.includes('unauthorized')) {
-      errorType = NotionErrorType.AUTH;
-    } else if (message.includes('permission') || message.includes('access denied')) {
-      errorType = NotionErrorType.PERMISSION;
-    } else if (message.includes('not found') || message.includes('404')) {
-      errorType = NotionErrorType.NOT_FOUND;
-    } else if (message.includes('timeout') || message.includes('timed out')) {
-      errorType = NotionErrorType.TIMEOUT;
-    } else if (message.includes('rate limit') || message.includes('too many requests')) {
-      errorType = NotionErrorType.RATE_LIMIT;
-    } else if (message.includes('network') || message.includes('connection')) {
-      errorType = NotionErrorType.NETWORK;
-    } else if (message.includes('database') || message.includes('query')) {
-      errorType = NotionErrorType.DATABASE;
-    } else if (message.includes('invalid') || message.includes('validation')) {
-      errorType = NotionErrorType.VALIDATION;
-    } else if (message.includes('api') || message.includes('server')) {
-      errorType = NotionErrorType.API;
-    } else if (message.includes('cors') || message.includes('origin')) {
-      errorType = NotionErrorType.CORS;
-    }
-
-    // Mettre à jour les statistiques
-    this.stats.total++;
-    this.stats.lastUpdated = now;
-
-    // Par type
-    this.stats.byType[errorType] = (this.stats.byType[errorType] || 0) + 1;
-
-    // Par endpoint
-    if (endpoint) {
-      this.stats.byEndpoint[endpoint] = (this.stats.byEndpoint[endpoint] || 0) + 1;
-    }
-
-    // Par minute
-    this.stats.byMinute[currentMinute] = (this.stats.byMinute[currentMinute] || 0) + 1;
-
-    // Par heure
-    this.stats.byHour[currentHour] = (this.stats.byHour[currentHour] || 0) + 1;
-
-    // Nettoyer les anciennes entrées (garder 24h de données)
-    this.cleanupOldEntries();
-
-    // Vérifier les seuils d'alerte
-    const alerts = this.checkAlerts();
-
-    // Notifier les abonnés
-    this.subscribers.forEach(callback => callback(this.getStats(), alerts));
-  }
-
-  /**
-   * Nettoyer les anciennes entrées
-   */
-  private cleanupOldEntries(): void {
-    const nowMinute = Math.floor(Date.now() / 60000);
-    const nowHour = Math.floor(Date.now() / 3600000);
-
-    // Garder les données des 60 dernières minutes
-    Object.keys(this.stats.byMinute).forEach(minuteStr => {
-      const minute = parseInt(minuteStr, 10);
-      if (nowMinute - minute > 60) {
-        delete this.stats.byMinute[minute];
-      }
-    });
-
-    // Garder les données des 24 dernières heures
-    Object.keys(this.stats.byHour).forEach(hourStr => {
-      const hour = parseInt(hourStr, 10);
-      if (nowHour - hour > 24) {
-        delete this.stats.byHour[hour];
-      }
-    });
-  }
-
-  /**
-   * Vérifier les seuils d'alerte
-   */
-  private checkAlerts(): string[] {
-    const alerts: string[] = [];
-    const currentMinute = Math.floor(Date.now() / 60000);
-    const currentHour = Math.floor(Date.now() / 3600000);
-
-    // Vérifier le taux d'erreur par minute
-    const errorRatePerMinute = this.stats.byMinute[currentMinute] || 0;
-    if (errorRatePerMinute >= this.thresholds.errorRatePerMinute) {
-      alerts.push(`Taux d'erreur élevé: ${errorRatePerMinute} erreurs dans la dernière minute`);
-    }
-
-    // Vérifier le taux d'erreur par heure
-    const errorRatePerHour = this.stats.byHour[currentHour] || 0;
-    if (errorRatePerHour >= this.thresholds.errorRatePerHour) {
-      alerts.push(`Taux d'erreur élevé: ${errorRatePerHour} erreurs dans la dernière heure`);
-    }
-
-    // Vérifier les seuils par type d'erreur
-    Object.entries(this.thresholds.byErrorType).forEach(([type, threshold]) => {
-      const errorType = type as NotionErrorType;
-      const count = this.stats.byType[errorType] || 0;
-      if (count >= threshold) {
-        alerts.push(`Seuil d'erreur dépassé pour ${errorType}: ${count} erreurs`);
-      }
-    });
-
-    // Mettre à jour le cache d'alertes
-    this.alertCache = alerts;
-
-    return alerts;
-  }
-
-  /**
-   * Réinitialiser les statistiques
-   */
-  resetStats(): void {
-    this.stats = {
-      total: 0,
-      byType: {},
-      byEndpoint: {},
-      byMinute: {},
-      byHour: {},
-      lastUpdated: null
+    return {
+      byType: { ...this.counters },
+      total: this.totalErrors,
+      attempts: this.totalAttempts,
+      errorRate: this.calculateErrorRate(),
+      lastUpdated: this.lastUpdated
     };
-    this.alertCache = [];
+  }
+  
+  /**
+   * Calcule le taux d'erreur actuel
+   */
+  calculateErrorRate(): number {
+    if (this.totalAttempts === 0) return 0;
+    return this.totalErrors / this.totalAttempts;
+  }
+  
+  /**
+   * Récupère le nombre d'erreurs d'un type spécifique
+   */
+  getCount(errorType: NotionErrorType): number {
+    return this.counters[errorType] || 0;
+  }
+  
+  /**
+   * Récupère le nombre total d'erreurs
+   */
+  getTotalErrors(): number {
+    return this.totalErrors;
+  }
+  
+  /**
+   * Obtient l'ancienneté des statistiques en millisecondes
+   */
+  getStatsAge(): number {
+    return Date.now() - this.lastReset;
+  }
+  
+  /**
+   * Détecte le type d'erreur à partir d'une instance Error
+   */
+  private detectErrorType(error: Error): NotionErrorType {
+    // Vérifier si l'erreur a déjà un type Notion
+    if ('type' in error && typeof (error as any).type === 'string') {
+      const type = (error as any).type;
+      if (Object.values(NotionErrorType).includes(type)) {
+        return type;
+      }
+    }
     
-    // Notifier les abonnés
-    this.subscribers.forEach(callback => callback(this.getStats(), []));
+    // Sinon, essayer de détecter à partir du message
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('unauthorized') || message.includes('auth') || message.includes('token')) {
+      return NotionErrorType.AUTH;
+    }
+    
+    if (message.includes('permission') || message.includes('access denied')) {
+      return NotionErrorType.PERMISSION;
+    }
+    
+    if (message.includes('rate limit') || message.includes('too many requests')) {
+      return NotionErrorType.RATE_LIMIT;
+    }
+    
+    if (message.includes('network') || message.includes('connection') || message.includes('fetch')) {
+      return NotionErrorType.NETWORK;
+    }
+    
+    if (message.includes('cors') || message.includes('origin')) {
+      return NotionErrorType.CORS;
+    }
+    
+    if (message.includes('database') || message.includes('query')) {
+      return NotionErrorType.DATABASE;
+    }
+    
+    if (message.includes('timeout')) {
+      return NotionErrorType.TIMEOUT;
+    }
+    
+    if (message.includes('format') || message.includes('parsing') || message.includes('invalid')) {
+      return NotionErrorType.FORMAT;
+    }
+    
+    // Par défaut, considérer comme une erreur API générique
+    return NotionErrorType.API;
   }
 }
 
-// Créer et exporter une instance singleton
+// Exporter une instance singleton
 export const errorCounter = new ErrorCounter();
+
+// Export par défaut
+export default errorCounter;

@@ -1,5 +1,15 @@
 
-import { StructuredLog, LogLevel, LoggerConfig } from '@/services/notion/errorHandling/types';
+import { StructuredLog, LogLevel, NotionErrorType } from '@/services/notion/errorHandling/types';
+
+/**
+ * Interface pour les options de configuration du logger
+ */
+interface LoggerConfig {
+  level: LogLevel;
+  consoleOutput: boolean;
+  jsonOutput: boolean;
+  maxLogsToKeep: number;
+}
 
 /**
  * Logger structuré pour les événements Notion
@@ -85,7 +95,7 @@ class StructuredLogger {
     if (error) {
       log.error = {
         message: error.message,
-        name: error.name,
+        type: NotionErrorType.UNKNOWN,
         stack: error.stack,
       };
     }
