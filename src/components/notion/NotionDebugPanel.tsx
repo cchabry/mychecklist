@@ -45,7 +45,7 @@ const NotionDebugPanel: React.FC = () => {
       });
       
       // Réinitialiser le proxy CORS
-      corsProxy.reset();
+      corsProxy.resetProxyCache();
       
       // Réinitialiser le mode mock
       notionApi.mockMode.forceReset();

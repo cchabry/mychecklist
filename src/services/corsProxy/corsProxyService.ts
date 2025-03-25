@@ -100,13 +100,17 @@ class CorsProxyService {
   /**
    * Teste un proxy spécifique
    */
-  async testProxy(proxy: CorsProxy, token: string): Promise<ProxyTestResult> {
+  async testProxy(proxy: CorsProxy | string, token: string): Promise<ProxyTestResult> {
+    const actualProxy: CorsProxy = typeof proxy === 'string' 
+      ? { url: proxy, name: proxy.split('/')[2] || proxy, enabled: true }
+      : proxy;
+      
     const requestId = Math.random().toString(36).substring(2, 9);
-    console.log(`🔍 [${requestId}] testProxy - Test du proxy ${proxy.name}...`);
+    console.log(`🔍 [${requestId}] testProxy - Test du proxy ${actualProxy.name}...`);
     
     try {
       const testUrl = 'https://api.notion.com/v1/users/me';
-      const proxyUrl = `${proxy.url}${encodeURIComponent(testUrl)}`;
+      const proxyUrl = `${actualProxy.url}${encodeURIComponent(testUrl)}`;
       
       console.log(`🔍 [${requestId}] testProxy - URL de test: ${proxyUrl}`);
       
@@ -145,11 +149,11 @@ class CorsProxyService {
       
       if (success) {
         // Mémoriser ce proxy comme fonctionnel
-        this.state.lastWorkingProxyIndex = availableProxies.findIndex(p => p.url === proxy.url);
+        this.state.lastWorkingProxyIndex = availableProxies.findIndex(p => p.url === actualProxy.url);
         
         // Sauvegarder aussi les métadonnées du test
         const proxyData = {
-          url: proxy.url,
+          url: actualProxy.url,
           lastTested: Date.now(),
           success: true,
           latency
@@ -164,15 +168,16 @@ class CorsProxyService {
       
       return {
         success,
-        proxyName: proxy.name,
+        proxyName: actualProxy.name,
         statusCode: response.status,
-        latency
+        latency,
+        error: success ? undefined : 'Échec du test'
       };
     } catch (error) {
       console.error(`🔍 [${requestId}] testProxy - Erreur:`, error.message);
       return {
         success: false,
-        proxyName: proxy.name,
+        proxyName: actualProxy.name,
         error: error instanceof Error ? error.message : String(error)
       };
     }
@@ -258,19 +263,6 @@ class CorsProxyService {
   /**
    * Réinitialise l'état du service
    */
-  reset(): void {
-    console.log('corsProxyService.reset() - Réinitialisation de l\'état');
-    this.state.currentProxyIndex = 0;
-    this.state.lastWorkingProxyIndex = null;
-    this.state.selectedProxyUrl = null;
-    localStorage.removeItem('last_working_proxy');
-    this.saveToStorage();
-    this.notifyListeners();
-  }
-  
-  /**
-   * Réinitialise le cache des proxies
-   */
   resetProxyCache(): void {
     console.log('corsProxyService.resetProxyCache() - Réinitialisation du cache');
     this.state.lastWorkingProxyIndex = null;
@@ -284,6 +276,13 @@ class CorsProxyService {
    * Obtient la liste des proxies disponibles
    */
   getAvailableProxies(): CorsProxy[] {
+    return getEnabledProxies();
+  }
+  
+  /**
+   * Obtient la liste des proxies activés
+   */
+  getEnabledProxies(): CorsProxy[] {
     return getEnabledProxies();
   }
   

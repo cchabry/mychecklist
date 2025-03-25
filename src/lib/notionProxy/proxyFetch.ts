@@ -40,7 +40,7 @@ const normalizeEndpoint = (endpoint: string): string => {
  * @param token Jeton d'authentification Notion (optionnel, pris du localStorage par défaut)
  * @returns Promesse contenant la réponse JSON
  */
-export const notionApiRequest = async (
+export const proxyFetch = async (
   endpoint: string,
   method: string = 'GET',
   body?: any,
@@ -133,7 +133,65 @@ export const notionApiRequest = async (
       // 2. Essayer le proxy CORS
       try {
         console.log(`🔍 [${requestId}] Stratégie 2: Proxy CORS public`);
-        result = await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
+        
+        // Obtenir le proxy actuel
+        const currentProxy = corsProxy.getCurrentProxy();
+        
+        if (!currentProxy) {
+          console.error(`🔍 [${requestId}] useCorsProxy - Aucun proxy disponible`);
+          throw new Error('Aucun proxy CORS disponible');
+        }
+        
+        // Construire l'URL complète
+        const targetUrl = `${NOTION_API_BASE}${normalizedEndpoint}`;
+        // Utiliser une méthode sécurisée pour construire l'URL
+        const proxyUrl = `${currentProxy.url}${encodeURIComponent(targetUrl)}`;
+        
+        console.log(`🔍 [${requestId}] useCorsProxy - URL complète: ${proxyUrl}`);
+        
+        // Préparer les options de la requête
+        const options: RequestInit = {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Notion-Version': NOTION_API_VERSION,
+            'Authorization': formattedToken
+          }
+        };
+        
+        // Ajouter le corps pour les méthodes autres que GET
+        if (method !== 'GET' && body) {
+          options.body = JSON.stringify(body);
+        }
+        
+        // Effectuer la requête
+        const response = await fetch(proxyUrl, options);
+        
+        // Vérifier si la réponse est OK
+        if (!response.ok) {
+          const statusText = response.statusText || '';
+          console.error(`🔍 [${requestId}] useCorsProxy - Erreur ${response.status}: ${statusText}`);
+          
+          // Tenter de lire le corps de la réponse d'erreur
+          let errorBody = '';
+          try {
+            errorBody = await response.text();
+            console.error(`🔍 [${requestId}] useCorsProxy - Corps de l'erreur:`, errorBody);
+          } catch (e) {
+            console.error(`🔍 [${requestId}] useCorsProxy - Impossible de lire le corps de l'erreur`);
+          }
+          
+          // En cas d'erreur 403, essayer de changer de proxy pour la prochaine fois
+          if (response.status === 403) {
+            console.warn(`🔍 [${requestId}] useCorsProxy - Erreur 403, rotation du proxy pour la prochaine requête`);
+            corsProxy.setSelectedProxy(corsProxy.getEnabledProxies()[0]?.url || '');
+          }
+          
+          throw new Error(`Erreur HTTP ${response.status} ${statusText ? `(${statusText})` : ''}`);
+        }
+        
+        // Traiter la réponse
+        result = await response.json();
         usedStrategy = 'cors-proxy';
         console.log(`🔍 [${requestId}] Stratégie 2 réussie: proxy CORS`);
         // Réinitialiser l'erreur car nous avons réussi
@@ -141,8 +199,7 @@ export const notionApiRequest = async (
       } catch (corsErr) {
         console.warn(`🔍 [${requestId}] Stratégie 2 échouée:`, {
           stratégie: 'cors-proxy',
-          erreur: corsErr.message,
-          proxy: corsProxy.getCurrentProxy()?.url || 'aucun'
+          erreur: corsErr.message
         });
         
         // Si l'erreur CORS est un 403, la conserver car elle est probablement plus précise
@@ -206,6 +263,11 @@ export const notionApiRequest = async (
     throw new Error(`Erreur API Notion (${normalizedEndpoint}): ${error.message}`);
   }
 };
+
+/**
+ * Alias pour la compatibilité avec le code existant
+ */
+export const notionApiRequest = proxyFetch;
 
 /**
  * Utilise les fonctions Netlify pour accéder à l'API Notion
@@ -276,83 +338,6 @@ const useServerlessProxy = async (
   
   const data = await response.json();
   console.log(`🔍 [${requestId}] useServerlessProxy - Succès`);
-  return data;
-};
-
-/**
- * Utilise un proxy CORS public pour accéder à l'API Notion
- */
-const useCorsProxy = async (
-  endpoint: string,
-  method: string,
-  body?: any,
-  token?: string
-): Promise<any> => {
-  const requestId = Math.random().toString(36).substring(2, 9);
-  // Obtenir le proxy actuel
-  const currentProxy = corsProxy.getCurrentProxy();
-  
-  if (!currentProxy) {
-    console.error(`🔍 [${requestId}] useCorsProxy - Aucun proxy disponible`);
-    throw new Error('Aucun proxy CORS disponible');
-  }
-  
-  console.log(`🔍 [${requestId}] useCorsProxy - Début`, { 
-    endpoint, 
-    method, 
-    proxy: currentProxy.url 
-  });
-  
-  // Construire l'URL complète
-  const targetUrl = `${NOTION_API_BASE}${endpoint}`;
-  const proxyUrl = corsProxy.buildProxyUrl(targetUrl);
-  
-  console.log(`🔍 [${requestId}] useCorsProxy - URL complète: ${proxyUrl}`);
-  
-  // Préparer les options de la requête
-  const options: RequestInit = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Notion-Version': NOTION_API_VERSION,
-      'Authorization': token || ''
-    }
-  };
-  
-  // Ajouter le corps pour les méthodes autres que GET
-  if (method !== 'GET' && body) {
-    options.body = JSON.stringify(body);
-  }
-  
-  // Effectuer la requête
-  const response = await fetch(proxyUrl, options);
-  
-  // Vérifier si la réponse est OK
-  if (!response.ok) {
-    const statusText = response.statusText || '';
-    console.error(`🔍 [${requestId}] useCorsProxy - Erreur ${response.status}: ${statusText}`);
-    
-    // Tenter de lire le corps de la réponse d'erreur
-    let errorBody = '';
-    try {
-      errorBody = await response.text();
-      console.error(`🔍 [${requestId}] useCorsProxy - Corps de l'erreur:`, errorBody);
-    } catch (e) {
-      console.error(`🔍 [${requestId}] useCorsProxy - Impossible de lire le corps de l'erreur`);
-    }
-    
-    // En cas d'erreur 403, essayer de changer de proxy pour la prochaine fois
-    if (response.status === 403) {
-      console.warn(`🔍 [${requestId}] useCorsProxy - Erreur 403, rotation du proxy pour la prochaine requête`);
-      corsProxy.rotateProxy();
-    }
-    
-    throw new Error(`Erreur HTTP ${response.status} ${statusText ? `(${statusText})` : ''}`);
-  }
-  
-  // Traiter la réponse
-  const data = await response.json();
-  console.log(`🔍 [${requestId}] useCorsProxy - Succès`);
   return data;
 };
 
