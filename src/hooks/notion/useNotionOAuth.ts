@@ -1,103 +1,153 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import { NotionTokenType } from '@/services/notion/security/tokenValidation';
+import { NotionTokenType } from '@/services/notion/errorHandling/types';
 
-interface UseNotionOAuthOptions {
-  autoRefresh?: boolean;
-  onTokenRefreshed?: () => void;
+// Importations sécurisées avec vérification d'existence
+let oauthManager: any = null;
+let NotionOAuthConfig: any = null;
+let NotionOAuthTokens: any = null;
+
+// Essayer d'importer dynamiquement si le module existe
+try {
+  const oauthModule = require('@/services/notion/security/oauthManager');
+  oauthManager = oauthModule.default || oauthModule.oauthManager;
+  NotionOAuthConfig = oauthModule.NotionOAuthConfig;
+  NotionOAuthTokens = oauthModule.NotionOAuthTokens;
+} catch (e) {
+  console.warn('Module oauthManager non disponible, fonctionnalités OAuth limitées');
 }
 
-interface NotionOAuthState {
-  isAuthenticated: boolean;
-  tokenType: NotionTokenType;
-  expiresAt: Date | null;
-  tokenWillExpireSoon: boolean;
+export interface UseNotionOAuthOptions {
+  clientId?: string;
+  redirectUri?: string;
+  onTokenRefreshed?: () => void;
+  autoRefresh?: boolean;
+  onAuthError?: (error: Error) => void;
 }
 
 /**
  * Hook pour gérer l'authentification OAuth avec Notion
- * 
- * Version simplifiée qui fonctionne sans le module oauthManager
- * qui n'est pas disponible actuellement
  */
-export const useNotionOAuth = (options: UseNotionOAuthOptions = {}) => {
-  const [state, setState] = useState<NotionOAuthState>({
-    isAuthenticated: false,
-    tokenType: NotionTokenType.UNKNOWN,
-    expiresAt: null,
-    tokenWillExpireSoon: false
-  });
+export function useNotionOAuth(options: UseNotionOAuthOptions = {}) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [tokenType, setTokenType] = useState<NotionTokenType>(NotionTokenType.UNKNOWN);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [tokenWillExpireSoon, setTokenWillExpireSoon] = useState<boolean>(false);
 
-  // Fonction de démarrage du flux OAuth (simulée)
-  const startOAuthFlow = useCallback(() => {
-    toast.info("Fonctionnalité OAuth limitée", {
-      description: "Le module OAuth n'est pas disponible. Utilisez le mode démo ou configurez manuellement l'API key."
-    });
-    console.log("Fonctionnalité OAuth limitée. Le module oauthManager n'est pas disponible.");
-  }, []);
-
-  // Fonction de rafraîchissement de token (simulée)
-  const refreshToken = useCallback(async () => {
-    toast.info("Fonctionnalité OAuth limitée", {
-      description: "Le rafraîchissement automatique du token n'est pas disponible."
-    });
-    console.log("Fonctionnalité OAuth limitée. Le rafraîchissement de token n'est pas disponible.");
-
-    if (options.onTokenRefreshed) {
-      options.onTokenRefreshed();
+  // Si les options incluent onTokenRefreshed, configurer le callback
+  useEffect(() => {
+    if (options.onTokenRefreshed && oauthManager) {
+      oauthManager.setTokenRefreshCallback(options.onTokenRefreshed);
     }
-
-    return null;
+    return () => {
+      if (oauthManager) {
+        oauthManager.setTokenRefreshCallback(null);
+      }
+    };
   }, [options.onTokenRefreshed]);
 
-  // Fonction de déconnexion OAuth (simulée)
-  const logout = useCallback(async () => {
-    localStorage.removeItem('notion_api_key');
-    localStorage.removeItem('notion_database_id');
-    
-    toast.success("Déconnecté", {
-      description: "Les informations d'identification Notion ont été supprimées."
-    });
-    
-    setState({
-      isAuthenticated: false,
-      tokenType: NotionTokenType.UNKNOWN,
-      expiresAt: null,
-      tokenWillExpireSoon: false
-    });
-  }, []);
-
-  // Effet pour vérifier l'état d'authentification
+  // Vérifier l'état d'authentification
   useEffect(() => {
-    const checkAuthState = () => {
-      const apiKey = localStorage.getItem('notion_api_key');
-      const isAuth = Boolean(apiKey);
-      
-      // Simuler le type de token - en réalité on déterminerait cela à partir du format du token
-      const tokenType = apiKey?.startsWith('ntn_') 
-        ? NotionTokenType.OAUTH 
-        : apiKey?.startsWith('secret_') 
-          ? NotionTokenType.INTEGRATION 
-          : NotionTokenType.UNKNOWN;
-      
-      setState({
-        isAuthenticated: isAuth,
-        tokenType,
-        expiresAt: null, // Dans une implémentation réelle, on stockerait l'expiration
-        tokenWillExpireSoon: false
-      });
+    if (!oauthManager) return;
+
+    const checkAuth = async () => {
+      try {
+        const isAuthed = await oauthManager.isAuthenticated();
+        setIsAuthenticated(isAuthed);
+        
+        if (isAuthed) {
+          // Récupérer les infos de token
+          const tokenInfo = await oauthManager.getTokenInfo();
+          setTokenType(NotionTokenType.OAUTH);
+          setExpiresAt(tokenInfo?.expiresAt ? new Date(tokenInfo.expiresAt) : null);
+          
+          // Si autoRefresh est activé, rafraîchir le token s'il expire bientôt
+          if (options.autoRefresh && tokenInfo?.needsRefresh) {
+            refreshToken();
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification OAuth:', error);
+        if (options.onAuthError && error instanceof Error) {
+          options.onAuthError(error);
+        }
+      }
     };
+
+    checkAuth();
     
-    checkAuthState();
+    // Vérifier périodiquement si autoRefresh est activé
+    let intervalId: number | undefined;
+    if (options.autoRefresh) {
+      intervalId = window.setInterval(checkAuth, 5 * 60 * 1000); // Toutes les 5 minutes
+    }
+    
+    return () => {
+      if (intervalId !== undefined) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [options.autoRefresh]);
+
+  // Démarrer le flux OAuth
+  const startOAuthFlow = useCallback(() => {
+    if (!oauthManager) {
+      console.error('OAuth Manager non disponible');
+      return;
+    }
+    
+    oauthManager.startAuthFlow(
+      options.clientId, 
+      options.redirectUri
+    );
+  }, [options.clientId, options.redirectUri]);
+
+  // Rafraîchir le token
+  const refreshToken = useCallback(async () => {
+    if (!oauthManager) {
+      console.error('OAuth Manager non disponible');
+      return false;
+    }
+    
+    try {
+      await oauthManager.refreshAccessToken();
+      if (options.onTokenRefreshed) {
+        options.onTokenRefreshed();
+      }
+      return true;
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement du token:', error);
+      if (options.onAuthError && error instanceof Error) {
+        options.onAuthError(error);
+      }
+      return false;
+    }
+  }, [options.onTokenRefreshed, options.onAuthError]);
+
+  // Se déconnecter
+  const logout = useCallback(async () => {
+    if (!oauthManager) {
+      console.error('OAuth Manager non disponible');
+      return;
+    }
+    
+    try {
+      await oauthManager.logout();
+      setIsAuthenticated(false);
+      setTokenType(NotionTokenType.NONE);
+      setExpiresAt(null);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   }, []);
 
   return {
-    ...state,
+    isAuthenticated,
+    tokenType,
+    expiresAt,
+    tokenWillExpireSoon,
     startOAuthFlow,
     refreshToken,
     logout
   };
-};
-
-export default useNotionOAuth;
+}

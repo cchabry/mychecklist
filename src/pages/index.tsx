@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { useOperationMode } from '@/services/operationMode';
 import NetlifyFunctionStatus from '@/components/notion/NetlifyFunctionStatus';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Shield, Info } from 'lucide-react';
 
 export default function Home() {
   const { isDemoMode, enableDemoMode, enableRealMode } = useOperationMode();
@@ -28,20 +26,6 @@ export default function Home() {
             Plateforme de gestion d'audits et de conformité pour les sites web
           </p>
         </div>
-        
-        {/* Alerte informative pour expliquer le mode démo */}
-        <Alert variant={isDemoMode ? "warning" : "default"}>
-          <Shield className="h-4 w-4" />
-          <AlertTitle>Information sur le mode de fonctionnement</AlertTitle>
-          <AlertDescription>
-            Cette application utilise {isDemoMode ? 
-              "actuellement des données fictives (mode démo)" : 
-              "l'API Notion pour des données réelles"}. 
-            {isDemoMode ? 
-              "Le mode démo est activé pour éviter les problèmes de CORS avec l'API Notion." : 
-              "Les fonctions Netlify servent de proxy pour éviter les problèmes de CORS."}
-          </AlertDescription>
-        </Alert>
         
         {/* Statut des fonctions Netlify */}
         <div className="mb-6">
@@ -87,21 +71,6 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            
-            {!isDemoMode && (
-              <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mt-4">
-                <div className="flex gap-2">
-                  <Info className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                  <div className="text-sm text-amber-700">
-                    <p className="font-medium">Important: Configuration Notion requise</p>
-                    <p className="mt-1">
-                      Pour utiliser le mode réel, vous devez configurer votre clé API Notion 
-                      et l'ID de votre base de données dans la section Configuration.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
         
