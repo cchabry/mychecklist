@@ -58,7 +58,6 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
         <Switch
           checked={!isDemoMode}
           onCheckedChange={handleToggleMode}
-          size="sm"
           className="scale-75 data-[state=checked]:bg-green-500"
           aria-label="Toggle operation mode"
         />

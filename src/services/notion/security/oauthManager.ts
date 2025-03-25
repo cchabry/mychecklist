@@ -219,11 +219,12 @@ export class NotionOAuthManager {
       }
       
       // Calculer la date d'expiration
-      const expiresAt = Date.now() + (response.data.expires_in * 1000);
+      const responseData = response.data as any;
+      const expiresAt = Date.now() + (responseData.expires_in * 1000);
       
       // Enregistrer les tokens
       const tokens: NotionOAuthTokens = {
-        ...response.data,
+        ...responseData,
         expires_at: expiresAt
       };
       
@@ -283,12 +284,13 @@ export class NotionOAuthManager {
       }
       
       // Calculer la nouvelle date d'expiration
-      const expiresAt = Date.now() + (response.data.expires_in * 1000);
+      const responseData = response.data as any;
+      const expiresAt = Date.now() + (responseData.expires_in * 1000);
       
       // Mettre à jour les tokens avec les nouvelles valeurs
       this.saveTokens({
-        ...this.tokens,
-        ...response.data,
+        ...(this.tokens as NotionOAuthTokens),
+        ...responseData,
         expires_at: expiresAt
       });
       

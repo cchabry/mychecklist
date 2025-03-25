@@ -1,242 +1,131 @@
 
-/**
- * Hook pour gérer l'authentification OAuth Notion
- */
-
 import { useState, useEffect, useCallback } from 'react';
-import { useNotionStorage } from './useNotionStorage';
-import { toast } from 'sonner';
-import { oauthManager, OAuthTokenData, RefreshOptions } from '@/services/notion/security/oauthManager';
-import { identifyTokenType, NotionTokenType } from '@/services/notion/security/tokenValidation';
-import { structuredLogger } from '@/services/notion/logging/structuredLogger';
+import { oauthManager, NotionOAuthConfig, NotionOAuthTokens } from '@/services/notion/security/oauthManager';
+import { useOperationMode } from '@/services/operationMode';
+import { NotionTokenType } from '@/services/notion/security/tokenValidation';
 
-export interface UseNotionOAuthProps {
-  onTokenRefreshed?: (tokenData: OAuthTokenData) => void;
-  onAuthError?: (error: Error) => void;
-  autoRefresh?: boolean;
+/**
+ * Options pour le hook useNotionOAuth
+ */
+export interface UseNotionOAuthOptions extends Partial<NotionOAuthConfig> {
+  // Force la connexion automatique si un token OAuth valide est présent
+  autoLogin?: boolean;
 }
 
-export function useNotionOAuth(props: UseNotionOAuthProps = {}) {
-  const { onTokenRefreshed, onAuthError, autoRefresh = true } = props;
+/**
+ * Hook pour gérer l'authentification OAuth avec Notion
+ * Fournit une interface simplifiée pour le gestionnaire OAuth
+ */
+export function useNotionOAuth(options: UseNotionOAuthOptions = {}) {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { enableRealMode } = useOperationMode();
   
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-  const [tokenType, setTokenType] = useState<NotionTokenType>(NotionTokenType.UNKNOWN);
-  const storage = useNotionStorage();
-  
-  // Vérifier l'état d'authentification et le type de token au montage
+  // Configurer le gestionnaire OAuth avec les options fournies
   useEffect(() => {
-    const config = storage.getStoredConfig();
-    if (config.apiKey) {
-      const type = identifyTokenType(config.apiKey);
-      setTokenType(type);
-      
-      if (type === NotionTokenType.OAUTH) {
-        const isAuth = oauthManager.isAuthenticated();
-        setIsAuthenticated(isAuth);
-        setExpiresAt(oauthManager.getExpiration());
-      }
-    }
-  }, [storage]);
-  
-  // Configurer le rafraîchissement automatique des tokens
-  useEffect(() => {
-    if (!autoRefresh || tokenType !== NotionTokenType.OAUTH || !isAuthenticated) {
-      return;
+    // Recréer une instance avec les options fournies n'est pas nécessaire
+    // car l'instance est un singleton, mais on peut mettre à jour certaines options
+    if (options.onTokenRefreshed) {
+      // Cette logique serait implémentée dans une version plus avancée
     }
     
-    // Vérifier toutes les minutes si le token doit être rafraîchi
-    const checkInterval = setInterval(() => {
-      if (oauthManager.shouldRefreshToken()) {
-        refreshToken({ silent: true }).catch(error => {
-          structuredLogger.error('Échec du rafraîchissement automatique', error, {
-            source: 'useNotionOAuth',
-            tags: ['oauth', 'refresh']
-          });
-        });
-      }
-    }, 60000); // 1 minute
+    setIsInitialized(true);
+  }, [options]);
+  
+  // Vérifier l'état du token et rafraîchir si nécessaire
+  useEffect(() => {
+    if (!isInitialized) return;
     
-    return () => clearInterval(checkInterval);
-  }, [autoRefresh, tokenType, isAuthenticated]);
+    const tokenInfo = oauthManager.getTokenInfo();
+    
+    // Si le token est sur le point d'expirer, le rafraîchir
+    if (tokenInfo.willExpireSoon && tokenInfo.accessToken && options.autoRefresh !== false) {
+      refreshToken();
+    }
+  }, [isInitialized, options.autoRefresh]);
   
   /**
-   * Initie le flux d'authentification OAuth
+   * Démarre le flux d'authentification OAuth
    */
   const startOAuthFlow = useCallback(() => {
-    // Générer un état aléatoire pour sécuriser le flux OAuth
-    const state = Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('notion_oauth_state', state);
+    setIsAuthenticating(true);
     
-    // Construire l'URL d'autorisation
-    const authUrl = oauthManager.getAuthorizationUrl(state, {
-      scope: ['read_user', 'read_databases', 'read_pages', 'write_pages'],
-      owner: 'user'
-    });
+    // Passer au mode réel avant de commencer l'authentification
+    enableRealMode();
     
-    // Ouvrir la fenêtre d'autorisation
-    window.location.href = authUrl;
-  }, []);
+    // Lancer le flux d'authentification
+    oauthManager.startAuthFlow();
+  }, [enableRealMode]);
   
   /**
-   * Gère le retour du flux OAuth (après redirection)
+   * Gère le callback OAuth après la redirection
    */
-  const handleOAuthCallback = useCallback(async (code: string, state: string) => {
+  const handleCallback = useCallback(async (code: string, state: string): Promise<boolean> => {
+    setIsAuthenticating(true);
+    
     try {
-      // Vérifier que l'état correspond pour prévenir les attaques CSRF
-      const savedState = localStorage.getItem('notion_oauth_state');
-      if (!savedState || savedState !== state) {
-        throw new Error('État OAuth non valide, possible tentative CSRF');
+      // Traiter le callback OAuth
+      const success = await oauthManager.handleCallback(code, state);
+      
+      if (success) {
+        // Passer en mode réel après une authentification réussie
+        enableRealMode();
       }
       
-      // Échange le code contre un token
-      const tokenData = await oauthManager.exchangeCodeForToken(code);
-      
-      // Mise à jour de l'état
-      setIsAuthenticated(true);
-      setExpiresAt(tokenData.expiresAt || null);
-      setTokenType(NotionTokenType.OAUTH);
-      
-      // Mettre à jour la configuration stockée
-      if (tokenData.accessToken) {
-        storage.updateStoredConfig({
-          apiKey: tokenData.accessToken
-        });
-      }
-      
-      toast.success('Connexion Notion réussie', {
-        description: 'Authentification OAuth complétée'
-      });
-      
-      return tokenData;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      toast.error('Erreur d\'authentification Notion', {
-        description: errorMessage
-      });
-      
-      if (onAuthError) {
-        onAuthError(error instanceof Error ? error : new Error(errorMessage));
-      }
-      
-      structuredLogger.error('Erreur lors du traitement du callback OAuth', error, {
-        source: 'useNotionOAuth',
-        tags: ['oauth', 'callback']
-      });
-      
-      throw error;
+      return success;
     } finally {
-      // Nettoyer l'état OAuth quel que soit le résultat
-      localStorage.removeItem('notion_oauth_state');
+      setIsAuthenticating(false);
     }
-  }, [storage, onAuthError]);
+  }, [enableRealMode]);
   
   /**
    * Rafraîchit le token OAuth
    */
-  const refreshToken = useCallback(async (options: RefreshOptions = {}) => {
-    if (tokenType !== NotionTokenType.OAUTH) {
-      return null;
-    }
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    if (isRefreshing) return false;
     
     setIsRefreshing(true);
     
     try {
-      const tokenData = await oauthManager.refreshToken({
-        ...options,
-        onRefreshFailed: (error) => {
-          if (options.onRefreshFailed) {
-            options.onRefreshFailed(error);
-          }
-          
-          if (onAuthError && !options.silent) {
-            onAuthError(error);
-          }
-        }
-      });
-      
-      // Mise à jour de l'état
-      setIsAuthenticated(true);
-      setExpiresAt(tokenData.expiresAt || null);
-      
-      // Mettre à jour la configuration stockée
-      if (tokenData.accessToken) {
-        storage.updateStoredConfig({
-          apiKey: tokenData.accessToken
-        });
-      }
-      
-      if (onTokenRefreshed) {
-        onTokenRefreshed(tokenData);
-      }
-      
-      if (!options.silent) {
-        toast.success('Token Notion rafraîchi', {
-          description: 'Token OAuth mis à jour avec succès'
-        });
-      }
-      
-      return tokenData;
-    } catch (error) {
-      if (!options.silent) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        toast.error('Erreur de rafraîchissement du token', {
-          description: errorMessage
-        });
-      }
-      
-      return null;
+      return await oauthManager.refreshToken();
     } finally {
       setIsRefreshing(false);
     }
-  }, [tokenType, storage, onTokenRefreshed, onAuthError]);
+  }, [isRefreshing]);
   
   /**
-   * Déconnecte l'utilisateur
+   * Déconnecte l'utilisateur et supprime les tokens
    */
-  const logout = useCallback(async () => {
-    try {
-      await oauthManager.logout();
-      
-      // Réinitialiser l'état d'authentification
-      setIsAuthenticated(false);
-      setExpiresAt(null);
-      setTokenType(NotionTokenType.UNKNOWN);
-      
-      // Nettoyer la clé API stockée
-      storage.updateStoredConfig({
-        apiKey: ''
-      });
-      
-      toast.success('Déconnexion Notion réussie', {
-        description: 'Session OAuth terminée'
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      toast.error('Erreur lors de la déconnexion', {
-        description: errorMessage
-      });
-      
-      structuredLogger.error('Erreur lors de la déconnexion OAuth', error, {
-        source: 'useNotionOAuth',
-        tags: ['oauth', 'logout']
-      });
-    }
-  }, [storage]);
+  const logout = useCallback(async (): Promise<void> => {
+    oauthManager.logout();
+  }, []);
+  
+  // Récupérer les informations sur le token
+  const tokenInfo = oauthManager.getTokenInfo();
   
   return {
-    isAuthenticated,
+    // État
+    isInitialized,
+    isAuthenticating,
     isRefreshing,
-    expiresAt,
-    tokenType,
+    isAuthenticated: oauthManager.isAuthenticated(),
+    
+    // Informations sur le token
+    accessToken: tokenInfo.accessToken,
+    tokenType: tokenInfo.tokenType,
+    expiresAt: tokenInfo.expiresAt,
+    workspaceId: tokenInfo.workspaceId,
+    userName: tokenInfo.userName,
+    tokenIsExpired: tokenInfo.isExpired,
+    tokenWillExpireSoon: tokenInfo.willExpireSoon,
+    
+    // Actions
     startOAuthFlow,
-    handleOAuthCallback,
+    handleCallback,
     refreshToken,
-    logout,
-    getToken: oauthManager.getToken.bind(oauthManager),
-    tokenWillExpireSoon: oauthManager.shouldRefreshToken()
+    logout
   };
 }
+
+export default useNotionOAuth;
