@@ -394,17 +394,63 @@ export const getAuditsByProject = async (projectId: string): Promise<Audit[]> =>
     console.log(`🔍 Récupération des audits pour le projet ${projectId} depuis Notion`);
     console.log(`📊 Utilisation de la base de données: ${dbId}`);
     
-    // Requête à la base de données Notion avec filtre sur la relation Project
+    // Tenter de récupérer la structure de la base pour diagnostiquer
+    let propertyForProject = "Project"; // Nom par défaut
+    try {
+      console.log('🔍 Analyse de la structure de la base de données pour trouver le champ de relation projet...');
+      const dbResponse = await notionApiRequest(`/databases/${dbId}`, 'GET', undefined, apiKey);
+      
+      // Parcourir les propriétés de la base pour trouver une relation
+      const properties = dbResponse.properties || {};
+      console.log('📊 Propriétés disponibles dans la base:', Object.keys(properties).join(', '));
+      
+      // Chercher une propriété de type relation qui pourrait correspondre au projet
+      for (const [name, prop] of Object.entries(properties)) {
+        if (prop.type === 'relation') {
+          console.log(`✅ Propriété relation trouvée: ${name}`);
+          propertyForProject = name;
+          break;
+        } else if (prop.type === 'rich_text' && (name === 'ProjectId' || name.toLowerCase().includes('projet'))) {
+          console.log(`✅ Propriété texte liée au projet trouvée: ${name}`);
+          propertyForProject = name;
+        }
+      }
+      
+      console.log(`🔧 Utilisation de la propriété "${propertyForProject}" pour le filtre`);
+    } catch (structureError) {
+      console.warn('⚠️ Impossible d\'analyser la structure de la base:', structureError);
+      console.log('🔄 Utilisation du filtre générique...');
+    }
+    
+    // Préparer le filtre en fonction du type de propriété détecté
+    let filter;
+    
+    if (propertyForProject === "Project") {
+      // Si c'est "Project", on suppose que c'est une relation (format standard)
+      filter = {
+        property: propertyForProject,
+        relation: {
+          contains: projectId
+        }
+      };
+    } else {
+      // Sinon, on essaie avec un filtre de texte
+      filter = {
+        property: propertyForProject,
+        rich_text: {
+          equals: projectId
+        }
+      };
+    }
+    
+    console.log('🔍 Filtre utilisé:', JSON.stringify(filter, null, 2));
+    
+    // Requête à la base de données Notion avec le filtre déterminé
     const response = await notionApiRequest(
       `/databases/${dbId}/query`,
       'POST',
       {
-        filter: {
-          property: "Project",
-          relation: {
-            contains: projectId
-          }
-        }
+        filter: filter
       },
       apiKey
     );
@@ -433,7 +479,20 @@ export const getAuditsByProject = async (projectId: string): Promise<Audit[]> =>
     return audits;
   } catch (error) {
     console.error(`❌ Erreur lors de la récupération des audits pour le projet ${projectId}:`, error);
-    // En cas d'erreur, retourner un tableau vide
-    return [];
+    // En cas d'erreur, on active le mode démo pour cet appel spécifique
+    console.log('⚠️ Passage en données de démonstration après erreur');
+    
+    return [
+      {
+        id: uuidv4(),
+        projectId: projectId,
+        name: 'Audit de secours (après erreur)',
+        items: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        score: 50,
+        version: '1.0'
+      }
+    ];
   }
 };
