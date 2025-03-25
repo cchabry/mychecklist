@@ -1,117 +1,113 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { NotionDiagnosticTool } from '@/components/notion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NotionConfig } from '@/components/notion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Settings, Database, AlertTriangle } from 'lucide-react';
+import NotionDatabaseStructureCheck from '@/components/notion/NotionDatabaseStructureCheck';
+import { useNotion } from '@/contexts/NotionContext';
 import { useOperationMode } from '@/services/operationMode';
-import NetlifyFunctionStatus from '@/components/notion/NetlifyFunctionStatus';
 
-export default function Home() {
-  const { isDemoMode, enableDemoMode, enableRealMode } = useOperationMode();
-  const [statusChecked, setStatusChecked] = useState(false);
-
-  // Vérifier le statut des fonctions Netlify une seule fois
-  useEffect(() => {
-    if (!statusChecked) {
-      setStatusChecked(true);
-    }
-  }, [statusChecked]);
-
+const HomePage = () => {
+  const { openConfig, closeConfig, status, showConfig } = useNotion();
+  const { isDemoMode, enableRealMode } = useOperationMode();
+  
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Audit Companion</h1>
-          <p className="text-lg text-muted-foreground mt-2">
-            Plateforme de gestion d'audits et de conformité pour les sites web
-          </p>
-        </div>
+    <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-tmw-darkgray">Diagnostics Notion</h1>
+        <p className="text-muted-foreground mt-2">
+          Vérifiez et configurez votre intégration avec Notion
+        </p>
         
-        {/* Statut des fonctions Netlify */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-3">État du système</h2>
-          {statusChecked && <NetlifyFunctionStatus />}
-        </div>
-        
-        {/* Mode de fonctionnement */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mode de fonctionnement actuel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="font-medium">
-                  Mode actuel: <span className={isDemoMode ? "text-amber-600" : "text-green-600"}>
-                    {isDemoMode ? "Démonstration" : "Production"}
-                  </span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {isDemoMode 
-                    ? "Le mode démo utilise des données fictives sans appeler l'API Notion" 
-                    : "Le mode production se connecte à l'API Notion pour des données réelles"}
-                </p>
-              </div>
-              
-              <div>
-                <Button 
-                  variant={isDemoMode ? "default" : "outline"} 
-                  onClick={() => enableRealMode()}
-                  disabled={!isDemoMode}
-                  className="mr-2"
-                >
-                  Mode réel
-                </Button>
-                <Button 
-                  variant={isDemoMode ? "outline" : "default"} 
-                  onClick={() => enableDemoMode("Mode démonstration activé")}
-                  disabled={isDemoMode}
-                >
-                  Mode démo
-                </Button>
-              </div>
+        {isDemoMode && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start space-x-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800">Mode démonstration actif</p>
+              <p className="text-xs text-amber-700 mt-1">
+                L'application utilise des données simulées. Les modifications ne seront pas 
+                enregistrées dans Notion.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-        
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Projets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">Accédez à vos projets et créez des audits</p>
-              <Button asChild>
-                <Link to="/dashboard">Voir les projets</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">Configurez votre connexion à Notion</p>
-              <Button asChild>
-                <Link to="/notion-setup">Configurer Notion</Link>
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Diagnostics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">Vérifier l'état du système et résoudre les problèmes</p>
-              <Button asChild>
-                <Link to="/diagnostics">Diagnostiquer</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+          </div>
+        )}
+      </header>
+      
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="outline" 
+          className="gap-2" 
+          onClick={openConfig}
+          id="notion-config-button"
+        >
+          <Settings size={16} />
+          Configurer Notion
+        </Button>
       </div>
+      
+      {/* Configuration Notion (modal) */}
+      <NotionConfig 
+        isOpen={showConfig} 
+        onClose={closeConfig} 
+      />
+      
+      <Tabs defaultValue="structure" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
+          <TabsTrigger value="structure">Structure BDD</TabsTrigger>
+          <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="structure">
+          <div className="space-y-6">
+            <NotionDatabaseStructureCheck />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Analyse de structure</CardTitle>
+                <CardDescription>
+                  Comment interpréter les résultats de l'analyse
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <h3 className="font-medium mb-2 flex items-center gap-1.5">
+                      <Database size={16} className="text-blue-500" />
+                      Propriétés requises
+                    </h3>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Au moins une propriété de type <strong>title</strong> (généralement nommée "Name" ou "Titre")</li>
+                      <li>Pour utiliser le statut, une propriété <strong>select</strong> nommée "Status" ou "Statut"</li>
+                      <li>Pour la description, une propriété <strong>rich_text</strong> nommée "Description"</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Conseils d'utilisation</h3>
+                    <p className="text-muted-foreground mb-2">
+                      Si vous rencontrez des erreurs 400 lors de la création, vérifiez:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                      <li>Que le nom exact de vos propriétés correspond à ce que l'application attend</li>
+                      <li>Que le type de chaque propriété est correct (title, select, rich_text, etc.)</li>
+                      <li>Que les propriétés select ont des options définies</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="diagnostic">
+          <NotionDiagnosticTool onConfigClick={openConfig} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default HomePage;

@@ -1,11 +1,13 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, RefreshCw, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { corsProxy, PUBLIC_CORS_PROXIES } from '@/services/corsProxy';
+import { corsProxy } from '@/services/corsProxy';
 import { toast } from 'sonner';
+import { PUBLIC_CORS_PROXIES } from '@/services/corsProxy';
 
 /**
  * Page de diagnostics pour le système de proxy CORS
@@ -16,6 +18,7 @@ const CorsProxyDiagnostics: React.FC = () => {
   const currentProxy = corsProxy.getCurrentProxy();
   
   // On récupère les proxies depuis la constante exportée
+  // car getAvailableProxies n'existe pas dans le type CorsProxyService
   const availableProxies = PUBLIC_CORS_PROXIES.map(url => ({
     url,
     name: url.split('/')[2] || url,
@@ -35,11 +38,11 @@ const CorsProxyDiagnostics: React.FC = () => {
     try {
       for (const proxy of availableProxies) {
         try {
-          // Maintenant testProxy retourne un objet ProxyInfo
-          const proxyResult = await corsProxy.testProxy(proxy.url, testToken);
-          results[proxy.name] = proxyResult.success;
+          // Dans l'API actuelle, testProxy retourne juste un booléen, pas un objet
+          const success = await corsProxy.testProxy(proxy.url, testToken);
+          results[proxy.name] = success;
           
-          if (proxyResult.success) {
+          if (success) {
             console.log(`✅ Proxy ${proxy.name} fonctionne`);
           } else {
             console.log(`❌ Proxy ${proxy.name} ne fonctionne pas`);

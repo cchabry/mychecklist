@@ -1,164 +1,188 @@
 
-import { PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';
+/**
+ * Service pour gérer les proxies CORS
+ * Permet de configurer et tester des proxies pour accéder à l'API Notion
+ */
 
+// Liste des proxies CORS publics disponibles
+const PUBLIC_CORS_PROXIES = [
+  "https://corsproxy.io/?",
+  "https://cors-anywhere.herokuapp.com/",
+  "https://proxy.cors.sh/",
+  "https://cors-proxy.htmldriven.com/?url=",
+  "https://api.allorigins.win/raw?url="
+];
+
+// Clé de stockage local pour le proxy choisi
+const PROXY_STORAGE_KEY = "notion_cors_proxy";
+
+// Interface pour le proxy
 interface ProxyInfo {
   url: string;
-  lastTested: number;
-  success: boolean;
-  latency: number;
+  lastTested?: number;
+  success?: boolean;
+  latency?: number;
 }
 
+/**
+ * Service pour gérer les proxies CORS
+ */
 class CorsProxyService {
-  // Clé pour le stockage local
-  private readonly STORAGE_KEY = 'cors_proxy_config';
+  private _cachedProxy: ProxyInfo | null = null;
   
-  // Proxy par défaut
-  private readonly DEFAULT_PROXY = PUBLIC_CORS_PROXIES[0];
+  constructor() {
+    this.loadFromStorage();
+  }
   
-  // Obtenir le proxy actuel depuis le stockage
+  /**
+   * Charge la configuration du proxy depuis le stockage local
+   */
+  private loadFromStorage(): void {
+    try {
+      const storedProxy = localStorage.getItem(PROXY_STORAGE_KEY);
+      if (storedProxy) {
+        this._cachedProxy = JSON.parse(storedProxy);
+        console.log("🔄 Proxy CORS chargé depuis le stockage:", this._cachedProxy);
+      }
+    } catch (e) {
+      console.error("Erreur lors du chargement du proxy:", e);
+    }
+  }
+  
+  /**
+   * Sauvegarde la configuration du proxy dans le stockage local
+   */
+  private saveToStorage(): void {
+    try {
+      if (this._cachedProxy) {
+        localStorage.setItem(PROXY_STORAGE_KEY, JSON.stringify(this._cachedProxy));
+      } else {
+        localStorage.removeItem(PROXY_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error("Erreur lors de la sauvegarde du proxy:", e);
+    }
+  }
+  
+  /**
+   * Obtient le proxy actuellement configuré
+   */
   getCurrentProxy(): ProxyInfo | null {
-    try {
-      const storedValue = localStorage.getItem(this.STORAGE_KEY);
-      if (!storedValue) return null;
-      
-      return JSON.parse(storedValue);
-    } catch (error) {
-      console.error('Erreur lors de la récupération du proxy CORS:', error);
-      return null;
-    }
+    return this._cachedProxy;
   }
   
-  // Définir un proxy
+  /**
+   * Définit le proxy à utiliser
+   */
   setSelectedProxy(proxyUrl: string): void {
-    try {
-      const proxyInfo: ProxyInfo = {
-        url: proxyUrl,
-        lastTested: Date.now(),
-        success: true,
-        latency: 0
-      };
-      
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(proxyInfo));
-      console.log(`Proxy CORS défini: ${proxyUrl}`);
-    } catch (error) {
-      console.error('Erreur lors de la définition du proxy CORS:', error);
-    }
+    this._cachedProxy = {
+      url: proxyUrl,
+      lastTested: Date.now(),
+      success: true
+    };
+    
+    this.saveToStorage();
+    console.log("✅ Proxy CORS configuré:", proxyUrl);
   }
   
-  // Tester un proxy spécifique
-  async testProxy(proxyUrl: string, testToken?: string): Promise<ProxyInfo> {
-    const startTime = Date.now();
-    
+  /**
+   * Teste un proxy spécifique
+   * @returns true si le proxy fonctionne, false sinon
+   */
+  async testProxy(proxyUrl: string, testToken: string = "test_token_for_proxy_test"): Promise<boolean> {
     try {
-      // Tester avec l'endpoint users/me qui est léger
+      const startTime = Date.now();
+      
+      // Construire l'URL du test
       const testUrl = `${proxyUrl}${encodeURIComponent('https://api.notion.com/v1/users/me')}`;
       
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
-      };
-      
-      // Ajouter le token de test si fourni
-      if (testToken) {
-        headers['Authorization'] = testToken.startsWith('Bearer ') 
-          ? testToken 
-          : `Bearer ${testToken}`;
-      }
-      
+      // Effectuer une requête de test
       const response = await fetch(testUrl, {
-        method: 'HEAD',
-        headers
+        method: 'HEAD',  // Utiliser HEAD pour ne pas récupérer le corps de la réponse
+        headers: {
+          'Authorization': `Bearer ${testToken}`,
+          'Notion-Version': '2022-06-28'
+        }
       });
       
       const endTime = Date.now();
       const latency = endTime - startTime;
       
-      // Même une erreur 401 est OK, cela signifie que nous avons atteint l'API
-      const isWorking = response.status === 401 || response.ok;
+      // Même un code 401 est bon, cela signifie que nous avons atteint l'API Notion
+      const isWorking = response.status !== 0 && response.status !== 404;
       
-      const proxyInfo: ProxyInfo = {
-        url: proxyUrl,
-        lastTested: Date.now(),
-        success: isWorking,
-        latency
-      };
+      console.log(`Proxy testé: ${proxyUrl}`, {
+        status: response.status,
+        latency,
+        working: isWorking
+      });
       
-      if (isWorking) {
-        this.setSelectedProxy(proxyUrl);
-      }
-      
-      return proxyInfo;
+      return isWorking;
     } catch (error) {
       console.error(`Erreur lors du test du proxy ${proxyUrl}:`, error);
-      
-      const endTime = Date.now();
-      
-      return {
-        url: proxyUrl,
-        lastTested: Date.now(),
-        success: false,
-        latency: endTime - startTime
-      };
+      return false;
     }
   }
   
-  // Trouver un proxy fonctionnel
-  async findWorkingProxy(testToken?: string): Promise<ProxyInfo | null> {
-    // Essayer d'abord le proxy stocké
-    const currentProxy = this.getCurrentProxy();
+  /**
+   * Recherche un proxy fonctionnel parmi les proxies publics
+   */
+  async findWorkingProxy(testToken: string = "test_token_for_proxy_test"): Promise<ProxyInfo | null> {
+    console.log("🔍 Recherche d'un proxy CORS fonctionnel...");
     
-    if (currentProxy && Date.now() - currentProxy.lastTested < 3600000) { // 1 heure
-      return currentProxy;
-    }
-    
-    // Tester tous les proxies disponibles
+    // Tester tous les proxies publics
     for (const proxyUrl of PUBLIC_CORS_PROXIES) {
-      const proxyInfo = await this.testProxy(proxyUrl, testToken);
+      console.log(`Test du proxy: ${proxyUrl}`);
       
-      if (proxyInfo.success) {
-        return proxyInfo;
+      const startTime = Date.now();
+      const isWorking = await this.testProxy(proxyUrl, testToken);
+      const endTime = Date.now();
+      
+      if (isWorking) {
+        const proxy: ProxyInfo = {
+          url: proxyUrl,
+          lastTested: Date.now(),
+          success: true,
+          latency: endTime - startTime
+        };
+        
+        // Sauvegarder ce proxy
+        this._cachedProxy = proxy;
+        this.saveToStorage();
+        
+        console.log("✅ Proxy fonctionnel trouvé:", proxy);
+        return proxy;
       }
     }
     
-    // Aucun proxy ne fonctionne
+    console.log("❌ Aucun proxy fonctionnel trouvé");
     return null;
   }
   
-  // Réinitialiser le cache du proxy
+  /**
+   * Réinitialise le cache du proxy
+   */
   resetProxyCache(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
+    this._cachedProxy = null;
+    localStorage.removeItem(PROXY_STORAGE_KEY);
+    console.log("🔄 Cache du proxy réinitialisé");
   }
   
-  // Configurer automatiquement un proxy
-  async autoSetup(testToken?: string): Promise<ProxyInfo | null> {
-    try {
-      const proxy = await this.findWorkingProxy(testToken);
-      
-      if (!proxy) {
-        // Si aucun proxy ne fonctionne, définir le proxy par défaut
-        this.setSelectedProxy(this.DEFAULT_PROXY);
-        return null;
-      }
-      
-      return proxy;
-    } catch (error) {
-      console.error('Erreur lors de la configuration automatique du proxy:', error);
-      return null;
-    }
-  }
-  
-  // Méthode pour proxifier une URL
+  /**
+   * Ajoute le proxy à une URL
+   */
   proxify(url: string): string {
-    const proxy = this.getCurrentProxy();
-    if (!proxy) {
-      throw new Error('Aucun proxy CORS configuré');
+    if (!this._cachedProxy) {
+      console.warn("⚠️ Aucun proxy configuré, utilisation de l'URL directe:", url);
+      return url;
     }
-    return `${proxy.url}${encodeURIComponent(url)}`;
+    
+    return `${this._cachedProxy.url}${encodeURIComponent(url)}`;
   }
 }
 
-// Exporter une instance unique
+// Exporter l'instance unique du service
 export const corsProxy = new CorsProxyService();
 
-// Exporter aussi les constantes des proxies publics pour les composants qui en ont besoin
-export { PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';
+// Exporter la liste des proxies publics pour référence
+export { PUBLIC_CORS_PROXIES };
