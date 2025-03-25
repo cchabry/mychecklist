@@ -1,10 +1,13 @@
 
 /**
  * Point d'entrée pour le système de mode opérationnel (demo vs real)
+ * 
+ * Cette version utilise maintenant un adaptateur pour assurer la compatibilité 
+ * avec le nouveau système connectionModeService
  */
 
-// Exporter le service principal
-export { operationMode } from './operationModeService';
+// Exporter l'adaptateur comme remplaçant du service operationMode
+export { operationMode } from './operationModeAdapter';
 
 // Exporter les constantes et types
 export * from './constants';

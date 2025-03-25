@@ -1,98 +1,104 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { operationMode } from './operationModeService';
-import { OperationMode, OperationModeSettings, SwitchReason } from './types';
-
 /**
- * Hook pour utiliser le mode opérationnel de l'application
+ * Hook adapté pour utiliser l'adaptateur operationMode
+ * Fournit une interface compatible avec l'ancien système
  */
+
+import { useState, useEffect, useCallback } from 'react';
+import { operationMode } from './operationModeAdapter';
+import { OperationMode, OperationModeSettings, SwitchReason } from './types';
+import { toast } from 'sonner';
+
 export function useOperationMode() {
-  const [currentMode, setCurrentMode] = useState<OperationMode>(operationMode.getMode());
+  const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
   const [switchReason, setSwitchReason] = useState<SwitchReason | null>(operationMode.getSwitchReason());
-  const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
-  const [consecutiveFailures, setConsecutiveFailures] = useState<number>(operationMode.getConsecutiveFailures());
+  const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
   const [lastError, setLastError] = useState<Error | null>(operationMode.getLastError());
-  
-  // S'abonner aux changements de mode
+  const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
+
   useEffect(() => {
-    const unsubscribe = operationMode.subscribe((mode, reason) => {
-      setCurrentMode(mode);
+    const unsubscribe = operationMode.subscribe((newMode, reason) => {
+      setMode(newMode);
+      setIsDemoMode(newMode === OperationMode.DEMO);
       setSwitchReason(reason);
-      setSettings(operationMode.getSettings());
-      setConsecutiveFailures(operationMode.getConsecutiveFailures());
+      setFailures(operationMode.getConsecutiveFailures());
       setLastError(operationMode.getLastError());
     });
     
     return unsubscribe;
   }, []);
   
-  /**
-   * Active le mode démonstration
-   */
-  const enableDemoMode = useCallback((reason: SwitchReason = 'Changement manuel') => {
-    operationMode.enableDemoMode(reason);
+  const enableDemoMode = useCallback((reason?: string) => {
+    operationMode.enableDemoMode(reason || 'Activation manuelle du mode démonstration');
   }, []);
   
-  /**
-   * Active le mode réel
-   */
   const enableRealMode = useCallback(() => {
     operationMode.enableRealMode();
   }, []);
   
-  /**
-   * Bascule entre les modes
-   */
-  const toggleMode = useCallback(() => {
+  const toggle = useCallback(() => {
     operationMode.toggle();
   }, []);
   
-  /**
-   * Met à jour les paramètres
-   */
-  const updateSettings = useCallback((newSettings: Partial<OperationModeSettings>) => {
-    operationMode.updateSettings(newSettings);
-  }, []);
-  
-  /**
-   * Signale une erreur de connexion
-   */
-  const handleConnectionError = useCallback((error: Error, context: string = 'Opération', isNonCritical: boolean = false) => {
+  const handleConnectionError = useCallback((error: Error, context?: string, isNonCritical?: boolean) => {
     operationMode.handleConnectionError(error, context, isNonCritical);
   }, []);
   
-  /**
-   * Signale une opération réussie
-   */
   const handleSuccessfulOperation = useCallback(() => {
     operationMode.handleSuccessfulOperation();
   }, []);
   
+  const updateSettings = useCallback((newSettings: Partial<OperationModeSettings>) => {
+    operationMode.updateSettings(newSettings);
+    setSettings({ ...settings, ...newSettings });
+  }, [settings]);
+  
+  const reset = useCallback(() => {
+    operationMode.reset();
+  }, []);
+  
+  const temporarilyForceReal = useCallback(() => {
+    operationMode.temporarilyForceReal();
+  }, []);
+  
+  const restorePreviousMode = useCallback(() => {
+    operationMode.restorePreviousMode();
+  }, []);
+  
+  const markOperationAsCritical = useCallback((operationContext: string) => {
+    operationMode.markOperationAsCritical(operationContext);
+  }, []);
+  
+  const unmarkOperationAsCritical = useCallback((operationContext: string) => {
+    operationMode.unmarkOperationAsCritical(operationContext);
+  }, []);
+  
+  const isOperationCritical = useCallback((operationContext: string) => {
+    return operationMode.isOperationCritical(operationContext);
+  }, []);
+  
   return {
-    // États
-    mode: currentMode,
-    isDemoMode: currentMode === OperationMode.DEMO,
-    isRealMode: currentMode === OperationMode.REAL,
+    mode,
+    isDemoMode,
+    isRealMode: !isDemoMode,
     switchReason,
-    settings,
-    consecutiveFailures,
+    failures,
     lastError,
+    settings,
     
-    // Actions
+    toggle,
     enableDemoMode,
     enableRealMode,
-    toggleMode,
-    updateSettings,
     handleConnectionError,
     handleSuccessfulOperation,
+    updateSettings,
+    reset,
+    temporarilyForceReal,
+    restorePreviousMode,
     
-    // Opérations avancées
-    temporarilyForceReal: useCallback(() => operationMode.temporarilyForceReal(), []),
-    restorePreviousMode: useCallback(() => operationMode.restorePreviousMode(), []),
-    markOperationAsCritical: useCallback((context: string) => operationMode.markOperationAsCritical(context), []),
-    unmarkOperationAsCritical: useCallback((context: string) => operationMode.unmarkOperationAsCritical(context), []),
-    
-    // Accès au service sous-jacent
-    operationMode
+    markOperationAsCritical,
+    unmarkOperationAsCritical,
+    isOperationCritical
   };
 }
