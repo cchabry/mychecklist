@@ -3,11 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { useOperationMode } from '@/services/operationMode';
 import NetlifyFunctionStatus from '@/components/notion/NetlifyFunctionStatus';
 
 export default function Home() {
-  const { isDemoMode, enableDemoMode, enableRealMode } = useOperationMode();
   const [statusChecked, setStatusChecked] = useState(false);
 
   // Vérifier le statut des fonctions Netlify une seule fois
@@ -32,47 +30,6 @@ export default function Home() {
           <h2 className="text-xl font-semibold mb-3">État du système</h2>
           {statusChecked && <NetlifyFunctionStatus />}
         </div>
-        
-        {/* Mode de fonctionnement */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mode de fonctionnement actuel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="font-medium">
-                  Mode actuel: <span className={isDemoMode ? "text-amber-600" : "text-green-600"}>
-                    {isDemoMode ? "Démonstration" : "Production"}
-                  </span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {isDemoMode 
-                    ? "Le mode démo utilise des données fictives sans appeler l'API Notion" 
-                    : "Le mode production se connecte à l'API Notion pour des données réelles"}
-                </p>
-              </div>
-              
-              <div>
-                <Button 
-                  variant={isDemoMode ? "default" : "outline"} 
-                  onClick={() => enableRealMode()}
-                  disabled={!isDemoMode}
-                  className="mr-2"
-                >
-                  Mode réel
-                </Button>
-                <Button 
-                  variant={isDemoMode ? "outline" : "default"} 
-                  onClick={() => enableDemoMode("Mode démonstration activé")}
-                  disabled={isDemoMode}
-                >
-                  Mode démo
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
           <Card>

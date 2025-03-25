@@ -1,135 +1,103 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-/**
- * Composant affichant le statut des fonctions Netlify
- */
 const NetlifyFunctionStatus: React.FC = () => {
-  const [status, setStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
-  const [isChecking, setIsChecking] = useState(false);
-  const [responseTime, setResponseTime] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Utiliser une référence pour suivre si le composant est monté
-  const isMounted = useRef(true);
-  // Référence pour éviter les vérifications supplémentaires pendant le chargement initial
-  const initialCheckComplete = useRef(false);
-  
-  // Nettoyer quand le composant est démonté
-  useEffect(() => {
-    return () => { isMounted.current = false; };
-  }, []);
-  
-  const checkFunctionStatus = async () => {
-    if (isChecking) return; // Éviter les vérifications simultanées
-    
-    setIsChecking(true);
-    setError(null);
-    
+  const [status, setStatus] = useState<'checking' | 'success' | 'error'>('checking');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  // Fonction pour tester la disponibilité des fonctions Netlify
+  const checkNetlifyFunctions = async () => {
+    setStatus('checking');
+    setErrorMessage('');
+
     try {
-      const startTime = Date.now();
-      
-      // Tester la fonction Netlify
+      // Tester la fonction Netlify avec une requête simple (ping)
       const response = await fetch('/.netlify/functions/notion-proxy', {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          ping: true
+        })
       });
-      
-      // Vérifier si le composant est toujours monté avant de mettre à jour l'état
-      if (!isMounted.current) return;
-      
-      const endTime = Date.now();
-      setResponseTime(endTime - startTime);
-      
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Fonction Netlify disponible:', data);
-        setStatus('available');
+        
+        if (data && data.success) {
+          setStatus('success');
+        } else {
+          setStatus('error');
+          setErrorMessage('La fonction Netlify est disponible mais a retourné une erreur');
+        }
       } else {
-        console.error('Fonction Netlify non disponible, statut:', response.status);
-        setError(`Statut HTTP: ${response.status}`);
-        setStatus('unavailable');
+        setStatus('error');
+        setErrorMessage(`Erreur ${response.status}: ${response.statusText}`);
       }
-    } catch (err) {
-      // Vérifier si le composant est toujours monté avant de mettre à jour l'état
-      if (!isMounted.current) return;
-      
-      console.error('Erreur lors du test de la fonction Netlify:', err);
-      setError(err instanceof Error ? err.message : String(err));
-      setStatus('unavailable');
-    } finally {
-      // Vérifier si le composant est toujours monté avant de mettre à jour l'état
-      if (isMounted.current) {
-        setIsChecking(false);
-        initialCheckComplete.current = true;
-      }
+    } catch (error) {
+      console.error('Erreur lors du test des fonctions Netlify:', error);
+      setStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Erreur inconnue');
     }
+
+    setLastChecked(new Date());
   };
-  
-  // Vérifier le statut au chargement, une seule fois
+
+  // Vérifier au chargement
   useEffect(() => {
-    if (!initialCheckComplete.current) {
-      checkFunctionStatus();
-    }
+    checkNetlifyFunctions();
   }, []);
-  
+
   return (
-    <Card className={status === 'available' ? 'border-green-200' : status === 'unavailable' ? 'border-red-200' : 'border-blue-200'}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
-            {status === 'checking' || isChecking ? (
-              <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
-            ) : status === 'available' ? (
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            ) : (
-              <XCircle className="h-5 w-5 text-red-500" />
-            )}
-            
-            <div>
-              <h3 className="font-medium">Fonctions Netlify</h3>
-              <p className="text-sm text-muted-foreground">
-                {status === 'checking' || isChecking
-                  ? 'Vérification des fonctions Netlify...'
-                  : status === 'available'
-                  ? `Fonctions disponibles (${responseTime}ms)`
-                  : 'Fonctions non disponibles'}
-              </p>
-              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-            </div>
+            <h3 className="text-lg font-medium">Fonctions Netlify</h3>
+            {status === 'checking' && <RefreshCw className="h-4 w-4 animate-spin text-yellow-500" />}
+            {status === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
+            {status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
           </div>
-          
-          <div className="flex items-center gap-2">
-            {status === 'available' && (
-              <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
-                Disponible
-              </Badge>
-            )}
-            
-            {status === 'unavailable' && (
-              <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-200">
-                Non disponible
-              </Badge>
-            )}
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={checkFunctionStatus}
-              disabled={isChecking}
-              className="ml-2 text-xs"
-            >
-              {isChecking && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
-              Vérifier
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={checkNetlifyFunctions}
+            disabled={status === 'checking'}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${status === 'checking' ? 'animate-spin' : ''}`} />
+            Vérifier
+          </Button>
         </div>
+
+        {status === 'success' && (
+          <div className="text-green-600 bg-green-50 p-3 rounded-md">
+            Les fonctions Netlify sont opérationnelles et peuvent communiquer avec l'API Notion
+          </div>
+        )}
+
+        {status === 'error' && (
+          <Alert variant="destructive">
+            <AlertTitle>Problème de connexion aux fonctions Netlify</AlertTitle>
+            <AlertDescription>
+              <p className="mt-1">{errorMessage}</p>
+              <p className="mt-3 text-sm">
+                Vérifiez que les fonctions Netlify sont correctement déployées et que votre connexion internet fonctionne.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {lastChecked && (
+          <p className="text-xs text-muted-foreground mt-3">
+            Dernière vérification: {lastChecked.toLocaleTimeString()}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

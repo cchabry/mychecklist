@@ -1,84 +1,70 @@
 
 import { useState, useCallback } from 'react';
+import { notionApiRequest } from '@/lib/notionProxy/proxyFetch';
 import { toast } from 'sonner';
-import { operationMode } from '@/services/operationMode';
 
 /**
- * Options pour l'exécution des requêtes
+ * Hook simplifié pour les requêtes Notion via les fonctions Netlify
  */
-interface RequestOptions {
-  errorMessage?: string;
-  onSuccess?: (data: any) => void;
-  onError?: (error: Error) => void;
-}
+export const useNotionRequest = <T>(
+  options: {
+    onSuccess?: (data: T) => void;
+    onError?: (error: Error) => void;
+  } = {}
+) => {
+  const { onSuccess, onError } = options;
 
-/**
- * Hook pour gérer les requêtes à l'API Notion
- */
-export function useNotionRequest() {
+  const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
-  // Vérifier si l'utilisateur est authentifié
-  const isAuthenticated = !!localStorage.getItem('notion_api_key');
-  
-  /**
-   * Exécute une requête à l'API Notion
-   */
-  const executeRequest = useCallback(async <T>(
-    requestFn: () => Promise<T>,
-    options: RequestOptions = {}
+
+  // Fonction pour exécuter la requête Notion
+  const execute = useCallback(async (
+    endpoint: string,
+    method: string = 'GET',
+    body?: any,
+    token?: string
   ): Promise<T | null> => {
-    const { errorMessage = 'Erreur lors de la requête', onSuccess, onError } = options;
-    
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Conserver le mode actuel
-      const wasDemoMode = operationMode.isDemoMode;
-      
-      // Si nous sommes en mode démo mais qu'il s'agit d'une requête de test,
-      // forçons temporairement le mode réel
-      if (wasDemoMode && options.errorMessage?.includes('connexion')) {
-        operationMode.temporarilyForceReal();
-      }
-      
-      const result = await requestFn();
+      // Exécuter la requête via le proxy Netlify
+      const result = await notionApiRequest(endpoint, method, body, token) as T;
+      setData(result);
       
       if (onSuccess) {
         onSuccess(result);
       }
       
-      // Signaler l'opération réussie
-      operationMode.handleSuccessfulOperation();
-      
       return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+    } catch (error) {
+      // Gérer l'erreur
+      const formattedError = error instanceof Error ? error : new Error(String(error));
+      setError(formattedError);
       
       if (onError) {
-        onError(error);
+        onError(formattedError);
       } else {
-        toast.error(errorMessage, {
-          description: error.message
+        // Afficher une notification d'erreur par défaut
+        toast.error('Erreur lors de la requête Notion', {
+          description: formattedError.message
         });
       }
-      
-      // Signaler l'erreur à operationMode
-      operationMode.handleConnectionError(error, errorMessage);
       
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, []);
-  
+  }, [onSuccess, onError]);
+
   return {
+    data,
     isLoading,
     error,
-    isAuthenticated,
-    executeRequest
+    execute,
+    setData,
   };
-}
+};
+
+export default useNotionRequest;
