@@ -1,131 +1,153 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { oauthManager, NotionOAuthConfig, NotionOAuthTokens } from '@/services/notion/security/oauthManager';
-import { useOperationMode } from '@/services/operationMode';
-import { NotionTokenType } from '@/services/notion/security/tokenValidation';
+import { NotionTokenType } from '@/services/notion/errorHandling/types';
 
-/**
- * Options pour le hook useNotionOAuth
- */
-export interface UseNotionOAuthOptions extends Partial<NotionOAuthConfig> {
-  // Force la connexion automatique si un token OAuth valide est présent
-  autoLogin?: boolean;
+// Importations sécurisées avec vérification d'existence
+let oauthManager: any = null;
+let NotionOAuthConfig: any = null;
+let NotionOAuthTokens: any = null;
+
+// Essayer d'importer dynamiquement si le module existe
+try {
+  const oauthModule = require('@/services/notion/security/oauthManager');
+  oauthManager = oauthModule.default || oauthModule.oauthManager;
+  NotionOAuthConfig = oauthModule.NotionOAuthConfig;
+  NotionOAuthTokens = oauthModule.NotionOAuthTokens;
+} catch (e) {
+  console.warn('Module oauthManager non disponible, fonctionnalités OAuth limitées');
+}
+
+export interface UseNotionOAuthOptions {
+  clientId?: string;
+  redirectUri?: string;
+  onTokenRefreshed?: () => void;
+  autoRefresh?: boolean;
+  onAuthError?: (error: Error) => void;
 }
 
 /**
  * Hook pour gérer l'authentification OAuth avec Notion
- * Fournit une interface simplifiée pour le gestionnaire OAuth
  */
 export function useNotionOAuth(options: UseNotionOAuthOptions = {}) {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { enableRealMode } = useOperationMode();
-  
-  // Configurer le gestionnaire OAuth avec les options fournies
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [tokenType, setTokenType] = useState<NotionTokenType>(NotionTokenType.UNKNOWN);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [tokenWillExpireSoon, setTokenWillExpireSoon] = useState<boolean>(false);
+
+  // Si les options incluent onTokenRefreshed, configurer le callback
   useEffect(() => {
-    // Recréer une instance avec les options fournies n'est pas nécessaire
-    // car l'instance est un singleton, mais on peut mettre à jour certaines options
-    if (options.onTokenRefreshed) {
-      // Cette logique serait implémentée dans une version plus avancée
+    if (options.onTokenRefreshed && oauthManager) {
+      oauthManager.setTokenRefreshCallback(options.onTokenRefreshed);
     }
-    
-    setIsInitialized(true);
-  }, [options]);
-  
-  // Vérifier l'état du token et rafraîchir si nécessaire
-  useEffect(() => {
-    if (!isInitialized) return;
-    
-    const tokenInfo = oauthManager.getTokenInfo();
-    
-    // Si le token est sur le point d'expirer, le rafraîchir
-    if (tokenInfo.willExpireSoon && tokenInfo.accessToken && options.autoRefresh !== false) {
-      refreshToken();
-    }
-  }, [isInitialized, options.autoRefresh]);
-  
-  /**
-   * Démarre le flux d'authentification OAuth
-   */
-  const startOAuthFlow = useCallback(() => {
-    setIsAuthenticating(true);
-    
-    // Passer au mode réel avant de commencer l'authentification
-    enableRealMode();
-    
-    // Lancer le flux d'authentification
-    oauthManager.startAuthFlow();
-  }, [enableRealMode]);
-  
-  /**
-   * Gère le callback OAuth après la redirection
-   */
-  const handleCallback = useCallback(async (code: string, state: string): Promise<boolean> => {
-    setIsAuthenticating(true);
-    
-    try {
-      // Traiter le callback OAuth
-      const success = await oauthManager.handleCallback(code, state);
-      
-      if (success) {
-        // Passer en mode réel après une authentification réussie
-        enableRealMode();
+    return () => {
+      if (oauthManager) {
+        oauthManager.setTokenRefreshCallback(null);
       }
-      
-      return success;
-    } finally {
-      setIsAuthenticating(false);
-    }
-  }, [enableRealMode]);
-  
-  /**
-   * Rafraîchit le token OAuth
-   */
-  const refreshToken = useCallback(async (): Promise<boolean> => {
-    if (isRefreshing) return false;
+    };
+  }, [options.onTokenRefreshed]);
+
+  // Vérifier l'état d'authentification
+  useEffect(() => {
+    if (!oauthManager) return;
+
+    const checkAuth = async () => {
+      try {
+        const isAuthed = await oauthManager.isAuthenticated();
+        setIsAuthenticated(isAuthed);
+        
+        if (isAuthed) {
+          // Récupérer les infos de token
+          const tokenInfo = await oauthManager.getTokenInfo();
+          setTokenType(NotionTokenType.OAUTH);
+          setExpiresAt(tokenInfo?.expiresAt ? new Date(tokenInfo.expiresAt) : null);
+          
+          // Si autoRefresh est activé, rafraîchir le token s'il expire bientôt
+          if (options.autoRefresh && tokenInfo?.needsRefresh) {
+            refreshToken();
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification OAuth:', error);
+        if (options.onAuthError && error instanceof Error) {
+          options.onAuthError(error);
+        }
+      }
+    };
+
+    checkAuth();
     
-    setIsRefreshing(true);
+    // Vérifier périodiquement si autoRefresh est activé
+    let intervalId: number | undefined;
+    if (options.autoRefresh) {
+      intervalId = window.setInterval(checkAuth, 5 * 60 * 1000); // Toutes les 5 minutes
+    }
+    
+    return () => {
+      if (intervalId !== undefined) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [options.autoRefresh]);
+
+  // Démarrer le flux OAuth
+  const startOAuthFlow = useCallback(() => {
+    if (!oauthManager) {
+      console.error('OAuth Manager non disponible');
+      return;
+    }
+    
+    oauthManager.startAuthFlow(
+      options.clientId, 
+      options.redirectUri
+    );
+  }, [options.clientId, options.redirectUri]);
+
+  // Rafraîchir le token
+  const refreshToken = useCallback(async () => {
+    if (!oauthManager) {
+      console.error('OAuth Manager non disponible');
+      return false;
+    }
     
     try {
-      return await oauthManager.refreshToken();
-    } finally {
-      setIsRefreshing(false);
+      await oauthManager.refreshAccessToken();
+      if (options.onTokenRefreshed) {
+        options.onTokenRefreshed();
+      }
+      return true;
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement du token:', error);
+      if (options.onAuthError && error instanceof Error) {
+        options.onAuthError(error);
+      }
+      return false;
     }
-  }, [isRefreshing]);
-  
-  /**
-   * Déconnecte l'utilisateur et supprime les tokens
-   */
-  const logout = useCallback(async (): Promise<void> => {
-    oauthManager.logout();
+  }, [options.onTokenRefreshed, options.onAuthError]);
+
+  // Se déconnecter
+  const logout = useCallback(async () => {
+    if (!oauthManager) {
+      console.error('OAuth Manager non disponible');
+      return;
+    }
+    
+    try {
+      await oauthManager.logout();
+      setIsAuthenticated(false);
+      setTokenType(NotionTokenType.NONE);
+      setExpiresAt(null);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   }, []);
-  
-  // Récupérer les informations sur le token
-  const tokenInfo = oauthManager.getTokenInfo();
-  
+
   return {
-    // État
-    isInitialized,
-    isAuthenticating,
-    isRefreshing,
-    isAuthenticated: oauthManager.isAuthenticated(),
-    
-    // Informations sur le token
-    accessToken: tokenInfo.accessToken,
-    tokenType: tokenInfo.tokenType,
-    expiresAt: tokenInfo.expiresAt,
-    workspaceId: tokenInfo.workspaceId,
-    userName: tokenInfo.userName,
-    tokenIsExpired: tokenInfo.isExpired,
-    tokenWillExpireSoon: tokenInfo.willExpireSoon,
-    
-    // Actions
+    isAuthenticated,
+    tokenType,
+    expiresAt,
+    tokenWillExpireSoon,
     startOAuthFlow,
-    handleCallback,
     refreshToken,
     logout
   };
 }
-
-export default useNotionOAuth;

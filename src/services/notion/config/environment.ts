@@ -1,122 +1,78 @@
 
 /**
- * Gestion des variables d'environnement et de la configuration pour l'API Notion
+ * Configuration basée sur les variables d'environnement
  */
 
 import { NotionConfig } from './types';
+import { structuredLogger } from '../logging/structuredLogger';
 
 /**
- * Extrait les variables d'environnement pertinentes pour Notion
+ * Récupère la configuration à partir des variables d'environnement
  */
-export function getEnvironmentConfig(): Partial<NotionConfig> {
-  const config: Partial<NotionConfig> = {};
+export function getEnvironmentConfig(): NotionConfig {
+  // Obtenir la clé d'API et les identifiants de base de données depuis les variables d'environnement
+  const apiKey = process.env.NOTION_API_KEY || localStorage.getItem('notion_api_key') || '';
+  const projectsDbId = process.env.NOTION_PROJECTS_DB_ID || localStorage.getItem('notion_projects_db_id') || '';
+  const checklistsDbId = process.env.NOTION_CHECKLISTS_DB_ID || localStorage.getItem('notion_checklists_db_id') || '';
   
-  // Environnement de production
-  if (typeof process !== 'undefined' && process.env) {
-    // API Key
-    if (process.env.NOTION_API_KEY) {
-      config.apiKey = process.env.NOTION_API_KEY;
-    }
-    
-    // Mode de fonctionnement
-    if (process.env.NOTION_OPERATION_MODE) {
-      // Utiliser une propriété optionnelle
-      config.operationMode = process.env.NOTION_OPERATION_MODE;
-    }
-    
-    // Informations du client OAuth
-    if (process.env.NOTION_CLIENT_ID) {
-      // Utiliser une propriété optionnelle
-      config.oauth = {
-        clientId: process.env.NOTION_CLIENT_ID,
-        clientSecret: process.env.NOTION_CLIENT_SECRET,
-        redirectUri: process.env.NOTION_REDIRECT_URI
-      };
-    }
-    
-    // IDs de base de données
-    const databaseIds: Record<string, string | null> = {};
-    
-    if (process.env.NOTION_DATABASE_ID) {
-      databaseIds.projects = process.env.NOTION_DATABASE_ID;
-    }
-    
-    if (process.env.NOTION_CHECKLISTS_DATABASE_ID) {
-      databaseIds.checklists = process.env.NOTION_CHECKLISTS_DATABASE_ID;
-    }
-    
-    if (Object.keys(databaseIds).length > 0) {
-      config.databaseIds = databaseIds as any;
-    }
+  // Obtenir le mode d'opération
+  const operationModeStr = process.env.NOTION_OPERATION_MODE || localStorage.getItem('notion_operation_mode') || 'auto';
+  
+  // Validation du mode d'opération
+  let operationMode: 'real' | 'demo' | 'auto' = 'auto';
+  if (operationModeStr === 'real' || operationModeStr === 'demo' || operationModeStr === 'auto') {
+    operationMode = operationModeStr;
+  } else {
+    structuredLogger.warn(
+      `Mode d'opération invalide: ${operationModeStr}, utilisation du mode 'auto'`,
+      null,
+      { source: 'NotionConfig' }
+    );
   }
   
-  // Variables d'environnement côté navigateur
-  if (typeof window !== 'undefined') {
-    const envVars = [
-      'VITE_NOTION_API_KEY',
-      'VITE_NOTION_DATABASE_ID',
-      'VITE_NOTION_CHECKLISTS_DATABASE_ID',
-      'VITE_NOTION_OPERATION_MODE',
-      'VITE_NOTION_CLIENT_ID',
-      'VITE_NOTION_REDIRECT_URI'
-    ];
-    
-    for (const varName of envVars) {
-      const value = (window as any)[varName] || import.meta.env?.[varName];
-      
-      if (value) {
-        switch (varName) {
-          case 'VITE_NOTION_API_KEY':
-            config.apiKey = value;
-            break;
-          case 'VITE_NOTION_DATABASE_ID':
-            if (!config.databaseIds) config.databaseIds = {} as any;
-            config.databaseIds.projects = value;
-            break;
-          case 'VITE_NOTION_CHECKLISTS_DATABASE_ID':
-            if (!config.databaseIds) config.databaseIds = {} as any;
-            config.databaseIds.checklists = value;
-            break;
-          case 'VITE_NOTION_OPERATION_MODE':
-            // Utiliser une propriété optionnelle
-            config.operationMode = value;
-            break;
-          case 'VITE_NOTION_CLIENT_ID':
-            if (!config.oauth) config.oauth = {} as any;
-            config.oauth.clientId = value;
-            break;
-          case 'VITE_NOTION_REDIRECT_URI':
-            if (!config.oauth) config.oauth = {} as any;
-            config.oauth.redirectUri = value;
-            break;
-        }
-      }
-    }
-  }
+  // Configuration OAuth
+  const oauthClientId = process.env.NOTION_OAUTH_CLIENT_ID || localStorage.getItem('notion_oauth_client_id') || '';
+  const oauthClientSecret = process.env.NOTION_OAUTH_CLIENT_SECRET || localStorage.getItem('notion_oauth_client_secret') || '';
+  const oauthRedirectUri = process.env.NOTION_OAUTH_REDIRECT_URI || localStorage.getItem('notion_oauth_redirect_uri') || '';
   
-  return config;
+  return {
+    apiKey: apiKey || undefined,
+    databaseIds: {
+      projects: projectsDbId,
+      checklists: checklistsDbId || undefined
+    },
+    operationMode,
+    oauth: oauthClientId ? {
+      clientId: oauthClientId,
+      clientSecret: oauthClientSecret || undefined,
+      redirectUri: oauthRedirectUri
+    } : undefined
+  };
 }
 
 /**
- * Valide la configuration environment et renvoie les champs manquants
+ * Valide la configuration et retourne les champs manquants
  */
-export function validateEnvironmentConfig(config: Partial<NotionConfig>): string[] {
+export function validateEnvironmentConfig(config: NotionConfig): string[] {
   const missingFields: string[] = [];
   
-  // Vérifier les champs obligatoires
+  // Vérifier la clé API
   if (!config.apiKey) {
-    missingFields.push('NOTION_API_KEY ou VITE_NOTION_API_KEY');
+    missingFields.push('apiKey');
   }
   
-  // Vérifier les bases de données
+  // Vérifier l'ID de la base de données des projets
   if (!config.databaseIds?.projects) {
-    missingFields.push('NOTION_DATABASE_ID ou VITE_NOTION_DATABASE_ID');
+    missingFields.push('databaseIds.projects');
   }
   
-  // Vérifier la configuration OAuth si clientId est fourni
-  if (config.oauth?.clientId) {
+  // Si OAuth est configuré, vérifier les champs requis
+  if (config.oauth) {
+    if (!config.oauth.clientId) {
+      missingFields.push('oauth.clientId');
+    }
     if (!config.oauth.redirectUri) {
-      missingFields.push('NOTION_REDIRECT_URI ou VITE_NOTION_REDIRECT_URI');
+      missingFields.push('oauth.redirectUri');
     }
   }
   
