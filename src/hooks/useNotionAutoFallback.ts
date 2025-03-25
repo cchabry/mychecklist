@@ -10,13 +10,13 @@ import { toast } from 'sonner';
 export function useNotionAutoFallback() {
   const { 
     currentMode, 
-    switchReason, 
-    connectionHealth,
     isDemoMode, 
     isRealMode,
     enableRealMode, 
     handleConnectionError, 
-    handleSuccessfulOperation 
+    handleSuccessfulOperation,
+    connectionHealth,
+    switchReason 
   } = useConnectionMode();
 
   // S'abonner aux changements de mode

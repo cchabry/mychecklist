@@ -109,6 +109,7 @@ export function useOperationMode() {
     temporarilyForceReal,
     restorePreviousMode,
     toggleMode: toggle,
+    restoreMode: restorePreviousMode,
     
     // Gestion des opérations critiques
     markOperationAsCritical,

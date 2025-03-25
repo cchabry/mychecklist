@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { connectionModeService } from '@/services/connection/connectionModeService';
 import { ConnectionMode, ConnectionHealth, ModeChangeEvent } from '@/services/connection/types';
 import { OperationMode } from '@/services/operationMode/types';
+import { DEFAULT_SETTINGS } from '@/services/operationMode/constants';
 
 /**
  * Hook pour utiliser le service de mode de connexion
@@ -21,6 +22,9 @@ export function useConnectionMode() {
   const isRealMode = currentMode === ConnectionMode.REAL;
   const failures = connectionHealth.consecutiveErrors;
   const lastError = connectionHealth.lastError;
+  
+  // Initialisation des settings pour compatibilité
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   
   // Mettre à jour le mode local lorsqu'il change dans le service
   useEffect(() => {
@@ -82,6 +86,7 @@ export function useConnectionMode() {
   // Alias pour compatibilité
   const toggle = toggleMode;
   const reset = resetConnectionHealth;
+  const restorePreviousMode = restoreMode;
   
   // Simulation des opérations critiques (non implémentées dans connectionModeService)
   const criticalOperations = new Set<string>();
@@ -99,13 +104,6 @@ export function useConnectionMode() {
   }, []);
   
   // Simulation des paramètres (non implémentés dans connectionModeService)
-  const [settings, setSettings] = useState({
-    autoSwitchOnFailure: true,
-    maxConsecutiveFailures: 3,
-    persistentModeStorage: true,
-    showNotifications: true
-  });
-  
   const updateSettings = useCallback((newSettings: any) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, []);
@@ -148,6 +146,6 @@ export function useConnectionMode() {
     updateSettings,
     
     // Nouveaux alias pour compatibilité complète
-    restorePreviousMode: restoreMode
+    restorePreviousMode
   };
 }

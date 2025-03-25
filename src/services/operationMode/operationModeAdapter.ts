@@ -162,6 +162,9 @@ class OperationModeAdapter {
     connectionModeService.restoreMode();
   }
   
+  // Rendre les alias disponibles pour maintenir la compatibilité
+  public restoreMode = this.restorePreviousMode;
+  
   // Gestion des abonnés pour les changements de mode
   public subscribe(subscriber: OperationModeSubscriber): () => void {
     this.subscribers.push(subscriber);
