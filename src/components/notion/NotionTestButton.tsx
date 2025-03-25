@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RotateCw, Check } from 'lucide-react';
+import { RotateCw, Check, XCircle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
-import { isNotionConfigured } from '@/lib/notion';
 import { toast } from 'sonner';
 
 interface NotionTestButtonProps {
@@ -31,6 +30,12 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
     
     try {
       console.log('🔄 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
+      
+      // Désactiver temporairement le mode mock pour ce test
+      const wasInMockMode = notionApi.mockMode.isActive();
+      if (wasInMockMode) {
+        notionApi.mockMode.deactivate();
+      }
       
       // Tenter de récupérer l'utilisateur Notion (me)
       const user = await notionApi.users.me(apiKey);
@@ -77,6 +82,8 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
         <RotateCw size={16} className="animate-spin" />
       ) : testStatus === 'success' ? (
         <Check size={16} />
+      ) : testStatus === 'error' ? (
+        <XCircle size={16} />
       ) : (
         <RotateCw size={16} />
       )}
