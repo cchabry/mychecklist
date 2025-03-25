@@ -7,6 +7,7 @@ import { Info, RefreshCw, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { corsProxy } from '@/services/corsProxy';
 import { toast } from 'sonner';
+import { PUBLIC_CORS_PROXIES } from '@/services/corsProxy';
 
 /**
  * Page de diagnostics pour le système de proxy CORS
@@ -15,7 +16,16 @@ const CorsProxyDiagnostics: React.FC = () => {
   const [isTestingProxies, setIsTestingProxies] = useState(false);
   const [proxyResults, setProxyResults] = useState<Record<string, boolean>>({});
   const currentProxy = corsProxy.getCurrentProxy();
-  const availableProxies = corsProxy.getAvailableProxies();
+  
+  // On récupère les proxies depuis la constante exportée
+  // car getAvailableProxies n'existe pas dans le type CorsProxyService
+  const availableProxies = PUBLIC_CORS_PROXIES.map(url => ({
+    url,
+    name: url.split('/')[2] || url,
+    requiresActivation: url.includes('cors-anywhere.herokuapp.com'),
+    activationUrl: url.includes('cors-anywhere.herokuapp.com') ? 'https://cors-anywhere.herokuapp.com/corsdemo' : undefined,
+    instructions: url.includes('cors-anywhere.herokuapp.com') ? 'Visitez le lien et cliquez sur "Request temporary access to the demo server"' : undefined
+  }));
 
   // Test tous les proxies CORS disponibles
   const testAllProxies = async () => {
@@ -28,13 +38,14 @@ const CorsProxyDiagnostics: React.FC = () => {
     try {
       for (const proxy of availableProxies) {
         try {
-          const result = await corsProxy.testProxy(proxy, testToken);
-          results[proxy.name] = result.success;
+          // Dans l'API actuelle, testProxy retourne juste un booléen, pas un objet
+          const success = await corsProxy.testProxy(proxy.url, testToken);
+          results[proxy.name] = success;
           
-          if (result.success) {
+          if (success) {
             console.log(`✅ Proxy ${proxy.name} fonctionne`);
           } else {
-            console.log(`❌ Proxy ${proxy.name} ne fonctionne pas:`, result.error || result.statusCode);
+            console.log(`❌ Proxy ${proxy.name} ne fonctionne pas`);
           }
         } catch (error) {
           results[proxy.name] = false;
@@ -77,7 +88,7 @@ const CorsProxyDiagnostics: React.FC = () => {
               <p className="text-sm font-medium mb-1">Proxy actuel:</p>
               {currentProxy ? (
                 <Badge variant="outline" className="font-mono text-xs">
-                  {currentProxy.name} ({currentProxy.url})
+                  {currentProxy.url}
                 </Badge>
               ) : (
                 <Badge variant="destructive">Aucun proxy sélectionné</Badge>
@@ -88,7 +99,7 @@ const CorsProxyDiagnostics: React.FC = () => {
               <p className="text-sm font-medium mb-1">Proxies disponibles:</p>
               <div className="space-y-2">
                 {availableProxies.map(proxy => (
-                  <div key={proxy.name} className="flex items-center justify-between">
+                  <div key={proxy.url} className="flex items-center justify-between">
                     <span className="text-sm">{proxy.name}</span>
                     {proxyResults[proxy.name] !== undefined && (
                       <Badge variant={proxyResults[proxy.name] ? "success" : "destructive"}>
@@ -145,7 +156,7 @@ const CorsProxyDiagnostics: React.FC = () => {
                 {availableProxies
                   .filter(proxy => proxy.requiresActivation)
                   .map(proxy => (
-                    <li key={proxy.name} className="text-sm">
+                    <li key={proxy.url} className="text-sm">
                       {proxy.name} 
                       {proxy.activationUrl && (
                         <Button 
