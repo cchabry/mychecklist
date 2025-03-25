@@ -1,180 +1,169 @@
 
-import { CorsProxyState } from './types';
+import { CorsProxy, ProxyInfo, ProxyTestResult } from './types';
+import { availableProxies } from './proxyList';
 import { proxyStorage } from './proxyStorage';
-import { proxyTesting } from './proxyTesting';
-import { proxyUtils } from './proxyUtils';
-import { operationMode } from '@/services/operationMode';
+import { testProxyUrl } from './proxyTesting';
 
-// Clé de stockage localStorage
-export const PROXY_STORAGE_KEY = 'cors_proxy_state';
-
-/**
- * Service pour gérer les proxies CORS
- */
+// Service pour la gestion des proxy CORS
 class CorsProxyService {
-  private state: CorsProxyState = {
-    currentProxyIndex: 0,
-    lastWorkingProxyIndex: null,
-    selectedProxyUrl: null
-  };
-  
-  private listeners: Set<Function> = new Set();
+  private _currentProxy: ProxyInfo | null = null;
+  private _proxyTestsInProgress: boolean = false;
   
   constructor() {
-    proxyStorage.loadFromStorage(PROXY_STORAGE_KEY, (data) => {
-      this.state = { ...this.state, ...data };
-      console.log('État du proxy CORS chargé depuis localStorage:', this.state);
-    });
+    // Initialiser avec le proxy stocké ou le premier disponible
+    this._currentProxy = this.loadSavedProxy() || this.getDefaultProxy();
   }
   
-  /**
-   * Obtient le proxy CORS actuel
-   */
-  getCurrentProxy() {
-    return proxyUtils.getCurrentProxy(this.state);
-  }
-  
-  /**
-   * Récupère le proxy actuellement sélectionné
-   */
-  getSelectedProxy() {
-    return proxyUtils.getSelectedProxy(this.state);
-  }
-  
-  /**
-   * Définit le proxy à utiliser
-   */
-  setSelectedProxy(proxy) {
-    this.state.selectedProxyUrl = typeof proxy === 'string' ? proxy : proxy.url;
-    this.saveToStorage();
-    this.notifyListeners();
-    console.log(`Proxy sélectionné: ${this.state.selectedProxyUrl}`);
-  }
-  
-  /**
-   * Passe au proxy suivant
-   */
-  rotateProxy() {
-    const { newIndex, proxy } = proxyUtils.getNextProxy(this.state.currentProxyIndex);
-    this.state.currentProxyIndex = newIndex;
-    this.state.selectedProxyUrl = null; // Réinitialiser la sélection manuelle
-    this.saveToStorage();
-    this.notifyListeners();
-    
-    console.log(`Rotation du proxy vers: ${proxy.url}`);
-    return proxy;
-  }
-  
-  /**
-   * Construit l'URL complète avec le proxy CORS
-   */
-  buildProxyUrl(targetUrl) {
-    const currentProxy = this.getCurrentProxy();
-    return `${currentProxy.url}${encodeURIComponent(targetUrl)}`;
-  }
-  
-  /**
-   * Teste un proxy spécifique
-   */
-  async testProxy(proxy, token) {
-    const result = await proxyTesting.testProxy(proxy, token);
-    
-    if (result.success) {
-      // Mémoriser ce proxy comme fonctionnel
-      const { availableProxies } = proxyUtils;
-      this.state.lastWorkingProxyIndex = availableProxies.findIndex(p => 
-        p.url === (typeof proxy === 'string' ? proxy : proxy.url)
-      );
+  // Initialisation au démarrage
+  initialize() {
+    // Charger le proxy actuel
+    const savedProxy = this.loadSavedProxy();
+    if (savedProxy) {
+      console.log('🔄 Proxy CORS chargé depuis le stockage:', savedProxy);
+      this._currentProxy = savedProxy;
+    } else {
+      // Pas de proxy sauvegardé, utiliser le premier disponible
+      this._currentProxy = this.getDefaultProxy();
       
-      this.saveToStorage();
-      this.notifyListeners();
+      // Programmer un test de proxy en arrière-plan
+      setTimeout(() => this.findWorkingProxy(), 2000);
+    }
+  }
+  
+  // Obtenir le proxy actuel
+  getCurrentProxy(): ProxyInfo | null {
+    return this._currentProxy;
+  }
+  
+  // Définir manuellement le proxy actuel
+  setCurrentProxy(proxy: ProxyInfo) {
+    this._currentProxy = proxy;
+    this.saveProxyToStorage(proxy);
+  }
+  
+  // Charger le proxy sauvegardé
+  private loadSavedProxy(): ProxyInfo | null {
+    return proxyStorage.loadProxy();
+  }
+  
+  // Sauvegarder le proxy dans le stockage
+  private saveProxyToStorage(proxy: ProxyInfo) {
+    proxyStorage.saveProxy(proxy);
+  }
+  
+  // Obtenir le proxy par défaut
+  private getDefaultProxy(): ProxyInfo {
+    const enabledProxies = this.getEnabledProxies();
+    return enabledProxies.length > 0 
+      ? enabledProxies[0]
+      : { url: 'https://cors-anywhere.herokuapp.com/', lastTested: 0, success: false, latency: 0 };
+  }
+  
+  // Réinitialiser le cache des proxies
+  resetProxyCache() {
+    this._currentProxy = null;
+    proxyStorage.clearProxyCache();
+    
+    // Réinitialiser avec le proxy par défaut
+    this._currentProxy = this.getDefaultProxy();
+  }
+  
+  // Tester un proxy spécifique
+  async testProxy(proxyUrl: string, testToken?: string): Promise<ProxyTestResult> {
+    try {
+      const result = await testProxyUrl(proxyUrl, testToken);
+      
+      // Mettre à jour les informations du proxy si c'est le proxy actuel
+      if (this._currentProxy && this._currentProxy.url === proxyUrl) {
+        this._currentProxy = {
+          ...this._currentProxy,
+          lastTested: Date.now(),
+          success: result.success,
+          latency: result.success ? result.latency : this._currentProxy.latency
+        };
+        
+        // Sauvegarder les informations mises à jour
+        this.saveProxyToStorage(this._currentProxy);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error(`🔴 Erreur lors du test du proxy ${proxyUrl}:`, error);
+      return {
+        success: false,
+        latency: 0,
+        error: error.message
+      };
+    }
+  }
+  
+  // Trouver un proxy qui fonctionne
+  async findWorkingProxy(testToken?: string): Promise<ProxyInfo | null> {
+    // Éviter les tests simultanés
+    if (this._proxyTestsInProgress) {
+      console.log('🔄 Tests de proxy déjà en cours...');
+      return this._currentProxy;
     }
     
-    return result;
-  }
-  
-  /**
-   * Trouve un proxy qui fonctionne
-   */
-  async findWorkingProxy(token) {
-    return await proxyTesting.findWorkingProxy(token, this.state, (updatedState) => {
-      // Callback pour mettre à jour l'état
-      if (updatedState) {
-        this.state = { ...this.state, ...updatedState };
-        this.saveToStorage();
-        this.notifyListeners();
+    this._proxyTestsInProgress = true;
+    
+    try {
+      console.log('🔍 Recherche d\'un proxy CORS fonctionnel...');
+      
+      // Obtenir tous les proxies disponibles
+      const proxies = this.getEnabledProxies();
+      
+      if (proxies.length === 0) {
+        console.warn('⚠️ Aucun proxy CORS disponible');
+        return null;
       }
-    });
-  }
-  
-  /**
-   * Réinitialise l'état du service
-   */
-  resetProxyCache() {
-    console.log('corsProxyService.resetProxyCache() - Réinitialisation du cache');
-    this.state.lastWorkingProxyIndex = null;
-    this.state.selectedProxyUrl = null;
-    localStorage.removeItem('last_working_proxy');
-    this.saveToStorage();
-    this.notifyListeners();
-  }
-  
-  /**
-   * Obtient la liste des proxies disponibles
-   */
-  getAvailableProxies() {
-    return proxyUtils.getEnabledProxies();
-  }
-  
-  /**
-   * Obtient la liste des proxies activés
-   */
-  getEnabledProxies() {
-    return proxyUtils.getEnabledProxies();
-  }
-  
-  /**
-   * Vérifie si un proxy nécessite une activation
-   */
-  requiresActivation(proxyUrl) {
-    return proxyUtils.requiresActivation(proxyUrl);
-  }
-  
-  /**
-   * Obtient l'URL d'activation d'un proxy
-   */
-  getActivationUrl(proxyUrl) {
-    return proxyUtils.getActivationUrl(proxyUrl);
-  }
-  
-  /**
-   * Enregistre un écouteur pour les changements d'état
-   */
-  subscribe(listener) {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-  
-  /**
-   * Notifie tous les écouteurs d'un changement d'état
-   */
-  private notifyListeners() {
-    this.listeners.forEach(listener => {
-      try {
-        listener();
-      } catch (e) {
-        console.error('Erreur dans un écouteur de proxy', e);
+      
+      // Tester chaque proxy jusqu'à en trouver un qui fonctionne
+      for (const proxy of proxies) {
+        console.log(`🔄 Test du proxy: ${proxy.url}`);
+        
+        const result = await this.testProxy(proxy.url, testToken);
+        
+        if (result.success) {
+          console.log(`✅ Proxy fonctionnel trouvé: ${proxy.url} (latence: ${result.latency}ms)`);
+          
+          // Mettre à jour le proxy actuel
+          this._currentProxy = {
+            url: proxy.url,
+            lastTested: Date.now(),
+            success: true,
+            latency: result.latency
+          };
+          
+          // Sauvegarder le proxy fonctionnel
+          this.saveProxyToStorage(this._currentProxy);
+          
+          return this._currentProxy;
+        } else {
+          console.log(`❌ Proxy non fonctionnel: ${proxy.url} (${result.error || 'erreur inconnue'})`);
+        }
       }
-    });
+      
+      console.warn('⚠️ Aucun proxy CORS fonctionnel trouvé');
+      return null;
+    } catch (error) {
+      console.error('🔴 Erreur lors de la recherche d\'un proxy:', error);
+      return null;
+    } finally {
+      this._proxyTestsInProgress = false;
+    }
   }
   
-  /**
-   * Sauvegarde l'état dans localStorage
-   */
-  private saveToStorage() {
-    proxyStorage.saveToStorage(PROXY_STORAGE_KEY, this.state);
+  // Obtenir la liste des proxies disponibles
+  getEnabledProxies(): ProxyInfo[] {
+    return availableProxies.filter(proxy => proxy.enabled).map(proxy => ({
+      url: proxy.url,
+      lastTested: 0,
+      success: false,
+      latency: 0
+    }));
   }
 }
 
-// Créer et exporter l'instance unique du service
+// Exporter une instance unique
 export const corsProxyService = new CorsProxyService();

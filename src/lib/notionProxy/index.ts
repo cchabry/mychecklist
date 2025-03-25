@@ -1,6 +1,7 @@
 
 import { notionApiRequest } from './proxyFetch';
 import { mockMode } from './mockMode';
+import { legacyApiAdapter, convertMethodToOptions } from './adapters';
 import * as actions from './endpoints/actions';
 import * as audits from './endpoints/audits';
 import * as checklist from './endpoints/checklist';
@@ -11,7 +12,6 @@ import * as pages from './endpoints/pages';
 import * as projects from './endpoints/projects';
 import * as samplePages from './endpoints/samplePages';
 import * as users from './endpoints/users';
-import { legacyApiAdapter } from './adapters';
 
 // Créer un API wrapper qui expose toutes les fonctions
 export const notionApi = {
@@ -32,19 +32,37 @@ export const notionApi = {
   pages,
   projects,
   samplePages,
-  users
+  users,
+  
+  // Méthodes de compatibilité pour les appellants existants
+  getProjects: () => projects.list(),
+  getProject: (id: string) => projects.retrieve(id),
+  createProject: (data: any) => projects.create(data),
+  updateProject: (id: string, data: any) => projects.update(id, data),
+  deleteProject: (id: string) => projects.delete(id),
+  
+  getAudit: (id: string) => audits.retrieve(id),
+  getAuditsByProject: (projectId: string) => audits.listByProject(projectId),
+  
+  createSamplePage: (data: any) => samplePages.create(data)
 };
 
 // Compatibilité avec les importations existantes
 export { notionApiRequest };
 export { mockMode };
-export * from './endpoints/actions';
-export * from './endpoints/audits';
-export * from './endpoints/checklist';
-export * from './endpoints/databases';
-export * from './endpoints/evaluations';
-export * from './endpoints/exigences';
-export * from './endpoints/pages';
-export * from './endpoints/projects';
-export * from './endpoints/samplePages';
-export * from './endpoints/users';
+export { legacyApiAdapter, convertMethodToOptions };
+
+// Exporter les types
+export type { ApiRequestContext } from './adapters';
+
+// Exporter de manière explicite pour éviter les ambiguïtés
+export { actions };
+export { audits };
+export { checklist };
+export { databases };
+export { evaluations };
+export { exigences };
+export { pages };
+export { projects };
+export { samplePages };
+export { users };

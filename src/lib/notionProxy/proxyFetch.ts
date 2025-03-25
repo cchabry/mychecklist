@@ -1,223 +1,116 @@
 
-import { operationMode } from '@/services/operationMode';
 import { corsProxy } from '@/services/corsProxy';
 import { operationModeUtils } from '@/services/operationMode/operationModeUtils';
+import { ApiRequestContext } from './adapters';
+import { logError } from './errorHandling';
 
-// Types locales pour proxyFetch
-interface ApiRequestContext {
-  token?: string;
-  proxyUrl?: string;
-  [key: string]: any;
-}
-
-// Base URL de l'API Notion
-const NOTION_API_BASE = 'https://api.notion.com/v1';
+// URL de base de l'API Notion
+const NOTION_API_BASE_URL = 'https://api.notion.com/v1';
 
 /**
- * Utiliser l'API Notion directement (sans proxy)
+ * Fonction principale pour faire des requêtes à l'API Notion via un proxy CORS
+ * Version avec la nouvelle signature (3 arguments)
  */
-const useDirectApi = async (
-  endpoint: string,
-  options: RequestInit = {},
-  token?: string
-): Promise<Response> => {
-  const requestId = Math.random().toString(36).substring(2, 9);
-  console.log(`🔍 [${requestId}] useDirectApi - Appel direct à l'API Notion: ${endpoint}`);
-  
-  try {
-    // Récupérer les en-têtes d'origine
-    const originalHeaders = options.headers || {};
-    
-    // Ajouter les en-têtes Notion obligatoires
-    const headersWithAuth = {
-      ...originalHeaders,
-      'Content-Type': 'application/json',
-      'Notion-Version': '2022-06-28'
-    };
-    
-    // Récupérer l'API key depuis localStorage si non fournie
-    if (!headersWithAuth['Authorization'] && token) {
-      headersWithAuth['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-    }
-    
-    // Construire les options de requête
-    const requestOptions: RequestInit = {
-      ...options,
-      headers: headersWithAuth
-    };
-    
-    // Effectuer la requête
-    const response = await fetch(`${NOTION_API_BASE}${endpoint}`, requestOptions);
-    
-    console.log(`🔍 [${requestId}] useDirectApi - Statut de la réponse:`, response.status);
-    
-    return response;
-  } catch (error) {
-    console.error(`🔍 [${requestId}] useDirectApi - Erreur lors de la requête:`, error);
-    throw error;
-  }
-};
-
-/**
- * Utiliser le proxy CORS côté client
- */
-const useCorsProxy = async (
-  endpoint: string,
-  options: RequestInit = {},
-  context: ApiRequestContext
-): Promise<Response> => {
-  const requestId = Math.random().toString(36).substring(2, 9);
-  const token = localStorage.getItem('notion_api_key') || context.token;
-  console.log(`🔍 [${requestId}] useCorsProxy - Appel via proxy CORS: ${endpoint}`);
-  
-  try {
-    // Si on est en mode réel, utiliser le proxy CORS
-    if (!operationModeUtils.isMockActive()) {
-      // Si on est en mode démo, ne pas utiliser le proxy CORS
-      if (operationMode.isDemoMode) {
-        console.warn(`🔍 [${requestId}] useCorsProxy - Mode démo actif, requête directe à l'API`);
-        return await useDirectApi(endpoint, options, token);
-      }
-      
-      try {
-        // Détecter si on travaille avec une URL complète ou un endpoint relatif
-        const isFullUrl = endpoint.startsWith('http');
-        
-        let normalizedEndpoint = endpoint;
-        if (!isFullUrl) {
-          normalizedEndpoint = normalizedEndpoint.startsWith('/') 
-            ? normalizedEndpoint 
-            : `/${normalizedEndpoint}`;
-        }
-        
-        // Récupérer le proxy actuel
-        const currentProxy = corsProxy.getCurrentProxy();
-        if (!currentProxy) {
-          throw new Error('Aucun proxy CORS disponible');
-        }
-        
-        // Construction de l'URL avec le proxy
-        const targetUrl = `${NOTION_API_BASE}${normalizedEndpoint}`;
-        // Construire l'URL avec le proxy
-        const proxyUrl = `${currentProxy.url}${encodeURIComponent(targetUrl)}`;
-        
-        console.log(`🔍 [${requestId}] useCorsProxy - URL complète: ${proxyUrl}`);
-        
-        // Récupérer les en-têtes d'origine
-        const originalHeaders = options.headers || {};
-        
-        // Ajouter les en-têtes Notion obligatoires
-        const headersWithAuth = {
-          ...originalHeaders,
-          'Content-Type': 'application/json',
-          'Notion-Version': '2022-06-28'
-        };
-        
-        // Récupérer l'API key depuis localStorage si non fournie
-        if (!headersWithAuth['Authorization'] && token) {
-          headersWithAuth['Authorization'] = token.startsWith('Bearer ') 
-            ? token 
-            : `Bearer ${token}`;
-        }
-        
-        // Construire les options de requête
-        const requestOptions: RequestInit = {
-          ...options,
-          headers: headersWithAuth
-        };
-        
-        // Effectuer la requête à travers le proxy
-        const response = await fetch(proxyUrl, requestOptions);
-        
-        console.log(`🔍 [${requestId}] useCorsProxy - Statut de la réponse:`, response.status);
-        
-        // Si la requête réussit, notifier le système d'opération
-        if (response.ok) {
-          operationMode.handleSuccessfulOperation();
-        } 
-        // Gérer les erreurs courantes
-        else {
-          const statusText = response.statusText;
-          
-          // En cas d'erreur 403, essayer de changer de proxy pour la prochaine fois
-          if (response.status === 403) {
-            console.warn(`🔍 [${requestId}] useCorsProxy - Erreur 403, rotation du proxy pour la prochaine requête`);
-            // Utiliser la première proxy disponible pour la prochaine fois
-            if (corsProxy.getEnabledProxies) {
-              corsProxy.setSelectedProxy(corsProxy.getEnabledProxies()[0]?.url || '');
-            }
-          }
-          
-          throw new Error(`Erreur HTTP ${response.status} ${statusText ? `(${statusText})` : ''}`);
-        }
-        
-        return response;
-      } catch (error) {
-        // En cas d'erreur, logger et rethrow
-        console.error(`Erreur lors de la requête via proxy CORS`, error);
-        throw error;
-      }
-    }
-    
-    // En mode mock, simuler une réponse
-    console.warn(`🔍 [${requestId}] useCorsProxy - Requête en mode mock`);
-    return new Response(JSON.stringify({
-      "object": "error",
-      "status": 400,
-      "code": "mocked_response",
-      "message": "Réponse simulée en mode mock"
-    }), {
-      status: 400,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    // En cas d'erreur, logger et rethrow
-    console.error(`Erreur globale lors de la requête proxy`, error);
-    throw error;
-  }
-};
-
-/**
- * Requête à l'API Notion avec proxy
- */
-export const notionApiRequest = async (
+export async function notionApiRequest(
   endpoint: string,
   options: RequestInit = {},
   context: ApiRequestContext = {}
-): Promise<any> => {
-  const requestId = Math.random().toString(36).substring(2, 9);
-  console.log(`🔍 [${requestId}] notionApiRequest - Requête à l'API Notion: ${endpoint}`);
-  
+): Promise<any> {
   try {
-    // Utiliser le proxy CORS
-    const response = await useCorsProxy(endpoint, options, context);
+    // Récupérer le token depuis le contexte
+    const token = context.token || localStorage.getItem('notion_api_key');
+    
+    // Vérifier si nous sommes en mode mock
+    if (operationModeUtils.isMockActive()) {
+      console.log(`🔶 Mock mode actif: simulation de requête ${options.method || 'GET'} ${endpoint}`);
+      
+      // Dans un scénario réel, nous aurions ici une logique de mock
+      // qui retournerait des données simulées en fonction de l'endpoint
+      
+      // Attendre un peu pour simuler une latence réseau
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      return { success: true, mock: true };
+    }
+    
+    // Construire l'URL complète en s'assurant qu'elle n'a pas de double slash
+    const apiEndpoint = endpoint.startsWith('/')
+      ? `${NOTION_API_BASE_URL}${endpoint}`
+      : `${NOTION_API_BASE_URL}/${endpoint}`;
+    
+    // Récupérer le proxy actuel
+    const currentProxy = corsProxy.getCurrentProxy();
+    
+    if (!currentProxy) {
+      throw new Error("Aucun proxy CORS n'est disponible. Veuillez configurer un proxy.");
+    }
+    
+    // Construire l'URL avec le proxy
+    const proxyUrl = `${currentProxy.url}${apiEndpoint}`;
+    
+    // Préparer les headers
+    const headers = {
+      'Accept': 'application/json',
+      'Notion-Version': '2022-06-28',
+      ...(options.headers || {})
+    };
+    
+    // Ajouter l'authentification si un token est fourni
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Options de la requête
+    const requestOptions: RequestInit = {
+      ...options,
+      headers
+    };
+    
+    // Exécuter la requête
+    const response = await fetch(proxyUrl, requestOptions);
     
     // Vérifier si la réponse est OK
     if (!response.ok) {
-      console.error(`🔍 [${requestId}] notionApiRequest - Erreur de réponse:`, response.status, response.statusText);
+      // Essayer de lire le message d'erreur
+      const errorText = await response.text();
       
-      // Tenter de lire le corps de la réponse pour plus d'informations
-      let errorBody;
+      let errorMessage;
       try {
-        errorBody = await response.json();
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorText;
       } catch (e) {
-        console.warn(`🔍 [${requestId}] notionApiRequest - Impossible de lire le corps de la réponse`);
+        errorMessage = errorText || `HTTP ${response.status}`;
       }
       
-      // Lancer une erreur avec des détails
-      throw new Error(`Erreur ${response.status}: ${response.statusText} ${errorBody ? JSON.stringify(errorBody) : ''}`);
+      throw new Error(`Notion API error: ${errorMessage}`);
     }
     
-    // Parse la réponse JSON
-    const data = await response.json();
-    
-    console.log(`🔍 [${requestId}] notionApiRequest - Réponse reçue:`, data);
-    
-    return data;
+    // Traiter la réponse JSON
+    const result = await response.json();
+    return result;
   } catch (error) {
-    console.error(`🔍 [${requestId}] notionApiRequest - Erreur lors de la requête:`, error);
+    // Journaliser l'erreur
+    logError(error, `API Request (${endpoint})`);
+    
+    // Gérer l'erreur de fallback proxy
+    if (error.message.includes('proxy') || error.message.includes('Failed to fetch')) {
+      console.log('🔄 Tentative de trouver un proxy alternatif...');
+      
+      // Obtenir tous les proxies disponibles
+      const availableProxies = corsProxy.getEnabledProxies();
+      
+      if (availableProxies.length > 1 && availableProxies.length > corsProxy.getEnabledProxies().indexOf(corsProxy.getCurrentProxy())) {
+        // Choisir le prochain proxy dans la liste
+        corsProxy.findWorkingProxy();
+        
+        // Retenter la requête après un court délai
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        console.log('🔄 Nouvel essai avec un proxy différent');
+        return notionApiRequest(endpoint, options, context);
+      }
+    }
+    
     throw error;
   }
-};
+}

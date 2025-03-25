@@ -1,117 +1,96 @@
 
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { NotionErrorType } from '@/lib/notionProxy/errorHandling';
+import { NotionErrorType } from '@/services/notion/errorHandling';
 
-interface NotionErrorDetails {
-  message: string;
+/**
+ * Type pour les détails d'erreur Notion
+ */
+export interface NotionErrorDetails {
+  show: boolean;
+  error: string;
   context?: string;
-  timestamp: number;
-  stack?: string;
-  type: NotionErrorType;
+  timestamp?: number;
+  type?: NotionErrorType;
 }
 
 /**
- * Hook pour la gestion centralisée des erreurs de l'API Notion
+ * Hook pour gérer les erreurs liées à Notion
  */
-export function useNotionError() {
-  const [errorDetails, setErrorDetails] = useState<NotionErrorDetails | null>(null);
-  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
-
+export const useNotionError = () => {
+  // État pour les détails de l'erreur
+  const [notionErrorDetails, setNotionErrorDetails] = useState<NotionErrorDetails | null>(null);
+  
   /**
-   * Affiche une erreur dans l'UI et l'enregistre dans l'état
+   * Détermine le type d'erreur Notion à partir du message
    */
-  const showError = useCallback((error: Error, context?: string) => {
-    console.error(`Erreur Notion ${context ? `(${context})` : ''}:`, error);
+  const categorizeNotionError = useCallback((errorMessage: string): NotionErrorType => {
+    const lowerMessage = errorMessage.toLowerCase();
     
-    // Déterminer le type d'erreur
-    let type: NotionErrorType;
-    if (error.message.toLowerCase().includes('auth')) {
-      type = NotionErrorType.AUTHENTICATION;
-    } else if (error.message.toLowerCase().includes('permission')) {
-      type = NotionErrorType.PERMISSIONS;
-    } else if (error.message.toLowerCase().includes('not found')) {
-      type = NotionErrorType.NOT_FOUND;
-    } else if (error.message.toLowerCase().includes('network')) {
-      type = NotionErrorType.CONNECTION;
-    } else if (error.message.toLowerCase().includes('timeout')) {
-      type = NotionErrorType.TIMEOUT;
-    } else if (error.message.toLowerCase().includes('cors')) {
-      type = NotionErrorType.CONNECTION;
-    } else {
-      type = NotionErrorType.UNKNOWN;
+    if (lowerMessage.includes('authenticate') || lowerMessage.includes('token') || lowerMessage.includes('authorization')) {
+      return NotionErrorType.AUTH;
     }
     
-    // Créer l'objet d'erreur
-    const errorInfo: NotionErrorDetails = {
-      message: error.message || 'Erreur inconnue',
+    if (lowerMessage.includes('permission') || lowerMessage.includes('access denied')) {
+      return NotionErrorType.PERMISSION;
+    }
+    
+    if (lowerMessage.includes('not found') || lowerMessage.includes('does not exist')) {
+      return NotionErrorType.NOT_FOUND;
+    }
+    
+    if (lowerMessage.includes('network') || lowerMessage.includes('failed to fetch')) {
+      return NotionErrorType.NETWORK;
+    }
+    
+    if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+      return NotionErrorType.TIMEOUT;
+    }
+    
+    if (lowerMessage.includes('cors') || lowerMessage.includes('origin')) {
+      return NotionErrorType.CORS;
+    }
+    
+    return NotionErrorType.UNKNOWN;
+  }, []);
+  
+  /**
+   * Capture et traite une erreur Notion
+   */
+  const captureNotionError = useCallback((error: Error | string, context?: string) => {
+    const errorMessage = typeof error === 'string' ? error : error.message;
+    const errorType = categorizeNotionError(errorMessage);
+    
+    setNotionErrorDetails({
+      show: true,
+      error: errorMessage,
       context,
       timestamp: Date.now(),
-      stack: error.stack,
-      type
-    };
-    
-    // Mettre à jour l'état
-    setErrorDetails(errorInfo);
-    
-    // Afficher un toast d'erreur
-    toast.error(`Erreur Notion${context ? ` (${context})` : ''}`, {
-      description: error.message || 'Une erreur s\'est produite lors de la communication avec Notion'
+      type: errorType
     });
     
-    // Stocker l'erreur dans localStorage pour référence
-    try {
-      localStorage.setItem('notion_last_error', JSON.stringify(errorInfo));
-    } catch (e) {
-      // Ignorer les erreurs de stockage
-    }
-    
-    return errorInfo;
-  }, []);
-
+    return errorType;
+  }, [categorizeNotionError]);
+  
   /**
-   * Efface l'erreur actuelle
+   * Masque l'erreur Notion actuelle
    */
-  const clearError = useCallback(() => {
-    setErrorDetails(null);
+  const hideNotionError = useCallback(() => {
+    setNotionErrorDetails(prev => prev ? { ...prev, show: false } : null);
   }, []);
-
+  
   /**
-   * Récupère la dernière erreur stockée
+   * Efface l'erreur Notion actuelle
    */
-  const getLastStoredError = useCallback((): NotionErrorDetails | null => {
-    try {
-      const stored = localStorage.getItem('notion_last_error');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {
-      // Ignorer les erreurs de parsing
-    }
-    return null;
+  const clearNotionError = useCallback(() => {
+    setNotionErrorDetails(null);
   }, []);
-
-  /**
-   * Ouvre la modal d'erreur
-   */
-  const openErrorModal = useCallback(() => {
-    setShowErrorModal(true);
-  }, []);
-
-  /**
-   * Ferme la modal d'erreur
-   */
-  const closeErrorModal = useCallback(() => {
-    setShowErrorModal(false);
-  }, []);
-
+  
   return {
-    errorDetails,
-    showError,
-    clearError,
-    getLastStoredError,
-    showErrorModal,
-    openErrorModal,
-    closeErrorModal
+    notionErrorDetails,
+    setNotionErrorDetails,
+    captureNotionError,
+    hideNotionError,
+    clearNotionError,
+    categorizeNotionError
   };
-}
+};

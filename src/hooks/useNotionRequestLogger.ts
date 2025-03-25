@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { notionRequestLogger } from '@/services/notion/requestLogger';
 import { notionApi } from '@/lib/notionProxy';
+import { ApiRequestContext } from '@/lib/notionProxy/adapters';
 
 /**
  * Hook qui intercepte les requêtes Notion pour les journaliser
@@ -15,7 +16,7 @@ export const useNotionRequestLogger = () => {
     const interceptedRequest = async (
       endpoint: string,
       options: RequestInit = {},
-      context: any = {}
+      context: ApiRequestContext = {}
     ) => {
       // Déterminer la méthode à partir des options
       const method = options.method || 'GET';
