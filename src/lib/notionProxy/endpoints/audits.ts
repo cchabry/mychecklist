@@ -3,6 +3,7 @@ import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
 import { Audit } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { cleanAuditId } from '@/lib/utils';
 
 /**
  * Récupère tous les audits
@@ -142,14 +143,7 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
  */
 export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Audit> => {
   // Nettoyer l'ID si nécessaire (retirer les préfixes)
-  let cleanId = id;
-  if (id.startsWith('audit_') || id.startsWith('audit-')) {
-    const match = id.match(/(?:audit_|audit-)(.+)/);
-    if (match && match[1]) {
-      cleanId = match[1];
-      console.log(`ID d'audit nettoyé pour mise à jour: ${id} -> ${cleanId}`);
-    }
-  }
+  const cleanId = cleanAuditId(id);
 
   // Si nous sommes en mode démo, mettre à jour un faux audit
   if (operationMode.isDemoMode) {
@@ -213,14 +207,7 @@ export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Aud
  */
 export const deleteAudit = async (id: string): Promise<boolean> => {
   // Nettoyer l'ID si nécessaire
-  let cleanId = id;
-  if (id.startsWith('audit_') || id.startsWith('audit-')) {
-    const match = id.match(/(?:audit_|audit-)(.+)/);
-    if (match && match[1]) {
-      cleanId = match[1];
-      console.log(`ID d'audit nettoyé pour suppression: ${id} -> ${cleanId}`);
-    }
-  }
+  const cleanId = cleanAuditId(id);
 
   // Si nous sommes en mode démo, simuler une suppression
   if (operationMode.isDemoMode) {
@@ -256,14 +243,11 @@ export const deleteAudit = async (id: string): Promise<boolean> => {
  */
 export const getAudit = async (id: string): Promise<Audit | null> => {
   // Nettoyer l'ID si nécessaire
-  let cleanId = id;
-  if (id.startsWith('audit_') || id.startsWith('audit-')) {
+  const cleanId = cleanAuditId(id);
+  
+  if (id !== cleanId) {
     console.warn('ID d\'audit avec préfixe détecté, nettoyage pour l\'API Notion:', id);
-    const match = id.match(/(?:audit_|audit-)(.+)/);
-    if (match && match[1]) {
-      cleanId = match[1];
-      console.log(`ID d'audit nettoyé: ${id} -> ${cleanId}`);
-    }
+    console.log(`ID d'audit nettoyé: ${id} -> ${cleanId}`);
   }
   
   // Si nous sommes en mode démo, retourner un faux audit

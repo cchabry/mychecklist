@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Audit } from '@/lib/types';
 import { handleDemoMode } from './baseService';
 import { mockAudits } from '@/lib/mockData/index';
+import { cleanAuditId } from '@/lib/utils';
 
 class AuditsService {
   async getAll(): Promise<Audit[]> {
@@ -23,16 +24,8 @@ class AuditsService {
   }
 
   async getById(id: string): Promise<Audit | null> {
-    // Si l'ID a un préfixe "audit_" ou "audit-", extraire l'UUID réel
-    let cleanId = id;
-    if (id.startsWith('audit_') || id.startsWith('audit-')) {
-      // Extraire l'UUID après le préfixe
-      const match = id.match(/(?:audit_|audit-)(.+)/);
-      if (match && match[1]) {
-        cleanId = match[1];
-        console.log(`ID d'audit nettoyé de préfixe: ${id} -> ${cleanId}`);
-      }
-    }
+    // S'assurer que l'ID est nettoyé de tout préfixe
+    const cleanId = cleanAuditId(id);
     
     return handleDemoMode<Audit | null>(
       async () => {
@@ -98,10 +91,13 @@ class AuditsService {
   }
 
   async update(id: string, data: Partial<Audit>): Promise<Audit> {
+    // S'assurer que l'ID est nettoyé de tout préfixe
+    const cleanId = cleanAuditId(id);
+    
     return handleDemoMode<Audit>(
       async () => {
         // Implémentation réelle qui enverrait les données à l'API
-        const response = await fetch(`/api/audits/${id}`, {
+        const response = await fetch(`/api/audits/${cleanId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -115,7 +111,7 @@ class AuditsService {
       },
       async () => {
         // Mettre à jour un audit mocké en mode démo
-        const audit = mockAudits.find(audit => audit.id === id);
+        const audit = mockAudits.find(audit => audit.id === id || audit.id === cleanId);
         if (!audit) {
           throw new Error(`Audit with id ${id} not found`);
         }
@@ -127,10 +123,13 @@ class AuditsService {
   }
 
   async delete(id: string): Promise<boolean> {
+    // S'assurer que l'ID est nettoyé de tout préfixe
+    const cleanId = cleanAuditId(id);
+    
     return handleDemoMode<boolean>(
       async () => {
         // Implémentation réelle qui enverrait la requête à l'API
-        const response = await fetch(`/api/audits/${id}`, {
+        const response = await fetch(`/api/audits/${cleanId}`, {
           method: 'DELETE',
         });
         if (!response.ok) {
@@ -140,7 +139,7 @@ class AuditsService {
       },
       async () => {
         // Simuler la suppression en mode démo
-        const audit = mockAudits.find(audit => audit.id === id);
+        const audit = mockAudits.find(audit => audit.id === id || audit.id === cleanId);
         if (!audit) {
           throw new Error(`Audit with id ${id} not found`);
         }

@@ -1,5 +1,16 @@
 
 /**
+ * Utilitaire pour fusionner des classes Tailwind conditionnellement
+ * Utilisé principalement par les composants shadcn/ui
+ */
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+/**
  * Nettoie l'ID d'un audit en retirant les préfixes "audit_" ou "audit-"
  * @param id Identifiant d'audit possiblement préfixé
  * @returns Identifiant d'audit nettoyé
@@ -30,17 +41,6 @@ export function cleanProjectId(id?: string): string {
   
   // Retirer les guillemets si présents
   return id.replace(/"/g, '');
-}
-
-/**
- * Utilitaire pour fusionner des classes Tailwind conditionnellement
- * Utilisé principalement par les composants shadcn/ui
- */
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
 }
 
 /**
