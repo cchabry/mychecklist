@@ -4,8 +4,6 @@ import { Audit, ActionStatus } from '@/lib/types';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
-import { corsProxy } from '@/services/corsProxy';
-import { useStructuredLogger } from './notion/useStructuredLogger';
 
 /**
  * Hook pour récupérer et enrichir les audits associés à un projet
@@ -14,8 +12,7 @@ export function useProjectAudits(projectId: string) {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { isDemoMode } = useOperationMode();
-  const { info, error: logError } = useStructuredLogger();
+  const { isDemoMode, enableDemoMode } = useOperationMode();
   
   useEffect(() => {
     if (!projectId) {
@@ -28,15 +25,14 @@ export function useProjectAudits(projectId: string) {
       setError(null);
       
       try {
-        info(`Récupération des audits pour le projet: ${projectId}`);
+        console.log(`Récupération des audits pour le projet: ${projectId}`);
         
         // Vérifier si nous avons tous les éléments nécessaires pour la requête Notion
         const apiKey = localStorage.getItem('notion_api_key');
         const dbId = localStorage.getItem('notion_database_id');
         
         if (!apiKey || !dbId) {
-          // Utiliser des données de démo si la configuration Notion est incomplète
-          logError('Configuration Notion incomplète pour récupérer les audits', { projectId });
+          console.log('Configuration Notion incomplète pour récupérer les audits', { projectId });
           
           if (!isDemoMode) {
             // Si nous ne sommes pas en mode démo, afficher un toast
@@ -46,15 +42,14 @@ export function useProjectAudits(projectId: string) {
           }
           
           // Utiliser un tableau vide comme fallback
-          const enrichedAudits: Audit[] = [];
-          setAudits(enrichedAudits);
+          setAudits([]);
           setIsLoading(false);
           return;
         }
         
         // Si nous sommes en mode démo, utiliser des données simulées
         if (isDemoMode) {
-          info(`Mode démo actif pour le projet ${projectId}, utilisation de données simulées`);
+          console.log(`Mode démo actif pour le projet ${projectId}, utilisation de données simulées`);
           
           // Simuler un délai et retourner des données mockées
           setTimeout(() => {
@@ -73,7 +68,8 @@ export function useProjectAudits(projectId: string) {
                 [ActionStatus.ToDo]: Math.floor(Math.random() * 10),
                 [ActionStatus.InProgress]: Math.floor(Math.random() * 5),
                 [ActionStatus.Done]: Math.floor(Math.random() * 5)
-              }
+              },
+              actions: []
             }));
             
             setAudits(mockAudits);
@@ -82,15 +78,8 @@ export function useProjectAudits(projectId: string) {
           return;
         }
         
-        // Mode réel - récupérer les audits depuis Notion via le proxy CORS configuré
+        // Mode réel - récupérer les audits depuis Notion via la fonction Netlify
         try {
-          // S'assurer que le proxy CORS est configuré
-          const proxy = corsProxy.getCurrentProxy();
-          if (!proxy) {
-            await corsProxy.findWorkingProxy(apiKey);
-          }
-          
-          // Utiliser l'API Notion pour récupérer les audits
           const fetchedAudits = await notionApi.getAuditsByProject(projectId);
           
           // Enrichir les audits avec les propriétés nécessaires pour les cartes
@@ -104,7 +93,7 @@ export function useProjectAudits(projectId: string) {
             };
             
             // Utiliser des valeurs par défaut si les propriétés sont manquantes
-            const actionsFromAudit = Array.isArray(audit.actions) ? audit.actions : [];
+            const actionsFromAudit = audit.actions ? audit.actions : [];
             
             return {
               ...audit,
@@ -122,10 +111,13 @@ export function useProjectAudits(projectId: string) {
             };
           });
           
-          info(`${enrichedAudits.length} audits récupérés pour le projet ${projectId}`);
+          console.log(`${enrichedAudits.length} audits récupérés pour le projet ${projectId}`);
           setAudits(enrichedAudits);
         } catch (notionErr) {
-          logError(`Erreur Notion lors de la récupération des audits`, notionErr);
+          console.error(`Erreur Notion lors de la récupération des audits`, notionErr);
+          
+          // Passer en mode démo si une erreur se produit
+          enableDemoMode('Erreur lors de la récupération des audits');
           
           // Utiliser un tableau vide comme fallback
           setAudits([]);
@@ -135,7 +127,7 @@ export function useProjectAudits(projectId: string) {
         }
       } catch (err) {
         const errorInstance = err instanceof Error ? err : new Error(String(err));
-        logError(`Erreur lors de la récupération des audits pour le projet ${projectId}:`, errorInstance);
+        console.error(`Erreur lors de la récupération des audits pour le projet ${projectId}:`, errorInstance);
         
         setError(errorInstance);
         
@@ -154,7 +146,7 @@ export function useProjectAudits(projectId: string) {
     };
     
     fetchAudits();
-  }, [projectId, isDemoMode, info, logError]);
+  }, [projectId, isDemoMode, enableDemoMode]);
   
   return { audits, isLoading, error };
 }

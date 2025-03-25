@@ -11,18 +11,8 @@
   status = 200
 
 [[redirects]]
-  from = "/api/notion-proxy/*"
-  to = "/.netlify/functions/notion-proxy"
-  status = 200
-
-[[redirects]]
-  from = "/api/ping"
-  to = "/.netlify/functions/ping"
-  status = 200
-
-[[redirects]]
-  from = "/api/netlify-debug"
-  to = "/.netlify/functions/netlify-debug"
+  from = "/*"
+  to = "/index.html"
   status = 200
 
 # Configuration CORS headers
