@@ -1,6 +1,7 @@
 
 import React, { ReactNode } from 'react';
 import Header from '@/components/Header';
+import NotionRequestLogger from '@/components/notion/NotionRequestLogger';
 
 interface AuditLayoutProps {
   children: ReactNode;
@@ -20,11 +21,13 @@ const AuditLayout: React.FC<AuditLayoutProps> = ({
         {children}
       </main>
       
-      <footer className="bg-gray-50 border-t py-4">
+      <footer className="bg-gray-50 border-t py-4 mb-8">
         <div className="container max-w-screen-xl mx-auto px-4 text-center text-sm text-gray-500">
           Prototype de démonstration - Les données sont fictives
         </div>
       </footer>
+      
+      <NotionRequestLogger />
     </div>
   );
 };

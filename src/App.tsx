@@ -17,6 +17,13 @@ import ConfigPage from '@/pages/ConfigPage';
 
 // Provider pour les services Notion
 import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
+import { useNotionRequestLogger } from '@/hooks/useNotionRequestLogger';
+
+// Composant pour activer le logger de requêtes
+const NotionRequestLoggerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useNotionRequestLogger();
+  return <>{children}</>;
+};
 
 /**
  * Point d'entrée principal de l'application
@@ -25,37 +32,39 @@ import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
 function App() {
   return (
     <NotionServiceProvider>
-      <Router>
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Page d'accueil - Dashboard */}
-          <Route path="/" element={<Dashboard />} />
-          
-          {/* Gestion des projets */}
-          <Route path="/project/new" element={<NewProject />} />
-          <Route path="/project/edit/:id" element={<EditProject />} />
-          
-          {/* Audits */}
-          <Route path="/audit/:projectId" element={<ProjectAudit />} />
-          <Route path="/audit/:projectId/:auditId" element={<ProjectAudit />} />
-          <Route path="/audit/new/:projectId" element={<NewAuditPage />} />
-          
-          {/* Configuration Notion */}
-          <Route path="/notion-config" element={<NotionConfig />} />
-          
-          {/* Configuration du Mode Opérationnel */}
-          <Route path="/config" element={<ConfigPage />} />
-          
-          {/* Pages d'erreur */}
-          <Route path="/error/:errorType" element={<ErrorPage />} />
-          
-          {/* Page 404 */}
-          <Route path="*" element={<NotFound />} />
-          
-          {/* Exigences */}
-          <Route path="/project/:projectId/exigences" element={<ConfigureExigences />} />
-        </Routes>
-      </Router>
+      <NotionRequestLoggerProvider>
+        <Router>
+          <Toaster position="top-right" />
+          <Routes>
+            {/* Page d'accueil - Dashboard */}
+            <Route path="/" element={<Dashboard />} />
+            
+            {/* Gestion des projets */}
+            <Route path="/project/new" element={<NewProject />} />
+            <Route path="/project/edit/:id" element={<EditProject />} />
+            
+            {/* Audits */}
+            <Route path="/audit/:projectId" element={<ProjectAudit />} />
+            <Route path="/audit/:projectId/:auditId" element={<ProjectAudit />} />
+            <Route path="/audit/new/:projectId" element={<NewAuditPage />} />
+            
+            {/* Configuration Notion */}
+            <Route path="/notion-config" element={<NotionConfig />} />
+            
+            {/* Configuration du Mode Opérationnel */}
+            <Route path="/config" element={<ConfigPage />} />
+            
+            {/* Pages d'erreur */}
+            <Route path="/error/:errorType" element={<ErrorPage />} />
+            
+            {/* Page 404 */}
+            <Route path="*" element={<NotFound />} />
+            
+            {/* Exigences */}
+            <Route path="/project/:projectId/exigences" element={<ConfigureExigences />} />
+          </Routes>
+        </Router>
+      </NotionRequestLoggerProvider>
     </NotionServiceProvider>
   );
 }
