@@ -48,7 +48,8 @@ export enum NotionErrorType {
   VALIDATION = 'validation',
   RATE_LIMIT = 'rate_limit',
   INTERNAL = 'internal',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
+  TIMEOUT = 'timeout'
 }
 
 // Fonction pour gérer les erreurs Notion

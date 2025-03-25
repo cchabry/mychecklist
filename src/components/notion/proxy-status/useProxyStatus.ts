@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { corsProxy } from '@/services/corsProxy';
+import { CorsProxy, ProxyTestResult } from '@/services/corsProxy/types';
 
 // Type définition pour le statut du proxy
 export type ProxyStatus = {
@@ -33,16 +34,16 @@ export function useProxyStatus() {
     try {
       // Vérifier si un proxy est configuré
       const currentProxy = corsProxy.getCurrentProxy();
-      const availableProxies = corsProxy.getVisibleProxies().length > 0;
+      const availableProxies = corsProxy.getEnabledProxies().length > 0;
       
       // Test du proxy actuel si disponible
       if (currentProxy) {
-        const testResult = await corsProxy.testProxy(currentProxy);
+        const testResult = await corsProxy.testProxy(currentProxy.url, "test_token");
         
         setProxyStatus({
           active: testResult.success,
           available: availableProxies,
-          currentProxy: currentProxy,
+          currentProxy: currentProxy.url,
           lastTested: Date.now(),
           error: testResult.success ? undefined : testResult.error
         });
@@ -74,22 +75,22 @@ export function useProxyStatus() {
     setChecking(true);
     
     try {
-      const result = await corsProxy.findBestProxy();
+      const result = await corsProxy.findWorkingProxy("test_token");
       
-      if (result.success) {
+      if (result) {
         setProxyStatus({
           active: true,
           available: true,
-          currentProxy: result.proxy,
+          currentProxy: result.url,
           lastTested: Date.now()
         });
       } else {
         setProxyStatus({
           active: false,
-          available: corsProxy.getVisibleProxies().length > 0,
-          currentProxy: corsProxy.getCurrentProxy(),
+          available: corsProxy.getEnabledProxies().length > 0,
+          currentProxy: corsProxy.getCurrentProxy()?.url || null,
           lastTested: Date.now(),
-          error: result.error || 'Impossible de trouver un proxy fonctionnel'
+          error: 'Impossible de trouver un proxy fonctionnel'
         });
       }
     } catch (error) {
@@ -109,7 +110,7 @@ export function useProxyStatus() {
       
       setProxyStatus({
         active: false,
-        available: corsProxy.getVisibleProxies().length > 0,
+        available: corsProxy.getEnabledProxies().length > 0,
         currentProxy: null,
         lastTested: Date.now()
       });

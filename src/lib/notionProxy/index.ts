@@ -1,63 +1,50 @@
 
-// Importer tous les endpoints de l'API
-import * as users from './endpoints/users';
+import { notionApiRequest } from './proxyFetch';
+import { mockMode } from './mockMode';
+import * as actions from './endpoints/actions';
+import * as audits from './endpoints/audits';
+import * as checklist from './endpoints/checklist';
 import * as databases from './endpoints/databases';
+import * as evaluations from './endpoints/evaluations';
+import * as exigences from './endpoints/exigences';
 import * as pages from './endpoints/pages';
 import * as projects from './endpoints/projects';
-import * as checklist from './endpoints/checklist';
-import * as exigences from './endpoints/exigences';
 import * as samplePages from './endpoints/samplePages';
-import * as audits from './endpoints/audits';
-import * as evaluations from './endpoints/evaluations';
-import * as actions from './endpoints/actions';
+import * as users from './endpoints/users';
+import { legacyApiAdapter } from './adapters';
 
-// Importer l'adaptateur mockMode
-import mockMode from './mock/mode';
-
-// Importer l'API Proxy
-import { notionApiRequest } from './proxyFetch';
-
-// Créer et exporter l'API Notion
+// Créer un API wrapper qui expose toutes les fonctions
 export const notionApi = {
-  // Fonction de base pour toutes les requêtes
+  // API de bas niveau
   request: notionApiRequest,
+  requestLegacy: legacyApiAdapter,
   
-  // Endpoints pour les utilisateurs
-  users,
-  
-  // Endpoints pour les bases de données
-  databases,
-  
-  // Endpoints pour les pages
-  pages,
-  
-  // Endpoints pour les projets
-  ...projects,
-  
-  // Endpoints pour les checklists
-  ...checklist,
-  
-  // Endpoints pour les exigences
-  ...exigences,
-  
-  // Endpoints pour les pages d'échantillon
-  ...samplePages,
-  
-  // Endpoints pour les audits
-  ...audits,
-  
-  // Endpoints pour les évaluations
-  ...evaluations,
-  
-  // Endpoints pour les actions correctives
-  ...actions,
-  
-  // Système de mode mock (pour compatibilité)
+  // Gestionnaire de mode mock
   mockMode,
   
-  // Méthode pour récupérer les audits par projet
-  getAuditsByProject: audits.getAuditsByProject
+  // Endpoints spécifiques
+  actions,
+  audits,
+  checklist,
+  databases,
+  evaluations,
+  exigences,
+  pages,
+  projects,
+  samplePages,
+  users
 };
 
-// Exporter par défaut
-export default notionApi;
+// Compatibilité avec les importations existantes
+export { notionApiRequest };
+export { mockMode };
+export * from './endpoints/actions';
+export * from './endpoints/audits';
+export * from './endpoints/checklist';
+export * from './endpoints/databases';
+export * from './endpoints/evaluations';
+export * from './endpoints/exigences';
+export * from './endpoints/pages';
+export * from './endpoints/projects';
+export * from './endpoints/samplePages';
+export * from './endpoints/users';

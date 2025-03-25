@@ -7,7 +7,7 @@ import { CorsProxy, ProxyTestResult } from './types';
  * Hook React pour interagir avec le service de proxy CORS
  */
 export function useCorsProxy() {
-  const [currentProxy, setCurrentProxy] = useState<CorsProxy>(corsProxyService.getCurrentProxy());
+  const [currentProxy, setCurrentProxy] = useState<CorsProxy | null>(corsProxyService.getCurrentProxy());
   const [availableProxies, setAvailableProxies] = useState<CorsProxy[]>(corsProxyService.getAvailableProxies());
   const [isTestingProxy, setIsTestingProxy] = useState<boolean>(false);
   const [lastTestResult, setLastTestResult] = useState<ProxyTestResult | null>(null);

@@ -143,8 +143,8 @@ const useCorsProxy = async (
           if (response.status === 403) {
             console.warn(`🔍 [${requestId}] useCorsProxy - Erreur 403, rotation du proxy pour la prochaine requête`);
             // Utiliser la première proxy disponible pour la prochaine fois
-            if (corsProxy.getAvailableProxies) {
-              corsProxy.setSelectedProxy(corsProxy.getAvailableProxies()[0]?.url || '');
+            if (corsProxy.getEnabledProxies) {
+              corsProxy.setSelectedProxy(corsProxy.getEnabledProxies()[0]?.url || '');
             }
           }
           
@@ -221,4 +221,3 @@ export const notionApiRequest = async (
     throw error;
   }
 };
-

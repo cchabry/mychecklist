@@ -14,17 +14,19 @@ export const useNotionRequestLogger = () => {
     // Fonction d'interception
     const interceptedRequest = async (
       endpoint: string,
-      method: string = 'GET',
-      body?: any,
-      token?: string
+      options: RequestInit = {},
+      context: any = {}
     ) => {
+      // Déterminer la méthode à partir des options
+      const method = options.method || 'GET';
+      
       // Enregistrer le début de la requête
       const requestId = notionRequestLogger.logRequest(endpoint, method);
       const startTime = performance.now();
       
       try {
         // Exécuter la requête originale
-        const response = await originalRequest(endpoint, method, body, token);
+        const response = await originalRequest(endpoint, options, context);
         
         // Calculer le temps de réponse
         const responseTime = Math.round(performance.now() - startTime);

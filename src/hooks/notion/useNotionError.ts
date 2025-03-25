@@ -25,12 +25,22 @@ export function useNotionError() {
     console.error(`Erreur Notion ${context ? `(${context})` : ''}:`, error);
     
     // Déterminer le type d'erreur
-    const type: NotionErrorType = error.message.toLowerCase().includes('auth') ? 'auth' :
-                                  error.message.toLowerCase().includes('permission') ? 'permission' :
-                                  error.message.toLowerCase().includes('not found') ? 'notFound' :
-                                  error.message.toLowerCase().includes('network') ? 'network' :
-                                  error.message.toLowerCase().includes('timeout') ? 'timeout' :
-                                  error.message.toLowerCase().includes('cors') ? 'cors' : 'unknown';
+    let type: NotionErrorType;
+    if (error.message.toLowerCase().includes('auth')) {
+      type = NotionErrorType.AUTHENTICATION;
+    } else if (error.message.toLowerCase().includes('permission')) {
+      type = NotionErrorType.PERMISSIONS;
+    } else if (error.message.toLowerCase().includes('not found')) {
+      type = NotionErrorType.NOT_FOUND;
+    } else if (error.message.toLowerCase().includes('network')) {
+      type = NotionErrorType.CONNECTION;
+    } else if (error.message.toLowerCase().includes('timeout')) {
+      type = NotionErrorType.TIMEOUT;
+    } else if (error.message.toLowerCase().includes('cors')) {
+      type = NotionErrorType.CONNECTION;
+    } else {
+      type = NotionErrorType.UNKNOWN;
+    }
     
     // Créer l'objet d'erreur
     const errorInfo: NotionErrorDetails = {

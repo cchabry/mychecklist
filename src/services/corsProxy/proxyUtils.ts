@@ -1,63 +1,75 @@
 
-import { CorsProxy, CorsProxyState } from './types';
-import { availableProxies, getEnabledProxies } from './proxyList';
+import { CorsProxyState, CorsProxy } from './types';
+import { availableProxies } from './proxyList';
 
 /**
- * Utilitaires pour les opérations sur les proxies
+ * Utilitaires pour les proxies CORS
  */
 export const proxyUtils = {
+  // Proxies disponibles
   availableProxies,
   
   /**
-   * Obtient la liste des proxies activés
+   * Obtient les proxies activés
    */
-  getEnabledProxies(): CorsProxy[] {
-    return getEnabledProxies();
+  getEnabledProxies: (): CorsProxy[] => {
+    return availableProxies.filter(proxy => proxy.enabled);
   },
   
   /**
-   * Obtient le proxy CORS actuel
+   * Méthode de compatibilité pour obtenir tous les proxies visibles
    */
-  getCurrentProxy(state: CorsProxyState): CorsProxy {
-    const enabledProxies = getEnabledProxies();
-    if (enabledProxies.length === 0) {
-      throw new Error('Aucun proxy CORS disponible.');
-    }
-    
-    // Si un proxy spécifique est sélectionné, l'utiliser
+  getVisibleProxies: (): CorsProxy[] => {
+    return proxyUtils.getEnabledProxies();
+  },
+  
+  /**
+   * Obtient le proxy actuel
+   */
+  getCurrentProxy: (state: CorsProxyState): CorsProxy | null => {
+    // Si un proxy est explicitement sélectionné, l'utiliser
     if (state.selectedProxyUrl) {
-      const selectedProxy = availableProxies.find(p => p.url === state.selectedProxyUrl);
-      if (selectedProxy && selectedProxy.enabled) {
-        return selectedProxy;
+      const selected = availableProxies.find(p => p.url === state.selectedProxyUrl);
+      if (selected && selected.enabled) {
+        return selected;
       }
     }
     
-    // Utiliser le dernier proxy qui a fonctionné s'il existe
+    // Si un dernier proxy fonctionnel est stocké, l'utiliser
     if (state.lastWorkingProxyIndex !== null) {
-      return availableProxies[state.lastWorkingProxyIndex];
+      const enabledProxies = proxyUtils.getEnabledProxies();
+      if (enabledProxies.length > 0 && state.lastWorkingProxyIndex < enabledProxies.length) {
+        return enabledProxies[state.lastWorkingProxyIndex];
+      }
     }
     
-    return enabledProxies[state.currentProxyIndex % enabledProxies.length];
-  },
-  
-  /**
-   * Récupère le proxy actuellement sélectionné
-   */
-  getSelectedProxy(state: CorsProxyState): CorsProxy | null {
-    if (state.selectedProxyUrl) {
-      const proxy = availableProxies.find(p => p.url === state.selectedProxyUrl);
-      return proxy || null;
+    // Utiliser le proxy courant selon l'index
+    const enabledProxies = proxyUtils.getEnabledProxies();
+    if (enabledProxies.length > 0) {
+      const index = Math.min(state.currentProxyIndex, enabledProxies.length - 1);
+      return enabledProxies[index];
     }
-    return this.getCurrentProxy(state);
+    
+    return null;
   },
   
   /**
-   * Obtient le prochain proxy dans la liste
+   * Obtient le proxy sélectionné
    */
-  getNextProxy(currentIndex: number): { newIndex: number, proxy: CorsProxy } {
-    const enabledProxies = getEnabledProxies();
+  getSelectedProxy: (state: CorsProxyState): CorsProxy | null => {
+    if (!state.selectedProxyUrl) return null;
+    
+    const proxy = availableProxies.find(p => p.url === state.selectedProxyUrl);
+    return proxy && proxy.enabled ? proxy : null;
+  },
+  
+  /**
+   * Obtient le prochain proxy
+   */
+  getNextProxy: (currentIndex: number): { newIndex: number; proxy: CorsProxy } => {
+    const enabledProxies = proxyUtils.getEnabledProxies();
     if (enabledProxies.length === 0) {
-      throw new Error('Aucun proxy CORS disponible.');
+      throw new Error('Aucun proxy activé n\'est disponible');
     }
     
     const newIndex = (currentIndex + 1) % enabledProxies.length;
@@ -70,7 +82,7 @@ export const proxyUtils = {
   /**
    * Vérifie si un proxy nécessite une activation
    */
-  requiresActivation(proxyUrl: string): boolean {
+  requiresActivation: (proxyUrl: string): boolean => {
     const proxy = availableProxies.find(p => p.url === proxyUrl);
     return proxy ? !!proxy.requiresActivation : false;
   },
@@ -78,7 +90,7 @@ export const proxyUtils = {
   /**
    * Obtient l'URL d'activation d'un proxy
    */
-  getActivationUrl(proxyUrl: string): string | null {
+  getActivationUrl: (proxyUrl: string): string | null => {
     const proxy = availableProxies.find(p => p.url === proxyUrl);
     return proxy && proxy.requiresActivation ? proxy.activationUrl || null : null;
   }
