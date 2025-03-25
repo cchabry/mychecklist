@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { isNotionConfigured } from '@/lib/notion';
-import { operationMode } from '@/services/operationMode';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
 
 /**
@@ -20,11 +19,9 @@ export const useNotionConnectionStatus = () => {
     
     // Vérifier si Notion est configuré
     const hasConfig = isNotionConfigured();
-    const isDemoActive = operationMode.isDemoMode;
     
     console.log('🔍 Vérification de la configuration Notion:', {
       'Notion configuré': hasConfig,
-      'Mode démonstration actif': isDemoActive,
       'API Key': localStorage.getItem('notion_api_key') ? 'Définie' : 'Non définie',
       'Database ID': localStorage.getItem('notion_database_id') ? 'Défini' : 'Non défini'
     });
@@ -36,54 +33,34 @@ export const useNotionConnectionStatus = () => {
       return;
     }
     
-    // Si on est en mode démonstration, on considère ça comme "non connecté"
-    // car on n'utilise pas l'API Notion réelle
-    if (isDemoActive) {
-      console.log('📢 Mode démonstration actif - considéré comme non connecté à Notion');
-      setIsConnected(false);
-      setIsLoading(false);
-      
-      // Si une erreur existe dans le stockage, la récupérer
-      const lastError = localStorage.getItem('notion_last_error');
-      if (lastError) {
-        try {
-          const errorData = JSON.parse(lastError);
-          setError(errorData.message || 'Erreur de connexion à Notion');
-        } catch (e) {
-          setError('Erreur de connexion à Notion');
-        }
-      }
-      return;
-    }
-    
     try {
-      // Tester la connexion si on n'est pas en mode démonstration
+      // Tester la connexion via la fonction Netlify
       const apiKey = localStorage.getItem('notion_api_key');
       if (apiKey) {
-        console.log('🔑 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
+        console.log('🔑 Test de connexion avec clé API via Netlify:', apiKey.substring(0, 8) + '...');
         
-        // Utiliser le nouveau système pour tester la connexion
-        // Cela va créer une requête temporaire en mode réel même si le mode démo est actif
-        const wasMockMode = operationMode.isDemoMode;
-        if (wasMockMode) {
-          operationMode.enableRealMode(); // Forcer temporairement le mode réel pour ce test
+        // Utiliser la fonction Netlify pour tester la connexion
+        const response = await fetch('/.netlify/functions/notion-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            endpoint: '/users/me',
+            method: 'GET',
+            token: apiKey
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}: ${await response.text()}`);
         }
         
-        // Importer dynamiquement notionApi pour éviter les dépendances cycliques
-        const { notionApi } = await import('@/lib/notionProxy');
-        
-        // Tenter une connexion à l'API Notion
-        await notionApi.users.me(apiKey);
-        console.log('✅ Connexion Notion réussie!');
+        // Si la fonction répond correctement, la connexion est établie
+        console.log('✅ Connexion Notion réussie via fonction Netlify!');
         
         // Si la connexion réussit, on nettoie les erreurs stockées
         localStorage.removeItem('notion_last_error');
-        localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-        
-        // Si on était en mode démo, on le restaure après le test
-        if (wasMockMode) {
-          operationMode.enableDemoMode('Mode restauré après test de connexion réussi');
-        }
         
         setIsConnected(true);
         setError(null);
@@ -93,12 +70,6 @@ export const useNotionConnectionStatus = () => {
       }
     } catch (testError) {
       console.error('❌ Test de connexion Notion échoué:', testError);
-      
-      // Notifier le service de mode opérationnel de l'erreur
-      operationMode.handleConnectionError(
-        testError instanceof Error ? testError : new Error(String(testError)),
-        'Test de connexion Notion'
-      );
       
       // Stocker l'erreur pour référence future
       try {
@@ -122,13 +93,10 @@ export const useNotionConnectionStatus = () => {
     checkNotionConfig();
   }, []);
   
-  // Gérer la réinitialisation du mode et tester à nouveau
+  // Gérer la réinitialisation et tester à nouveau
   const handleResetAndTest = () => {
-    // Utiliser le nouveau système pour réinitialiser le mode
-    operationMode.enableRealMode();
-    
     toast.success('Configuration réinitialisée', {
-      description: 'Tentative de connexion en mode réel...'
+      description: 'Tentative de connexion...'
     });
     
     // Effacer les erreurs stockées

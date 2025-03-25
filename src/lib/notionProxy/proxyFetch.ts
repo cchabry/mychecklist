@@ -1,6 +1,6 @@
 
 /**
- * Fonction utilitaire pour effectuer des requêtes à l'API Notion via un proxy Netlify
+ * Fonction utilitaire pour effectuer des requêtes à l'API Notion exclusivement via les fonctions Netlify
  * @param endpoint Point d'accès de l'API Notion (relatif)
  * @param method Méthode HTTP (GET, POST, PUT, PATCH, DELETE)
  * @param body Corps de la requête (optionnel)
@@ -12,7 +12,7 @@ export const notionApiRequest = async (
   method: string = 'GET',
   body?: any,
   token?: string
-): Promise<any> => {
+): Promise<any> {
   // Log de débogage
   console.log(`🔧 Requête Notion (${method}): ${endpoint}`);
 
@@ -64,7 +64,7 @@ function normalizeEndpoint(endpoint: string): string {
 }
 
 /**
- * Utilise les fonctions serverless (Netlify) pour appeler l'API Notion
+ * Utilise exclusivement les fonctions serverless (Netlify) pour appeler l'API Notion
  */
 async function useServerlessProxy(
   endpoint: string,

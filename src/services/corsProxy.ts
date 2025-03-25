@@ -1,49 +1,48 @@
 
 /**
- * Ce service a été désactivé car toutes les requêtes passent désormais par les fonctions Netlify
- * qui gèrent correctement les problèmes de CORS.
+ * Service CORS Proxy complètement désactivé
  * 
- * Maintenu uniquement pour compatibilité avec le code existant,
- * mais sans fonctionnalité active.
+ * Tous les appels à l'API Notion passent désormais exclusivement par les fonctions Netlify
+ * qui gèrent correctement les problèmes de CORS.
  */
 
-// Interface pour les informations de proxy
+// Interface pour les informations de proxy (maintenue pour compatibilité avec le code existant)
 export interface ProxyInfo {
   url: string;
   success: boolean;
 }
 
 class DisabledCorsProxyService {
-  getCurrentProxy(): ProxyInfo | null {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+  getCurrentProxy(): ProxyInfo {
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: 'netlify-proxy', success: true };
   }
   
   setSelectedProxy(url?: string): void {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
   }
   
   async testProxy(url?: string, token?: string): Promise<ProxyInfo> {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: url || 'netlify-proxy', success: true };
   }
   
-  async findWorkingProxy(token?: string): Promise<ProxyInfo | null> {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+  async findWorkingProxy(token?: string): Promise<ProxyInfo> {
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: 'netlify-proxy', success: true };
   }
   
   resetProxyCache(): void {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
   }
   
-  async autoSetup(token?: string): Promise<ProxyInfo | null> {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+  async autoSetup(token?: string): Promise<ProxyInfo> {
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return { url: 'netlify-proxy', success: true };
   }
   
   proxify(url: string): string {
-    console.warn('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
+    console.log('Service corsProxy désactivé - toutes les requêtes passent par Netlify');
     return url;
   }
 }
