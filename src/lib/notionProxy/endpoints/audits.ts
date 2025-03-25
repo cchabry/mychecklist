@@ -1,3 +1,4 @@
+
 import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
 import { Audit } from '@/lib/types';
@@ -370,15 +371,28 @@ export const getAuditsByProject = async (projectId: string): Promise<Audit[]> =>
 
   // Récupérer depuis Notion avec filtre sur le projectId
   const apiKey = localStorage.getItem('notion_api_key');
-  const dbId = localStorage.getItem('notion_audit_database_id');
+  
+  // Essayer d'abord avec la base de données d'audits dédiée
+  let dbId = localStorage.getItem('notion_audit_database_id');
+  
+  // Si aucune base d'audits n'est configurée, utiliser la base de données principale
+  if (!dbId) {
+    console.log('⚠️ Base de données d\'audits non configurée, utilisation de la base principale');
+    dbId = localStorage.getItem('notion_database_id');
+  }
 
   if (!apiKey || !dbId) {
-    console.warn('Configuration Notion incomplète pour récupérer les audits');
+    console.warn('🚫 Configuration Notion incomplète pour récupérer les audits', {
+      'API Key présente': !!apiKey,
+      'Database ID présent': !!dbId,
+      'Mode opérationnel': operationMode.isDemoMode ? 'démo' : 'réel'
+    });
     return [];
   }
 
   try {
     console.log(`🔍 Récupération des audits pour le projet ${projectId} depuis Notion`);
+    console.log(`📊 Utilisation de la base de données: ${dbId}`);
     
     // Requête à la base de données Notion avec filtre sur la relation Project
     const response = await notionApiRequest(
@@ -395,10 +409,12 @@ export const getAuditsByProject = async (projectId: string): Promise<Audit[]> =>
       apiKey
     );
 
-    console.log(`✅ Réponse reçue de Notion pour les audits du projet ${projectId}`);
+    console.log(`✅ Réponse reçue de Notion pour les audits du projet ${projectId}:`, {
+      'Nombre de résultats': response.results?.length || 0
+    });
     
     // Mapper les résultats en audits
-    return response.results.map((page: any) => {
+    const audits = response.results.map((page: any) => {
       const properties = page.properties;
       
       return {
@@ -412,6 +428,9 @@ export const getAuditsByProject = async (projectId: string): Promise<Audit[]> =>
         version: properties.Version?.rich_text?.[0]?.plain_text || '1.0'
       };
     });
+    
+    console.log(`✅ ${audits.length} audits récupérés pour le projet ${projectId}`);
+    return audits;
   } catch (error) {
     console.error(`❌ Erreur lors de la récupération des audits pour le projet ${projectId}:`, error);
     // En cas d'erreur, retourner un tableau vide
