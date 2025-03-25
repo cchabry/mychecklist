@@ -1,201 +1,178 @@
+
+/**
+ * Service centralisé pour la gestion des erreurs Notion
+ */
+
 import { v4 as uuidv4 } from 'uuid';
 import { 
   NotionError, 
   NotionErrorType, 
-  ErrorSubscription,
-  ErrorSubscriber,
-  ReportErrorOptions,
-  NotionErrorSeverity,
-  NotionErrorOptions
-} from './types';
-import { notionErrorUtils } from './utils';
+  NotionErrorSeverity, 
+  NotionErrorOptions,
+  ErrorSubscriber
+} from '../types/unified';
 
-// Nombre maximum d'erreurs à conserver en mémoire
-const MAX_ERRORS = 50;
+// Stockage local des erreurs récentes
+let recentErrors: NotionError[] = [];
+
+// Liste des abonnés aux changements d'erreurs
+const subscribers: Array<{ id: string; callback: ErrorSubscriber }> = [];
+
+// Configuration
+const MAX_ERROR_HISTORY = 50;
 
 /**
- * Service de gestion des erreurs pour Notion
+ * Service de gestion des erreurs Notion
  */
-class NotionErrorService {
-  private errors: NotionError[] = [];
-  private subscribers: ErrorSubscription[] = [];
-  
+export const notionErrorService = {
   /**
-   * Ajoute une nouvelle erreur au service
+   * Crée un objet d'erreur Notion standardisé
    */
-  reportError(error: Error | string, operation?: string, options: ReportErrorOptions = {}): NotionError {
-    // Créer l'objet d'erreur enrichi
-    const errorMessage = typeof error === 'string' ? error : error.message;
-    const originError = typeof error === 'string' ? new Error(error) : error;
+  createError(
+    messageOrError: string | Error,
+    options: NotionErrorOptions = {}
+  ): NotionError {
+    // Récupérer le message d'erreur
+    const message = typeof messageOrError === 'string' 
+      ? messageOrError 
+      : messageOrError.message || 'Erreur inconnue';
     
-    const notionError: NotionError = {
+    // Créer l'objet d'erreur
+    const error: NotionError = {
       id: uuidv4(),
-      timestamp: Date.now(),
-      message: errorMessage,
-      type: options.type || notionErrorUtils.detectErrorType(error),
-      operation: operation || options.operation,
-      context: options.context || '',
-      cause: options.cause || originError,
-      details: options.details,
-      retryable: options.retryable !== undefined 
-        ? options.retryable 
-        : notionErrorUtils.isRetryableError(error),
-      name: originError.name,
-      stack: originError.stack,
+      message,
+      type: options.type || NotionErrorType.UNKNOWN,
       severity: options.severity || NotionErrorSeverity.ERROR,
-      recoverable: options.recoverable || false,
-      recoveryActions: options.recoveryActions || []
+      timestamp: Date.now(),
+      retryable: options.retryable ?? false,
+      context: options.context,
+      details: options.details,
+      operation: options.operation,
+      recoverable: options.recoverable,
+      recoveryActions: options.recoveryActions
     };
     
-    // Ajouter l'erreur à la liste
-    this.errors.unshift(notionError);
+    // Ajouter la stack trace si disponible
+    if (options.stack) {
+      error.stack = options.stack;
+    } else if (typeof messageOrError === 'object' && messageOrError instanceof Error) {
+      error.stack = messageOrError.stack;
+    }
     
-    // Limiter le nombre d'erreurs en mémoire
-    if (this.errors.length > MAX_ERRORS) {
-      this.errors = this.errors.slice(0, MAX_ERRORS);
+    // Ajouter l'erreur originale
+    if (typeof messageOrError === 'object' && messageOrError instanceof Error) {
+      error.originalError = messageOrError;
+    } else if (options.cause) {
+      error.cause = options.cause;
+    }
+    
+    return error;
+  },
+  
+  /**
+   * Ajoute une erreur à l'historique et notifie les abonnés
+   */
+  reportError(
+    error: Error | string,
+    context?: string | Record<string, any>,
+    options: NotionErrorOptions = {}
+  ): NotionError {
+    // Créer l'objet d'erreur normalisé
+    const notionError = this.createError(error, {
+      ...options,
+      context: context || options.context
+    });
+    
+    // Ajouter l'erreur à l'historique
+    recentErrors.unshift(notionError);
+    
+    // Limiter la taille de l'historique
+    if (recentErrors.length > MAX_ERROR_HISTORY) {
+      recentErrors = recentErrors.slice(0, MAX_ERROR_HISTORY);
     }
     
     // Notifier les abonnés
-    this.notifySubscribers();
-    
-    // Loguer l'erreur
-    console.error('Notion Error:', {
-      message: notionError.message,
-      type: notionError.type,
-      operation: notionError.operation,
-      context: notionError.context,
-      retryable: notionError.retryable,
-      severity: notionError.severity,
-      recoverable: notionError.recoverable
+    subscribers.forEach(sub => {
+      try {
+        sub.callback([...recentErrors]);
+      } catch (e) {
+        console.error('Erreur lors de la notification d\'un abonné:', e);
+      }
     });
     
     return notionError;
-  }
+  },
   
   /**
-   * Crée une erreur spécifique sans la reporter
+   * Récupère les erreurs récentes
    */
-  createError(message: string, options: NotionErrorOptions = {}): NotionError {
-    return {
-      id: uuidv4(),
-      timestamp: Date.now(),
-      message,
-      type: options.type || NotionErrorType.UNKNOWN,
-      operation: options.operation,
-      context: options.context || '',
-      details: options.details,
-      retryable: options.retryable || false,
-      name: "NotionError", 
-      severity: options.severity || NotionErrorSeverity.ERROR,
-      recoverable: options.recoverable || false,
-      recoveryActions: options.recoveryActions || [],
-      cause: options.cause
-    };
-  }
+  getRecentErrors(): NotionError[] {
+    return [...recentErrors];
+  },
   
   /**
-   * Génère un message utilisateur adapté au type d'erreur
-   */
-  createUserFriendlyMessage(error: NotionError): string {
-    switch (error.type) {
-      case NotionErrorType.AUTH:
-        return "Erreur d'authentification Notion. Veuillez vérifier vos identifiants.";
-        
-      case NotionErrorType.PERMISSION:
-        return "Erreur de permission Notion. L'application n'a pas accès à cette ressource.";
-        
-      case NotionErrorType.RATE_LIMIT:
-        return "Limite de requêtes Notion atteinte. Veuillez réessayer dans quelques instants.";
-        
-      case NotionErrorType.CORS:
-        return "Erreur de connexion à l'API Notion. Vérifiez votre configuration CORS.";
-        
-      case NotionErrorType.DATABASE:
-        return "Erreur de base de données Notion. Vérifiez la structure de vos bases.";
-        
-      default:
-        return `Erreur Notion: ${error.message}`;
-    }
-  }
-  
-  /**
-   * Obtient la liste de toutes les erreurs
-   */
-  getAllErrors(): NotionError[] {
-    return [...this.errors];
-  }
-  
-  /**
-   * Obtient seulement les erreurs récentes
-   */
-  getRecentErrors(count = 5): NotionError[] {
-    return this.errors.slice(0, count);
-  }
-  
-  /**
-   * Obtient une erreur par son ID
-   */
-  getErrorById(id: string): NotionError | undefined {
-    return this.errors.find(error => error.id === id);
-  }
-  
-  /**
-   * Supprime une erreur par son ID
-   */
-  dismissError(id: string): boolean {
-    const initialLength = this.errors.length;
-    this.errors = this.errors.filter(error => error.id !== id);
-    
-    const removed = initialLength > this.errors.length;
-    if (removed) {
-      this.notifySubscribers();
-    }
-    
-    return removed;
-  }
-  
-  /**
-   * Supprime toutes les erreurs
-   */
-  clearAllErrors(): void {
-    if (this.errors.length > 0) {
-      this.errors = [];
-      this.notifySubscribers();
-    }
-  }
-
-  /**
-   * Alias pour clearAllErrors - pour compatibilité
+   * Efface toutes les erreurs
    */
   clearErrors(): void {
-    this.clearAllErrors();
-  }
+    if (recentErrors.length === 0) return;
+    
+    recentErrors = [];
+    
+    // Notifier les abonnés
+    subscribers.forEach(sub => {
+      try {
+        sub.callback([]);
+      } catch (e) {
+        console.error('Erreur lors de la notification d\'un abonné:', e);
+      }
+    });
+  },
   
   /**
-   * S'abonne aux notifications d'erreurs
+   * S'abonner aux changements d'erreurs
    */
   subscribe(callback: ErrorSubscriber): () => void {
     const id = uuidv4();
-    this.subscribers.push({ id, callback });
+    subscribers.push({ id, callback });
     
-    // Notifier immédiatement le nouvel abonné avec l'état actuel
-    callback([...this.errors]);
-    
-    // Retourner une fonction de désabonnement
+    // Retourner une fonction pour se désabonner
     return () => {
-      this.subscribers = this.subscribers.filter(sub => sub.id !== id);
+      const index = subscribers.findIndex(sub => sub.id === id);
+      if (index !== -1) {
+        subscribers.splice(index, 1);
+      }
     };
-  }
+  },
   
   /**
-   * Notifie tous les abonnés d'un changement dans les erreurs
+   * Crée un message utilisateur à partir d'une erreur
    */
-  private notifySubscribers(): void {
-    this.subscribers.forEach(subscriber => {
-      subscriber.callback([...this.errors]);
-    });
+  createUserFriendlyMessage(error: NotionError): string {
+    // Personnaliser le message en fonction du type d'erreur
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+        return 'Problème d\'authentification Notion. Veuillez vérifier votre clé API.';
+        
+      case NotionErrorType.PERMISSION:
+        return 'Vous n\'avez pas les autorisations nécessaires pour accéder à cette ressource Notion.';
+        
+      case NotionErrorType.NETWORK:
+        return 'Problème de connexion au serveur Notion. Vérifiez votre connexion Internet.';
+        
+      case NotionErrorType.TIMEOUT:
+        return 'La requête Notion a pris trop de temps. Veuillez réessayer.';
+        
+      case NotionErrorType.RATE_LIMIT:
+        return 'Limite de requêtes Notion atteinte. Veuillez patienter un moment.';
+        
+      case NotionErrorType.DATABASE:
+        return 'Problème avec la base de données Notion. Vérifiez son identifiant et vos permissions.';
+        
+      case NotionErrorType.NOT_FOUND:
+        return 'Ressource Notion introuvable. Vérifiez les identifiants utilisés.';
+        
+      default:
+        return error.message || 'Une erreur est survenue lors de l\'interaction avec Notion.';
+    }
   }
-}
-
-// Créer et exporter une instance unique
-export const notionErrorService = new NotionErrorService();
+};

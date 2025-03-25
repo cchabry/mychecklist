@@ -5,7 +5,7 @@
 
 import { notionErrorUtils } from './utils';
 import { notionRetryQueue } from './retryQueue';
-import { RetryOperationOptions } from './types';
+import { RetryOperationOptions } from '../types/unified';
 
 /**
  * Utilitaire pour réessayer automatiquement les opérations Notion

@@ -1,97 +1,50 @@
 
 import { useEffect, useState } from 'react';
-import { initMonitoring } from '@/services/notion/monitoring';
 import { structuredLogger } from '@/services/notion/logging/structuredLogger';
-import { LogLevel } from '@/services/notion/errorHandling/types';
+import { LogLevel, StructuredLoggerOptions } from '@/services/notion/types/unified';
+
+interface UseMonitoringInitOptions {
+  logLevel?: LogLevel;
+  maxLogs?: number;
+  enablePersistence?: boolean;
+}
 
 /**
  * Hook pour initialiser le système de monitoring
  */
-export function useMonitoringInit(options: {
-  logLevel?: LogLevel;
-  enableConsoleOutput?: boolean;
-  enableJsonOutput?: boolean;
-  automaticErrorLogging?: boolean;
-} = {}) {
+export function useMonitoringInit(options: UseMonitoringInitOptions = {}) {
   const [isInitialized, setIsInitialized] = useState(false);
   
   useEffect(() => {
-    // Configuration par défaut
-    const {
-      logLevel = process.env.NODE_ENV === 'development' ? LogLevel.DEBUG : LogLevel.INFO,
-      enableConsoleOutput = true,
-      enableJsonOutput = false,
-      automaticErrorLogging = true
-    } = options;
+    // Configurer le logger structuré
+    const loggerConfig: Partial<StructuredLoggerOptions> = {
+      minLevel: options.logLevel || LogLevel.INFO,
+      maxLogs: options.maxLogs || 200,
+      persistLogs: options.enablePersistence || false
+    };
     
-    // Initialiser le système de monitoring
-    const { structuredLogger } = initMonitoring();
-    
-    // Configurer le logger
-    structuredLogger.configure({
-      level: logLevel,
-      consoleOutput: enableConsoleOutput,
-      jsonOutput: enableJsonOutput
-    });
-    
-    // Variables pour stocker les gestionnaires d'origine
-    let originalWindowOnError: OnErrorEventHandler | null = null;
-    let originalWindowOnUnhandledRejection: ((this: Window, ev: PromiseRejectionEvent) => any) | null = null;
-    
-    // Installer un gestionnaire d'erreurs global si demandé
-    if (automaticErrorLogging) {
-      // Stocker les gestionnaires d'origine
-      originalWindowOnError = window.onerror;
-      originalWindowOnUnhandledRejection = window.onunhandledrejection;
-      
-      // Gérer les erreurs non interceptées
-      window.onerror = function(message, source, lineno, colno, error) {
-        structuredLogger.error(
-          `Erreur non gérée: ${message}`,
-          error || { message, source, lineno, colno },
-          {
-            source: 'GlobalErrorHandler',
-            tags: ['unhandled', 'global']
-          }
-        );
-        
-        // Appeler le gestionnaire original s'il existe
-        if (originalWindowOnError) {
-          return originalWindowOnError.call(this, message, source, lineno, colno, error);
+    try {
+      if (structuredLogger) {
+        // Vérifier si la méthode configure existe
+        if (typeof structuredLogger.configure === 'function') {
+          structuredLogger.configure(loggerConfig);
+        } else if (typeof structuredLogger.setMinLevel === 'function') {
+          // Fallback: configurer uniquement le niveau minimal
+          structuredLogger.setMinLevel(loggerConfig.minLevel || LogLevel.INFO);
         }
         
-        return false;
-      };
-      
-      // Installer un gestionnaire de promesses non gérées
-      window.onunhandledrejection = function(event) {
-        structuredLogger.error(
-          'Promesse rejetée non gérée',
-          event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
-          {
-            source: 'GlobalPromiseHandler',
-            tags: ['unhandled', 'promise']
-          }
-        );
+        // Log initial
+        structuredLogger.info('Système de monitoring initialisé', loggerConfig, { 
+          source: 'MonitoringInit'
+        });
         
-        // Appeler le gestionnaire original s'il existe
-        if (originalWindowOnUnhandledRejection) {
-          return originalWindowOnUnhandledRejection.call(this, event);
-        }
-      };
+        setIsInitialized(true);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'initialisation du monitoring:', error);
     }
     
-    setIsInitialized(true);
-    
-    // Nettoyer à la désinstallation
-    return () => {
-      if (automaticErrorLogging) {
-        // Restaurer les gestionnaires d'origine
-        window.onerror = originalWindowOnError;
-        window.onunhandledrejection = originalWindowOnUnhandledRejection;
-      }
-    };
-  }, [options]);
+  }, [options.logLevel, options.maxLogs, options.enablePersistence]);
   
   return {
     isInitialized,

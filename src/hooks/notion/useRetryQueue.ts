@@ -1,144 +1,138 @@
 
-import { useState, useEffect } from 'react';
-import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
-import { RetryQueueStats } from '@/services/notion/errorHandling/types';
+import { useState, useEffect, useCallback } from 'react';
+import { notionRetryQueue } from '@/services/notion/errorHandling';
+import { RetryOperationOptions, RetryQueueStats } from '@/services/notion/types/unified';
 
 /**
- * Hook pour accéder au service de file d'attente de retry Notion
+ * Hook pour interagir avec la file d'attente de réessai
  */
 export function useRetryQueue() {
-  const [stats, setStats] = useState<RetryQueueStats & {
-    successful: number;
-    failed: number;
-    successRate: number;
-  }>({
+  const [stats, setStats] = useState<RetryQueueStats>({
     totalOperations: 0,
     pendingOperations: 0,
     completedOperations: 0,
     failedOperations: 0,
     lastProcessedAt: null,
-    isProcessing: false,
-    successful: 0,
-    failed: 0,
-    successRate: 100
+    isProcessing: false
   });
   
-  const [queuedOperations, setQueuedOperations] = useState<any[]>([]);
-  
-  // Récupérer les statistiques actuelles
+  // S'abonner aux mises à jour des statistiques
   useEffect(() => {
-    const interval = setInterval(() => {
-      const currentStats = notionRetryQueue.getStats();
-      
-      // Calculer les métriques supplémentaires
-      const successful = currentStats.completedOperations || 0;
-      const failed = currentStats.failedOperations || 0;
-      const total = successful + failed;
-      const successRate = total > 0 ? Math.round((successful / total) * 100) : 100;
-      
-      setStats({
-        ...currentStats,
-        successful,
-        failed,
-        successRate
-      });
-      
-      // Simuler des opérations en file d'attente pour la démo
-      // À remplacer par une vraie implémentation quand disponible
-      setQueuedOperations(
-        Array.from({ length: currentStats.pendingOperations }, (_, i) => ({
-          id: `op_${i}`,
-          context: `Opération Notion #${i+1}`,
-          timestamp: Date.now() - (i * 60000),
-          attempts: Math.floor(Math.random() * 3) + 1,
-          maxAttempts: 3,
-          status: 'pending',
-          nextRetry: Date.now() + (Math.random() * 60000)
-        }))
-      );
-    }, 1000);
-    
-    // Charger les stats initiales
-    const initialStats = notionRetryQueue.getStats();
-    
-    // Initialiser avec les métriques calculées
-    const successful = initialStats.completedOperations || 0;
-    const failed = initialStats.failedOperations || 0;
-    const total = successful + failed;
-    const successRate = total > 0 ? Math.round((successful / total) * 100) : 100;
-    
-    setStats({
-      ...initialStats,
-      successful,
-      failed,
-      successRate
+    const unsubscribe = notionRetryQueue.subscribe((updatedStats) => {
+      setStats(updatedStats);
     });
     
-    return () => clearInterval(interval);
+    // Charger les stats initiales
+    setStats(notionRetryQueue.getStats());
+    
+    return unsubscribe;
   }, []);
   
   /**
-   * Ajoute une opération à la file d'attente de retry
+   * Ajouter une opération à la file d'attente
    */
-  const enqueue = <T>(
+  const enqueue = useCallback(<T>(
     operation: () => Promise<T>,
-    context: string | Record<string, any> = '',
-    options: {
-      maxRetries?: number,
-      onSuccess?: (result: T) => void,
-      onFailure?: (error: Error) => void
-    } = {}
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions = {}
   ): string => {
-    // Convertir le contexte en objet si c'est une chaîne
-    const contextObj = typeof context === 'string' 
-      ? { operation: context } 
-      : context;
-      
     return notionRetryQueue.enqueue(
       operation,
-      contextObj,
+      context,
       options
     );
-  };
+  }, []);
   
   /**
-   * Annule une opération en attente
+   * Traiter toutes les opérations en attente
    */
-  const cancel = (operationId: string): boolean => {
-    return notionRetryQueue.cancel(operationId);
-  };
+  const processQueue = useCallback(async (): Promise<void> => {
+    return notionRetryQueue.processQueue();
+  }, []);
   
   /**
-   * Force l'exécution des opérations en attente
+   * Exécuter une opération immédiatement
    */
-  const processNow = async (): Promise<void> => {
-    return notionRetryQueue.processNow();
-  };
+  const processNow = useCallback(async (operationId: string): Promise<any> => {
+    // Vérifier si la méthode existe sur le service
+    if (typeof notionRetryQueue.processNow === 'function') {
+      return notionRetryQueue.processNow(operationId);
+    }
+    console.warn('Method processNow not available on notionRetryQueue');
+    return Promise.reject(new Error('Method not available'));
+  }, []);
   
   /**
-   * Gestion de la file d'attente - force le traitement immédiat
+   * Annuler une opération
    */
-  const processQueue = async (): Promise<void> => {
-    return processNow();
-  };
+  const cancelOperation = useCallback((operationId: string): boolean => {
+    // Vérifier si la méthode existe sur le service
+    if (typeof notionRetryQueue.cancel === 'function') {
+      return notionRetryQueue.cancel(operationId);
+    }
+    console.warn('Method cancel not available on notionRetryQueue');
+    return false;
+  }, []);
   
   /**
-   * Vide la file d'attente
+   * Vider la file d'attente
    */
-  const clearQueue = (): void => {
-    // Cette fonction sera implémentée dans le service réel
-    // Pour l'instant, on simule en vidant la liste locale
-    setQueuedOperations([]);
-  };
+  const clearQueue = useCallback((): void => {
+    if (typeof notionRetryQueue.clearQueue === 'function') {
+      notionRetryQueue.clearQueue();
+    } else {
+      console.warn('Method clearQueue not available on notionRetryQueue');
+    }
+  }, []);
+  
+  /**
+   * Exécuter une opération avec réessai automatique
+   */
+  const executeWithRetry = useCallback(async <T>(
+    operation: () => Promise<T>,
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions = {}
+  ): Promise<T> => {
+    try {
+      return await operation();
+    } catch (error) {
+      // Si l'erreur n'est pas réessayable, la propager
+      if (options.skipRetryIf && error instanceof Error && options.skipRetryIf(error)) {
+        throw error;
+      }
+      
+      // Sinon, ajouter à la file d'attente
+      return new Promise<T>((resolve, reject) => {
+        enqueue(
+          operation,
+          context,
+          {
+            ...options,
+            onSuccess: (result) => {
+              if (options.onSuccess) {
+                options.onSuccess(result);
+              }
+              resolve(result as T);
+            },
+            onFailure: (error) => {
+              if (options.onFailure) {
+                options.onFailure(error);
+              }
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  }, [enqueue]);
   
   return {
     stats,
-    queuedOperations,
     enqueue,
-    cancel,
-    processNow,
     processQueue,
+    processNow: processNow,
+    cancelOperation,
     clearQueue,
-    service: notionRetryQueue
+    executeWithRetry
   };
 }

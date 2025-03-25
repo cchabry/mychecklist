@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,14 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useStructuredLogger } from '@/hooks/notion/useStructuredLogger';
-import { notionErrorService, LogLevel, NotionErrorType, NotionErrorSeverity } from '@/services/notion/types/unified';
+import { LogLevel, NotionErrorType, NotionErrorSeverity } from '@/services/notion/types/unified';
 import { StructuredLogsDisplay } from '@/components/notion/logging';
 import { NotionErrorMonitor } from '@/components/notion/error';
 import { ArrowUpDown, RefreshCw, AlertTriangle, Bug, Database } from 'lucide-react';
+import { useNotionErrorService } from '@/hooks/notion/useNotionErrorService';
 
 const MonitoringDashboard: React.FC = () => {
   const loggerHook = useStructuredLogger();
   const { logs, clearLogs, logger } = loggerHook;
+  const { reportError } = useNotionErrorService();
   
   // Adapter l'interface pour les méthodes logger.info et logger.error
   const loggerAdapter = {
@@ -41,25 +44,24 @@ const MonitoringDashboard: React.FC = () => {
       if (typeof logger.warn === 'function') {
         logger.warn('Test warning message', { alertLevel: 'medium' });
       }
-      loggerAdapter.error('Test error message', new Error('This is a test error'));
+      loggerAdapter.error('Test error message', new Error('Test error'));
     }
     setLastAction('Logs de test générés');
   };
   
   // Générer une erreur de test
   const generateTestError = () => {
-    const error = notionErrorService.createError('Erreur de test pour le monitoring', {
-      type: NotionErrorType.UNKNOWN,
-      severity: NotionErrorSeverity.WARNING,
-      context: JSON.stringify({ 
-        testGenerated: true, 
-        timestamp: new Date().toISOString() 
-      }),
-      retryable: true
-    });
+    const errorMessage = 'Erreur de test pour le monitoring';
+    reportError(
+      new Error(errorMessage),
+      'Test error generation',
+      { 
+        severity: NotionErrorSeverity.WARNING,
+        showToast: true
+      }
+    );
     
-    notionErrorService.reportError(error as Error);
-    loggerAdapter.error('Une erreur Notion a été générée', error);
+    loggerAdapter.error('Une erreur Notion a été générée', { message: errorMessage });
     
     setLastAction('Erreur de test générée');
   };

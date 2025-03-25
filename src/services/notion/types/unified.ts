@@ -97,5 +97,95 @@ export interface NotionErrorOptions {
   name?: string;
 }
 
+// Types pour la file d'attente de réessais
+export interface RetryOperationOptions {
+  maxRetries?: number;
+  retryDelay?: number;
+  maxDelay?: number;
+  backoff?: number;
+  skipRetryIf?: (error: Error) => boolean;
+  onSuccess?: (result: any) => void;
+  onFailure?: (error: Error) => void;
+  retryableStatusCodes?: number[];
+}
+
+export interface RetryQueueStats {
+  totalOperations: number;
+  pendingOperations: number;
+  completedOperations: number;
+  failedOperations: number;
+  lastProcessedAt: number | null;
+  isProcessing: boolean;
+}
+
+// Types pour le compteur d'erreurs
+export interface ErrorCounterOptions {
+  maxStorageTime?: number;
+  cleanupInterval?: number;
+  alertThresholds?: AlertThresholdConfig;
+  logErrors?: boolean;
+}
+
+export interface AlertThresholdConfig {
+  totalErrorsPerHour?: number;
+  totalErrorsPerMinute?: number;
+  apiErrorsPerHour?: number;
+  networkErrorsPerMinute?: number;
+  authErrorsPerHour?: number;
+  [key: string]: number | undefined;
+}
+
+export interface ErrorCounterStats {
+  total: number;
+  byType: Partial<Record<NotionErrorType, number>>;
+  byEndpoint?: Record<string, number>;
+  byHour?: Record<number, number>;
+  byMinute?: Record<number, number>;
+  lastError?: NotionError;
+}
+
+// Types pour le système de journalisation structurée
+export interface StructuredLoggerOptions {
+  minLevel?: LogLevel;
+  maxLogs?: number;
+  persistLogs?: boolean;
+  formatters?: Record<string, (data: any) => string>;
+}
+
+export interface StructuredLogger {
+  debug: (message: string, data?: any, context?: Record<string, any>) => void;
+  info: (message: string, data?: any, context?: Record<string, any>) => void;
+  warn: (message: string, data?: any, context?: Record<string, any>) => void;
+  error: (message: string, data?: any, context?: Record<string, any>) => void;
+  trace: (message: string, data?: any, context?: Record<string, any>) => void;
+  fatal: (message: string, data?: any, context?: Record<string, any>) => void;
+  log: (level: LogLevel, message: string, data?: any, context?: Record<string, any>) => void;
+  getRecentLogs: () => StructuredLog[];
+  subscribe: (callback: (logs: StructuredLog[]) => void) => () => void;
+  configure?: (options: Partial<StructuredLoggerOptions>) => void;
+  setMinLevel?: (level: LogLevel) => void;
+  getMinLevel?: () => LogLevel;
+}
+
+// Types pour le service de file d'attente de réessais
+export interface RetryQueueService {
+  enqueue: (operation: () => Promise<any>, context: string | Record<string, any>, options?: RetryOperationOptions) => string;
+  cancel: (operationId: string) => boolean;
+  processQueue: () => Promise<void>;
+  processNow: (operationId: string) => Promise<any>;
+  getStats: () => RetryQueueStats;
+  clearQueue: () => void;
+  subscribe: (callback: (stats: RetryQueueStats) => void) => () => void;
+}
+
+// Types pour Notion OAuth
+export enum NotionTokenType {
+  INTEGRATION = 'integration',
+  OAUTH = 'oauth',
+  OAUTH_TEMP = 'oauth_temp',
+  NONE = 'none',
+  UNKNOWN = 'unknown'
+}
+
 // Alias pour la compatibilité rétroactive
 export type NotionErrorSubscriber = ErrorSubscriber;

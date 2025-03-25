@@ -21,7 +21,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { NotionError, NotionErrorType } from '@/services/notion/types/unified';
+import { NotionError, NotionErrorType, NotionErrorOptions } from '@/services/notion/types/unified';
 import { useRetryQueue } from '@/services/notion/errorHandling';
 import { notionErrorService } from '@/services/notion/errorHandling/errorService';
 
@@ -56,18 +56,19 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   const normalizeError = useCallback((): NotionError => {
     if (typeof error === 'string') {
       return notionErrorService.createError(error, {
-        context: context as string,
+        context: context as string | Record<string, any>,
         retryable: false,
         recoverable: false
       });
     } else if (error instanceof Error) {
-      return notionErrorService.createError(error.message, {
-        context: context as string,
+      const options: NotionErrorOptions = {
+        context: context as string | Record<string, any>,
         cause: error,
         stack: error.stack,
         retryable: false,
         recoverable: false
-      });
+      };
+      return notionErrorService.createError(error.message, options);
     } else if (typeof error === 'object' && 'type' in error) {
       // C'est déjà une NotionError
       return error as NotionError;
@@ -75,7 +76,7 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
     
     // Cas par défaut
     return notionErrorService.createError(String(error), {
-      context: context as string,
+      context: context as string | Record<string, any>,
       retryable: false,
       recoverable: false
     });
