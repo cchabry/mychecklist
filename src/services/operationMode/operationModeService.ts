@@ -262,3 +262,6 @@ export class OperationModeService {
     return this.mode === OperationMode.REAL;
   }
 }
+
+// Créer et exporter une instance unique du service
+export const operationMode = new OperationModeService();

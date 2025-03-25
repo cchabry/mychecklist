@@ -1,8 +1,7 @@
-
 // Exporte toutes les fonctions de l'API Notion
 
 import { getNotionClient, testNotionConnection } from './notionClient';
-import { getProjectsFromNotion, getProjectById, createProjectInNotion } from './projectsService';
+import { getProjects, getProject, createProject } from './projectsService';
 import { getAuditForProject, saveAuditToNotion } from './auditService';
 import { ProjectData } from './types';
 import { NotionDatabaseTarget } from '@/components/notion/NotionDatabaseDiscovery';
@@ -125,11 +124,16 @@ export function isDatabaseConfigured(dbType: NotionDatabaseTarget): boolean {
   return !!value;
 }
 
+// Réexporter avec les bonnes fonctions (aliases pour compatibilité)
+export const getProjectsFromNotion = getProjects;
+export const getProjectById = getProject;
+export const createProjectInNotion = createProject;
+
 export {
   testNotionConnection,
-  getProjectsFromNotion,
-  getProjectById,
-  createProjectInNotion,
+  getProjects,
+  getProject,
+  createProject,
   getAuditForProject,
   saveAuditToNotion
 };

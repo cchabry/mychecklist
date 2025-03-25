@@ -1,7 +1,7 @@
-import { notionApiRequest } from '../notionProxy';
+import { notionApi } from '../notionProxy';
 import { operationMode } from '@/services/operationMode';
 import { MOCK_PROJECTS } from '@/lib/mockData';
-import { cleanProjectId } from '../../utils';
+import { cleanProjectId } from '@/lib/utils';
 
 /**
  * Récupère tous les projets
@@ -20,7 +20,7 @@ export const getProjects = async () => {
     throw new Error('Configuration Notion manquante');
   }
 
-  const response = await notionApiRequest(`/databases/${dbId}/query`, 'POST', {}, apiKey);
+  const response = await notionApi(`/databases/${dbId}/query`, 'POST', {}, apiKey);
 
   // Mapper les résultats en projets
   return response.results.map((page) => {
@@ -109,7 +109,7 @@ export const getProject = async (id) => {
     }
     
     // Si pas dans le cache, faire une requête API
-    const response = await notionApiRequest(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
+    const response = await notionApi(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
     
     if (!response) {
       console.error(`❌ getProject - Réponse vide de l'API Notion pour ID: "${cleanedId}"`);
@@ -211,7 +211,7 @@ export const createProject = async (data) => {
     }
   };
 
-  const response = await notionApiRequest(`/pages`, 'POST', {
+  const response = await notionApi(`/pages`, 'POST', {
     parent: {
       database_id: dbId
     },
@@ -276,7 +276,7 @@ export const updateProject = async (id, data) => {
     }
   };
 
-  await notionApiRequest(`/pages/${id}`, 'PATCH', {
+  await notionApi(`/pages/${id}`, 'PATCH', {
     properties
   }, apiKey);
 
@@ -308,7 +308,7 @@ export const deleteProject = async (id) => {
   }
 
   try {
-    await notionApiRequest(`/pages/${id}`, 'PATCH', {
+    await notionApi(`/pages/${id}`, 'PATCH', {
       archived: true
     }, apiKey);
     
@@ -318,3 +318,4 @@ export const deleteProject = async (id) => {
     return false;
   }
 };
+

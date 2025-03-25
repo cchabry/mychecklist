@@ -1,6 +1,6 @@
-
 import { toast } from 'sonner';
 import { OperationMode } from './types';
+import { operationMode } from './operationModeService';
 
 /**
  * Service de gestion des notifications pour le système operationMode
@@ -33,10 +33,7 @@ export const operationModeNotifications = {
       action: {
         label: 'Réessayer le mode réel',
         onClick: () => {
-          // Import dynamique pour éviter les dépendances circulaires
-          import('./operationModeService').then(({ operationMode }) => {
-            operationMode.enableRealMode();
-          });
+          operationMode.enableRealMode();
         },
       },
     });
@@ -62,10 +59,7 @@ export const operationModeNotifications = {
       action: {
         label: 'Activer',
         onClick: () => {
-          // Import dynamique pour éviter les dépendances circulaires
-          import('./operationModeService').then(({ operationMode }) => {
-            operationMode.enableDemoMode('Activé suite à une suggestion après erreur');
-          });
+          operationMode.enableDemoMode('Activé suite à une suggestion après erreur');
         },
       },
     });
