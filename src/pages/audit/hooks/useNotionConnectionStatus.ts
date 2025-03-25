@@ -7,6 +7,13 @@ import { cachingService } from '@/services/cache/cacheServiceUtility';
 // Clé de cache pour le statut de connexion Notion
 const NOTION_CONNECTION_STATUS_CACHE_KEY = 'notion_connection_status';
 
+// Type pour les données mises en cache
+interface NotionConnectionStatus {
+  isConnected: boolean;
+  error: string | null;
+  timestamp: number;
+}
+
 /**
  * Hook spécialisé pour vérifier et gérer l'état de la connexion à Notion
  */
@@ -20,7 +27,7 @@ export const useNotionConnectionStatus = () => {
     // Vérifier si on doit forcer un nouveau test
     if (!forceCheck) {
       // Essayer de récupérer le statut depuis le cache
-      const cachedStatus = cachingService.get(NOTION_CONNECTION_STATUS_CACHE_KEY);
+      const cachedStatus = cachingService.get<NotionConnectionStatus>(NOTION_CONNECTION_STATUS_CACHE_KEY);
       
       if (cachedStatus) {
         console.log('Utilisation du statut de connexion Notion depuis le cache');
@@ -51,7 +58,7 @@ export const useNotionConnectionStatus = () => {
         setError(null);
         
         // Mettre en cache le statut positif
-        cachingService.set(NOTION_CONNECTION_STATUS_CACHE_KEY, {
+        cachingService.set<NotionConnectionStatus>(NOTION_CONNECTION_STATUS_CACHE_KEY, {
           isConnected: true,
           error: null,
           timestamp: Date.now()
@@ -63,7 +70,7 @@ export const useNotionConnectionStatus = () => {
         setError(result.error || 'Erreur de connexion à Notion');
         
         // Mettre en cache le statut négatif
-        cachingService.set(NOTION_CONNECTION_STATUS_CACHE_KEY, {
+        cachingService.set<NotionConnectionStatus>(NOTION_CONNECTION_STATUS_CACHE_KEY, {
           isConnected: false,
           error: result.error || 'Erreur de connexion à Notion',
           timestamp: Date.now()
@@ -79,7 +86,7 @@ export const useNotionConnectionStatus = () => {
       setError(errorMessage);
       
       // Mettre en cache l'erreur
-      cachingService.set(NOTION_CONNECTION_STATUS_CACHE_KEY, {
+      cachingService.set<NotionConnectionStatus>(NOTION_CONNECTION_STATUS_CACHE_KEY, {
         isConnected: false,
         error: errorMessage,
         timestamp: Date.now()
