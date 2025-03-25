@@ -11,16 +11,16 @@ export function useOperationMode(): OperationModeHook {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
   const [switchReason, setSwitchReason] = useState<string | null>(operationMode.getSwitchReason());
   const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
-  const [lastError, setLastError] = useState<Error | null>(null);
+  const [lastError, setLastError] = useState<Error | null>(operationMode.getLastError());
   const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
 
   // S'abonner aux changements du mode opérationnel
   useEffect(() => {
-    const unsubscribe = operationMode.addListener((newMode, reason) => {
+    const unsubscribe = operationMode.subscribe((newMode, reason) => {
       setMode(newMode);
       setSwitchReason(reason);
       setFailures(operationMode.getConsecutiveFailures());
-      // Pas d'accès à getLastError, on laisse lastError tel quel
+      setLastError(operationMode.getLastError());
       setSettings(operationMode.getSettings());
     });
 

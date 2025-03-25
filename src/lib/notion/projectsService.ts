@@ -1,346 +1,403 @@
 
+import { getNotionClient, testNotionConnection } from './notionClient';
+import { ProjectData, ProjectsData } from './types';
+import { MOCK_PROJECTS } from '../mockData';
 import { notionApi } from '../notionProxy';
-import { operationMode } from '@/services/operationMode';
-import { MOCK_PROJECTS } from '@/lib/mockData';
-import { cleanProjectId } from '@/lib/utils';
+import { toast } from 'sonner';
 
-/**
- * Récupère tous les projets
- */
-export const getProjects = async () => {
-  // Si nous sommes en mode mock, retourner les données mock
-  if (operationMode.isDemoMode) {
-    console.log('Using mock projects data');
-    return MOCK_PROJECTS;
-  }
-
-  // Sinon, récupérer depuis Notion
-  const apiKey = localStorage.getItem('notion_api_key');
+export const getProjectsFromNotion = async (): Promise<ProjectsData> => {
   const dbId = localStorage.getItem('notion_database_id');
-  if (!apiKey || !dbId) {
-    throw new Error('Configuration Notion manquante');
-  }
-
-  // Vérifier le type de notionApi et l'utiliser correctement
-  const request = typeof notionApi.request === 'function' 
-    ? notionApi.request 
-    : notionApi;
+  console.info('Fetching projects from Notion, database ID:', dbId);
   
-  const response = await request(`/databases/${dbId}/query`, 'POST', {}, apiKey);
-
-  // Mapper les résultats en projets
-  return response.results.map((page) => {
-    const properties = page.properties;
-    return {
-      id: page.id,
-      name: properties.Name?.title?.[0]?.plain_text || properties.name?.title?.[0]?.plain_text || 'Sans titre',
-      url: properties.URL?.url || properties.url?.url || properties.Url?.url || '',
-      description: properties.Description?.rich_text?.[0]?.plain_text || properties.description?.rich_text?.[0]?.plain_text || '',
-      status: properties.Status?.select?.name || properties.status?.select?.name || 'Non démarré',
-      createdAt: page.created_time,
-      updatedAt: page.last_edited_time,
-      progress: properties.Progress?.number || properties.progress?.number || 0,
-      itemsCount: properties.ItemsCount?.number || properties.itemsCount?.number || properties.Nombre?.number || 15,
-      pagesCount: properties.PagesCount?.number || properties.pagesCount?.number || 0
-    };
-  });
-};
-
-/**
- * Récupère un projet par son ID de manière fiable
- * Implémentation simplifiée et robuste
- */
-export const getProject = async (id) => {
-  // Nettoyer l'ID pour assurer la cohérence
-  const cleanedId = cleanProjectId(id);
-  console.log(`🔍 getProject - ID original: "${id}", ID nettoyé: "${cleanedId}"`);
-  
-  if (!cleanedId) {
-    console.error("❌ getProject - ID invalide après nettoyage");
-    return null;
+  // Vérifier en priorité si on est en mode mock
+  if (notionApi.mockMode.isActive()) {
+    console.info('Using mock project data (mode mock active)');
+    return { projects: MOCK_PROJECTS };
   }
-
-  // Si nous sommes en mode mock, retourner les données mock
-  if (operationMode.isDemoMode) {
-    console.log(`🔍 getProject - Recherche du projet mock ID: "${cleanedId}"`);
+  
+  try {
+    const { client, dbId } = getNotionClient();
     
-    // Rechercher le projet dans les données mock
-    // Important: Comparer sans les tirets car ils sont parfois inclus dans l'ID
-    const mockProject = MOCK_PROJECTS.find((project) => {
-      // Normaliser les deux IDs pour la comparaison
-      const normalizedProjectId = cleanProjectId(project.id);
-      const normalizedRequestId = cleanedId;
-      
-      console.log(`Comparaison: [${normalizedProjectId}] avec [${normalizedRequestId}]`);
-      return normalizedProjectId === normalizedRequestId;
-    });
-    
-    if (mockProject) {
-      console.log(`✅ getProject - Projet mock trouvé: "${mockProject.name}"`);
-    } else {
-      // Logs détaillés pour déboguer pourquoi le projet n'est pas trouvé
-      console.error(`❌ getProject - Projet mock non trouvé pour ID: "${cleanedId}"`);
-      console.log("Projets disponibles:", MOCK_PROJECTS.map(p => ({id: p.id, name: p.name})));
+    if (!client || !dbId) {
+      console.error('Notion client or database ID is missing');
+      notionApi.mockMode.activate();
+      toast.info('Mode démonstration activé', { 
+        description: 'Configuration Notion incomplète. L\'application utilise des données fictives.'
+      });
+      return { projects: MOCK_PROJECTS };
     }
     
-    return mockProject || null;
-  }
-
-  // Sinon, récupérer depuis Notion
-  try {
+    // Récupérer la clé API
     const apiKey = localStorage.getItem('notion_api_key');
     if (!apiKey) {
-      console.error("❌ getProject - Clé API Notion manquante");
-      throw new Error('Clé API Notion manquante');
+      notionApi.mockMode.activate();
+      toast.info('Mode démonstration activé', { 
+        description: 'Clé API Notion manquante. L\'application utilise des données fictives.'
+      });
+      return { projects: MOCK_PROJECTS };
     }
-
-    console.log(`🔍 getProject - Appel API Notion pour page ID: "${cleanedId}"`);
     
-    // Essayons d'abord de trouver le projet dans le cache
+    // Vérifier la connexion à l'API Notion
+    try {
+      // Test simple de la connexion
+      await notionApi.users.me(apiKey);
+      console.log('Notion connection verified via proxy');
+    } catch (connError) {
+      console.error('Failed to connect to Notion API:', connError);
+      
+      // Activer le mode mock pour toute erreur de connexion
+      notionApi.mockMode.activate();
+      
+      // Afficher un toast informatif
+      toast.info('Mode démonstration activé', {
+        description: 'Problème de connexion à Notion. L\'application utilise des données fictives.'
+      });
+      
+      console.info('Switching to mock data due to connection error');
+      return { projects: MOCK_PROJECTS };
+    }
+    
+    // Utiliser notre proxy pour interroger la base de données
+    console.log('Requesting database query via proxy...');
+    const response = await notionApi.databases.query(dbId, {}, apiKey);
+    
+    if (!response || !response.results) {
+      throw new Error('Invalid response from Notion API');
+    }
+    
+    console.log(`Notion API returned ${response.results.length} projects`);
+    
+    // Mapper les résultats en projets
+    const projects: ProjectData[] = response.results.map((page: any) => {
+      const properties = page.properties;
+      
+      return {
+        id: page.id,
+        name: properties.Name?.title?.[0]?.plain_text || 
+              properties.name?.title?.[0]?.plain_text || 'Sans titre',
+        url: properties.URL?.url || 
+             properties.url?.url || 
+             properties.Url?.url || '#',
+        description: properties.Description?.rich_text?.[0]?.plain_text || 
+                     properties.description?.rich_text?.[0]?.plain_text || '',
+        status: properties.Status?.select?.name || 
+                properties.status?.select?.name || 'Non démarré',
+        createdAt: page.created_time,
+        updatedAt: page.last_edited_time,
+        progress: properties.Progress?.number || 
+                  properties.progress?.number || 0,
+        itemsCount: properties.ItemsCount?.number || 
+                    properties.itemsCount?.number ||
+                    properties.Nombre?.number || 15,
+        pagesCount: properties.PagesCount?.number || 
+                   properties.pagesCount?.number || 0
+      };
+    });
+    
+    // Sauvegarder les données en cache pour améliorer les performances
+    localStorage.setItem('projects_cache', JSON.stringify({ 
+      timestamp: Date.now(), 
+      projects 
+    }));
+    
+    return { projects };
+  } catch (error) {
+    console.error('Erreur lors de la récupération des projets depuis Notion:', error);
+    
+    // Activer le mode mock pour toute erreur
+    notionApi.mockMode.activate();
+    
+    // Afficher un toast informatif
+    toast.info('Mode démonstration activé', {
+      description: 'Erreur lors de la récupération des projets. L\'application utilise des données fictives.'
+    });
+    
+    console.info('Switching to mock data due to API error');
+    return { projects: MOCK_PROJECTS };
+  }
+};
+
+// Récupérer un projet par son ID
+export const getProjectById = async (id: string): Promise<ProjectData | null> => {
+  try {
+    // Essayer de charger depuis le cache d'abord
     const cachedProjects = localStorage.getItem('projects_cache');
     if (cachedProjects) {
       try {
         const { projects } = JSON.parse(cachedProjects);
-        
-        // Utiliser cleanProjectId pour normaliser la comparaison
-        const projectInCache = projects.find(p => cleanProjectId(p.id) === cleanedId);
-        
-        if (projectInCache) {
-          console.log(`✅ getProject - Projet trouvé dans le cache: "${projectInCache.name}"`);
-          return projectInCache;
+        const project = projects.find((p: ProjectData) => p.id === id);
+        if (project) {
+          console.log('Project found in cache:', project.name);
+          return project;
         }
       } catch (e) {
-        console.error('Erreur lors de la lecture du cache des projets:', e);
+        console.error('Error parsing cached projects:', e);
       }
     }
     
-    // Vérifier le type de notionApi et l'utiliser correctement
-    const request = typeof notionApi.request === 'function' 
-      ? notionApi.request 
-      : notionApi;
+    // Vérifier si on est en mode mock
+    if (notionApi.mockMode.isActive()) {
+      console.log('Getting mock project by ID (mode mock active):', id);
+      const mockProject = MOCK_PROJECTS.find(project => project.id === id);
+      return mockProject || null;
+    }
     
-    // Si pas dans le cache, faire une requête API
-    const response = await request(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
+    // Vérifier si Notion est configuré
+    const { client, dbId } = getNotionClient();
     
-    if (!response) {
-      console.error(`❌ getProject - Réponse vide de l'API Notion pour ID: "${cleanedId}"`);
+    if (!client || !dbId) {
+      console.error('Notion client or database ID is missing');
       return null;
     }
-
-    const properties = response.properties;
-    console.log(`✅ getProject - Projet Notion récupéré: "${properties.Name?.title?.[0]?.plain_text || 'Sans titre'}"`);
     
-    return {
+    // Récupérer la clé API
+    const apiKey = localStorage.getItem('notion_api_key');
+    if (!apiKey) {
+      throw new Error('API key is missing');
+    }
+    
+    // Tester la connexion avant de continuer
+    try {
+      await notionApi.users.me(apiKey);
+      console.log('Notion connection verified before getting project');
+    } catch (connError) {
+      console.error('Connection test failed:', connError);
+      if (connError.message?.includes('Failed to fetch') || connError.message?.includes('401') || connError.message?.includes('403')) {
+        notionApi.mockMode.activate();
+        console.log('Switching to mock mode due to connection error');
+        const mockProject = MOCK_PROJECTS.find(project => project.id === id);
+        return mockProject || null;
+      }
+      throw connError;
+    }
+    
+    // Utiliser notre proxy pour récupérer la page spécifique
+    console.log('Requesting page from Notion:', id);
+    const response = await notionApi.pages.retrieve(id, apiKey);
+    
+    if (!response) {
+      throw new Error('Invalid response from Notion API');
+    }
+    
+    // Log des données pour le débogage
+    console.log('Données du projet depuis Notion:', JSON.stringify(response, null, 2));
+    
+    // Convertir la page Notion en projet
+    const properties = response.properties;
+    const project: ProjectData = {
       id: response.id,
-      name: properties.Name?.title?.[0]?.plain_text || properties.name?.title?.[0]?.plain_text || 'Sans titre',
-      url: properties.URL?.url || properties.url?.url || properties.Url?.url || '',
-      description: properties.Description?.rich_text?.[0]?.plain_text || properties.description?.rich_text?.[0]?.plain_text || '',
-      status: properties.Status?.select?.name || properties.status?.select?.name || 'Non démarré',
+      name: properties.Name?.title?.[0]?.plain_text || 
+            properties.name?.title?.[0]?.plain_text || 'Sans titre',
+      url: properties.URL?.url || 
+           properties.url?.url || 
+           properties.Url?.url || '#',
+      description: properties.Description?.rich_text?.[0]?.plain_text || 
+                   properties.description?.rich_text?.[0]?.plain_text || '',
+      status: properties.Status?.select?.name || 
+              properties.status?.select?.name || 'Non démarré',
       createdAt: response.created_time,
       updatedAt: response.last_edited_time,
-      progress: properties.Progress?.number || properties.progress?.number || 0,
-      itemsCount: properties.ItemsCount?.number || properties.itemsCount?.number || properties.Nombre?.number || 15,
-      pagesCount: properties.PagesCount?.number || properties.pagesCount?.number || 0
+      progress: properties.Progress?.number || 
+                properties.progress?.number || 0,
+      itemsCount: properties.ItemsCount?.number || 
+                  properties.itemsCount?.number ||
+                  properties.Nombre?.number || 15,
+      pagesCount: properties.PagesCount?.number || 
+                 properties.pagesCount?.number || 0
     };
-  } catch (error) {
-    console.error(`❌ getProject - Erreur lors de la récupération du projet ID: "${cleanedId}"`, error);
     
-    // Ne pas activer le mode démo en cas d'erreur d'accès à l'API
+    return project;
+  } catch (error) {
+    console.error('Erreur lors de la récupération du projet depuis Notion:', error);
+    
+    // En cas d'erreur de connexion, utiliser les données de test
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('403') || error.message?.includes('401')) {
+      notionApi.mockMode.activate();
+      console.log('Switching to mock mode due to fetch error');
+      const mockProject = MOCK_PROJECTS.find(project => project.id === id);
+      return mockProject || null;
+    }
+    
     return null;
   }
 };
 
-/**
- * Crée un nouveau projet
- */
-export const createProject = async (data) => {
-  // Si nous sommes en mode mock, créer un faux projet
-  if (operationMode.isDemoMode) {
-    console.log('Creating mock project with name:', data.name);
-    const newProject = {
-      id: `project-${Date.now()}`,
-      name: data.name,
-      url: data.url,
-      description: 'Projet créé en mode démonstration',
+// Créer un nouveau projet dans Notion
+export const createProjectInNotion = async (name: string, url: string): Promise<ProjectData | null> => {
+  try {
+    console.log('✨ Début de création du projet:', name, url);
+    
+    // Vérifier si on est en mode mock
+    if (notionApi.mockMode.isActive()) {
+      console.info('Creating mock project (mode mock active)');
+      const newMockProject: ProjectData = {
+        id: `project-${Date.now()}`,
+        name,
+        url,
+        description: 'Projet créé en mode démonstration',
+        status: 'Non démarré',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        progress: 0,
+        itemsCount: 15,
+        pagesCount: 0
+      };
+      
+      // Ajouter le nouveau projet aux projets simulés pour une meilleure expérience
+      MOCK_PROJECTS.unshift(newMockProject);
+      
+      // Mettre à jour le cache
+      const cachedProjects = localStorage.getItem('projects_cache');
+      if (cachedProjects) {
+        try {
+          const cache = JSON.parse(cachedProjects);
+          cache.projects.unshift(newMockProject);
+          localStorage.setItem('projects_cache', JSON.stringify(cache));
+        } catch (e) {
+          console.error('Erreur lors de la mise à jour du cache:', e);
+        }
+      } else {
+        // Créer un nouveau cache si aucun n'existe
+        localStorage.setItem('projects_cache', JSON.stringify({
+          timestamp: Date.now(),
+          projects: [newMockProject, ...MOCK_PROJECTS]
+        }));
+      }
+      
+      return newMockProject;
+    }
+    
+    // Vérifier si Notion est configuré
+    const apiKey = localStorage.getItem('notion_api_key');
+    const dbId = localStorage.getItem('notion_database_id');
+    
+    if (!apiKey || !dbId) {
+      console.error('Notion client or database ID is missing');
+      notionApi.mockMode.activate();
+      
+      // Créer un projet mock comme fallback
+      const fallbackProject: ProjectData = {
+        id: `project-${Date.now()}`,
+        name,
+        url,
+        description: 'Projet créé en mode démonstration (configuration Notion manquante)',
+        status: 'Non démarré',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        progress: 0,
+        itemsCount: 15,
+        pagesCount: 0
+      };
+      
+      // Ajouter aux projets mock pour cohérence
+      MOCK_PROJECTS.unshift(fallbackProject);
+      
+      return fallbackProject;
+    }
+    
+    // Forcer la désactivation du mode mock
+    notionApi.mockMode.forceReset();
+    console.log('✅ Mode mock désactivé pour la création de projet');
+    
+    // Tester la connexion avant de créer
+    try {
+      const user = await notionApi.users.me(apiKey);
+      console.log('Notion connection verified before creating project:', user.name);
+      
+      // Tester l'accès à la base de données
+      const db = await notionApi.databases.retrieve(dbId, apiKey);
+      console.log('Database access verified:', db.title?.[0]?.plain_text || dbId);
+      
+      // Analyser la structure de la base de données pour mieux adapter nos propriétés
+      console.log('Analysing database structure:', Object.keys(db.properties).join(', '));
+      
+      // Vérifier si certaines propriétés sont requises dans la base
+      const requiredProps = Object.entries(db.properties)
+        .filter(([_, prop]: [string, any]) => 
+          prop.type === 'title' || 
+          (prop.type === 'rich_text' && prop.rich_text?.is_required))
+        .map(([name, _]: [string, any]) => name);
+      
+      console.log('Required properties in database:', requiredProps);
+    } catch (connError) {
+      console.error('Connection test failed:', connError);
+      throw connError; // Propager l'erreur pour un meilleur diagnostic
+    }
+    
+    // Adapter les noms des propriétés à ceux utilisés dans votre base Notion
+    const properties: any = {
+      "Name": { title: [{ text: { content: name } }] },
+      "URL": { url: url },
+      "Description": { rich_text: [{ text: { content: 'Projet créé via l\'application' } }] },
+      "Status": { select: { name: 'Non démarré' } },
+      "Progress": { number: 0 },
+      "ItemsCount": { number: 15 },
+      "PagesCount": { number: 0 }
+    };
+    
+    // Ajouter des propriétés alternatives avec différentes casses
+    // Ces alternatives sont supprimées par le proxy si non nécessaires
+    properties.Nom = properties.Name;
+    properties.Titre = properties.Name;
+    properties.Url = properties.URL;
+    properties.url = properties.URL;
+    properties.Description = { rich_text: [{ text: { content: 'Projet créé via l\'application' } }] };
+    properties.description = properties.Description;
+    
+    // Log des propriétés préparées
+    console.log('Préparation des propriétés pour création:', JSON.stringify(properties, null, 2));
+    
+    // Effacer le cache avant la création
+    localStorage.removeItem('projects_cache');
+    
+    // Créer la page dans Notion via le proxy, avec plus de détails pour le débogage
+    console.log(`Creating project in Notion database: ${dbId} with API key: ${apiKey.substring(0, 8)}...`);
+    
+    const payload = {
+      parent: { database_id: dbId },
+      properties
+    };
+    
+    console.log('Payload for Notion creation:', JSON.stringify(payload, null, 2));
+    
+    const response = await notionApi.pages.create(payload, apiKey);
+    
+    if (!response || !response.id) {
+      throw new Error('Failed to create project in Notion: No ID returned');
+    }
+    
+    console.log('Project created successfully in Notion:', response.id);
+    console.log('Full response:', JSON.stringify(response, null, 2));
+    
+    // Convertir la réponse en projet
+    const newProject: ProjectData = {
+      id: response.id,
+      name,
+      url,
+      description: 'Projet créé via l\'application',
       status: 'Non démarré',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: response.created_time,
+      updatedAt: response.last_edited_time,
       progress: 0,
       itemsCount: 15,
       pagesCount: 0
     };
     
-    // Ajouter aux projets mock pour cohérence
-    MOCK_PROJECTS.unshift(newProject);
+    // Forcer une actualisation des données
+    setTimeout(() => {
+      localStorage.removeItem('projects_cache');
+    }, 500);
     
     return newProject;
-  }
-
-  // Sinon, créer dans Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  const dbId = localStorage.getItem('notion_database_id');
-  
-  if (!apiKey || !dbId) {
-    throw new Error('Configuration Notion manquante');
-  }
-
-  const properties = {
-    "Name": {
-      title: [
-        {
-          text: {
-            content: data.name
-          }
-        }
-      ]
-    },
-    "URL": {
-      url: data.url
-    },
-    "Description": {
-      rich_text: [
-        {
-          text: {
-            content: 'Projet créé via l\'application'
-          }
-        }
-      ]
-    },
-    "Status": {
-      select: {
-        name: 'Non démarré'
-      }
-    },
-    "Progress": {
-      number: 0
-    },
-    "ItemsCount": {
-      number: 15
-    },
-    "PagesCount": {
-      number: 0
-    }
-  };
-
-  // Vérifier le type de notionApi et l'utiliser correctement
-  const request = typeof notionApi.request === 'function' 
-    ? notionApi.request 
-    : notionApi;
-
-  const response = await request(`/pages`, 'POST', {
-    parent: {
-      database_id: dbId
-    },
-    properties
-  }, apiKey);
-
-  return {
-    id: response.id,
-    name: data.name,
-    url: data.url,
-    description: 'Projet créé via l\'application',
-    status: 'Non démarré',
-    createdAt: response.created_time,
-    updatedAt: response.last_edited_time,
-    progress: 0,
-    itemsCount: 15,
-    pagesCount: 0
-  };
-};
-
-/**
- * Met à jour un projet existant
- */
-export const updateProject = async (id, data) => {
-  // Si nous sommes en mode mock, mettre à jour un faux projet
-  if (operationMode.isDemoMode) {
-    console.log('Updating mock project with ID:', id);
-    const projectIndex = MOCK_PROJECTS.findIndex((project) => project.id === id);
-    
-    if (projectIndex !== -1) {
-      MOCK_PROJECTS[projectIndex] = {
-        ...MOCK_PROJECTS[projectIndex],
-        name: data.name,
-        url: data.url,
-        updatedAt: new Date().toISOString()
-      };
-      
-      return MOCK_PROJECTS[projectIndex];
-    }
-    
-    return null;
-  }
-
-  // Sinon, mettre à jour dans Notion
-  const apiKey = localStorage.getItem('notion_api_key');
-  if (!apiKey) {
-    throw new Error('Clé API Notion manquante');
-  }
-
-  const properties = {
-    "Name": {
-      title: [
-        {
-          text: {
-            content: data.name
-          }
-        }
-      ]
-    },
-    "URL": {
-      url: data.url
-    }
-  };
-
-  // Vérifier le type de notionApi et l'utiliser correctement
-  const request = typeof notionApi.request === 'function' 
-    ? notionApi.request 
-    : notionApi;
-
-  await request(`/pages/${id}`, 'PATCH', {
-    properties
-  }, apiKey);
-
-  // Récupérer le projet mis à jour
-  return getProject(id);
-};
-
-/**
- * Supprime un projet
- */
-export const deleteProject = async (id) => {
-  // Si nous sommes en mode mock, simuler une suppression
-  if (operationMode.isDemoMode) {
-    console.log('Deleting mock project with ID:', id);
-    const projectIndex = MOCK_PROJECTS.findIndex((project) => project.id === id);
-    
-    if (projectIndex !== -1) {
-      MOCK_PROJECTS.splice(projectIndex, 1);
-      return true;
-    }
-    
-    return false;
-  }
-
-  // Sinon, supprimer dans Notion (Notion archive les pages, ne les supprime pas vraiment)
-  const apiKey = localStorage.getItem('notion_api_key');
-  if (!apiKey) {
-    throw new Error('Clé API Notion manquante');
-  }
-
-  try {
-    // Vérifier le type de notionApi et l'utiliser correctement
-    const request = typeof notionApi.request === 'function' 
-      ? notionApi.request 
-      : notionApi;
-      
-    await request(`/pages/${id}`, 'PATCH', {
-      archived: true
-    }, apiKey);
-    
-    return true;
   } catch (error) {
-    console.error(`Erreur lors de la suppression du projet #${id}:`, error);
-    return false;
+    console.error('Erreur lors de la création du projet dans Notion:', error);
+    console.error('Détails de l\'erreur:', error.message);
+    
+    // Capturer et afficher plus de détails sur l'erreur
+    if (error.response) {
+      console.error('Réponse d\'erreur:', JSON.stringify(error.response, null, 2));
+    }
+    
+    throw error;
   }
 };
