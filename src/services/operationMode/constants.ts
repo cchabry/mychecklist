@@ -5,11 +5,11 @@ import { OperationModeSettings } from './types';
  * Paramètres par défaut pour le système operationMode
  */
 export const DEFAULT_SETTINGS: OperationModeSettings = {
-  // Bascule automatique en mode démo après un certain nombre d'échecs - désactivée par défaut
+  // Bascule automatique en mode démo après un certain nombre d'échecs - DÉSACTIVÉE
   autoSwitchOnFailure: false,
   
-  // Nombre d'échecs consécutifs avant basculement automatique - augmenté
-  maxConsecutiveFailures: 5,
+  // Nombre d'échecs consécutifs avant basculement automatique - considérablement augmenté
+  maxConsecutiveFailures: 10,
   
   // Conserver le mode entre les sessions
   persistentModeStorage: true,
@@ -21,9 +21,8 @@ export const DEFAULT_SETTINGS: OperationModeSettings = {
   useCacheInRealMode: true,
   
   // Taux d'erreurs simulées en mode démo (pourcentage) - réduit
-  errorSimulationRate: 5,
+  errorSimulationRate: 3,
   
   // Délai réseau simulé en mode démo (ms)
   simulatedNetworkDelay: 300
 };
-

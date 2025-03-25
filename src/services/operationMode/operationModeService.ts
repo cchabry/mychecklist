@@ -1,4 +1,3 @@
-
 import { 
   OperationMode, 
   OperationModeSettings, 
@@ -9,6 +8,7 @@ import {
 import { DEFAULT_SETTINGS } from './constants';
 import { operationModeStorage } from './storage';
 import { operationModeNotifications } from './notifications';
+import { operationModeUtils } from './utils';
 
 class OperationModeService implements IOperationModeService {
   private mode: OperationMode = OperationMode.REAL;
@@ -165,7 +165,7 @@ class OperationModeService implements IOperationModeService {
   }
   
   // Gestion des erreurs avec une logique améliorée
-  public handleConnectionError(error: Error, context: string = 'Opération'): void {
+  public handleConnectionError(error: Error, context: string = 'Opération', isNonCritical: boolean = false): void {
     this.lastError = error;
     
     // Vérifier si l'erreur semble temporaire (réseau, CORS, etc.)
@@ -174,22 +174,29 @@ class OperationModeService implements IOperationModeService {
     // Vérifier si l'opération est marquée comme critique
     const isCriticalOperation = this.isOperationCritical(context);
     
-    // Ne pas incrémenter le compteur d'échecs pour les erreurs temporaires 
-    // sauf si l'opération est critique
-    if (!isTemporaryError || isCriticalOperation) {
+    // Ne pas incrémenter le compteur d'échecs pour:
+    // - les erreurs temporaires 
+    // - les erreurs explicitement marquées comme non critiques
+    // - sauf si l'opération est critique
+    if ((!isTemporaryError && !isNonCritical) || isCriticalOperation) {
       this.consecutiveFailures++;
       console.warn(`[OperationMode] Erreur critique détectée (${context}): ${error.message}`);
       console.warn(`[OperationMode] Échecs consécutifs: ${this.consecutiveFailures}/${this.settings.maxConsecutiveFailures}`);
     } else {
-      console.warn(`[OperationMode] Erreur temporaire ignorée (${context}): ${error.message}`);
+      console.warn(`[OperationMode] Erreur temporaire ou non critique ignorée (${context}): ${error.message}`);
     }
     
-    // Vérifier s'il faut basculer automatiquement en mode démo
+    // Vérifier s'il faut basculer automatiquement en mode démo - seulement si:
+    // - l'option autoSwitchOnFailure est activée
+    // - nous sommes en mode réel
+    // - le nombre d'échecs atteint le seuil
+    // - l'erreur n'est pas temporaire ou non critique
     if (
       this.settings.autoSwitchOnFailure && 
       this.mode === OperationMode.REAL &&
       this.consecutiveFailures >= this.settings.maxConsecutiveFailures &&
-      !isTemporaryError // Ne pas basculer pour une erreur temporaire
+      !isTemporaryError && 
+      !isNonCritical
     ) {
       const reason = `Basculement automatique après ${this.consecutiveFailures} échecs`;
       this.enableDemoMode(reason);
@@ -208,8 +215,7 @@ class OperationModeService implements IOperationModeService {
 
   // Vérifier si une erreur est probablement temporaire (réseau, CORS)
   private isTemporaryError(error: Error): boolean {
-    const errorMessage = error.message || '';
-    return this.temporaryErrorPatterns.some(pattern => pattern.test(errorMessage));
+    return operationModeUtils.isTemporaryError(error);
   }
   
   public handleSuccessfulOperation(): void {
@@ -271,4 +277,3 @@ class OperationModeService implements IOperationModeService {
 
 // Exporter une instance singleton
 export const operationMode = new OperationModeService();
-

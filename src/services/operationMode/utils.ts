@@ -39,6 +39,30 @@ export const operationModeUtils = {
   },
 
   /**
+   * Détermine si une erreur est probablement temporaire (réseau, CORS, autorisation, etc.)
+   */
+  isTemporaryError(error: Error): boolean {
+    const errorMessage = error.message || '';
+    const temporaryPatterns = [
+      /Failed to fetch/i,
+      /Network error/i,
+      /timeout/i,
+      /Timed out/i,
+      /CORS/i,
+      /headers/i,
+      /403/i,  // Erreurs d'autorisation souvent temporaires
+      /401/i,  // Erreurs d'authentification souvent temporaires
+      /throttled/i,
+      /limit/i,
+      /quota/i,
+      /too many requests/i,
+      /rate limit/i
+    ];
+    
+    return temporaryPatterns.some(pattern => pattern.test(errorMessage));
+  },
+
+  /**
    * Crée un wrapper pour les opérations critiques qui ne doivent pas
    * basculer en mode démo même en cas d'erreur
    */
@@ -65,7 +89,8 @@ export const operationModeUtils = {
         // Signaler l'erreur mais elle sera traitée comme une erreur temporaire
         operationMode.handleConnectionError(
           error instanceof Error ? error : new Error(String(error)),
-          operationName
+          operationName,
+          true // Indiquer explicitement que c'est une erreur non critique
         );
         
         throw error;
@@ -76,4 +101,3 @@ export const operationModeUtils = {
     };
   }
 };
-

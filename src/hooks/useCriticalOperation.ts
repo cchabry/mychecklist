@@ -1,96 +1,60 @@
 
-import { useCallback } from 'react';
-import { operationMode } from '@/services/operationMode';
-import { toast } from 'sonner';
+import { operationModeUtils } from '@/services/operationMode/utils';
+import { useState, useCallback } from 'react';
 
 /**
- * Options pour les opérations critiques
+ * Hook pour encapsuler des opérations critiques qui ne doivent pas
+ * déclencher de basculement automatique en mode démo
  */
-interface CriticalOperationOptions {
-  context: string;
-  successMessage?: string;
-  errorMessage?: string;
-  showSuccessToast?: boolean;
-  showErrorToast?: boolean;
-  onSuccess?: () => void;
-  onError?: (error: Error) => void;
-}
+export function useCriticalOperation(operationName: string) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-/**
- * Hook pour exécuter des opérations critiques qui ne doivent pas
- * déclencher de bascule en mode démo même en cas d'erreur
- */
-export function useCriticalOperation() {
   /**
-   * Exécute une opération critique
-   * @param operation La fonction à exécuter
-   * @param options Options de configuration
-   * @returns Le résultat de l'opération
+   * Exécute une fonction en la marquant comme opération critique
    */
-  const executeCriticalOperation = useCallback(async <T>(
-    operation: () => Promise<T>,
-    options: CriticalOperationOptions
+  const executeCritical = useCallback(async <T>(
+    fn: () => Promise<T>,
+    options: {
+      onSuccess?: (result: T) => void;
+      onError?: (error: Error) => void;
+    } = {}
   ): Promise<T | null> => {
-    const {
-      context,
-      successMessage = 'Opération réussie',
-      errorMessage = 'Une erreur est survenue',
-      showSuccessToast = true,
-      showErrorToast = true,
-      onSuccess,
-      onError
-    } = options;
+    setIsLoading(true);
+    setError(null);
 
     try {
-      // Marquer cette opération comme critique
-      operationMode.markOperationAsCritical(context);
+      // Créer un wrapper d'opération critique pour cette fonction
+      const wrappedFn = operationModeUtils.createCriticalOperationWrapper(
+        operationName,
+        fn
+      );
+
+      // Exécuter la fonction avec le wrapper
+      const result = await wrappedFn();
       
-      // Exécuter l'opération
-      const result = await operation();
-      
-      // Signaler le succès
-      operationMode.handleSuccessfulOperation();
-      
-      // Afficher un message de succès si demandé
-      if (showSuccessToast && successMessage) {
-        toast.success(successMessage);
+      if (options.onSuccess) {
+        options.onSuccess(result);
       }
       
-      // Appeler le callback de succès si fourni
-      if (onSuccess) {
-        onSuccess();
-      }
-      
+      setIsLoading(false);
       return result;
     } catch (error) {
-      console.error(`[CriticalOperation] Erreur dans ${context}:`, error);
+      const typedError = error instanceof Error ? error : new Error(String(error));
+      setError(typedError);
       
-      // Signaler l'erreur mais sans basculer en mode démo
-      operationMode.handleConnectionError(
-        error instanceof Error ? error : new Error(String(error)),
-        context
-      );
-      
-      // Afficher un message d'erreur si demandé
-      if (showErrorToast) {
-        toast.error(errorMessage, {
-          description: error instanceof Error ? error.message : String(error)
-        });
+      if (options.onError) {
+        options.onError(typedError);
       }
       
-      // Appeler le callback d'erreur si fourni
-      if (onError && error instanceof Error) {
-        onError(error);
-      }
-      
+      setIsLoading(false);
       return null;
-    } finally {
-      // Démarquer l'opération comme critique
-      operationMode.unmarkOperationAsCritical(context);
     }
-  }, []);
+  }, [operationName]);
 
   return {
-    executeCriticalOperation
+    executeCritical,
+    isLoading,
+    error
   };
 }
