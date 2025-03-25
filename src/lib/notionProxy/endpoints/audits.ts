@@ -13,7 +13,7 @@ export const getAudits = async (): Promise<Audit[]> => {
     console.log('Using demo audits data');
     return [
       {
-        id: 'audit-1',
+        id: uuidv4(), // Utiliser un UUID standard
         projectId: 'project-1',
         name: 'Audit initial',
         items: [],
@@ -141,11 +141,21 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
  * Met à jour un audit existant
  */
 export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Audit> => {
+  // Nettoyer l'ID si nécessaire (retirer les préfixes)
+  let cleanId = id;
+  if (id.startsWith('audit_') || id.startsWith('audit-')) {
+    const match = id.match(/(?:audit_|audit-)(.+)/);
+    if (match && match[1]) {
+      cleanId = match[1];
+      console.log(`ID d'audit nettoyé pour mise à jour: ${id} -> ${cleanId}`);
+    }
+  }
+
   // Si nous sommes en mode démo, mettre à jour un faux audit
   if (operationMode.isDemoMode) {
-    console.log('Updating demo audit with ID:', id);
+    console.log('Updating demo audit with ID:', cleanId);
     return {
-      id,
+      id: cleanId,
       projectId: data.projectId || '',
       name: data.name || `Audit mis à jour`,
       items: data.items || [],
@@ -178,16 +188,16 @@ export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Aud
   }
   
   await notionApiRequest(
-    `/pages/${id}`,
+    `/pages/${cleanId}`,
     'PATCH',
     { properties },
     apiKey
   );
 
   // Récupérer l'audit mis à jour
-  const updatedAudit = await getAudit(id);
+  const updatedAudit = await getAudit(cleanId);
   return updatedAudit || {
-    id,
+    id: cleanId,
     projectId: data.projectId || '',
     name: data.name || '',
     items: data.items || [],
@@ -202,9 +212,19 @@ export const updateAudit = async (id: string, data: Partial<Audit>): Promise<Aud
  * Supprime un audit
  */
 export const deleteAudit = async (id: string): Promise<boolean> => {
+  // Nettoyer l'ID si nécessaire
+  let cleanId = id;
+  if (id.startsWith('audit_') || id.startsWith('audit-')) {
+    const match = id.match(/(?:audit_|audit-)(.+)/);
+    if (match && match[1]) {
+      cleanId = match[1];
+      console.log(`ID d'audit nettoyé pour suppression: ${id} -> ${cleanId}`);
+    }
+  }
+
   // Si nous sommes en mode démo, simuler une suppression
   if (operationMode.isDemoMode) {
-    console.log('Deleting demo audit with ID:', id);
+    console.log('Deleting demo audit with ID:', cleanId);
     return true;
   }
 
@@ -217,7 +237,7 @@ export const deleteAudit = async (id: string): Promise<boolean> => {
 
   try {
     await notionApiRequest(
-      `/pages/${id}`,
+      `/pages/${cleanId}`,
       'PATCH',
       {
         archived: true
@@ -226,7 +246,7 @@ export const deleteAudit = async (id: string): Promise<boolean> => {
     );
     return true;
   } catch (error) {
-    console.error(`Erreur lors de la suppression de l'audit #${id}:`, error);
+    console.error(`Erreur lors de la suppression de l'audit #${cleanId}:`, error);
     return false;
   }
 };
@@ -235,16 +255,22 @@ export const deleteAudit = async (id: string): Promise<boolean> => {
  * Récupère un audit par son ID
  */
 export const getAudit = async (id: string): Promise<Audit | null> => {
-  // Vérifier si l'ID a un format potentiellement problématique (préfixé)
+  // Nettoyer l'ID si nécessaire
+  let cleanId = id;
   if (id.startsWith('audit_') || id.startsWith('audit-')) {
-    console.warn('ID d\'audit avec préfixe détecté, cela peut causer des problèmes avec l\'API Notion:', id);
+    console.warn('ID d\'audit avec préfixe détecté, nettoyage pour l\'API Notion:', id);
+    const match = id.match(/(?:audit_|audit-)(.+)/);
+    if (match && match[1]) {
+      cleanId = match[1];
+      console.log(`ID d'audit nettoyé: ${id} -> ${cleanId}`);
+    }
   }
   
   // Si nous sommes en mode démo, retourner un faux audit
   if (operationMode.isDemoMode) {
-    console.log('Using demo audit data for ID:', id);
+    console.log('Using demo audit data for ID:', cleanId);
     return {
-      id,
+      id: cleanId,
       name: `Audit de test`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -264,7 +290,7 @@ export const getAudit = async (id: string): Promise<Audit | null> => {
 
   try {
     const response = await notionApiRequest(
-      `/pages/${id}`,
+      `/pages/${cleanId}`,
       'GET',
       undefined,
       apiKey
@@ -287,7 +313,7 @@ export const getAudit = async (id: string): Promise<Audit | null> => {
       version: properties.Version?.rich_text?.[0]?.plain_text || '1.0'
     };
   } catch (error) {
-    console.error(`Erreur lors de la récupération de l'audit #${id}:`, error);
+    console.error(`Erreur lors de la récupération de l'audit #${cleanId}:`, error);
     return null;
   }
 };

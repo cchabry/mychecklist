@@ -23,10 +23,21 @@ class AuditsService {
   }
 
   async getById(id: string): Promise<Audit | null> {
+    // Si l'ID a un préfixe "audit_" ou "audit-", extraire l'UUID réel
+    let cleanId = id;
+    if (id.startsWith('audit_') || id.startsWith('audit-')) {
+      // Extraire l'UUID après le préfixe
+      const match = id.match(/(?:audit_|audit-)(.+)/);
+      if (match && match[1]) {
+        cleanId = match[1];
+        console.log(`ID d'audit nettoyé de préfixe: ${id} -> ${cleanId}`);
+      }
+    }
+    
     return handleDemoMode<Audit | null>(
       async () => {
         // Implémentation réelle qui interrogerait l'API
-        const response = await fetch(`/api/audits/${id}`);
+        const response = await fetch(`/api/audits/${cleanId}`);
         if (!response.ok) {
           if (response.status === 404) {
             return null;
@@ -37,7 +48,13 @@ class AuditsService {
       },
       async () => {
         // Utiliser des données mockées en mode démo
-        return mockAudits.find(audit => audit.id === id) || null;
+        // Chercher d'abord avec l'ID original
+        let audit = mockAudits.find(audit => audit.id === id);
+        // Si non trouvé et que l'ID a été nettoyé, chercher avec l'ID nettoyé
+        if (!audit && cleanId !== id) {
+          audit = mockAudits.find(audit => audit.id === cleanId);
+        }
+        return audit || null;
       }
     );
   }

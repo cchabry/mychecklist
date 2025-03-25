@@ -1,83 +1,32 @@
-
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export const formatNumber = (number: number): string => {
-  return new Intl.NumberFormat('fr-FR').format(number);
-};
-
-export const formatDate = (date: string): string => {
-  return new Date(date).toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
-
 /**
- * Formate une date et heure en format français lisible.
- * @param dateString La date au format ISO string.
- * @returns Une chaîne de caractères représentant la date et l'heure formatées.
+ * Nettoie l'ID d'un audit en retirant les préfixes "audit_" ou "audit-"
+ * @param id Identifiant d'audit possiblement préfixé
+ * @returns Identifiant d'audit nettoyé
  */
-export const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-/**
- * Nettoie l'ID d'un projet Notion.
- * Gère les cas où l'ID est enveloppé dans une chaîne JSON ou contient des tirets.
- */
-export const cleanProjectId = (id?: string): string => {
-  if (!id) return '';
+export function cleanAuditId(id: string): string {
+  if (!id) return id;
   
-  let cleanedId = id;
-  
-  // Si l'ID est une chaîne JSON, l'extraire
-  if (typeof id === 'string' && id.startsWith('"') && id.endsWith('"')) {
-    try {
-      cleanedId = JSON.parse(id);
-    } catch (e) {
-      console.error('Erreur lors du parsing de l\'ID:', e);
+  if (id.startsWith('audit_') || id.startsWith('audit-')) {
+    const match = id.match(/(?:audit_|audit-)(.+)/);
+    if (match && match[1]) {
+      console.log(`Nettoyage de l'ID d'audit: ${id} -> ${match[1]}`);
+      return match[1];
     }
   }
   
-  // Supprimer les tirets si présents
-  cleanedId = cleanedId.replace(/[-]/g, '');
-  
-  // Log pour débogage
-  if (cleanedId !== id) {
-    console.log(`cleanProjectId: "${id}" -> "${cleanedId}"`);
-  }
-  
-  return cleanedId;
-};
-
-/**
- * Fonction utilitaire pour combiner des classes CSS conditionnellement
- * Utilisée par les composants shadcn/ui
- */
-export function cn(...inputs: ClassValue[]): string {
-  return twMerge(clsx(inputs));
+  return id;
 }
 
 /**
- * Réinitialise l'état de l'application en supprimant les données du localStorage
+ * Nettoie l'ID d'un projet en retirant les guillemets et autres caractères non désirés
+ * @param id Identifiant du projet possiblement encapsulé dans des guillemets
+ * @returns Identifiant du projet nettoyé
  */
-export const resetApplicationState = (): void => {
-  // Supprimer toutes les données de cache
-  localStorage.removeItem('notion_mock_mode');
-  localStorage.removeItem('projects_cache');
-  localStorage.removeItem('audit_cache');
-  localStorage.removeItem('notion_last_error');
-  localStorage.removeItem('notion_request_log');
+export function cleanProjectId(id?: string): string {
+  if (!id) return '';
   
-  // Autres réinitialisations peuvent être ajoutées ici si nécessaire
-  console.log('État de l\'application réinitialisé avec succès');
-};
+  console.log(`cleanProjectId: "${id}" -> "${id.replace(/"/g, '')}"`);
+  
+  // Retirer les guillemets si présents
+  return id.replace(/"/g, '');
+}
