@@ -3,7 +3,8 @@ import {
   DeploymentEnvironment, 
   HttpMethod, 
   RequestOptions, 
-  ApiResponse 
+  ApiResponse,
+  ProxyErrorType
 } from '../types';
 import { AbstractProxyAdapter } from '../AbstractProxyAdapter';
 
@@ -106,10 +107,16 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       
       if (!authToken) {
         this.log('Erreur: Token d\'authentification Notion manquant');
-        return this.createErrorResponse({
-          status: 401,
-          message: 'Token d\'authentification Notion manquant'
-        });
+        // Correction: Créer un objet ProxyError complet au lieu d'un simple objet avec status et message
+        const proxyError = this.createProxyError(
+          {
+            status: 401,
+            message: 'Token d\'authentification Notion manquant',
+            type: ProxyErrorType.Auth
+          },
+          endpoint
+        );
+        return this.createErrorResponse(proxyError);
       }
       
       // Préparer le corps de la requête à envoyer à la fonction Netlify
@@ -136,10 +143,16 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       
       // Si la fonction Netlify a généré une erreur
       if (!response.ok) {
+        // Créer un objet d'erreur complet avec tous les champs requis
         const error = this.createProxyError(
           { 
             status: response.status, 
             message: responseData.error || responseData.message || 'Erreur de la fonction Netlify',
+            type: response.status === 401 ? ProxyErrorType.Auth : 
+                  response.status === 403 ? ProxyErrorType.Permission :
+                  response.status === 404 ? ProxyErrorType.NotFound :
+                  response.status >= 500 ? ProxyErrorType.Server :
+                  ProxyErrorType.Client,
             ...responseData
           },
           endpoint
