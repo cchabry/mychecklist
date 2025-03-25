@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import OperationModeStatus from '../../components/OperationModeStatus';
+import OperationModeStatus from '../OperationModeStatus';
 import { useOperationMode } from '../../services/operationMode';
 import { toast } from 'sonner';
 

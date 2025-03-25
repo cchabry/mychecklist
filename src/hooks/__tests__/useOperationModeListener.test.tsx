@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
-import { useOperationModeListener } from '../../hooks/useOperationModeListener';
+import { useOperationModeListener } from '../useOperationModeListener';
 import { operationMode } from '../../services/operationMode';
 
 // Mock de operationMode et useOperationMode

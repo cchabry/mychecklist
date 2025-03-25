@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
-import { useErrorReporter } from '../../hooks/useErrorReporter';
+import { useErrorReporter } from '../useErrorReporter';
 import { useOperationMode } from '../../services/operationMode';
 import { toast } from 'sonner';
 

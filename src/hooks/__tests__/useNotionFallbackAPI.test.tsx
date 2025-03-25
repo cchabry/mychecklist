@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
-import { useNotionFallbackAPI } from '../../hooks/useNotionFallbackAPI';
+import { useNotionFallbackAPI } from '../useNotionFallbackAPI';
 import { operationMode } from '../../services/operationMode';
 import { useOperationMode } from '../../services/operationMode';
 import { toast } from 'sonner';
