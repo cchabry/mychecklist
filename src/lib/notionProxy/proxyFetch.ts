@@ -40,7 +40,9 @@ export const notionApiRequest = async (
   const authToken = token || localStorage.getItem('notion_api_key');
   
   if (!authToken) {
-    throw new Error('Token Notion manquant');
+    // Activer le mode démo si pas de token
+    operationMode.enableDemoMode('Token Notion manquant - passage en mode démo');
+    return { success: false, error: 'Token Notion manquant' };
   }
   
   // Formater correctement le token pour l'API Notion
@@ -52,7 +54,7 @@ export const notionApiRequest = async (
   }
   
   try {
-    // Utiliser directement la fonction Netlify
+    // TOUJOURS utiliser la fonction Netlify et jamais d'appel direct
     return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
   } catch (error) {
     // En cas d'erreur, signaler au système operationMode
@@ -61,12 +63,15 @@ export const notionApiRequest = async (
       `notionApiRequest: ${normalizedEndpoint}`
     );
     
-    // Si la fonction Netlify échoue, passer automatiquement en mode démo
+    // Activer automatiquement le mode démo en cas d'erreur
     console.error('Erreur lors de l\'appel à la fonction Netlify. Activation du mode démo.', error);
     operationMode.enableDemoMode('Erreur de connexion à l\'API Notion');
     
-    // Retourner un résultat vide pour éviter de bloquer l'application
-    return { success: false, error: error.message || 'Erreur inconnue' };
+    // Retourner un résultat d'erreur
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Erreur inconnue'
+    };
   }
 };
 
