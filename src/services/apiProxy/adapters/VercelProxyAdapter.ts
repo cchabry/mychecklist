@@ -8,22 +8,22 @@ import {
 import { AbstractProxyAdapter } from '../AbstractProxyAdapter';
 
 /**
- * Adaptateur de proxy spécifique pour l'environnement Netlify
- * Utilise les fonctions Netlify pour communiquer avec l'API
+ * Adaptateur de proxy pour l'environnement Vercel
+ * Utilise les API Routes de Next.js pour communiquer avec l'API Notion
  */
-export class NetlifyProxyAdapter extends AbstractProxyAdapter {
+export class VercelProxyAdapter extends AbstractProxyAdapter {
   /**
-   * URL de base pour les fonctions Netlify
+   * URL de base pour les routes API Vercel
    */
-  private functionBaseUrl: string = '/.netlify/functions';
+  private apiBaseUrl: string = '/api';
   
   /**
-   * Nom de la fonction de proxy à utiliser
+   * Nom de la route API à utiliser
    */
-  private proxyFunctionName: string = 'notion-proxy';
+  private proxyRouteName: string = 'notion-proxy';
   
   constructor() {
-    super('NetlifyProxyAdapter', DeploymentEnvironment.Netlify);
+    super('VercelProxyAdapter', DeploymentEnvironment.Vercel);
   }
   
   /**
@@ -32,14 +32,14 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
   async initialize(config: any): Promise<boolean> {
     await super.initialize(config);
     
-    // Configurer l'URL de base des fonctions si spécifiée
-    if (config.functionBaseUrl) {
-      this.functionBaseUrl = config.functionBaseUrl;
+    // Configurer l'URL de base des API routes si spécifiée
+    if (config.apiBaseUrl) {
+      this.apiBaseUrl = config.apiBaseUrl;
     }
     
-    // Configurer le nom de la fonction de proxy si spécifié
-    if (config.proxyFunctionName) {
-      this.proxyFunctionName = config.proxyFunctionName;
+    // Configurer le nom de la route API si spécifié
+    if (config.proxyRouteName) {
+      this.proxyRouteName = config.proxyRouteName;
     }
     
     return true;
@@ -50,17 +50,30 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
    */
   async isAvailable(): Promise<boolean> {
     try {
-      // Tentative d'appel à la fonction Netlify pour vérifier sa disponibilité
-      const response = await fetch(`${this.functionBaseUrl}/${this.proxyFunctionName}`, {
+      // Vérifier si nous sommes sur Vercel
+      const isVercelEnvironment = 
+        (typeof process !== 'undefined' && process.env.VERCEL) || 
+        (typeof window !== 'undefined' && (
+          window.location.hostname.includes('vercel.app') || 
+          window.location.hostname.endsWith('.now.sh') ||
+          (window as any).__NEXT_DATA__ !== undefined
+        ));
+      
+      if (!isVercelEnvironment) {
+        return false;
+      }
+      
+      // Tester si l'API route est disponible
+      const response = await fetch(`${this.apiBaseUrl}/${this.proxyRouteName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
         }
       });
       
-      // Si la réponse est 404, la fonction n'existe pas
+      // Si la réponse est 404, la route n'existe pas
       if (response.status === 404) {
-        this.log('La fonction Netlify de proxy n\'a pas été trouvée');
+        this.log('La route API Vercel de proxy n\'a pas été trouvée');
         return false;
       }
       
@@ -68,16 +81,16 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       const data = await response.json();
       const isValid = data && (data.status === 'ok' || data.message?.includes('Notion proxy'));
       
-      this.log('Test de disponibilité de l\'adaptateur Netlify:', isValid);
+      this.log('Test de disponibilité de l\'adaptateur Vercel:', isValid);
       return isValid;
     } catch (error) {
-      this.log('Erreur lors du test de disponibilité de l\'adaptateur Netlify:', error);
+      this.log('Erreur lors du test de disponibilité de l\'adaptateur Vercel:', error);
       return false;
     }
   }
   
   /**
-   * Effectue une requête à l'API via la fonction Netlify
+   * Effectue une requête à l'API via la route API Vercel
    */
   async request<T>(
     method: HttpMethod,
@@ -86,9 +99,9 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
     options?: RequestOptions
   ): Promise<ApiResponse<T>> {
     try {
-      const url = `${this.functionBaseUrl}/${this.proxyFunctionName}`;
+      const url = `${this.apiBaseUrl}/${this.proxyRouteName}`;
       
-      this.log(`Requête ${method} vers ${endpoint} via Netlify`);
+      this.log(`Requête ${method} vers ${endpoint} via Vercel`);
       
       // Fusionner les en-têtes par défaut avec ceux fournis dans les options
       const headers = {
@@ -100,7 +113,7 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       // Récupérer le token d'authentification des headers ou du localStorage
       const authToken = headers['Authorization'] || headers['authorization'] || localStorage.getItem('notion_api_key');
       
-      // Préparer le corps de la requête à envoyer à la fonction Netlify
+      // Préparer le corps de la requête à envoyer à la route API Vercel
       const body = {
         endpoint,
         method,
@@ -108,7 +121,7 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
         token: authToken
       };
       
-      // Effectuer la requête à la fonction Netlify
+      // Effectuer la requête à la route API Vercel
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -120,12 +133,12 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       // Analyser la réponse
       const responseData = await response.json();
       
-      // Si la fonction Netlify a généré une erreur
+      // Si la route API Vercel a généré une erreur
       if (!response.ok) {
         const error = this.createProxyError(
           { 
             status: response.status, 
-            message: responseData.error || responseData.message || 'Erreur de la fonction Netlify',
+            message: responseData.error || responseData.message || 'Erreur de la route API Vercel',
             ...responseData
           },
           endpoint

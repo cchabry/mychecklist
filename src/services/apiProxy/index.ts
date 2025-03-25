@@ -14,15 +14,18 @@ export * from './ProxyManager';
 // Exporter les adaptateurs
 import { NetlifyProxyAdapter } from './adapters/NetlifyProxyAdapter';
 import { LocalProxyAdapter } from './adapters/LocalProxyAdapter';
+import { VercelProxyAdapter } from './adapters/VercelProxyAdapter';
 
 // Créer et exporter des instances des adaptateurs
 export const netlifyAdapter = new NetlifyProxyAdapter();
 export const localAdapter = new LocalProxyAdapter();
+export const vercelAdapter = new VercelProxyAdapter();
 
 // Exporter un tableau de tous les adaptateurs disponibles
 export const availableAdapters = [
   netlifyAdapter,
-  localAdapter
+  localAdapter,
+  vercelAdapter
 ];
 
 // Fonction d'initialisation rapide avec tous les adaptateurs disponibles

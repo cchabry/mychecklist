@@ -5,12 +5,13 @@ import { apiProxy, initializeApiProxy } from '@/services/apiProxy';
 import { toast } from 'sonner';
 
 /**
- * Hook qui permet d'utiliser l'API Notion avec le nouveau système de proxy
+ * Hook qui permet d'utiliser l'API Notion avec le système de proxy modulaire
  */
 export function useNotionApi() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [adapterInfo, setAdapterInfo] = useState<{ name: string; environment: string } | null>(null);
   
   // Initialiser le système de proxy au premier rendu
   useEffect(() => {
@@ -23,7 +24,19 @@ export function useNotionApi() {
         
         setIsInitialized(success);
         
-        if (!success) {
+        if (success) {
+          // Récupérer les informations sur l'adaptateur actif
+          const adapter = apiProxy['getActiveAdapter'] ? 
+            apiProxy['getActiveAdapter']() : 
+            { name: 'Unknown', environment: 'Unknown' };
+          
+          setAdapterInfo({
+            name: adapter.name || 'Unknown Adapter',
+            environment: adapter.environment || 'Unknown Environment'
+          });
+          
+          console.log(`Proxy API initialisé avec succès via ${adapter.name} pour ${adapter.environment}`);
+        } else {
           setError(new Error("Échec de l'initialisation du système de proxy API"));
           toast.error("Échec de la connexion à l'API", {
             description: "Impossible d'initialiser le système de proxy pour l'API Notion"
@@ -83,6 +96,7 @@ export function useNotionApi() {
     isInitialized,
     isLoading,
     error,
+    adapterInfo,
     testConnection
   };
 }

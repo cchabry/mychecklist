@@ -1,204 +1,134 @@
 
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import { NextApiRequest, NextApiResponse } from '@vercel/node';
+import fetch from 'node-fetch';
 
 // Configuration
 const NOTION_API_VERSION = '2022-06-28';
 const NOTION_API_BASE = 'https://api.notion.com/v1';
+const DEBUG = process.env.DEBUG === 'true' || false;
 
-// Fonctions utilitaires
-const isOAuthToken = (token: string): boolean => token.startsWith('ntn_');
-const isIntegrationKey = (token: string): boolean => token.startsWith('secret_');
+/**
+ * Journalise un message de debug si le mode debug est activé
+ */
+function logDebug(...args: any[]) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  try {
-    // Log request details for debugging
-    console.log('Notion proxy received request:', request.method, request.url);
-    console.log('Request headers:', JSON.stringify(request.headers, null, 2));
-    
-    // Set CORS headers for all responses
-    response.setHeader('Access-Control-Allow-Credentials', 'true');
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    response.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version');
-    
-    // Handle OPTIONS request (preflight)
-    if (request.method === 'OPTIONS') {
-      console.log('Handling OPTIONS preflight request');
-      return response.status(200).end();
-    }
-    
-    // Handle GET request for testing the proxy
-    if (request.method === 'GET') {
-      console.log('Handling GET request to notion-proxy');
-      return response.status(200).json({
-        status: 'ok',
-        message: 'Notion proxy is working',
-        timestamp: new Date().toISOString(),
-        usage: 'Send a POST request with endpoint, method, and token parameters'
-      });
-    }
+/**
+ * Handler principal de la route API Vercel
+ */
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Préparer les en-têtes CORS pour toutes les réponses
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 
+               'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version');
 
-    // Handle POST request for making calls to Notion
-    if (request.method === 'POST') {
-      console.log('Handling POST request to notion-proxy');
-      console.log('Request body type:', typeof request.body);
-      console.log('Request body has content:', request.body ? 'Yes' : 'No');
-      
-      if (!request.body) {
-        console.error('Request body is missing');
-        return response.status(400).json({
-          error: 'Missing request body'
-        });
-      }
-      
-      // Parse body if it's a string
-      let parsedBody;
-      try {
-        parsedBody = typeof request.body === 'string' 
-          ? JSON.parse(request.body) 
-          : request.body;
-        
-        console.log('Parsed body:', JSON.stringify(parsedBody, null, 2));
-      } catch (parseError) {
-        console.error('Failed to parse request body:', parseError);
-        return response.status(400).json({
-          error: 'Invalid JSON in request body'
-        });
-      }
-      
-      const { endpoint, method, body, token } = parsedBody;
-      console.log('Request parameters:', { 
-        endpoint, 
-        method, 
-        bodyPresent: !!body, 
-        tokenPresent: !!token,
-        tokenType: token ? (isIntegrationKey(token) ? 'integration' : 
-                           (isOAuthToken(token) ? 'oauth' : 'unknown')) : 'none',
-        tokenFirstChars: token ? token.substring(0, 8) + '...' : 'none'
-      });
-
-      // Validate parameters
-      if (!endpoint) {
-        console.error('Missing endpoint parameter');
-        return response.status(400).json({
-          error: 'Missing required parameter: endpoint'
-        });
-      }
-
-      if (!token) {
-        console.error('Missing token parameter');
-        return response.status(400).json({
-          error: 'Missing required parameter: token'
-        });
-      }
-      
-      // Test token detection
-      if (token === 'test_token' || token === 'test_token_for_proxy_test') {
-        console.log('Test token detected, this is just a connectivity test');
-        return response.status(200).json({
-          status: 'ok',
-          message: 'Test proxy connectivity successful',
-          note: 'This was just a connectivity test with a test token',
-          actualApi: false
-        });
-      }
-
-      // Build full Notion API URL
-      const targetUrl = `${NOTION_API_BASE}${endpoint}`;
-      console.log(`Target URL: ${targetUrl}`);
-
-      // Préparer le token d'authentification au format Bearer
-      let authToken = token;
-      if (!token.startsWith('Bearer ')) {
-        // Ajouter le préfixe Bearer pour les deux types de tokens
-        if (isIntegrationKey(token) || isOAuthToken(token)) {
-          authToken = `Bearer ${token}`;
-          console.log(`Formatted token with Bearer prefix for Notion API (${isOAuthToken(token) ? 'OAuth' : 'Integration'} token)`);
-        }
-      }
-
-      // Prepare headers for Notion API
-      const headers: HeadersInit = {
-        'Authorization': authToken,
-        'Notion-Version': NOTION_API_VERSION,
-        'Content-Type': 'application/json'
-      };
-      
-      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
-        'Notion-Version': headers['Notion-Version'],
-        'Content-Type': headers['Content-Type'],
-        'Authorization': `${authToken.substring(0, 15)}...`
-      });
-      
-      // Make request to Notion API
-      try {
-        const notionResponse = await fetch(targetUrl, {
-          method: method || 'GET',
-          headers,
-          body: body ? JSON.stringify(body) : undefined
-        });
-        
-        console.log('Notion API response status:', notionResponse.status);
-        
-        // Get response body
-        let responseData;
-        try {
-          responseData = await notionResponse.json();
-          console.log('Response data type:', typeof responseData);
-          
-          // Si erreur 401, ajouter plus de détails selon le type de token
-          if (notionResponse.status === 401) {
-            console.error('Authentication error with Notion API:', responseData);
-            
-            if (isOAuthToken(token)) {
-              responseData.detailed_info = {
-                tokenType: 'oauth',
-                message: "Ce token OAuth (ntn_) peut ne pas fonctionner avec certaines API d'intégration",
-                help: "Certaines API nécessitent une clé d'intégration (secret_) au lieu d'un token OAuth"
-              };
-            } else if (isIntegrationKey(token)) {
-              responseData.detailed_info = {
-                tokenType: 'integration',
-                message: "Vérifiez que votre clé d'intégration est valide et que l'intégration a accès à cette ressource",
-                help: "Les clés d'intégration commencent par 'secret_' et doivent être utilisées avec le préfixe 'Bearer'"
-              };
-            } else {
-              responseData.detailed_info = {
-                tokenType: 'unknown',
-                message: "Format de token inconnu",
-                help: "Utilisez une clé d'intégration (secret_) ou un token OAuth (ntn_)"
-              };
-            }
-          }
-        } catch (jsonError) {
-          console.error('Failed to parse response as JSON:', jsonError);
-          const textResponse = await notionResponse.text();
-          console.log('Text response:', textResponse);
-          return response.status(notionResponse.status).send(textResponse);
-        }
-
-        // Return Notion API response
-        return response.status(notionResponse.status).json(responseData);
-      } catch (fetchError) {
-        console.error('Fetch error when calling Notion API:', fetchError);
-        return response.status(500).json({
-          error: 'Failed to fetch from Notion API',
-          message: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
-        });
-      }
-    }
-
-    // Method not supported
-    console.error(`Unsupported method: ${request.method}`);
-    return response.status(405).json({
-      error: 'Method not allowed',
-      message: 'This endpoint only supports GET and POST methods'
-    });
-  } catch (error) {
-    console.error('Notion proxy error:', error);
-    return response.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+  // Gérer les requêtes OPTIONS (preflight CORS)
+  if (req.method === 'OPTIONS') {
+    logDebug('Gestion d\'une requête OPTIONS preflight');
+    return res.status(204).end();
+  }
+  
+  // Gérer les requêtes GET pour tester le proxy
+  if (req.method === 'GET') {
+    logDebug('Gestion d\'une requête GET pour tester le proxy');
+    return res.status(200).json({
+      status: 'ok',
+      message: 'Notion proxy fonctionne sur Vercel',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      usage: 'Envoyez une requête POST avec les paramètres endpoint, method et token'
     });
   }
+  
+  // Gérer les requêtes POST pour les appels à Notion
+  if (req.method === 'POST') {
+    logDebug('Gestion d\'une requête POST pour appel à l\'API Notion');
+    
+    const { endpoint, method, body, token } = req.body;
+    
+    // Valider les paramètres requis
+    if (!endpoint) {
+      return res.status(400).json({ 
+        error: 'Paramètre manquant: endpoint',
+        receivedParameters: Object.keys(req.body).join(', ')
+      });
+    }
+    
+    if (!token) {
+      return res.status(400).json({ 
+        error: 'Paramètre manquant: token',
+        receivedParameters: Object.keys(req.body).join(', ')
+      });
+    }
+    
+    // Vérifier si c'est un token de test (pour la vérification de connectivité)
+    if (token === 'test_token' || token === 'test_token_for_proxy_test') {
+      logDebug('Token de test détecté, il s\'agit d\'un simple test de connectivité');
+      return res.status(200).json({
+        status: 'ok',
+        message: 'Test de connectivité proxy réussi',
+        note: 'Il s\'agissait simplement d\'un test de connectivité avec un token de test',
+        actualApi: false
+      });
+    }
+    
+    // Construire l'URL complète de l'API Notion
+    const targetUrl = `${NOTION_API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    logDebug(`URL cible: ${targetUrl}`);
+    
+    // Préparer le token d'authentification au format Bearer
+    let authToken = token;
+    if (!token.startsWith('Bearer ')) {
+      // Si c'est juste le token brut, ajouter le préfixe Bearer
+      if (token.startsWith('secret_') || token.startsWith('ntn_')) {
+        authToken = `Bearer ${token}`;
+        logDebug(`Token formaté avec préfixe Bearer pour l'API Notion`);
+      }
+    }
+    
+    // Préparer les en-têtes pour l'API Notion
+    const notionHeaders: any = {
+      'Authorization': authToken,
+      'Notion-Version': NOTION_API_VERSION,
+      'Content-Type': 'application/json'
+    };
+    
+    // Faire la requête à l'API Notion
+    try {
+      const httpMethod = method || 'GET';
+      const notionResponse = await fetch(targetUrl, {
+        method: httpMethod,
+        headers: notionHeaders,
+        body: body && httpMethod !== 'GET' ? JSON.stringify(body) : undefined
+      });
+      
+      logDebug(`Réponse API Notion reçue avec statut: ${notionResponse.status}`);
+      
+      // Récupérer le corps de la réponse en JSON
+      const responseData = await notionResponse.json();
+      
+      // Retourner la réponse avec le même statut
+      return res.status(notionResponse.status).json(responseData);
+      
+    } catch (error: any) {
+      console.error('Erreur lors de l\'appel à l\'API Notion:', error);
+      
+      return res.status(500).json({
+        error: 'Impossible de contacter l\'API Notion',
+        message: error.message || 'Erreur inconnue'
+      });
+    }
+  }
+  
+  // Méthode non supportée
+  return res.status(405).json({
+    error: 'Méthode non autorisée',
+    message: 'Cet endpoint ne supporte que les méthodes GET et POST',
+    receivedMethod: req.method
+  });
 }

@@ -2,77 +2,156 @@
 // Configuration
 const NOTION_API_VERSION = '2022-06-28';
 const NOTION_API_BASE = 'https://api.notion.com/v1';
+const DEBUG = process.env.DEBUG === 'true' || false;
+const CACHE_TTL = process.env.CACHE_TTL || 60; // Durée de cache en secondes (défaut: 1 minute)
 
+// Cache simple en mémoire pour les requêtes GET
+const requestCache = new Map();
+
+/**
+ * Nettoie le cache des entrées expirées
+ */
+function cleanupCache() {
+  const now = Date.now();
+  for (const [key, entry] of requestCache.entries()) {
+    if (now > entry.expiry) {
+      requestCache.delete(key);
+      logDebug(`Cache: entrée expirée supprimée: ${key}`);
+    }
+  }
+}
+
+/**
+ * Génère une clé de cache pour une requête
+ */
+function generateCacheKey(method, endpoint, body = {}) {
+  // On ne met en cache que les requêtes GET
+  if (method !== 'GET') return null;
+  
+  // Pour les requêtes GET, la clé est basée sur l'endpoint
+  return `${method}:${endpoint}`;
+}
+
+/**
+ * Journalise un message de debug si le mode debug est activé
+ */
+function logDebug(...args) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
+
+/**
+ * Enrichit et journalise une erreur
+ */
+function logError(message, details, request = {}) {
+  const timestamp = new Date().toISOString();
+  const errorObj = {
+    message,
+    timestamp,
+    details,
+    request: {
+      method: request.method,
+      endpoint: request.endpoint,
+      hasBody: !!request.body,
+      hasToken: !!request.token
+    }
+  };
+  
+  console.error(`[${timestamp}] ERREUR: ${message}`, errorObj);
+  return errorObj;
+}
+
+/**
+ * Handler principal de la fonction Netlify
+ */
 exports.handler = async (event, context) => {
+  // Nettoyer le cache des entrées expirées
+  cleanupCache();
+  
+  // Préparer les en-têtes CORS pour toutes les réponses
+  const headers = {
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version'
+  };
+  
+  // Métrique de performance pour le temps d'exécution
+  const startTime = Date.now();
+  let responseStatus = 200;
+  let responseSize = 0;
+  let cacheHit = false;
+  
   try {
-    // Log request details for debugging
-    console.log('Netlify function: Notion proxy received request:', event.httpMethod, event.path);
-    console.log('Request headers:', JSON.stringify(event.headers, null, 2));
+    logDebug(`Netlify function: Notion proxy reçoit une requête: ${event.httpMethod} ${event.path}`);
     
-    // Set CORS headers for all responses
-    const headers = {
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-      'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version'
-    };
-    
-    // Handle OPTIONS request (preflight)
+    // Gérer les requêtes OPTIONS (preflight CORS)
     if (event.httpMethod === 'OPTIONS') {
-      console.log('Handling OPTIONS preflight request');
+      logDebug('Gestion d\'une requête OPTIONS preflight');
       return {
-        statusCode: 200,
+        statusCode: 204, // No Content pour preflight
         headers,
         body: ''
       };
     }
     
-    // Handle GET request for testing the proxy
-    if (event.httpMethod === 'GET') {
-      console.log('Handling GET request to notion-proxy');
+    // Gérer les requêtes GET pour tester le proxy
+    if (event.httpMethod === 'GET' && !event.path.includes('?')) {
+      logDebug('Gestion d\'une requête GET pour tester le proxy');
+      const responseBody = {
+        status: 'ok',
+        message: 'Notion proxy fonctionne sur Netlify',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        usage: 'Envoyez une requête POST avec les paramètres endpoint, method et token'
+      };
+      
+      responseSize = JSON.stringify(responseBody).length;
+      
       return {
         statusCode: 200,
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'ok',
-          message: 'Notion proxy is working on Netlify',
-          timestamp: new Date().toISOString(),
-          usage: 'Send a POST request with endpoint, method, and token parameters'
-        })
+        body: JSON.stringify(responseBody)
       };
     }
-
-    // Handle POST request for making calls to Notion
+    
+    // Gérer les requêtes POST pour les appels à Notion
     if (event.httpMethod === 'POST') {
-      console.log('Handling POST request to notion-proxy');
-      console.log('Request body type:', typeof event.body);
-      console.log('Request body has content:', event.body ? 'Yes' : 'No');
-      console.log('Raw body content:', event.body);
+      logDebug('Gestion d\'une requête POST pour appel à l\'API Notion');
       
+      // Vérifier que le corps de la requête existe
       if (!event.body) {
-        console.error('Request body is missing');
+        responseStatus = 400;
+        const error = logError('Corps de requête manquant', { detail: 'Le corps est requis pour les requêtes POST' });
+        
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            error: 'Missing request body',
-            details: 'The request body is required for POST requests'
+            error: 'Corps de requête manquant',
+            details: 'Le corps est requis pour les requêtes POST'
           })
         };
       }
       
-      // Parse body
+      // Parser le corps de la requête
       let parsedBody;
       try {
         parsedBody = JSON.parse(event.body);
-        console.log('Parsed body:', JSON.stringify(parsedBody, null, 2));
+        logDebug('Corps parsé:', JSON.stringify(parsedBody, null, 2));
       } catch (parseError) {
-        console.error('Failed to parse request body:', parseError);
+        responseStatus = 400;
+        const error = logError('JSON invalide dans le corps de la requête', { 
+          error: parseError.message, 
+          receivedBody: event.body 
+        });
+        
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            error: 'Invalid JSON in request body',
+            error: 'JSON invalide dans le corps de la requête',
             details: parseError.message,
             receivedBody: event.body
           })
@@ -80,112 +159,149 @@ exports.handler = async (event, context) => {
       }
       
       const { endpoint, method, body, token } = parsedBody;
-      console.log('Request parameters:', { 
-        endpoint, 
-        method, 
-        bodyPresent: !!body, 
-        tokenPresent: !!token,
-        tokenLength: token ? token.length : 0,
-        tokenType: token ? (token.startsWith('secret_') ? 'integration' : 
-                           (token.startsWith('ntn_') ? 'oauth' : 'unknown')) : 'none',
-        tokenFirstChars: token ? token.substring(0, 8) + '...' : 'none'
-      });
-
-      // Validate parameters
+      
+      // Valider les paramètres requis
       if (!endpoint) {
-        console.error('Missing endpoint parameter');
+        responseStatus = 400;
+        const error = logError('Paramètre manquant: endpoint', { 
+          receivedParameters: Object.keys(parsedBody).join(', ') 
+        }, parsedBody);
+        
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            error: 'Missing required parameter: endpoint',
+            error: 'Paramètre manquant: endpoint',
             receivedParameters: Object.keys(parsedBody).join(', ')
           })
         };
       }
-
+      
       if (!token) {
-        console.error('Missing token parameter');
+        responseStatus = 400;
+        const error = logError('Paramètre manquant: token', { 
+          receivedParameters: Object.keys(parsedBody).join(', ') 
+        }, parsedBody);
+        
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            error: 'Missing required parameter: token',
+            error: 'Paramètre manquant: token',
             receivedParameters: Object.keys(parsedBody).join(', ')
           })
         };
       }
-
-      // Test token détection
+      
+      // Vérifier si c'est un token de test (pour la vérification de connectivité)
       if (token === 'test_token' || token === 'test_token_for_proxy_test') {
-        console.log('Test token detected, this is just a connectivity test');
+        logDebug('Token de test détecté, il s\'agit d\'un simple test de connectivité');
+        
+        const responseBody = {
+          status: 'ok',
+          message: 'Test de connectivité proxy réussi',
+          note: 'Il s\'agissait simplement d\'un test de connectivité avec un token de test',
+          actualApi: false
+        };
+        
+        responseSize = JSON.stringify(responseBody).length;
+        
         return {
           statusCode: 200,
           headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'ok',
-            message: 'Test proxy connectivity successful',
-            note: 'This was just a connectivity test with a test token',
-            actualApi: false
-          })
+          body: JSON.stringify(responseBody)
         };
       }
-
-      // Build full Notion API URL
-      const targetUrl = `${NOTION_API_BASE}${endpoint}`;
-      console.log(`Target URL: ${targetUrl}`);
-
+      
+      // Vérifier si la requête est en cache (uniquement pour GET)
+      const httpMethod = method || 'GET';
+      const cacheKey = generateCacheKey(httpMethod, endpoint, body);
+      
+      if (cacheKey && requestCache.has(cacheKey)) {
+        const cachedEntry = requestCache.get(cacheKey);
+        if (Date.now() < cachedEntry.expiry) {
+          logDebug(`Cache hit pour: ${cacheKey}`);
+          cacheHit = true;
+          responseSize = cachedEntry.size;
+          
+          // Ajouter des informations sur le cache dans les en-têtes
+          const cacheHeaders = {
+            'X-Cache': 'HIT',
+            'X-Cache-Expiry': new Date(cachedEntry.expiry).toISOString(),
+            'X-Cache-Key': cacheKey
+          };
+          
+          return {
+            statusCode: cachedEntry.status,
+            headers: { ...headers, ...cacheHeaders, 'Content-Type': 'application/json' },
+            body: cachedEntry.data
+          };
+        } else {
+          // L'entrée est expirée, la supprimer du cache
+          requestCache.delete(cacheKey);
+          logDebug(`Cache: entrée expirée supprimée: ${cacheKey}`);
+        }
+      }
+      
+      // Construire l'URL complète de l'API Notion
+      const targetUrl = `${NOTION_API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+      logDebug(`URL cible: ${targetUrl}`);
+      
       // Préparer le token d'authentification au format Bearer
       let authToken = token;
       if (!token.startsWith('Bearer ')) {
-        // Si c'est juste le token brut, ajouter le préfixe Bearer (pour les deux types)
+        // Si c'est juste le token brut, ajouter le préfixe Bearer
         if (token.startsWith('secret_') || token.startsWith('ntn_')) {
           authToken = `Bearer ${token}`;
-          console.log('Formatted token with Bearer prefix for Notion API');
-          console.log(`Token type: ${token.startsWith('secret_') ? 'Integration key' : 'OAuth token'}`);
+          logDebug(`Token formaté avec préfixe Bearer pour l'API Notion`);
+          logDebug(`Type de token: ${token.startsWith('secret_') ? 'Clé d\'intégration' : 'Token OAuth'}`);
         }
       }
-
-      // Prepare headers for Notion API
+      
+      // Préparer les en-têtes pour l'API Notion
       const notionHeaders = {
         'Authorization': authToken,
         'Notion-Version': NOTION_API_VERSION,
         'Content-Type': 'application/json'
       };
       
-      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
+      logDebug(`Envoi d'une requête ${httpMethod} à l'API Notion avec les en-têtes:`, {
         'Notion-Version': notionHeaders['Notion-Version'],
         'Content-Type': notionHeaders['Content-Type'],
-        'Authorization': authToken.substring(0, 15) + '...'
+        'Authorization': '***' // Masquer le token pour la sécurité
       });
       
-      // Make request to Notion API
+      // Mesure du temps de réponse de l'API Notion
+      const apiCallStartTime = Date.now();
+      
+      // Faire la requête à l'API Notion
       try {
         const fetch = require('node-fetch');
         const notionResponse = await fetch(targetUrl, {
-          method: method || 'GET',
+          method: httpMethod,
           headers: notionHeaders,
-          body: body ? JSON.stringify(body) : undefined
+          body: body && httpMethod !== 'GET' ? JSON.stringify(body) : undefined
         });
         
-        console.log('Notion API response status:', notionResponse.status);
+        const apiCallDuration = Date.now() - apiCallStartTime;
+        logDebug(`Réponse API Notion reçue en ${apiCallDuration}ms avec statut: ${notionResponse.status}`);
         
-        // Get response body
+        // Récupérer le corps de la réponse
         let responseData;
         let responseText;
         
         try {
           responseText = await notionResponse.text();
-          console.log('Response text preview:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
+          logDebug(`Aperçu du texte de réponse: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
           
-          // Try to parse as JSON
+          // Essayer de parser en JSON
           try {
             responseData = JSON.parse(responseText);
-            console.log('Response parsed as JSON:', typeof responseData);
+            logDebug('Réponse parsée en JSON:', typeof responseData);
             
-            // Si l'erreur est une erreur d'authentification (401), ajouter des détails
+            // Si erreur d'authentification (401), ajouter des détails
             if (notionResponse.status === 401) {
-              console.log('Authentication error from Notion API');
+              logDebug('Erreur d\'authentification depuis l\'API Notion');
               
               // Ajouter des détails spécifiques selon le type de token
               if (token && token.startsWith('ntn_')) {
@@ -209,7 +325,9 @@ exports.handler = async (event, context) => {
               }
             }
           } catch (jsonError) {
-            console.warn('Could not parse response as JSON, returning as text');
+            logDebug('Impossible de parser la réponse en JSON, renvoi sous forme de texte');
+            responseStatus = notionResponse.status;
+            
             return {
               statusCode: notionResponse.status,
               headers: { ...headers, 'Content-Type': 'text/plain' },
@@ -217,49 +335,90 @@ exports.handler = async (event, context) => {
             };
           }
         } catch (textError) {
-          console.error('Failed to get response text:', textError);
+          responseStatus = 500;
+          const error = logError('Impossible de lire le texte de réponse', { error: textError.message });
+          
           return {
             statusCode: 500,
             headers: { ...headers, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              error: 'Failed to read response from Notion API',
+              error: 'Impossible de lire la réponse de l\'API Notion',
               message: textError.message
             })
           };
         }
-
-        // Return Notion API response
+        
+        responseStatus = notionResponse.status;
+        const responseBody = JSON.stringify(responseData);
+        responseSize = responseBody.length;
+        
+        // Mettre en cache la réponse si c'est une requête GET réussie
+        if (cacheKey && notionResponse.ok) {
+          const now = Date.now();
+          requestCache.set(cacheKey, {
+            data: responseBody,
+            status: notionResponse.status,
+            expiry: now + (CACHE_TTL * 1000),
+            timestamp: now,
+            size: responseBody.length
+          });
+          logDebug(`Réponse mise en cache pour: ${cacheKey} (expire dans ${CACHE_TTL}s)`);
+        }
+        
+        // Ajouter des informations de performance dans les en-têtes
+        const perfHeaders = {
+          'X-Response-Time': `${Date.now() - startTime}ms`,
+          'X-API-Response-Time': `${apiCallDuration}ms`,
+          'X-Cache': 'MISS'
+        };
+        
+        // Retourner la réponse de l'API Notion
         return {
           statusCode: notionResponse.status,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify(responseData)
+          headers: { ...headers, ...perfHeaders, 'Content-Type': 'application/json' },
+          body: responseBody
         };
+        
       } catch (fetchError) {
-        console.error('Fetch error when calling Notion API:', fetchError);
+        responseStatus = 500;
+        const error = logError('Erreur fetch lors de l\'appel à l\'API Notion', { 
+          error: fetchError.message || 'Erreur fetch inconnue' 
+        }, { endpoint, method: httpMethod });
+        
         return {
           statusCode: 500,
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            error: 'Failed to fetch from Notion API',
-            message: fetchError.message || 'Unknown fetch error'
+            error: 'Impossible de contacter l\'API Notion',
+            message: fetchError.message || 'Erreur fetch inconnue'
           })
         };
       }
     }
-
-    // Method not supported
-    console.error(`Unsupported method: ${event.httpMethod}`);
+    
+    // Méthode non supportée
+    responseStatus = 405;
+    const error = logError(`Méthode non supportée: ${event.httpMethod}`, { 
+      receivedMethod: event.httpMethod 
+    });
+    
     return {
       statusCode: 405,
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: 'Method not allowed',
-        message: 'This endpoint only supports GET and POST methods',
+        error: 'Méthode non autorisée',
+        message: 'Cet endpoint ne supporte que les méthodes GET et POST',
         receivedMethod: event.httpMethod
       })
     };
+    
   } catch (error) {
-    console.error('Notion proxy error:', error);
+    responseStatus = 500;
+    const loggedError = logError('Erreur interne du proxy Notion', { 
+      error: error.message || 'Erreur inconnue',
+      stack: error.stack
+    });
+    
     return {
       statusCode: 500,
       headers: {
@@ -267,10 +426,14 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({
-        error: 'Internal server error',
-        message: error.message || 'Unknown error',
+        error: 'Erreur interne du serveur',
+        message: error.message || 'Erreur inconnue',
         stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
       })
     };
+  } finally {
+    // Journalisation des métriques de performance
+    const duration = Date.now() - startTime;
+    logDebug(`Requête traitée en ${duration}ms | Statut: ${responseStatus} | Taille: ${responseSize} octets | Cache: ${cacheHit ? 'HIT' : 'MISS'}`);
   }
-}
+};

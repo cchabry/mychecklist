@@ -106,7 +106,7 @@ export class LocalProxyAdapter extends AbstractProxyAdapter {
       };
       
       // Ajouter le corps de la requête si nécessaire
-      if (data && method !== 'GET' && method !== 'HEAD') {
+      if (data && (method !== 'GET')) {
         fetchOptions.body = JSON.stringify(data);
       }
       
@@ -138,8 +138,8 @@ export class LocalProxyAdapter extends AbstractProxyAdapter {
       
       // Si c'est une erreur CORS, suggérer d'utiliser un autre adaptateur
       if (error instanceof TypeError && 
-          error.message.includes('Failed to fetch') || 
-          error.message.includes('NetworkError')) {
+          (error.message.includes('Failed to fetch') || 
+          error.message.includes('NetworkError'))) {
         proxyError.message = "Erreur CORS détectée. En développement local, veuillez utiliser un proxy CORS ou configurer votre serveur de développement.";
         proxyError.type = ProxyErrorType.Network;
       }

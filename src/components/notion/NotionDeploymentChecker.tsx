@@ -2,56 +2,66 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, ServerCrash, RefreshCw } from 'lucide-react';
+import { AlertCircle, Check, ServerCrash, RefreshCw, Settings, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiProxy, initializeApiProxy } from '@/services/apiProxy';
+import { detectEnvironment } from '@/services/apiProxy/environmentDetector';
 
 const NotionDeploymentChecker: React.FC = () => {
   const [deploymentStatus, setDeploymentStatus] = useState<'checking' | 'deployed' | 'not-deployed'>('checking');
   const [isChecking, setIsChecking] = useState(false);
+  const [adapterInfo, setAdapterInfo] = useState<{ name: string; environment: string } | null>(null);
   
   // Vérifier si les fonctions serverless sont déployées
   const checkDeployment = async () => {
     setIsChecking(true);
     
     try {
-      // Tester si l'API Vercel est disponible
-      const vercelResponse = await fetch('/api/ping', { method: 'GET' });
-      const vercelWorks = vercelResponse.ok;
+      // Initialiser le système de proxy s'il ne l'est pas déjà
+      await initializeApiProxy({
+        debug: process.env.NODE_ENV === 'development',
+        timeout: 10000
+      });
       
-      if (vercelWorks) {
-        setDeploymentStatus('deployed');
-        toast.success('Fonctions serverless détectées', {
-          description: 'Votre application utilise des fonctions serverless'
-        });
-      } else {
-        setDeploymentStatus('not-deployed');
-        toast.error('Fonctions serverless non disponibles', { 
-          description: 'Déployez votre application pour utiliser les fonctions serverless'
-        });
-      }
+      // Récupérer l'adaptateur actif
+      const adapter = apiProxy['getActiveAdapter'] ? 
+        apiProxy['getActiveAdapter']() : 
+        { name: 'Unknown', environment: 'Unknown' };
       
-      // Tester si l'API Netlify est disponible
+      setAdapterInfo({
+        name: adapter.name || 'Unknown Adapter',
+        environment: adapter.environment || 'Unknown Environment'
+      });
+      
+      // Tester si l'adaptateur fonctionne
       try {
-        const netlifyResponse = await fetch('/.netlify/functions/notion-proxy', { method: 'GET' });
-        const netlifyWorks = netlifyResponse.ok;
+        const testResponse = await apiProxy.get('/users/me');
         
-        if (netlifyWorks) {
+        if (testResponse.success || testResponse.error?.status === 401) {
+          // Si la réponse est positive ou une erreur 401 (non autorisé), 
+          // cela signifie que le proxy est disponible
           setDeploymentStatus('deployed');
-          toast.success('Fonctions Netlify détectées', {
-            description: 'Votre application utilise des fonctions Netlify'
+          toast.success(`Proxy Notion détecté via ${adapter.name}`, {
+            description: `Votre application utilise ${adapter.name} pour communiquer avec l'API Notion`
+          });
+        } else {
+          setDeploymentStatus('not-deployed');
+          toast.error('Proxy Notion non disponible', { 
+            description: 'Connexion à l\'API impossible avec l\'adaptateur actuel'
           });
         }
-      } catch (netlifyError) {
-        // Ignorer si Vercel fonctionne déjà
-        if (deploymentStatus !== 'deployed') {
-          console.log('Fonctions Netlify non disponibles:', netlifyError);
-        }
+      } catch (error) {
+        console.error('Erreur lors du test de l\'adaptateur:', error);
+        setDeploymentStatus('not-deployed');
+        toast.error('Erreur lors du test du proxy', {
+          description: error instanceof Error ? error.message : String(error)
+        });
       }
     } catch (error) {
       console.error('Erreur lors de la vérification du déploiement:', error);
       setDeploymentStatus('not-deployed');
       toast.error('Erreur de vérification', {
-        description: 'Impossible de vérifier si les fonctions serverless sont déployées'
+        description: 'Impossible de vérifier si le proxy API est disponible'
       });
     } finally {
       setIsChecking(false);
@@ -71,10 +81,10 @@ const NotionDeploymentChecker: React.FC = () => {
             <RefreshCw className="h-5 w-5 text-blue-600 animate-spin" />
             <div>
               <h3 className="text-sm font-medium text-blue-800">
-                Vérification du déploiement
+                Vérification du système de proxy
               </h3>
               <p className="text-xs text-blue-700 mt-1">
-                Vérification de la disponibilité des fonctions serverless...
+                Vérification de la disponibilité de l'adaptateur de proxy...
               </p>
             </div>
           </div>
@@ -89,14 +99,26 @@ const NotionDeploymentChecker: React.FC = () => {
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Check className="h-5 w-5 text-green-600" />
-            <div>
+            <div className="flex-1">
               <h3 className="text-sm font-medium text-green-800">
-                Fonctions serverless détectées
+                Proxy API détecté
               </h3>
               <p className="text-xs text-green-700 mt-1">
-                Les fonctions serverless sont correctement déployées. Vous pouvez communiquer avec l'API Notion sans problème CORS.
+                {adapterInfo ? 
+                  `Utilisation de ${adapterInfo.name} pour l'environnement ${adapterInfo.environment}` : 
+                  "Le système de proxy API est correctement configuré."
+                }
               </p>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={checkDeployment} 
+              className="text-xs text-green-700 border-green-200 hover:bg-green-100"
+            >
+              <RefreshCw className="h-3 w-3 mr-2" />
+              Vérifier
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -110,14 +132,13 @@ const NotionDeploymentChecker: React.FC = () => {
           <ServerCrash className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="text-sm font-medium text-amber-800">
-              Fonctions serverless non détectées
+              Proxy API non disponible
             </h3>
             <p className="text-xs text-amber-700 mt-1">
-              Pour utiliser l'API Notion sans problème CORS, vous devez déployer l'application sur Vercel ou Netlify.
-              En environnement de développement, vous pouvez utiliser un proxy CORS.
+              Pour utiliser l'API Notion sans problème CORS, vous devez déployer l'application sur une plateforme supportée (Netlify, Vercel) ou utiliser le serveur de développement local.
             </p>
             
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -131,6 +152,15 @@ const NotionDeploymentChecker: React.FC = () => {
                   <RefreshCw className="h-3 w-3 mr-2" />
                 )}
                 Vérifier à nouveau
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-xs"
+              >
+                <Info className="h-3 w-3 mr-2" />
+                Détails de l'environnement: {detectEnvironment()}
               </Button>
             </div>
           </div>
