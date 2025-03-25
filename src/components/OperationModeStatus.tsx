@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useOperationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/lib/operationMode';
 import { Badge } from '@/components/ui/badge';
 import { Info, Database, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,10 +23,10 @@ const OperationModeStatus: React.FC<OperationModeStatusProps> = ({
   className = '',
   size = 'md'
 }) => {
-  const { isDemoMode, toggle, switchReason } = useOperationMode();
+  const { isDemoMode, toggleMode, switchReason } = useOperationMode();
   
   const handleToggle = () => {
-    toggle();
+    toggleMode();
     
     toast.info(
       isDemoMode ? 'Mode démonstration activé' : 'Mode réel activé',

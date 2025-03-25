@@ -4,7 +4,7 @@ import { Check, X, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useOperationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/lib/operationMode';
 import { OperationMode } from '@/services/operationMode/types';
 
 interface NotionConnectionStatusUpdatedProps {
@@ -25,12 +25,11 @@ const NotionConnectionStatusUpdated: React.FC<NotionConnectionStatusUpdatedProps
   compact = false
 }) => {
   const { 
-    mode, 
+    currentMode, 
     isDemoMode, 
     isRealMode, 
     switchReason, 
-    failures, 
-    lastError,
+    connectionHealth,
     enableRealMode,
     enableDemoMode
   } = useOperationMode();
@@ -86,13 +85,13 @@ const NotionConnectionStatusUpdated: React.FC<NotionConnectionStatusUpdatedProps
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Notion {isDemoMode ? "(Mode démonstration)" : ""}</span>
           
-          {mode === OperationMode.REAL && (
+          {currentMode === OperationMode.REAL && (
             <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
               Connecté
             </Badge>
           )}
           
-          {mode === OperationMode.DEMO && (
+          {currentMode === OperationMode.DEMO && (
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
               Démo
             </Badge>
@@ -124,12 +123,12 @@ const NotionConnectionStatusUpdated: React.FC<NotionConnectionStatusUpdatedProps
                 </div>
               )}
               
-              {failures > 0 && (
+              {connectionHealth.consecutiveErrors > 0 && (
                 <div className="grid grid-cols-[24px_1fr] items-center gap-1 mt-1">
                   <AlertTriangle size={18} className="text-amber-500" />
                   <span className="text-sm text-gray-600">
-                    {failures} tentative{failures > 1 ? 's' : ''} de connexion échouée{failures > 1 ? 's' : ''}
-                    {lastError && <span className="block text-xs text-gray-500">{lastError.message}</span>}
+                    {connectionHealth.consecutiveErrors} tentative{connectionHealth.consecutiveErrors > 1 ? 's' : ''} de connexion échouée{connectionHealth.consecutiveErrors > 1 ? 's' : ''}
+                    {connectionHealth.lastError && <span className="block text-xs text-gray-500">{connectionHealth.lastError.message}</span>}
                   </span>
                 </div>
               )}
@@ -157,7 +156,7 @@ const NotionConnectionStatusUpdated: React.FC<NotionConnectionStatusUpdatedProps
             </Button>
           )}
           
-          {onReset && failures > 0 && (
+          {onReset && connectionHealth.consecutiveErrors > 0 && (
             <Button 
               variant="outline" 
               size="sm" 
