@@ -50,6 +50,7 @@ export function useOperationMode(): OperationModeHook {
     markOperationAsCritical: operationMode.markOperationAsCritical.bind(operationMode),
     unmarkOperationAsCritical: operationMode.unmarkOperationAsCritical.bind(operationMode),
     isOperationCritical: operationMode.isOperationCritical.bind(operationMode),
-    temporarilyForceReal: operationMode.temporarilyForceReal.bind(operationMode)
+    temporarilyForceReal: operationMode.temporarilyForceReal.bind(operationMode),
+    restorePreviousMode: operationMode.restorePreviousMode.bind(operationMode)
   };
 }

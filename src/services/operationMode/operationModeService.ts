@@ -227,13 +227,37 @@ class OperationModeService implements IOperationModeService {
   
   public temporarilyForceReal(): void {
     console.log('🔍 [DEBUG] temporarilyForceReal appelé - Passage temporaire en mode réel');
+    
+    // Stocker l'état actuel avant de modifier
+    const previousMode = this.mode;
     this.temporarilyForcedReal = true;
     
     if (this.isDemoMode) {
       this.mode = OperationMode.REAL;
       console.log('🔍 [DEBUG] Mode démo temporairement désactivé');
       
+      // Sauvegarder le mode précédent pour permettre de le restaurer explicitement si nécessaire
+      localStorage.setItem('operation_mode_previous', previousMode);
+      
       this.notifySubscribers();
+    }
+  }
+  
+  public restorePreviousMode(): void {
+    console.log('🔍 [DEBUG] restorePreviousMode appelé');
+    
+    if (this.temporarilyForcedReal) {
+      const previousMode = localStorage.getItem('operation_mode_previous');
+      
+      if (previousMode === OperationMode.DEMO) {
+        console.log('🔍 [DEBUG] Restauration du mode démo après forçage temporaire');
+        this.mode = OperationMode.DEMO;
+        this.notifySubscribers();
+      }
+      
+      // Réinitialiser l'état de forçage
+      this.temporarilyForcedReal = false;
+      localStorage.removeItem('operation_mode_previous');
     }
   }
   

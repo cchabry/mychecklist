@@ -1,4 +1,3 @@
-
 import { DEFAULT_SETTINGS } from './constants';
 
 export enum OperationMode {
@@ -66,6 +65,7 @@ export interface IOperationModeService {
   toggleMode(): void;
   setDemoMode(value: boolean): void;
   temporarilyForceReal(): void;
+  restorePreviousMode(): void;
   
   // Gestion des erreurs
   handleConnectionError(error: Error, context?: string, isNonCritical?: boolean): void;
@@ -98,4 +98,5 @@ export interface OperationModeHook {
   unmarkOperationAsCritical: (operationContext: string) => void;
   isOperationCritical: (operationContext: string) => boolean;
   temporarilyForceReal: () => void;
+  restorePreviousMode: () => void;
 }

@@ -70,20 +70,21 @@ const NewProject: React.FC = () => {
         // Vider le cache des projets pour forcer un rechargement
         localStorage.removeItem('projects_cache');
         
-        // Restaurer le mode précédent si nécessaire
-        if (wasInDemoMode) {
-          console.log('🔍 Restauration du mode démo après création réussie');
-          // Ne pas restaurer immédiatement pour permettre la navigation
-          // On attendra que la navigation soit terminée
-        }
+        // IMPORTANT: Ne pas restaurer le mode démo si l'opération a réussi
+        // Garder le mode réel pour la suite des opérations
         
-        // Attendre un court instant pour permettre au cache de se vider
-        setTimeout(() => {
-          console.log('🔍 Redirection vers le projet créé:', newProject.id);
-          navigate(`/project/edit/${newProject.id}`);
-        }, 500);
+        // Rediriger immédiatement vers la création d'un audit pour ce projet
+        console.log('🔍 Redirection vers la création d\'audit pour le projet:', newProject.id);
+        navigate(`/audit/new/${newProject.id}`);
       } else {
         console.error('❌ Erreur: Aucun projet retourné par la création');
+        
+        // Si échec et qu'on était en mode démo, restaurer ce mode
+        if (wasInDemoMode) {
+          console.log('🔍 Restauration du mode démo après échec de création');
+          operationMode.enableDemoMode('Échec de création de projet');
+        }
+        
         throw new Error('Erreur lors de la création du projet');
       }
     } catch (error: any) {

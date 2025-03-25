@@ -41,14 +41,38 @@ const NewAuditPage: React.FC = () => {
         setIsChecking(true);
         console.log(`🔍 NewAuditPage - Vérification de l'existence du projet: "${projectId}"`);
         
-        // Forcer la réinitialisation du cache pour cette vérification
-        localStorage.removeItem('projects_cache');
+        // Vérifier si c'est un projet récemment créé
+        const recentlyCreatedProjectId = localStorage.getItem('recently_created_project_id');
+        const isRecentlyCreated = recentlyCreatedProjectId === projectId;
         
-        // Si nous sommes en mode mock, désactiver temporairement
-        const wasMockActive = notionApi.mockMode.isActive();
-        if (wasMockActive) {
-          console.log('🔄 NewAuditPage - Désactivation temporaire du mode mock pour vérification');
-          notionApi.mockMode.forceReset();
+        if (isRecentlyCreated) {
+          console.log('🔍 NewAuditPage - Projet récemment créé détecté:', projectId);
+          
+          // Récupérer les données du projet depuis le localStorage
+          const storedProjectData = localStorage.getItem(`project_data_${projectId}`);
+          if (storedProjectData) {
+            const projectData = JSON.parse(storedProjectData);
+            console.log('📦 Utilisation des données du projet depuis localStorage:', projectData);
+            setProject(projectData);
+            setProjectExists(true);
+            
+            // Définir un nom d'audit par défaut basé sur le nom du projet
+            setAuditName(`Audit ${projectData.name} - ${new Date().toLocaleDateString('fr-FR')}`);
+            setIsChecking(false);
+            return;
+          }
+        }
+        
+        // Si pas de données en cache, vérifier via l'API
+        console.log('🔍 NewAuditPage - Vérification via API pour le projet:', projectId);
+        
+        // Conserver le mode actuel
+        const isDemoModeActive = operationMode.isDemoMode;
+        
+        // Si c'est un projet récemment créé, s'assurer qu'on reste en mode réel
+        if (isRecentlyCreated && isDemoModeActive) {
+          console.log('🔍 NewAuditPage - Forçage du mode réel pour un projet récemment créé');
+          operationMode.temporarilyForceReal();
         }
         
         // Vérifier directement via l'API
@@ -61,13 +85,11 @@ const NewAuditPage: React.FC = () => {
           
           // Définir un nom d'audit par défaut basé sur le nom du projet
           setAuditName(`Audit ${projectData.name} - ${new Date().toLocaleDateString('fr-FR')}`);
+          
+          // Sauvegarder les données du projet pour référence future
+          localStorage.setItem(`project_data_${projectId}`, JSON.stringify(projectData));
         } else {
           setProjectExists(false);
-          
-          // Restaurer le mode mock si nécessaire
-          if (wasMockActive) {
-            notionApi.mockMode.activate();
-          }
         }
       } catch (error) {
         console.error('Erreur lors de la vérification du projet:', error);
