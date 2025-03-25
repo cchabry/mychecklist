@@ -39,20 +39,28 @@ function normalizeToken(token) {
 }
 
 /**
+ * Prépare les en-têtes CORS pour les réponses
+ */
+function getCorsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,Notion-Version,X-Requested-With',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+    'Access-Control-Max-Age': '86400', // 24 heures
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Referrer-Policy': 'no-referrer-when-downgrade'
+  };
+}
+
+/**
  * Formate et renvoie une réponse d'erreur
  */
 function sendError(statusCode, message, details = {}) {
   return {
     statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization,Notion-Version,X-Requested-With',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-      'Access-Control-Max-Age': '86400', // 24 heures
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache'
-    },
+    headers: getCorsHeaders(),
     body: JSON.stringify({
       error: message,
       ...details,
@@ -68,16 +76,7 @@ exports.handler = async (event, context) => {
   logDebug(`Requête reçue: ${event.httpMethod}`, event.body ? 'avec body' : 'sans body');
   
   // En-têtes CORS complets pour toutes les réponses
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,Notion-Version,X-Requested-With',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-    'Access-Control-Max-Age': '86400', // 24 heures
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Referrer-Policy': 'no-referrer-when-downgrade'
-  };
+  const headers = getCorsHeaders();
   
   // Requête preflight OPTIONS (CORS)
   if (event.httpMethod === 'OPTIONS') {
@@ -97,7 +96,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         status: 'ok',
         message: 'Notion API Proxy fonctionnel',
-        version: '1.0.1',
+        version: '1.0.2',
         environment: process.env.NODE_ENV || 'unknown',
         timestamp: new Date().toISOString()
       })

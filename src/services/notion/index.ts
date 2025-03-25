@@ -3,6 +3,15 @@
  * Point d'entrée principal pour les services Notion
  */
 
+// Exporter le service API principal 
+export { notionApiService } from './notionApiService';
+
+// Exporter le service central pour un accès direct aux méthodes bas niveau
+export { notionCentralService } from './notionCentralService';
+
+// Exporter les types
+export * from './client/types';
+
 // Exporter le client de base
 export * from './client';
 
@@ -22,7 +31,7 @@ export * from './optimization';
 export { notionClientAdapter } from './compatibility/notionClientAdapter';
 
 // Exporter le service principal
-import { notionService } from './client';
+import { notionApiService } from './notionApiService';
 
 // Exporter par défaut pour un accès rapide
-export default notionService;
+export default notionApiService;
