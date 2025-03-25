@@ -16,7 +16,7 @@ export const mockMode = {
   },
   persist: () => operationMode.updateSettings({ persistentModeStorage: true }),
   updateConfig: () => console.warn('[DEPRECATED] mockMode.updateConfig is deprecated and has no effect'),
-  temporarilyForceReal: () => operationMode.enableRealMode(),
+  temporarilyForceReal: () => operationMode.temporarilyForceReal(),
   isTemporarilyForcedReal: () => false,
   restoreAfterForceReal: (restore = true) => {
     if (restore) operationMode.setDemoMode(true);

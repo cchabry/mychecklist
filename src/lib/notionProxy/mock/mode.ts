@@ -62,7 +62,7 @@ export const mockMode = {
    * Force temporairement le mode réel (utile pour certaines opérations)
    */
   temporarilyForceReal(): void {
-    operationMode.enableRealMode();
+    operationMode.temporarilyForceReal();
   },
   
   /**

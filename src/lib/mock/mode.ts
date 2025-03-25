@@ -82,8 +82,8 @@ export const mockMode = {
   temporarilyForceReal(): void {
     console.log('🔍 [DEBUG] mockMode.temporarilyForceReal() appelé');
     this._tempForcedRealStatus = true;
-    operationMode.enableRealMode();
-    console.log('🔍 [DEBUG] Après enableRealMode, mode actif?', operationMode.isDemoMode);
+    operationMode.temporarilyForceReal();
+    console.log('🔍 [DEBUG] Après temporarilyForceReal, mode actif?', operationMode.isDemoMode);
   },
   
   /**
