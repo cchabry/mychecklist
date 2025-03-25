@@ -20,17 +20,33 @@ export function useRetryQueue() {
   
   const [queuedOperations, setQueuedOperations] = useState<QueuedOperation[]>([]);
   
+  // Helper pour vérifier si une méthode existe sur l'objet
+  const hasMethod = useCallback((methodName: string): boolean => {
+    return typeof (notionRetryQueue as any)[methodName] === 'function';
+  }, []);
+  
+  // Helper pour appeler une méthode de manière sécurisée
+  const safeCall = useCallback(<T>(methodName: string, ...args: any[]): T | undefined => {
+    if (hasMethod(methodName)) {
+      return (notionRetryQueue as any)[methodName](...args);
+    }
+    return undefined;
+  }, [hasMethod]);
+  
   // S'abonner aux mises à jour des statistiques
   useEffect(() => {
     // Vérifier si la méthode subscribe existe sur le service
-    if (typeof notionRetryQueue.subscribe === 'function') {
+    if (hasMethod('subscribe')) {
       const unsubscribe = notionRetryQueue.subscribe((updatedStats) => {
         setStats(updatedStats);
         
         try {
           // Si la file d'attente expose les opérations, les récupérer
-          if (typeof notionRetryQueue.getQueuedOperations === 'function') {
-            setQueuedOperations(notionRetryQueue.getQueuedOperations?.() || []);
+          if (hasMethod('getQueuedOperations')) {
+            const operations = safeCall<QueuedOperation[]>('getQueuedOperations');
+            if (operations) {
+              setQueuedOperations(operations);
+            }
           } else {
             // Fallback: créer un tableau vide
             setQueuedOperations([]);
@@ -46,8 +62,11 @@ export function useRetryQueue() {
       
       // Charger les opérations initiales si disponibles
       try {
-        if (typeof notionRetryQueue.getQueuedOperations === 'function') {
-          setQueuedOperations(notionRetryQueue.getQueuedOperations?.() || []);
+        if (hasMethod('getQueuedOperations')) {
+          const operations = safeCall<QueuedOperation[]>('getQueuedOperations');
+          if (operations) {
+            setQueuedOperations(operations);
+          }
         }
       } catch (e) {
         console.warn('Erreur lors de la récupération des opérations initiales:', e);
@@ -62,7 +81,7 @@ export function useRetryQueue() {
       
       return () => clearInterval(interval);
     }
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Ajouter une opération à la file d'attente
@@ -90,80 +109,78 @@ export function useRetryQueue() {
    * Exécuter une opération immédiatement
    */
   const processNow = useCallback(async (operationId: string): Promise<any> => {
-    // Vérifier si la méthode existe sur le service
-    if (typeof notionRetryQueue.processNow === 'function') {
-      return notionRetryQueue.processNow(operationId);
+    if (hasMethod('processNow')) {
+      return safeCall('processNow', operationId);
     }
     console.warn('Method processNow not available on notionRetryQueue');
     return Promise.reject(new Error('Method not available'));
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Annuler une opération
    */
   const cancelOperation = useCallback((operationId: string): boolean => {
-    // Vérifier si la méthode existe sur le service
-    if (typeof notionRetryQueue.cancel === 'function') {
-      return notionRetryQueue.cancel(operationId);
+    if (hasMethod('cancel')) {
+      return safeCall('cancel', operationId) || false;
     }
     console.warn('Method cancel not available on notionRetryQueue');
     return false;
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Vider la file d'attente
    */
   const clearQueue = useCallback((): void => {
-    if (typeof notionRetryQueue.clearQueue === 'function') {
-      notionRetryQueue.clearQueue();
+    if (hasMethod('clearQueue')) {
+      safeCall('clearQueue');
     } else {
       console.warn('Method clearQueue not available on notionRetryQueue');
     }
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Mettre en pause la file d'attente
    */
   const pauseQueue = useCallback((): void => {
     try {
-      if (typeof notionRetryQueue.pauseQueue === 'function') {
-        notionRetryQueue.pauseQueue?.();
+      if (hasMethod('pauseQueue')) {
+        safeCall('pauseQueue');
       } else {
         console.warn('Method pauseQueue not available on notionRetryQueue');
       }
     } catch (e) {
       console.warn('Erreur lors de la mise en pause de la file d\'attente:', e);
     }
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Reprendre le traitement de la file d'attente
    */
   const resumeQueue = useCallback((): void => {
     try {
-      if (typeof notionRetryQueue.resumeQueue === 'function') {
-        notionRetryQueue.resumeQueue?.();
+      if (hasMethod('resumeQueue')) {
+        safeCall('resumeQueue');
       } else {
         console.warn('Method resumeQueue not available on notionRetryQueue');
       }
     } catch (e) {
       console.warn('Erreur lors de la reprise de la file d\'attente:', e);
     }
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Vérifier si la file d'attente est en pause
    */
   const isPaused = useCallback((): boolean => {
     try {
-      if (typeof notionRetryQueue.isPaused === 'function') {
-        return notionRetryQueue.isPaused?.() || false;
+      if (hasMethod('isPaused')) {
+        return safeCall('isPaused') || false;
       }
     } catch (e) {
       console.warn('Erreur lors de la vérification de l\'état de pause:', e);
     }
     return false;
-  }, []);
+  }, [hasMethod, safeCall]);
   
   /**
    * Exécuter une opération avec réessai automatique

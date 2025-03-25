@@ -75,7 +75,11 @@ export function useStructuredLogger() {
   
   // Effacer les logs
   const clearLogs = useCallback(() => {
-    structuredLogger.clear();
+    if (typeof structuredLogger.clear === 'function') {
+      structuredLogger.clear();
+    } else {
+      console.warn('Method clear not available on structuredLogger');
+    }
   }, []);
   
   // Exposer des méthodes helpers pour logging
@@ -87,7 +91,7 @@ export function useStructuredLogger() {
     structuredLogger.error(message, data, context);
   }, []);
   
-  // Exporter les logs
+  // Exporter les logs sous forme de JSON
   const exportLogs = useCallback(() => {
     if (typeof structuredLogger.exportLogs === 'function') {
       return structuredLogger.exportLogs();
@@ -107,6 +111,6 @@ export function useStructuredLogger() {
     setLevelFilter,
     info,
     error,
-    exportLogs
+    exportLogs  // Ajout de l'exportation manquante
   };
 }

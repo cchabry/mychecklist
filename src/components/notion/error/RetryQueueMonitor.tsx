@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -181,7 +180,7 @@ const RetryQueueMonitor: React.FC<RetryQueueMonitorProps> = ({
                         {op.status === 'pending' && (
                           <Button 
                             variant="ghost" 
-                            size="xs"
+                            size="sm"
                             className="h-6 px-2"
                             onClick={() => handleProcessNow(op.id)}
                             disabled={selectedOperation === op.id}
