@@ -22,7 +22,7 @@ export const notionApiRequest = async (
   method: string = 'GET',
   body?: any,
   token?: string
-): Promise<any> => {
+): Promise<any> {
   // Log de débogage pour le type de déploiement
   const deploymentType = getDeploymentType();
   if (isDeploymentDebuggingEnabled()) {

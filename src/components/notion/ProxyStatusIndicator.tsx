@@ -1,66 +1,62 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, CheckCircle2, Globe } from 'lucide-react';
-import { corsProxy } from '@/services/corsProxy';
+import { AlertCircle, CheckCircle, WifiOff } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { getDeploymentType } from '@/lib/notionProxy/config';
 
 interface ProxyStatusIndicatorProps {
   isDemoMode: boolean;
 }
 
 const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({ isDemoMode }) => {
-  // Obtenir l'URL du proxy actuel s'il existe
-  const currentProxy = corsProxy.getCurrentProxy();
-  const hasProxy = !!currentProxy;
-  
-  // Si nous sommes en mode démo, ce composant n'est pas pertinent
+  const deploymentType = getDeploymentType();
+
+  // Afficher différents statuts selon l'environnement et le mode
   if (isDemoMode) {
     return (
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-medium text-amber-800">Mode démo actif</h3>
-              <p className="text-xs text-amber-700 mt-1">
-                Le mode démo est activé, le proxy CORS n'est pas utilisé.
-                Désactivez le mode démo pour utiliser le proxy CORS.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Alert className="bg-green-50 border-green-200">
+        <CheckCircle className="h-4 w-4 text-green-600" />
+        <AlertTitle className="text-green-700">Mode démonstration actif</AlertTitle>
+        <AlertDescription className="text-green-600 text-sm">
+          Vous utilisez l'application en mode démo. Aucune connexion à l'API Notion n'est nécessaire.
+        </AlertDescription>
+      </Alert>
     );
   }
-  
+
+  if (deploymentType === 'netlify') {
+    return (
+      <Alert className="bg-blue-50 border-blue-200">
+        <CheckCircle className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-700">Déploiement Netlify</AlertTitle>
+        <AlertDescription className="text-blue-600 text-sm">
+          Les fonctions serverless Netlify sont utilisées pour contourner les limitations CORS.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (deploymentType === 'lovable') {
+    return (
+      <Alert className="bg-amber-50 border-amber-200">
+        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-700">Aperçu Lovable</AlertTitle>
+        <AlertDescription className="text-amber-600 text-sm">
+          L'aperçu Lovable utilise un proxy CORS côté client. Pour une solution plus fiable, déployez sur Netlify.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <Card className={hasProxy ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          {hasProxy ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          ) : (
-            <Globe className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          )}
-          
-          <div>
-            <h3 className="text-sm font-medium text-amber-800">
-              {hasProxy ? "Proxy CORS configuré" : "Proxy CORS non configuré"}
-            </h3>
-            <p className="text-xs text-amber-700 mt-1">
-              {hasProxy 
-                ? `Le proxy est configuré à l'adresse: ${currentProxy.url}`
-                : "Aucun proxy CORS n'est configuré. Les appels directs à l'API Notion seront bloqués par le navigateur."}
-            </p>
-            {!hasProxy && (
-              <p className="text-xs text-amber-700 mt-1">
-                Pour utiliser l'API Notion, vous devez configurer un proxy CORS ou déployer l'application avec les fonctions serverless.
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <Alert className="bg-gray-50 border-gray-200">
+      <WifiOff className="h-4 w-4 text-gray-600" />
+      <AlertTitle className="text-gray-700">Environnement {deploymentType}</AlertTitle>
+      <AlertDescription className="text-gray-600 text-sm">
+        Le système adapte automatiquement la méthode de connexion à l'API Notion.
+      </AlertDescription>
+    </Alert>
   );
 };
 
