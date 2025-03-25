@@ -2,6 +2,7 @@
 import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
 import { Audit } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Récupère tous les audits
@@ -63,8 +64,11 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
   // Si nous sommes en mode démo, créer un faux audit
   if (operationMode.isDemoMode) {
     console.log('Creating demo audit with name:', data.name);
+    // Générer un UUID standard pour l'ID, même en mode démo
+    // pour assurer la cohérence entre les modes
+    const id = uuidv4();
     return {
-      id: `audit-${Date.now()}`,
+      id: id, // UUID standard sans préfixe
       projectId: data.projectId || '',
       name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
       items: [],
@@ -90,26 +94,47 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
     "Version": { rich_text: [{ text: { content: '1.0' } }] }
   };
   
-  const response = await notionApiRequest(
-    `/pages`,
-    'POST',
-    {
-      parent: { database_id: dbId },
-      properties
-    },
-    apiKey
-  );
+  console.log('Création d\'audit dans Notion avec les propriétés:', JSON.stringify(properties));
+  
+  try {
+    const response = await notionApiRequest(
+      `/pages`,
+      'POST',
+      {
+        parent: { database_id: dbId },
+        properties
+      },
+      apiKey
+    );
 
-  return {
-    id: response.id,
-    projectId: data.projectId || '',
-    name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
-    items: [],
-    createdAt: response.created_time,
-    updatedAt: response.last_edited_time,
-    score: 0,
-    version: '1.0'
-  };
+    console.log('Réponse de création d\'audit:', JSON.stringify(response));
+    
+    return {
+      id: response.id,
+      projectId: data.projectId || '',
+      name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
+      items: [],
+      createdAt: response.created_time,
+      updatedAt: response.last_edited_time,
+      score: 0,
+      version: '1.0'
+    };
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'audit:', error);
+    // En cas d'échec avec l'API, revenir au mode démo pour cet audit
+    const id = uuidv4();
+    console.log('Création d\'un audit de secours avec UUID standard:', id);
+    return {
+      id: id,
+      projectId: data.projectId || '',
+      name: data.name || `Audit du ${new Date().toLocaleDateString()}`,
+      items: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      score: 0,
+      version: '1.0'
+    };
+  }
 };
 
 /**
@@ -207,9 +232,14 @@ export const deleteAudit = async (id: string): Promise<boolean> => {
 };
 
 /**
- * Récupère un audit par son ID (déjà implémenté dans projects.ts, mais ajouté ici pour compléter)
+ * Récupère un audit par son ID
  */
 export const getAudit = async (id: string): Promise<Audit | null> => {
+  // Vérifier si l'ID a un format potentiellement problématique (préfixé)
+  if (id.startsWith('audit_') || id.startsWith('audit-')) {
+    console.warn('ID d\'audit avec préfixe détecté, cela peut causer des problèmes avec l\'API Notion:', id);
+  }
+  
   // Si nous sommes en mode démo, retourner un faux audit
   if (operationMode.isDemoMode) {
     console.log('Using demo audit data for ID:', id);

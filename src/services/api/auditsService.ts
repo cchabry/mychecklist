@@ -59,9 +59,13 @@ class AuditsService {
         return response.json();
       },
       async () => {
-        // Créer un nouvel audit mocké en mode démo
+        // Créer un nouvel audit mocké en mode démo, avec un UUID standard
+        // pour assurer la cohérence avec l'API Notion
+        const id = uuidv4();
+        console.log('Création d\'un audit démo avec UUID standard:', id);
+        
         const newAudit: Audit = {
-          id: `audit_${uuidv4()}`,
+          id: id, // UUID standard sans préfixe
           projectId: data.projectId || '',
           name: data.name || 'New Audit',
           items: data.items || [],
