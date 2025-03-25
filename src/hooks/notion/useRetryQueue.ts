@@ -27,11 +27,16 @@ export function useRetryQueue() {
       const unsubscribe = notionRetryQueue.subscribe((updatedStats) => {
         setStats(updatedStats);
         
-        // Si la file d'attente expose les opérations, les récupérer
-        if (typeof notionRetryQueue.getQueuedOperations === 'function') {
-          setQueuedOperations(notionRetryQueue.getQueuedOperations());
-        } else {
-          // Fallback: créer un tableau vide
+        try {
+          // Si la file d'attente expose les opérations, les récupérer
+          if (typeof notionRetryQueue.getQueuedOperations === 'function') {
+            setQueuedOperations(notionRetryQueue.getQueuedOperations?.() || []);
+          } else {
+            // Fallback: créer un tableau vide
+            setQueuedOperations([]);
+          }
+        } catch (e) {
+          console.warn('Erreur lors de la récupération des opérations en attente:', e);
           setQueuedOperations([]);
         }
       });
@@ -40,8 +45,12 @@ export function useRetryQueue() {
       setStats(notionRetryQueue.getStats());
       
       // Charger les opérations initiales si disponibles
-      if (typeof notionRetryQueue.getQueuedOperations === 'function') {
-        setQueuedOperations(notionRetryQueue.getQueuedOperations());
+      try {
+        if (typeof notionRetryQueue.getQueuedOperations === 'function') {
+          setQueuedOperations(notionRetryQueue.getQueuedOperations?.() || []);
+        }
+      } catch (e) {
+        console.warn('Erreur lors de la récupération des opérations initiales:', e);
       }
       
       return unsubscribe;
@@ -116,10 +125,14 @@ export function useRetryQueue() {
    * Mettre en pause la file d'attente
    */
   const pauseQueue = useCallback((): void => {
-    if (typeof notionRetryQueue.pauseQueue === 'function') {
-      notionRetryQueue.pauseQueue();
-    } else {
-      console.warn('Method pauseQueue not available on notionRetryQueue');
+    try {
+      if (typeof notionRetryQueue.pauseQueue === 'function') {
+        notionRetryQueue.pauseQueue?.();
+      } else {
+        console.warn('Method pauseQueue not available on notionRetryQueue');
+      }
+    } catch (e) {
+      console.warn('Erreur lors de la mise en pause de la file d\'attente:', e);
     }
   }, []);
   
@@ -127,10 +140,14 @@ export function useRetryQueue() {
    * Reprendre le traitement de la file d'attente
    */
   const resumeQueue = useCallback((): void => {
-    if (typeof notionRetryQueue.resumeQueue === 'function') {
-      notionRetryQueue.resumeQueue();
-    } else {
-      console.warn('Method resumeQueue not available on notionRetryQueue');
+    try {
+      if (typeof notionRetryQueue.resumeQueue === 'function') {
+        notionRetryQueue.resumeQueue?.();
+      } else {
+        console.warn('Method resumeQueue not available on notionRetryQueue');
+      }
+    } catch (e) {
+      console.warn('Erreur lors de la reprise de la file d\'attente:', e);
     }
   }, []);
   
@@ -138,8 +155,12 @@ export function useRetryQueue() {
    * Vérifier si la file d'attente est en pause
    */
   const isPaused = useCallback((): boolean => {
-    if (typeof notionRetryQueue.isPaused === 'function') {
-      return notionRetryQueue.isPaused();
+    try {
+      if (typeof notionRetryQueue.isPaused === 'function') {
+        return notionRetryQueue.isPaused?.() || false;
+      }
+    } catch (e) {
+      console.warn('Erreur lors de la vérification de l\'état de pause:', e);
     }
     return false;
   }, []);

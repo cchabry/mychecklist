@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogLevel, StructuredLog, StructuredLogMessage } from '@/services/notion/types/unified';
+import { LogLevel, StructuredLog } from '@/services/notion/types/unified';
 
 // Référence au logger structuré global, si disponible
 let structuredLogger: any;

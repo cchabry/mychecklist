@@ -17,6 +17,7 @@ export enum LogLevel {
  * Types d'erreurs Notion
  */
 export enum NotionErrorType {
+  // Types originaux
   API_RESPONSE = 'api_response',
   NETWORK = 'network',
   AUTHENTICATION = 'authentication',
@@ -25,7 +26,8 @@ export enum NotionErrorType {
   DATABASE_STRUCTURE = 'database_structure',
   VALIDATION = 'validation',
   UNKNOWN = 'unknown',
-  // Ajout des types manquants
+  
+  // Types additionnels pour compatibilité
   API = 'api',
   AUTH = 'auth',
   PERMISSION = 'permission',
@@ -33,7 +35,9 @@ export enum NotionErrorType {
   DATABASE = 'database',
   CORS = 'cors',
   NOT_FOUND = 'not_found',
-  CONFIG = 'config'
+  CONFIG = 'config',
+  SERVER = 'server',
+  PROXY = 'proxy'
 }
 
 /**
@@ -274,4 +278,38 @@ export type ErrorSubscriber = (errors: NotionError[]) => void;
 export interface ErrorSubscription {
   id: string;
   callback: ErrorSubscriber;
+}
+
+/**
+ * Configuration pour les alertes basées sur des seuils
+ */
+export interface AlertThresholdConfig {
+  totalErrorsPerHour?: number;
+  totalErrorsPerMinute?: number;
+  apiErrorsPerHour?: number;
+  networkErrorsPerMinute?: number;
+  authErrorsPerHour?: number;
+  [key: string]: number | undefined;
+}
+
+/**
+ * Options pour le compteur d'erreurs
+ */
+export interface ErrorCounterOptions {
+  maxStorageTime?: number;
+  cleanupInterval?: number;
+  alertThresholds?: AlertThresholdConfig;
+  logErrors?: boolean;
+}
+
+/**
+ * Statistiques du compteur d'erreurs
+ */
+export interface ErrorCounterStats {
+  total: number;
+  byType: Partial<Record<NotionErrorType, number>>;
+  byEndpoint?: Record<string, number>;
+  byHour?: Record<number, number>;
+  byMinute?: Record<number, number>;
+  lastError?: NotionError;
 }
