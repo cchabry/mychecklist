@@ -10,7 +10,8 @@ import { getDeploymentType } from '@/lib/notionProxy/config';
 const NotionProxyConfigGuide: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
-  const [deploymentType, setDeploymentType] = useState<'vercel' | 'netlify' | 'local' | 'other'>('other');
+  // Update the type to include 'lovable'
+  const [deploymentType, setDeploymentType] = useState<'vercel' | 'netlify' | 'local' | 'lovable' | 'other'>('other');
   const [testResults, setTestResults] = useState<Record<string, { status: number; success: boolean; response?: any }>>({});
   
   // Vérifier le type de déploiement au chargement
