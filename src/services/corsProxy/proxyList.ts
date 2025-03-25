@@ -2,63 +2,40 @@
 import { CorsProxy } from './types';
 
 /**
- * Liste complète des proxies CORS disponibles
+ * Liste des proxies CORS disponibles
  */
 export const availableProxies: CorsProxy[] = [
   {
-    name: 'cors-anywhere',
+    name: 'CORS Anywhere',
     url: 'https://cors-anywhere.herokuapp.com/',
     enabled: true,
     requiresActivation: true,
     activationUrl: 'https://cors-anywhere.herokuapp.com/corsdemo',
-    activationInstructions: 'Cliquez sur le bouton "Request temporary access to the demo server"',
-    priority: 1
+    instructions: 'Visitez le lien et cliquez sur "Request temporary access to the demo server"'
   },
   {
-    name: 'corsproxy.io',
-    url: 'https://corsproxy.io/?',
-    enabled: true,
-    requiresActivation: false,
-    priority: 2
-  },
-  {
-    name: 'allorigins',
+    name: 'allOrigins',
     url: 'https://api.allorigins.win/raw?url=',
-    enabled: true,
-    requiresActivation: false,
-    priority: 3
+    enabled: true
   },
   {
-    name: 'cors-proxy.htmldriven',
-    url: 'https://cors-proxy.htmldriven.com/?url=',
-    enabled: true,
-    requiresActivation: false,
-    priority: 4
+    name: 'CORS Proxy',
+    url: 'https://corsproxy.io/?',
+    enabled: true
   },
   {
-    name: 'thingproxy',
-    url: 'https://thingproxy.freeboard.io/fetch/',
-    enabled: true,
-    requiresActivation: false,
-    priority: 5
+    name: 'CORS Bridge',
+    url: 'https://api.codetabs.com/v1/proxy/?quest=',
+    enabled: true
+  },
+  {
+    name: 'CORS Online',
+    url: 'https://cors-anywhere.azm.workers.dev/',
+    enabled: true
   }
 ];
 
-/**
- * Récupère la liste des proxies activés, triés par priorité
- */
+// Fonction pour obtenir les proxies activés
 export function getEnabledProxies(): CorsProxy[] {
-  return [...availableProxies]
-    .filter(proxy => proxy.enabled)
-    .sort((a, b) => (a.priority || 999) - (b.priority || 999));
-}
-
-/**
- * Active ou désactive un proxy spécifique
- */
-export function setProxyEnabled(proxyUrl: string, enabled: boolean): void {
-  const proxy = availableProxies.find(p => p.url === proxyUrl);
-  if (proxy) {
-    proxy.enabled = enabled;
-  }
+  return availableProxies.filter(proxy => proxy.enabled);
 }
