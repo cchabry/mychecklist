@@ -1,3 +1,4 @@
+
 import { 
   OperationMode, 
   OperationModeSettings, 
@@ -16,6 +17,15 @@ class OperationModeService implements IOperationModeService {
   private consecutiveFailures: number = 0;
   private lastError: Error | null = null;
   private subscribers: OperationModeSubscriber[] = [];
+  private criticalOperations: Set<string> = new Set();
+  private temporaryErrorPatterns: RegExp[] = [
+    /Failed to fetch/i,
+    /Network error/i,
+    /timeout/i,
+    /Timed out/i,
+    /CORS/i,
+    /headers/i
+  ];
   
   constructor() {
     this.loadPersistedState();
@@ -49,6 +59,19 @@ class OperationModeService implements IOperationModeService {
   
   public getLastError(): Error | null {
     return this.lastError;
+  }
+
+  // Gestion des opérations critiques
+  public markOperationAsCritical(operationContext: string): void {
+    this.criticalOperations.add(operationContext);
+  }
+
+  public unmarkOperationAsCritical(operationContext: string): void {
+    this.criticalOperations.delete(operationContext);
+  }
+
+  public isOperationCritical(operationContext: string): boolean {
+    return this.criticalOperations.has(operationContext);
   }
   
   // Gestion des abonnements
@@ -105,6 +128,10 @@ class OperationModeService implements IOperationModeService {
       this.mode = OperationMode.REAL;
       this.switchReason = null;
       
+      // Réinitialiser le compteur d'échecs lors du passage en mode réel
+      this.consecutiveFailures = 0;
+      this.lastError = null;
+      
       // Notification de changement
       if (this.settings.showNotifications) {
         operationModeNotifications.showModeChangeNotification(OperationMode.REAL);
@@ -137,19 +164,32 @@ class OperationModeService implements IOperationModeService {
     }
   }
   
-  // Gestion des erreurs
+  // Gestion des erreurs avec une logique améliorée
   public handleConnectionError(error: Error, context: string = 'Opération'): void {
     this.lastError = error;
-    this.consecutiveFailures++;
     
-    console.warn(`[OperationMode] Erreur détectée (${context}): ${error.message}`);
-    console.warn(`[OperationMode] Échecs consécutifs: ${this.consecutiveFailures}/${this.settings.maxConsecutiveFailures}`);
+    // Vérifier si l'erreur semble temporaire (réseau, CORS, etc.)
+    const isTemporaryError = this.isTemporaryError(error);
+    
+    // Vérifier si l'opération est marquée comme critique
+    const isCriticalOperation = this.isOperationCritical(context);
+    
+    // Ne pas incrémenter le compteur d'échecs pour les erreurs temporaires 
+    // sauf si l'opération est critique
+    if (!isTemporaryError || isCriticalOperation) {
+      this.consecutiveFailures++;
+      console.warn(`[OperationMode] Erreur critique détectée (${context}): ${error.message}`);
+      console.warn(`[OperationMode] Échecs consécutifs: ${this.consecutiveFailures}/${this.settings.maxConsecutiveFailures}`);
+    } else {
+      console.warn(`[OperationMode] Erreur temporaire ignorée (${context}): ${error.message}`);
+    }
     
     // Vérifier s'il faut basculer automatiquement en mode démo
     if (
       this.settings.autoSwitchOnFailure && 
       this.mode === OperationMode.REAL &&
-      this.consecutiveFailures >= this.settings.maxConsecutiveFailures
+      this.consecutiveFailures >= this.settings.maxConsecutiveFailures &&
+      !isTemporaryError // Ne pas basculer pour une erreur temporaire
     ) {
       const reason = `Basculement automatique après ${this.consecutiveFailures} échecs`;
       this.enableDemoMode(reason);
@@ -158,12 +198,18 @@ class OperationModeService implements IOperationModeService {
       if (this.settings.showNotifications) {
         operationModeNotifications.showAutoSwitchNotification(this.consecutiveFailures);
       }
-    } else if (this.settings.showNotifications) {
-      // Notification d'erreur standard
+    } else if (this.settings.showNotifications && isCriticalOperation) {
+      // Notification d'erreur standard uniquement pour les opérations critiques
       operationModeNotifications.showConnectionErrorNotification(error, context);
     }
     
     this.notifySubscribers();
+  }
+
+  // Vérifier si une erreur est probablement temporaire (réseau, CORS)
+  private isTemporaryError(error: Error): boolean {
+    const errorMessage = error.message || '';
+    return this.temporaryErrorPatterns.some(pattern => pattern.test(errorMessage));
   }
   
   public handleSuccessfulOperation(): void {
@@ -193,6 +239,7 @@ class OperationModeService implements IOperationModeService {
     this.consecutiveFailures = 0;
     this.lastError = null;
     this.settings = { ...DEFAULT_SETTINGS };
+    this.criticalOperations.clear();
     this.notifySubscribers();
   }
   
@@ -224,3 +271,4 @@ class OperationModeService implements IOperationModeService {
 
 // Exporter une instance singleton
 export const operationMode = new OperationModeService();
+

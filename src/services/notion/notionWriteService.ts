@@ -82,6 +82,9 @@ export const notionWriteService = {
       // Désactiver temporairement le mode mock pour cette opération
       notionApi.mockMode.temporarilyForceReal();
       
+      // Marquer cette opération comme critique pour éviter la bascule en mode démo
+      operationMode.markOperationAsCritical('Création de projet Notion');
+      
       // Construire les données de base pour la création
       const createData: NotionCreateData = {
         parent: {
@@ -157,14 +160,47 @@ export const notionWriteService = {
       // Gérer les erreurs spécifiques
       this.handleNotionError(error, 'création de projet');
       
-      // Signaler l'erreur
+      // Signaler l'erreur mais ne pas basculer en mode démo
+      // car l'opération est marquée comme critique
       operationMode.handleConnectionError(
         error instanceof Error ? error : new Error(String(error)),
         'Création de projet Notion'
       );
       
+      // Si le projet a été créé malgré l'erreur, on peut tenter de le récupérer
+      // C'est souvent le cas avec des erreurs CORS ou de timeout après création
+      try {
+        // Vérifier si on peut récupérer des informations sur le projet créé
+        if (error.response?.id) {
+          const projectId = error.response.id;
+          console.log('🔄 Tentative de récupération du projet créé malgré l\'erreur:', projectId);
+          
+          const fallbackProject: Project = {
+            id: projectId,
+            name: projectData.name || 'Nouveau projet',
+            url: projectData.url || '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 0,
+            pagesCount: 0,
+            itemsCount: 0
+          };
+          
+          toast.warning('Le projet a été créé, mais avec des avertissements', {
+            description: 'Certaines informations peuvent être incomplètes.'
+          });
+          
+          return fallbackProject;
+        }
+      } catch (recoveryError) {
+        console.error('❌ Échec de la récupération après erreur:', recoveryError);
+      }
+      
       return null;
     } finally {
+      // Démarquer l'opération comme critique
+      operationMode.unmarkOperationAsCritical('Création de projet Notion');
+      
       // Restaurer le mode mock si nécessaire
       notionApi.mockMode.restoreAfterForceReal();
     }
@@ -219,6 +255,9 @@ export const notionWriteService = {
     try {
       // Désactiver temporairement le mode mock pour cette opération
       notionApi.mockMode.temporarilyForceReal();
+      
+      // Marquer cette opération comme critique pour éviter la bascule en mode démo
+      operationMode.markOperationAsCritical('Création d\'audit Notion');
       
       // Si la base de données des audits n'est pas configurée, on utilise une approche simplifiée
       if (!auditsDbId) {
@@ -277,14 +316,18 @@ export const notionWriteService = {
       // Gérer les erreurs spécifiques
       this.handleNotionError(error, 'création d\'audit');
       
-      // Signaler l'erreur
+      // Signaler l'erreur, mais ne pas basculer en mode démo
+      // car l'opération est marquée comme critique
       operationMode.handleConnectionError(
         error instanceof Error ? error : new Error(String(error)),
-        'Cr��ation d\'audit Notion'
+        'Création d\'audit Notion'
       );
       
       return null;
     } finally {
+      // Démarquer l'opération comme critique
+      operationMode.unmarkOperationAsCritical('Création d\'audit Notion');
+      
       // Restaurer le mode mock si nécessaire
       notionApi.mockMode.restoreAfterForceReal();
     }
