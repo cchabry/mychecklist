@@ -1,4 +1,3 @@
-
 import { notionApiRequest } from '../proxyFetch';
 import { operationMode } from '@/services/operationMode';
 import { MOCK_PROJECTS } from '@/lib/mockData';
@@ -43,7 +42,7 @@ export const getProjects = async () => {
 
 /**
  * Récupère un projet par son ID de manière fiable
- * Implémentation simplifiée et robuste
+ * Implémentation améliorée pour éviter les bascules inappropriées en mode démo
  */
 export const getProject = async (id) => {
   // Nettoyer l'ID pour assurer la cohérence
@@ -53,6 +52,23 @@ export const getProject = async (id) => {
   if (!cleanedId) {
     console.error("❌ getProject - ID invalide après nettoyage");
     return null;
+  }
+
+  // IMPORTANT: Mémoriser le mode actuel au début de la fonction
+  // pour éviter une bascule en mode démo au milieu de l'exécution
+  const startInDemoMode = operationMode.isDemoMode;
+  console.log(`🔍 getProject - Mode au démarrage: ${startInDemoMode ? 'DÉMO' : 'RÉEL'}`);
+
+  // Vérifier si nous avons un ID de projet récemment créé
+  // Cette vérification aide à maintenir la cohérence pendant la navigation post-création
+  const recentlyCreatedId = localStorage.getItem('recently_created_project_id');
+  if (recentlyCreatedId && cleanedId === cleanProjectId(recentlyCreatedId)) {
+    console.log(`🔍 getProject - Projet récemment créé détecté: "${cleanedId}"`);
+    // Démarrer en mode réel si possible pour les projets récemment créés
+    if (startInDemoMode) {
+      console.log(`🔍 getProject - Désactivation temporaire du mode démo pour projet récent`);
+      operationMode.temporarilyForceReal();
+    }
   }
 
   // Si nous sommes en mode mock, retourner les données mock
@@ -73,6 +89,36 @@ export const getProject = async (id) => {
     if (mockProject) {
       console.log(`✅ getProject - Projet mock trouvé: "${mockProject.name}"`);
     } else {
+      // Si nous ne trouvons pas le projet en mode démo et qu'il s'agit d'un projet récemment créé,
+      // créons un mock projet correspondant pour améliorer l'expérience utilisateur
+      if (recentlyCreatedId && cleanedId === cleanProjectId(recentlyCreatedId)) {
+        const cachedProjectData = localStorage.getItem(`project_data_${cleanedId}`);
+        if (cachedProjectData) {
+          try {
+            const projectData = JSON.parse(cachedProjectData);
+            console.log(`🔄 getProject - Création d'un mock projet pour ID récent: "${cleanedId}"`);
+            const newMockProject = {
+              id: cleanedId,
+              name: projectData.name || 'Projet récemment créé',
+              url: projectData.url || '',
+              description: 'Projet créé puis visualisé en mode démonstration',
+              status: 'Non démarré',
+              createdAt: projectData.createdAt || new Date().toISOString(),
+              updatedAt: projectData.updatedAt || new Date().toISOString(),
+              progress: 0,
+              itemsCount: 15,
+              pagesCount: 0
+            };
+            
+            // Ajouter temporairement aux projets mock
+            MOCK_PROJECTS.unshift(newMockProject);
+            return newMockProject;
+          } catch (e) {
+            console.error(`❌ getProject - Erreur lors de la création du mock projet: ${e.message}`);
+          }
+        }
+      }
+      
       // Logs détaillés pour déboguer pourquoi le projet n'est pas trouvé
       console.error(`❌ getProject - Projet mock non trouvé pour ID: "${cleanedId}"`);
       console.log("Projets disponibles:", MOCK_PROJECTS.map(p => ({id: p.id, name: p.name})));
@@ -102,6 +148,10 @@ export const getProject = async (id) => {
         
         if (projectInCache) {
           console.log(`✅ getProject - Projet trouvé dans le cache: "${projectInCache.name}"`);
+          
+          // Sauvegarder les données du projet pour référence future si nécessaire
+          localStorage.setItem(`project_data_${cleanedId}`, JSON.stringify(projectInCache));
+          
           return projectInCache;
         }
       } catch (e) {
@@ -120,7 +170,7 @@ export const getProject = async (id) => {
     const properties = response.properties;
     console.log(`✅ getProject - Projet Notion récupéré: "${properties.Name?.title?.[0]?.plain_text || 'Sans titre'}"`);
     
-    return {
+    const project = {
       id: response.id,
       name: properties.Name?.title?.[0]?.plain_text || properties.name?.title?.[0]?.plain_text || 'Sans titre',
       url: properties.URL?.url || properties.url?.url || properties.Url?.url || '',
@@ -132,6 +182,11 @@ export const getProject = async (id) => {
       itemsCount: properties.ItemsCount?.number || properties.itemsCount?.number || properties.Nombre?.number || 15,
       pagesCount: properties.PagesCount?.number || properties.pagesCount?.number || 0
     };
+    
+    // Sauvegarder les données du projet pour référence future
+    localStorage.setItem(`project_data_${cleanedId}`, JSON.stringify(project));
+    
+    return project;
   } catch (error) {
     console.error(`❌ getProject - Erreur lors de la récupération du projet ID: "${cleanedId}"`, error);
     

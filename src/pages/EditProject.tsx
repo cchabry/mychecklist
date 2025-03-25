@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
 import { cleanProjectId } from '@/lib/utils';
+import { operationMode } from '@/services/operationMode';
 
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,12 @@ const EditProject: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fonction pour vérifier si ce projet a été récemment créé
+  const isRecentlyCreatedProject = (id: string) => {
+    const recentId = localStorage.getItem('recently_created_project_id');
+    return recentId && cleanProjectId(recentId) === cleanProjectId(id);
+  };
+
   useEffect(() => {
     const fetchProject = async () => {
       if (!cleanedId) {
@@ -32,7 +39,26 @@ const EditProject: React.FC = () => {
 
       try {
         setIsLoading(true);
+        
+        // Vérifier si nous venons de créer ce projet
+        const isRecentProject = isRecentlyCreatedProject(cleanedId);
+        if (isRecentProject) {
+          console.log(`🔍 EditProject - Chargement d'un projet récemment créé: ${cleanedId}`);
+          
+          // Si en mode démo, désactiver temporairement pour charger le vrai projet
+          if (operationMode.isDemoMode) {
+            console.log('🔍 EditProject - Désactivation temporaire du mode démo pour charger le projet');
+            notionApi.mockMode.temporarilyForceReal();
+          }
+        }
+        
         const project = await notionApi.getProject(cleanedId);
+        
+        // Restaurer le mode démo si nécessaire
+        if (isRecentProject && notionApi.mockMode.isTemporarilyForcedReal(true)) {
+          console.log('🔍 EditProject - Restauration du mode démo après chargement du projet');
+          notionApi.mockMode.restoreAfterForceReal();
+        }
         
         if (!project) {
           setError("Projet non trouvé");

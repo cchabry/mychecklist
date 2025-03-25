@@ -1,5 +1,5 @@
 
-// Ajoutons des logs au mockMode adapter
+// Ajoutons des logs au mockMode adapter et améliorons la gestion des forçages temporaires
 
 import { operationMode } from '@/services/operationMode';
 
@@ -8,6 +8,9 @@ import { operationMode } from '@/services/operationMode';
  * @deprecated Utilisez operationMode directement
  */
 export const mockMode = {
+  // Statut du forçage temporaire pour la compatibilité
+  _tempForcedRealStatus: false,
+  
   /**
    * Vérifie si le mode mock est actif
    */
@@ -51,6 +54,7 @@ export const mockMode = {
     console.log('🔍 [DEBUG] mockMode.forceReset() appelé');
     operationMode.setDemoMode(false);
     operationMode.reset();
+    this._tempForcedRealStatus = false;
     console.log('🔍 [DEBUG] Après reset, mode actif?', operationMode.isDemoMode);
   },
   
@@ -77,6 +81,7 @@ export const mockMode = {
    */
   temporarilyForceReal(): void {
     console.log('🔍 [DEBUG] mockMode.temporarilyForceReal() appelé');
+    this._tempForcedRealStatus = true;
     operationMode.enableRealMode();
     console.log('🔍 [DEBUG] Après enableRealMode, mode actif?', operationMode.isDemoMode);
   },
@@ -85,9 +90,17 @@ export const mockMode = {
    * Vérifie si le mode réel est temporairement forcé
    */
   isTemporarilyForcedReal(reset: boolean = false): boolean {
-    console.log('🔍 [DEBUG] mockMode.isTemporarilyForcedReal() appelé');
-    // Cette fonctionnalité n'existe plus vraiment, mais on retourne false pour compatibilité
-    return false;
+    console.log('🔍 [DEBUG] mockMode.isTemporarilyForcedReal() appelé', 
+      reset ? '(avec reset)' : '');
+    
+    const status = this._tempForcedRealStatus;
+    
+    if (reset && status) {
+      this._tempForcedRealStatus = false;
+      console.log('🔍 [DEBUG] Réinitialisation du statut de forçage temporaire');
+    }
+    
+    return status;
   },
   
   /**
@@ -95,11 +108,19 @@ export const mockMode = {
    */
   restoreAfterForceReal(restore: boolean = true): void {
     console.log('🔍 [DEBUG] mockMode.restoreAfterForceReal() appelé avec restore =', restore);
-    if (restore) {
-      operationMode.setDemoMode(true);
-      console.log('🔍 [DEBUG] Après setDemoMode(true), mode actif?', operationMode.isDemoMode);
+    
+    // Vérifier si nous étions en forçage temporaire
+    if (this._tempForcedRealStatus) {
+      this._tempForcedRealStatus = false;
+      
+      if (restore) {
+        operationMode.setDemoMode(true);
+        console.log('🔍 [DEBUG] Après setDemoMode(true), mode actif?', operationMode.isDemoMode);
+      } else {
+        console.log('🔍 [DEBUG] Restauration annulée, mode actif?', operationMode.isDemoMode);
+      }
     } else {
-      console.log('🔍 [DEBUG] Restauration annulée, mode actif?', operationMode.isDemoMode);
+      console.log('🔍 [DEBUG] Aucun forçage temporaire à restaurer');
     }
   }
 };

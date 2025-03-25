@@ -38,6 +38,13 @@ const NewProject: React.FC = () => {
       
       console.log('🔍 Début de création du projet - Mode démo actif?', operationMode.isDemoMode);
       
+      // Forcer temporairement le mode réel pour la création
+      const wasInDemoMode = operationMode.isDemoMode;
+      if (wasInDemoMode) {
+        console.log('🔍 Désactivation temporaire du mode démo pour création de projet');
+        operationMode.temporarilyForceReal();
+      }
+      
       // Utiliser notre hook d'opération critique
       const newProject = await executeCritical(async () => {
         console.log('🔍 Exécution de createProject en tant qu\'opération critique');
@@ -52,11 +59,23 @@ const NewProject: React.FC = () => {
       console.log('🔍 Résultat de la création:', newProject);
       
       if (newProject) {
+        // Enregistrer l'ID du projet récemment créé pour le flux de navigation
+        localStorage.setItem('recently_created_project_id', newProject.id);
+        // Sauvegarder les données du projet pour référence future
+        localStorage.setItem(`project_data_${newProject.id}`, JSON.stringify(newProject));
+        
         toast.success('Projet créé avec succès');
         console.log('✅ Projet créé:', newProject);
         
         // Vider le cache des projets pour forcer un rechargement
         localStorage.removeItem('projects_cache');
+        
+        // Restaurer le mode précédent si nécessaire
+        if (wasInDemoMode) {
+          console.log('🔍 Restauration du mode démo après création réussie');
+          // Ne pas restaurer immédiatement pour permettre la navigation
+          // On attendra que la navigation soit terminée
+        }
         
         // Attendre un court instant pour permettre au cache de se vider
         setTimeout(() => {
