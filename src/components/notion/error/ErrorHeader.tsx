@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
 import { AlertTriangle, AlertCircle, KeyRound, ServerCrash, Database, Clock } from 'lucide-react';
@@ -79,7 +78,7 @@ const ErrorHeader: React.FC<ErrorHeaderProps> = ({ error }) => {
         )}
         
         <span className="bg-slate-100 px-2 py-1 rounded">
-          {formattedTime}
+          {new Date(error.timestamp).toLocaleString()}
         </span>
       </div>
     </div>

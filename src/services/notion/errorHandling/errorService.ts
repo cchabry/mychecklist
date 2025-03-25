@@ -1,8 +1,8 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { 
   NotionError, 
   NotionErrorType, 
+  ErrorSubscription,
   ErrorSubscriber,
   ReportErrorOptions,
   NotionErrorSeverity,
@@ -18,7 +18,7 @@ const MAX_ERRORS = 50;
  */
 class NotionErrorService {
   private errors: NotionError[] = [];
-  private subscribers: ErrorSubscriber[] = [];
+  private subscribers: ErrorSubscription[] = [];
   
   /**
    * Ajoute une nouvelle erreur au service
@@ -34,8 +34,8 @@ class NotionErrorService {
       message: errorMessage,
       type: options.type || notionErrorUtils.detectErrorType(error),
       operation: operation || options.operation,
-      context: options.context,
-      originError,
+      context: options.context || '',
+      cause: options.cause || originError,
       details: options.details,
       retryable: options.retryable !== undefined 
         ? options.retryable 
@@ -82,15 +82,40 @@ class NotionErrorService {
       message,
       type: options.type || NotionErrorType.UNKNOWN,
       operation: options.operation,
-      context: options.context,
+      context: options.context || '',
       details: options.details,
       retryable: options.retryable || false,
-      name: "NotionError", // Ajout du nom obligatoire
+      name: "NotionError", 
       severity: options.severity || NotionErrorSeverity.ERROR,
       recoverable: options.recoverable || false,
       recoveryActions: options.recoveryActions || [],
       cause: options.cause
     };
+  }
+  
+  /**
+   * Génère un message utilisateur adapté au type d'erreur
+   */
+  createUserFriendlyMessage(error: NotionError): string {
+    switch (error.type) {
+      case NotionErrorType.AUTH:
+        return "Erreur d'authentification Notion. Veuillez vérifier vos identifiants.";
+        
+      case NotionErrorType.PERMISSION:
+        return "Erreur de permission Notion. L'application n'a pas accès à cette ressource.";
+        
+      case NotionErrorType.RATE_LIMIT:
+        return "Limite de requêtes Notion atteinte. Veuillez réessayer dans quelques instants.";
+        
+      case NotionErrorType.CORS:
+        return "Erreur de connexion à l'API Notion. Vérifiez votre configuration CORS.";
+        
+      case NotionErrorType.DATABASE:
+        return "Erreur de base de données Notion. Vérifiez la structure de vos bases.";
+        
+      default:
+        return `Erreur Notion: ${error.message}`;
+    }
   }
   
   /**
@@ -149,7 +174,7 @@ class NotionErrorService {
   /**
    * S'abonne aux notifications d'erreurs
    */
-  subscribe(callback: (errors: NotionError[]) => void): () => void {
+  subscribe(callback: ErrorSubscriber): () => void {
     const id = uuidv4();
     this.subscribers.push({ id, callback });
     
@@ -169,31 +194,6 @@ class NotionErrorService {
     this.subscribers.forEach(subscriber => {
       subscriber.callback([...this.errors]);
     });
-  }
-  
-  /**
-   * Génère un message utilisateur adapté au type d'erreur
-   */
-  createUserFriendlyMessage(error: NotionError): string {
-    switch (error.type) {
-      case NotionErrorType.AUTH:
-        return "Erreur d'authentification Notion. Veuillez vérifier vos identifiants.";
-        
-      case NotionErrorType.PERMISSION:
-        return "Erreur de permission Notion. L'application n'a pas accès à cette ressource.";
-        
-      case NotionErrorType.RATE_LIMIT:
-        return "Limite de requêtes Notion atteinte. Veuillez réessayer dans quelques instants.";
-        
-      case NotionErrorType.CORS:
-        return "Erreur de connexion à l'API Notion. Vérifiez votre configuration CORS.";
-        
-      case NotionErrorType.DATABASE:
-        return "Erreur de base de données Notion. Vérifiez la structure de vos bases.";
-        
-      default:
-        return `Erreur Notion: ${error.message}`;
-    }
   }
 }
 

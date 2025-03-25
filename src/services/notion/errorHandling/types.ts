@@ -3,8 +3,6 @@
  * Types pour la gestion d'erreur
  */
 
-import { v4 as uuidv4 } from 'uuid';
-
 /**
  * Types d'erreurs Notion
  */
@@ -21,6 +19,7 @@ export enum NotionErrorType {
   CORS = 'cors',               // Problèmes CORS
   PROXY = 'proxy',             // Erreurs de proxy
   CONFIG = 'config',           // Erreurs de configuration
+  API = 'api',                 // Erreurs API génériques
   UNKNOWN = 'unknown'          // Type inconnu
 }
 
@@ -44,8 +43,8 @@ export interface NotionError {
   message: string;         // Message d'erreur
   type: NotionErrorType;   // Type d'erreur
   operation?: string;      // Opération en cours
-  context?: string;        // Contexte d'erreur
-  originError?: Error;     // Erreur d'origine
+  context?: string | Record<string, any>;        // Contexte d'erreur
+  cause?: Error | unknown; // Cause de l'erreur (pour les erreurs chaînées)
   details?: any;           // Détails supplémentaires
   retryable: boolean;      // Si l'erreur peut être réessayée
   name: string;            // Nom de l'erreur
@@ -56,7 +55,6 @@ export interface NotionError {
     label: string;         // Libellé de l'action
     action: () => void;    // Fonction à exécuter
   }>;
-  cause?: Error | unknown; // Cause de l'erreur (pour les erreurs chaînées)
 }
 
 /**
@@ -65,7 +63,7 @@ export interface NotionError {
 export interface NotionErrorOptions {
   type?: NotionErrorType;
   operation?: string;
-  context?: string;
+  context?: string | Record<string, any>;
   details?: any;
   retryable?: boolean;
   severity?: NotionErrorSeverity;
@@ -86,11 +84,16 @@ export interface ReportErrorOptions extends NotionErrorOptions {
 }
 
 /**
- * Gestion des abonnements aux erreurs
+ * Fonction pour recevoir les notifications d'erreurs
  */
-export interface ErrorSubscriber {
+export type ErrorSubscriber = (errors: NotionError[]) => void;
+
+/**
+ * Abonnement aux erreurs
+ */
+export interface ErrorSubscription {
   id: string;
-  callback: (errors: NotionError[]) => void;
+  callback: ErrorSubscriber;
 }
 
 /**
@@ -118,9 +121,5 @@ export interface RetryQueueStats {
   isProcessing: boolean;           // Si le traitement est en cours
 }
 
-/**
- * Création d'un ID unique pour les erreurs
- */
-export const createErrorId = (): string => {
-  return uuidv4();
-};
+// Alias pour la compatibilité avec les anciens fichiers
+export type NotionErrorSubscriber = ErrorSubscriber;

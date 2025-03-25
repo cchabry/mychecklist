@@ -22,6 +22,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
 import { useRetryQueue } from '@/services/notion/errorHandling';
+import { notionErrorService } from '@/services/notion/errorHandling/errorService';
 
 interface NotionErrorDetailsProps {
   error?: string | Error | NotionError;
@@ -53,38 +54,31 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
   // Normaliser l'erreur en objet NotionError si nécessaire
   const normalizeError = (): NotionError => {
     if (typeof error === 'string') {
-      return {
-        id: 'temp-' + Date.now(),
-        timestamp: Date.now(),
-        message: error,
-        type: NotionErrorType.UNKNOWN,
-        name: 'NotionError',
-        severity: 'ERROR' as any,
-      };
+      return notionErrorService.createError(error, {
+        context,
+        retryable: false,
+        recoverable: false
+      });
     } else if (error instanceof Error) {
-      return {
-        id: 'temp-' + Date.now(),
-        timestamp: Date.now(),
-        message: error.message,
+      return notionErrorService.createError(error.message, {
+        context,
+        cause: error,
         name: error.name,
         stack: error.stack,
-        type: NotionErrorType.UNKNOWN,
-        severity: 'ERROR' as any,
-      };
+        retryable: false,
+        recoverable: false
+      });
     } else if (typeof error === 'object' && 'type' in error) {
       // C'est déjà une NotionError
       return error as NotionError;
     }
     
     // Cas par défaut
-    return {
-      id: 'temp-' + Date.now(),
-      timestamp: Date.now(),
-      message: String(error),
-      type: NotionErrorType.UNKNOWN,
-      name: 'NotionError',
-      severity: 'ERROR' as any,
-    };
+    return notionErrorService.createError(String(error), {
+      context,
+      retryable: false,
+      recoverable: false
+    });
   };
   
   const errorObj = normalizeError();

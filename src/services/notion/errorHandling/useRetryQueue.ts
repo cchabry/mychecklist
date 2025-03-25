@@ -1,126 +1,86 @@
 
-import { useState, useEffect } from 'react';
-import { retryQueueService, notionRetryQueue } from './retryQueue';
-import { NotionError } from './types';
+import { useState, useEffect, useCallback } from 'react';
+import { notionRetryQueue } from './retryQueue';
+import { RetryQueueStats, RetryOperationOptions } from './types';
 
 /**
- * Hook pour interagir avec le service de file d'attente de retry Notion
+ * Hook pour utiliser la file d'attente de réessai
  */
 export function useRetryQueue() {
-  const [stats, setStats] = useState(() => ({
-    ...retryQueueService.getStats(),
-    successful: 0,
-    failed: 0,
-    successRate: 100
-  }));
+  const [stats, setStats] = useState<RetryQueueStats>({
+    totalOperations: 0,
+    pendingOperations: 0,
+    completedOperations: 0,
+    failedOperations: 0,
+    lastProcessedAt: null,
+    isProcessing: false
+  });
   
-  const [queuedOperations, setQueuedOperations] = useState<any[]>([]);
-  
-  // Mettre à jour les statistiques périodiquement
+  // S'abonner aux mises à jour des statistiques
   useEffect(() => {
-    const interval = setInterval(() => {
-      const currentStats = retryQueueService.getStats();
-      // Calculer des métriques supplémentaires
-      const successful = currentStats.completedOperations;
-      const failed = currentStats.failedOperations;
-      const total = successful + failed;
-      const successRate = total > 0 ? Math.round((successful / total) * 100) : 100;
-      
-      setStats({
-        ...currentStats,
-        successful,
-        failed,
-        successRate
-      });
-      
-      // Simuler des opérations en file d'attente pour la démo
-      // À remplacer par une vraie implémentation plus tard
-      setQueuedOperations(
-        Array.from({ length: currentStats.pendingOperations }, (_, i) => ({
-          id: `op_${i}`,
-          context: `Opération Notion #${i+1}`,
-          timestamp: Date.now() - (i * 60000),
-          attempts: Math.floor(Math.random() * 3) + 1,
-          maxAttempts: 3,
-          status: 'pending',
-          nextRetry: Date.now() + (Math.random() * 60000)
-        }))
-      );
-    }, 1000);
-    
-    // Charger les stats initiales
-    const currentStats = retryQueueService.getStats();
-    setStats({
-      ...currentStats,
-      successful: 0,
-      failed: 0,
-      successRate: 100
+    const unsubscribe = notionRetryQueue.subscribe((newStats) => {
+      setStats(newStats);
     });
     
-    return () => clearInterval(interval);
+    // Charger les stats initiales
+    setStats(notionRetryQueue.getStats());
+    
+    return unsubscribe;
   }, []);
   
   /**
-   * Ajoute une opération à la file d'attente de retry
+   * Ajouter une opération à la file d'attente
    */
-  const enqueue = <T>(
+  const enqueue = useCallback(<T>(
     operation: () => Promise<T>,
-    context: string | Record<string, any> = '',
-    options: {
-      maxRetries?: number,
-      onSuccess?: (result: T) => void,
-      onFailure?: (error: Error) => void
-    } = {}
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions = {}
   ): string => {
-    return retryQueueService.enqueue(
-      operation,
-      context,
-      options
-    );
-  };
+    return notionRetryQueue.enqueue(operation, context, options);
+  }, []);
   
   /**
-   * Annule une opération en attente
+   * Traiter la file d'attente
    */
-  const cancel = (operationId: string): boolean => {
-    return retryQueueService.cancel(operationId);
-  };
+  const processQueue = useCallback(() => {
+    notionRetryQueue.processQueue();
+  }, []);
   
   /**
-   * Force l'exécution des opérations en attente
+   * Vider la file d'attente
    */
-  const processNow = async (): Promise<void> => {
-    return retryQueueService.processNow();
-  };
+  const clearQueue = useCallback(() => {
+    notionRetryQueue.clearQueue();
+  }, []);
   
   /**
-   * Gestion de la file d'attente - alias pour processNow
+   * Mettre en pause la file d'attente
    */
-  const processQueue = async (): Promise<void> => {
-    return processNow();
-  };
+  const pauseQueue = useCallback(() => {
+    notionRetryQueue.pause();
+  }, []);
   
   /**
-   * Vide la file d'attente
+   * Reprendre le traitement de la file d'attente
    */
-  const clearQueue = (): void => {
-    // Cette fonction sera implémentée dans le service réel
-    // Pour l'instant, on simule en vidant la liste locale
-    setQueuedOperations([]);
-  };
+  const resumeQueue = useCallback(() => {
+    notionRetryQueue.resume();
+  }, []);
   
-  // Pour compatibilité avec les composants existants
-  const enqueueOperation = enqueue;
+  /**
+   * Vérifier si la file d'attente est en pause
+   */
+  const isPaused = useCallback(() => {
+    return notionRetryQueue.isPaused();
+  }, []);
   
   return {
     stats,
-    queuedOperations,
     enqueue,
-    enqueueOperation,
-    cancel,
-    processNow,
     processQueue,
     clearQueue,
-    service: retryQueueService
+    pauseQueue,
+    resumeQueue,
+    isPaused
   };
 }

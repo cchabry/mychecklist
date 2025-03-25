@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,8 +5,7 @@ import { NotionErrorsList } from '@/components/notion/error';
 import { 
   notionErrorService, 
   NotionErrorType, 
-  NotionErrorSeverity, 
-  notionErrorUtils 
+  NotionErrorSeverity
 } from '@/services/notion/errorHandling';
 import { AlertTriangle, Database, RefreshCw, Router } from 'lucide-react';
 import { useNotionErrorService } from '@/services/notion/errorHandling';
@@ -25,7 +23,7 @@ const DiagnosticsErrorPage: React.FC = () => {
   
   // Générer une erreur d'authentification
   const generateAuthError = () => {
-    const error = notionErrorUtils.createError('Token d\'API invalide ou expiré', {
+    const error = notionErrorService.createError('Token d\'API invalide ou expiré', {
       type: NotionErrorType.AUTH,
       severity: NotionErrorSeverity.ERROR,
       context: { 
@@ -39,7 +37,7 @@ const DiagnosticsErrorPage: React.FC = () => {
   
   // Générer une erreur de limite de taux
   const generateRateLimitError = () => {
-    const error = notionErrorUtils.createError('Limite de requêtes API dépassée', {
+    const error = notionErrorService.createError('Limite de requêtes API dépassée', {
       type: NotionErrorType.RATE_LIMIT,
       severity: NotionErrorSeverity.WARNING,
       context: { 
@@ -54,7 +52,7 @@ const DiagnosticsErrorPage: React.FC = () => {
   
   // Générer une erreur de base de données
   const generateDatabaseError = () => {
-    const error = notionErrorUtils.createError('Base de données introuvable', {
+    const error = notionErrorService.createError('Base de données introuvable', {
       type: NotionErrorType.DATABASE,
       severity: NotionErrorSeverity.ERROR,
       context: { 
