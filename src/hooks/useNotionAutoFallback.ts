@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useConnectionMode } from './useConnectionMode';
+import { useOperationMode } from '@/services/operationMode';
 import { toast } from 'sonner';
 
 /**
@@ -9,20 +9,20 @@ import { toast } from 'sonner';
  */
 export function useNotionAutoFallback() {
   const { 
-    currentMode, 
+    mode: currentMode, 
+    switchReason: lastReason, 
+    failures, 
     isDemoMode, 
     isRealMode,
     enableRealMode, 
     handleConnectionError, 
-    handleSuccessfulOperation,
-    connectionHealth,
-    switchReason
-  } = useConnectionMode();
+    handleSuccessfulOperation 
+  } = useOperationMode();
 
   // S'abonner aux changements de mode
   useEffect(() => {
     // Afficher une notification détaillée lors du basculement automatique
-    if (isDemoMode && switchReason?.includes('automatique')) {
+    if (isDemoMode && lastReason?.includes('automatique')) {
       toast.warning('Passage automatique en mode démonstration', {
         description: 'Des problèmes de connexion à Notion ont été détectés. L\'application utilise maintenant des données fictives.',
         duration: 5000,
@@ -35,7 +35,7 @@ export function useNotionAutoFallback() {
         }
       });
     }
-  }, [isDemoMode, switchReason, enableRealMode]);
+  }, [isDemoMode, lastReason, enableRealMode]);
 
   /**
    * Fonction utilitaire pour signaler une erreur Notion et gérer automatiquement le fallback
@@ -72,8 +72,8 @@ export function useNotionAutoFallback() {
     isDemoMode,
     isRealMode,
     currentMode,
-    lastReason: switchReason,
-    failures: connectionHealth.consecutiveErrors,
+    lastReason,
+    failures,
     reportNotionError,
     reportNotionSuccess,
     attemptRealMode

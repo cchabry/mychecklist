@@ -1,293 +1,325 @@
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
-import { 
-  notionErrorService, 
-  NotionErrorType,
-  NotionErrorSeverity
-} from '@/services/notion/errorHandling';
-import { useRecoveryStrategies } from './useRecoveryStrategies';
+import { useOperationMode } from '@/services/operationMode';
+import { notionErrorService, NotionErrorType, NotionErrorSeverity } from '@/services/notion/errorHandling';
 
 export type ErrorCategory = 
-  | 'network'         // Problèmes réseau
-  | 'authentication'  // Problèmes d'authentification
-  | 'authorization'   // Problèmes d'autorisation
-  | 'validation'      // Erreurs de validation
-  | 'resource'        // Ressource non trouvée
-  | 'api'             // Erreurs d'API
-  | 'timeout'         // Timeout
-  | 'business'        // Erreurs métier
-  | 'unknown';        // Non catégorisé
+  | 'network'        // Erreurs de connexion réseau
+  | 'authentication' // Problèmes d'authentification
+  | 'authorization'  // Problèmes de permissions
+  | 'validation'     // Données invalides
+  | 'resource'       // Ressource non trouvée
+  | 'timeout'        // Délai d'expiration
+  | 'api'            // Erreurs d'API
+  | 'business'       // Erreurs métier
+  | 'unknown';       // Erreurs non catégorisées
 
 export interface ErrorDetails {
   message: string;
   category: ErrorCategory;
-  originalError: any;
   context?: string;
   timestamp: number;
-  critical: boolean;
-  retryable: boolean;
-  id: string;
+  isCritical: boolean;
+  isRecoverable: boolean;
+  originalError?: Error | unknown;
+  recoveryActions?: Array<{
+    label: string;
+    action: () => void;
+  }>;
 }
 
 /**
- * Hook pour la gestion unifiée des erreurs
+ * Hook centralisé pour la gestion des erreurs
  */
 export function useErrorHandling() {
   const [lastError, setLastError] = useState<ErrorDetails | null>(null);
-  const [errorHistory, setErrorHistory] = useState<ErrorDetails[]>([]);
-  const { attemptAutomaticRecovery } = useRecoveryStrategies();
-  
+  const { handleConnectionError, handleSuccessfulOperation, isDemoMode, enableDemoMode } = useOperationMode();
+
   /**
-   * Catégorise une erreur
+   * Détermine la catégorie d'erreur en fonction du message et du contexte
    */
-  const categorizeError = useCallback((error: Error | string): {
-    category: ErrorCategory;
-    critical: boolean;
-    retryable: boolean;
-  } => {
-    const message = typeof error === 'string' ? error : error.message;
-    const lowerMessage = message.toLowerCase();
+  const categorizeError = useCallback((error: Error | string, context?: string): ErrorCategory => {
+    const message = typeof error === 'string' ? error.toLowerCase() : error.message.toLowerCase();
     
-    // Problèmes réseau
-    if (
-      lowerMessage.includes('network') ||
-      lowerMessage.includes('fetch') ||
-      lowerMessage.includes('connection') ||
-      lowerMessage.includes('réseau') ||
-      lowerMessage.includes('connexion')
-    ) {
-      return {
-        category: 'network',
-        critical: false, // Les erreurs réseau sont généralement transitoires
-        retryable: true
-      };
+    if (message.includes('network') || message.includes('fetch') || message.includes('connexion') || message.includes('connection')) {
+      return 'network';
     }
     
-    // Problèmes d'authentification
-    if (
-      lowerMessage.includes('auth') ||
-      lowerMessage.includes('token') ||
-      lowerMessage.includes('login') ||
-      lowerMessage.includes('credentials') ||
-      lowerMessage.includes('unauthorized') ||
-      lowerMessage.includes('401')
-    ) {
-      return {
-        category: 'authentication',
-        critical: true, // Les erreurs d'authentification nécessitent une intervention
-        retryable: false
-      };
+    if (message.includes('auth') || message.includes('token') || message.includes('login') || message.includes('identifi')) {
+      return 'authentication';
     }
     
-    // Problèmes d'autorisation
-    if (
-      lowerMessage.includes('permission') ||
-      lowerMessage.includes('forbidden') ||
-      lowerMessage.includes('access') ||
-      lowerMessage.includes('unauthorized') ||
-      lowerMessage.includes('403')
-    ) {
-      return {
-        category: 'authorization',
-        critical: true, // Les erreurs d'autorisation nécessitent une intervention
-        retryable: false
-      };
+    if (message.includes('permission') || message.includes('accès') || message.includes('access') || message.includes('forbidden') || message.includes('interdit')) {
+      return 'authorization';
     }
     
-    // Erreurs de validation
-    if (
-      lowerMessage.includes('valid') ||
-      lowerMessage.includes('format') ||
-      lowerMessage.includes('required') ||
-      lowerMessage.includes('missing') ||
-      lowerMessage.includes('400')
-    ) {
-      return {
-        category: 'validation',
-        critical: false, // Les erreurs de validation sont généralement liées aux entrées
-        retryable: false
-      };
+    if (message.includes('valide') || message.includes('invalid') || message.includes('format') || message.includes('required')) {
+      return 'validation';
     }
     
-    // Ressource non trouvée
-    if (
-      lowerMessage.includes('not found') ||
-      lowerMessage.includes('introuvable') ||
-      lowerMessage.includes('404')
-    ) {
-      return {
-        category: 'resource',
-        critical: false, // Peut être une erreur d'URL ou de donnée
-        retryable: false
-      };
+    if (message.includes('not found') || message.includes('introuvable') || message.includes('404')) {
+      return 'resource';
     }
     
-    // Timeout
-    if (
-      lowerMessage.includes('timeout') ||
-      lowerMessage.includes('timed out') ||
-      lowerMessage.includes('délai') ||
-      lowerMessage.includes('timeout') ||
-      lowerMessage.includes('too long')
-    ) {
-      return {
-        category: 'timeout',
-        critical: false, // Les timeouts peuvent être temporaires
-        retryable: true
-      };
+    if (message.includes('timeout') || message.includes('expir') || message.includes('délai')) {
+      return 'timeout';
     }
     
-    // Erreurs métier
-    if (
-      lowerMessage.includes('business') ||
-      lowerMessage.includes('rule') ||
-      lowerMessage.includes('logic') ||
-      lowerMessage.includes('métier')
-    ) {
-      return {
-        category: 'business',
-        critical: true, // Les erreurs métier sont souvent critiques
-        retryable: false
-      };
+    if (message.includes('api') || message.includes('service') || message.includes('endpoint')) {
+      return 'api';
     }
     
-    // Erreurs d'API génériques
-    if (
-      lowerMessage.includes('api') ||
-      lowerMessage.includes('server') ||
-      lowerMessage.includes('unexpected') ||
-      lowerMessage.includes('service')
-    ) {
-      return {
-        category: 'api',
-        critical: false, // Considérer comme non critique par défaut
-        retryable: true
-      };
+    if (context?.includes('business') || context?.includes('métier')) {
+      return 'business';
     }
     
-    // Par défaut, considérer comme inconnu
-    return {
-      category: 'unknown',
-      critical: false,
-      retryable: false
-    };
+    return 'unknown';
   }, []);
-  
+
   /**
-   * Gère une erreur et renvoie les détails
+   * Détermine si une erreur est critique en fonction de sa catégorie et du message
+   */
+  const isCriticalError = useCallback((category: ErrorCategory, message: string): boolean => {
+    // Les erreurs d'authentification sont toujours critiques
+    if (category === 'authentication') return true;
+    
+    // Les erreurs d'autorisation sont généralement critiques
+    if (category === 'authorization') return true;
+    
+    // Les erreurs de ressource peuvent être critiques selon le contexte
+    if (category === 'resource' && (
+      message.includes('base') || 
+      message.includes('projet') || 
+      message.includes('config')
+    )) return true;
+    
+    // Les erreurs réseau persistantes sont critiques
+    if (category === 'network' && (
+      message.includes('failed repeatedly') || 
+      message.includes('plusieurs échecs')
+    )) return true;
+    
+    return false;
+  }, []);
+
+  /**
+   * Détermine si une erreur peut être récupérée automatiquement
+   */
+  const isRecoverableError = useCallback((category: ErrorCategory): boolean => {
+    // Les erreurs réseau et de timeout sont généralement récupérables
+    return category === 'network' || 
+           category === 'timeout' || 
+           category === 'api';
+  }, []);
+
+  /**
+   * Génère des actions de récupération en fonction de la catégorie d'erreur
+   */
+  const generateRecoveryActions = useCallback((category: ErrorCategory, context?: string) => {
+    const actions: Array<{ label: string; action: () => void }> = [];
+    
+    // Actions spécifiques par catégorie
+    switch (category) {
+      case 'network':
+        actions.push({
+          label: 'Passer en mode démonstration',
+          action: () => enableDemoMode('Basculement manuel suite à une erreur réseau')
+        });
+        break;
+        
+      case 'authentication':
+        // Actions pour les erreurs d'authentification
+        if (context?.includes('notion')) {
+          actions.push({
+            label: 'Configurer l\'API Notion',
+            action: () => {
+              // Navigation vers la page de configuration (à implémenter)
+              toast.info('Navigation vers la configuration Notion');
+            }
+          });
+        }
+        break;
+        
+      case 'timeout':
+        actions.push({
+          label: 'Réessayer avec un délai plus long',
+          action: () => {
+            toast.info('Nouvelle tentative avec un délai plus long');
+            // Action de réessai à implémenter
+          }
+        });
+        break;
+    }
+    
+    // Ajouter une action générique pour passer en mode démo
+    if (!isDemoMode && !actions.some(a => a.label.includes('démonstration'))) {
+      actions.push({
+        label: 'Utiliser le mode démonstration',
+        action: () => enableDemoMode('Basculement manuel après erreur')
+      });
+    }
+    
+    return actions;
+  }, [enableDemoMode, isDemoMode]);
+
+  /**
+   * Fonction principale pour capturer et traiter une erreur
    */
   const handleError = useCallback((
-    error: Error | string,
-    context: string = 'Opération',
+    error: Error | string | unknown,
+    context?: string,
     options: {
-      category?: ErrorCategory;
-      critical?: boolean;
-      retryable?: boolean;
       showToast?: boolean;
-      autoRecover?: boolean;
+      notifyMode?: boolean;
+      notifyNotion?: boolean;
+      customRecoveryActions?: Array<{ label: string; action: () => void }>;
     } = {}
-  ): ErrorDetails => {
-    // Extraire le message d'erreur
-    const message = typeof error === 'string' ? error : error.message;
+  ) => {
+    const { 
+      showToast = true, 
+      notifyMode = true,
+      notifyNotion = false,
+      customRecoveryActions = []
+    } = options;
     
-    // Catégoriser l'erreur si non spécifiée
-    const categorization = options.category 
-      ? { 
-          category: options.category, 
-          critical: options.critical ?? false, 
-          retryable: options.retryable ?? false 
-        } 
-      : categorizeError(error);
+    // Normaliser l'erreur
+    const normalizedError = typeof error === 'string' 
+      ? new Error(error) 
+      : error instanceof Error 
+        ? error 
+        : new Error(String(error));
     
-    // Créer les détails de l'erreur
+    // Catégoriser l'erreur
+    const category = categorizeError(normalizedError, context);
+    
+    // Déterminer si l'erreur est critique et récupérable
+    const critical = isCriticalError(category, normalizedError.message);
+    const recoverable = isRecoverableError(category);
+    
+    // Générer les actions de récupération
+    const recoveryActions = [
+      ...generateRecoveryActions(category, context),
+      ...customRecoveryActions
+    ];
+    
+    // Créer l'objet d'erreur détaillé
     const errorDetails: ErrorDetails = {
-      message,
-      category: categorization.category,
-      originalError: error,
+      message: normalizedError.message,
+      category,
       context,
       timestamp: Date.now(),
-      critical: options.critical ?? categorization.critical,
-      retryable: options.retryable ?? categorization.retryable,
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
+      isCritical: critical,
+      isRecoverable: recoverable,
+      originalError: error,
+      recoveryActions
     };
     
-    // Mettre à jour l'état
+    // Stocker l'erreur
     setLastError(errorDetails);
-    setErrorHistory(prev => [errorDetails, ...prev].slice(0, 10));
     
-    // Signaler l'erreur au service Notion si le contexte est lié à Notion
-    if (context.toLowerCase().includes('notion')) {
-      // Mapper la catégorie vers le type d'erreur Notion
-      let notionErrorType = NotionErrorType.UNKNOWN;
-      let notionErrorSeverity = errorDetails.critical 
+    // Notifier le système de mode opérationnel
+    if (notifyMode) {
+      handleConnectionError(normalizedError, context || 'Erreur applicative');
+    }
+    
+    // Notifier le service d'erreurs Notion si nécessaire
+    if (notifyNotion) {
+      const severity = critical 
         ? NotionErrorSeverity.CRITICAL 
-        : NotionErrorSeverity.ERROR;
-      
-      switch (errorDetails.category) {
-        case 'network':
-          notionErrorType = NotionErrorType.NETWORK;
-          break;
-        case 'authentication':
-          notionErrorType = NotionErrorType.AUTH;
-          break;
-        case 'authorization':
-          notionErrorType = NotionErrorType.PERMISSION;
-          break;
-        case 'timeout':
-          notionErrorType = NotionErrorType.TIMEOUT;
-          break;
-        case 'resource':
-          notionErrorType = NotionErrorType.NOT_FOUND;
-          break;
-        case 'api':
-          notionErrorType = NotionErrorType.API;
-          break;
+        : category === 'network' 
+          ? NotionErrorSeverity.ERROR 
+          : NotionErrorSeverity.WARNING;
+          
+      let notionType: NotionErrorType;
+      switch (category) {
+        case 'authentication': notionType = NotionErrorType.AUTH; break;
+        case 'authorization': notionType = NotionErrorType.PERMISSION; break;
+        case 'network': notionType = NotionErrorType.NETWORK; break;
+        case 'timeout': notionType = NotionErrorType.TIMEOUT; break;
+        case 'resource': notionType = NotionErrorType.NOT_FOUND; break;
+        default: notionType = NotionErrorType.UNKNOWN;
       }
       
-      // Signaler au service d'erreurs Notion
-      notionErrorService.reportError(error, context, { 
-        type: notionErrorType,
-        severity: notionErrorSeverity,
-        retryable: errorDetails.retryable
+      notionErrorService.reportError(normalizedError, context, {
+        type: notionType,
+        severity
       });
     }
     
-    // Afficher un toast si demandé
-    if (options.showToast !== false) {
-      toast.error(errorDetails.critical ? 'Erreur critique' : 'Erreur', {
-        description: `${context}: ${message}`
-      });
+    // Afficher un toast d'erreur
+    if (showToast) {
+      const toastOptions: any = {
+        description: context || undefined,
+        duration: critical ? 8000 : 5000,
+      };
+      
+      // Ajouter des actions de récupération au toast si disponibles
+      if (recoveryActions.length > 0) {
+        const primaryAction = recoveryActions[0];
+        toastOptions.action = {
+          label: primaryAction.label,
+          onClick: primaryAction.action
+        };
+      }
+      
+      toast.error(normalizedError.message, toastOptions);
     }
     
-    // Tenter la récupération automatique si demandé
-    if (options.autoRecover !== false) {
-      attemptAutomaticRecovery(errorDetails.category, errorDetails.critical);
+    // Basculer automatiquement en mode démo pour certaines erreurs critiques
+    if (critical && category === 'network' && context?.includes('repeated') && !isDemoMode) {
+      enableDemoMode('Basculement automatique suite à des erreurs réseau répétées');
+      
+      toast.warning('Passage automatique en mode démonstration', {
+        description: 'Plusieurs erreurs réseau ont été détectées. L\'application utilise maintenant des données fictives.'
+      });
     }
     
     return errorDetails;
-  }, [categorizeError, attemptAutomaticRecovery]);
-  
+  }, [
+    categorizeError, 
+    isCriticalError, 
+    isRecoverableError, 
+    generateRecoveryActions, 
+    handleConnectionError, 
+    enableDemoMode, 
+    isDemoMode
+  ]);
+
+  /**
+   * Signale une opération réussie
+   */
+  const handleSuccess = useCallback((message?: string) => {
+    if (lastError) {
+      setLastError(null);
+    }
+    
+    handleSuccessfulOperation();
+    
+    if (message) {
+      toast.success(message);
+    }
+  }, [lastError, handleSuccessfulOperation]);
+
+  /**
+   * Récupère la dernière erreur capturée
+   */
+  const getLastError = useCallback(() => lastError, [lastError]);
+
   /**
    * Efface la dernière erreur
    */
-  const clearLastError = useCallback(() => {
-    setLastError(null);
-  }, []);
-  
-  /**
-   * Efface l'historique des erreurs
-   */
-  const clearErrorHistory = useCallback(() => {
-    setErrorHistory([]);
-  }, []);
-  
+  const clearLastError = useCallback(() => setLastError(null), []);
+
   return {
-    lastError,
-    errorHistory,
     handleError,
+    handleSuccess,
+    lastError,
+    getLastError,
     clearLastError,
-    clearErrorHistory,
-    categorizeError
+    categorizeError,
+    isCriticalError,
+    isRecoverableError,
+    generateRecoveryActions
   };
 }

@@ -1,35 +1,28 @@
 
 /**
- * Point d'entrée pour le module OperationMode
- * Expose les types et fonctions principales
+ * Point d'entrée principal pour le système operationMode
+ * Exporte le service et les hooks associés
  */
 
-import { operationMode } from './operationModeAdapter';
-import { 
-  OperationMode, 
+// Exporter le service
+export { operationMode } from './operationModeService';
+
+// Exporter le hook principal
+export { useOperationMode } from './hooks/useOperationMode';
+
+// Exporter les types
+export type { 
   OperationModeSettings, 
-  OperationModeHook, 
-  SwitchReason 
+  SwitchReason,
+  IOperationModeService,
+  OperationModeHook 
 } from './types';
-import { DEFAULT_SETTINGS } from './constants';
 
-// Utilitaires pour le mode opérationnel
-const operationModeUtils = {
-  isAutoSwitchEnabled: (): boolean => {
-    return operationMode.settings.autoSwitchToDemo;
-  },
-  getFailureThreshold: (): number => {
-    return operationMode.settings.errorThreshold;
-  }
-};
+// Exporter l'énumération OperationMode directement pour simplifier l'usage
+export { OperationMode } from './types';
 
-export {
-  operationMode,
-  operationModeUtils,
-  OperationMode,
-  // Utiliser "export type" pour éviter les erreurs de type avec isolatedModules
-  type OperationModeSettings,
-  type OperationModeHook,
-  type SwitchReason,
-  DEFAULT_SETTINGS
-};
+// Exporter les utilitaires
+export { operationModeUtils } from './utils';
+
+// Exporter les constantes pour les personnes qui en ont besoin
+export { DEFAULT_SETTINGS } from './constants';

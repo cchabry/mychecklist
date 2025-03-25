@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useOperationMode } from '@/lib/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,7 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
   onToggle,
   simplified = false
 }) => {
-  const { currentMode, isDemoMode, enableRealMode, enableDemoMode, connectionHealth, switchReason } = useOperationMode();
+  const { mode, isDemoMode, enableRealMode, enableDemoMode, failures, switchReason } = useOperationMode();
   const [reason, setReason] = useState('');
   
   const handleToggleMode = () => {
@@ -101,12 +101,12 @@ const OperationModeControl: React.FC<OperationModeControlProps> = ({
           />
         </div>
         
-        {connectionHealth.consecutiveErrors > 0 && !isDemoMode && (
+        {failures > 0 && !isDemoMode && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-700">
-                Attention : {connectionHealth.consecutiveErrors} erreur{connectionHealth.consecutiveErrors > 1 ? 's' : ''} de connexion détectée{connectionHealth.consecutiveErrors > 1 ? 's' : ''}
+                Attention : {failures} erreur{failures > 1 ? 's' : ''} de connexion détectée{failures > 1 ? 's' : ''}
               </p>
               <p className="text-xs text-amber-600">
                 Passer en mode démonstration peut être utile si vous rencontrez des problèmes avec l'API Notion.

@@ -1,36 +1,26 @@
 
 import { useState, useEffect } from 'react';
-import { OperationMode, SwitchReason } from '@/services/operationMode/types';
 import { operationMode } from '@/services/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 
 /**
  * Hook pour écouter les changements de mode opérationnel
+ * et fournir des méthodes simples pour interagir avec le mode
  */
-export const useOperationModeListener = () => {
-  const [currentMode, setCurrentMode] = useState<OperationMode>(operationMode.getMode());
-  const [reason, setReason] = useState<SwitchReason | null>(operationMode.getSwitchReason());
-  
+export function useOperationModeListener() {
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
+  const { toggle, enableRealMode, enableDemoMode } = useOperationMode();
+
+  // S'abonner aux changements du mode opérationnel
   useEffect(() => {
-    // S'abonner aux changements de mode
-    const unsubscribe = operationMode.subscribe((mode, switchReason) => {
-      setCurrentMode(mode);
-      setReason(switchReason);
-    });
-    
+    const unsubscribe = operationMode.onModeChange(setIsDemoMode);
     return unsubscribe;
   }, []);
-  
-  return {
-    currentMode,
-    isDemoMode: currentMode === OperationMode.DEMO,
-    isRealMode: currentMode === OperationMode.REAL,
-    switchReason: reason,
-    
-    // Fonctions de commodité
-    enableDemoMode: (reason?: SwitchReason) => operationMode.enableDemoMode(reason),
-    enableRealMode: () => operationMode.enableRealMode(),
-    toggleMode: () => operationMode.toggle()
-  };
-};
 
-export default useOperationModeListener;
+  return {
+    isDemoMode,
+    toggleMode: toggle,
+    enableRealMode,
+    enableDemoMode
+  };
+}

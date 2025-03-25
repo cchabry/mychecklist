@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useOperationMode } from '@/lib/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 import { 
   Form,
   FormControl,

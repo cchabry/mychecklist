@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Info, ToggleLeft, ToggleRight, Activity, RefreshCw } from "lucide-react";
-import { useOperationMode } from '@/lib/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 import { OperationMode } from '@/services/operationMode/types';
 import OperationModeSettings from '@/components/OperationModeSettings';
 
@@ -14,15 +14,16 @@ import OperationModeSettings from '@/components/OperationModeSettings';
  */
 const OperationModeDiagnostics: React.FC = () => {
   const {
-    currentMode,
+    mode,
     switchReason,
-    connectionHealth,
+    failures,
+    lastError,
     settings,
     isDemoMode,
     isRealMode,
     enableDemoMode,
     enableRealMode,
-    toggleMode,
+    toggle,
     handleConnectionError,
     reset
   } = useOperationMode();
@@ -67,7 +68,7 @@ const OperationModeDiagnostics: React.FC = () => {
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Mode actuel:</span>
                 <Badge variant={isDemoMode ? "outline" : "default"} className={isDemoMode ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200'}>
-                  {currentMode === OperationMode.DEMO ? 'Mode Démo' : 'Mode Réel'}
+                  {mode === OperationMode.DEMO ? 'Mode Démo' : 'Mode Réel'}
                 </Badge>
               </div>
               
@@ -80,15 +81,15 @@ const OperationModeDiagnostics: React.FC = () => {
               
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Échecs consécutifs:</span>
-                <Badge variant={connectionHealth.consecutiveErrors > 0 ? "destructive" : "outline"} className={connectionHealth.consecutiveErrors > 0 ? 'bg-red-50 text-red-700' : ''}>
-                  {connectionHealth.consecutiveErrors}
+                <Badge variant={failures > 0 ? "destructive" : "outline"} className={failures > 0 ? 'bg-red-50 text-red-700' : ''}>
+                  {failures}
                 </Badge>
               </div>
               
-              {connectionHealth.lastError && (
+              {lastError && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="font-semibold text-red-700">Dernière erreur:</p>
-                  <p className="text-red-600 text-sm mt-1">{connectionHealth.lastError.message}</p>
+                  <p className="text-red-600 text-sm mt-1">{lastError.message}</p>
                 </div>
               )}
               
@@ -117,7 +118,7 @@ const OperationModeDiagnostics: React.FC = () => {
                   variant="outline" 
                   size="sm"
                   className="gap-2"
-                  onClick={toggleMode}
+                  onClick={toggle}
                 >
                   <RefreshCw className="h-4 w-4" />
                   Basculer le mode

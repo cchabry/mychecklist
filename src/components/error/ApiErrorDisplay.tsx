@@ -1,40 +1,12 @@
 
 import React from 'react';
-import {
-  NotionErrorType,
-  NotionError
-} from '@/services/notion/types/unified';
+import { ApiErrorDetails, ApiErrorType } from '@/hooks/api/useErrorCategorization';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw, AlertCircle, WifiOff, ShieldAlert, FileWarning, Clock } from 'lucide-react';
 
-export type ApiErrorType = 
-  | 'connection'
-  | 'authentication'
-  | 'authorization'
-  | 'validation'
-  | 'not_found'
-  | 'conflict'
-  | 'rate_limit'
-  | 'server'
-  | 'timeout'
-  | 'parse'
-  | 'business'
-  | 'unknown';
-
-export interface ApiErrorDetails {
-  type: ApiErrorType;
-  message: string;
-  originalError?: Error;
-  statusCode?: number;
-  details?: any;
-  timestamp: number;
-  retryable: boolean;
-  recoverable: boolean;
-}
-
 interface ApiErrorDisplayProps {
-  error: ApiErrorDetails | NotionError;
+  error: ApiErrorDetails;
   onRetry?: () => void;
   onDismiss?: () => void;
   onRecover?: () => void;
@@ -51,11 +23,6 @@ const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
   onRecover,
   compact = false
 }) => {
-  // Convertir NotionError en ApiErrorDetails si nécessaire
-  const normalizedError = 'message' in error && 'type' in error
-    ? mapNotionErrorToApiError(error as NotionError)
-    : error as ApiErrorDetails;
-  
   const getErrorIcon = (type: ApiErrorType) => {
     switch (type) {
       case 'connection':
@@ -106,17 +73,17 @@ const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
   if (compact) {
     return (
       <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-        {getErrorIcon(normalizedError.type)}
+        {getErrorIcon(error.type)}
         <div className="flex-1">
           <h4 className="text-sm font-medium text-red-800">
-            {getErrorTitle(normalizedError.type)}
+            {getErrorTitle(error.type)}
           </h4>
           <p className="text-xs text-red-700 mt-1">
-            {normalizedError.message}
+            {error.message}
           </p>
         </div>
         <div className="flex gap-2">
-          {normalizedError.retryable && onRetry && (
+          {error.retryable && onRetry && (
             <Button 
               variant="ghost" 
               size="sm" 
@@ -147,24 +114,24 @@ const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
     <Card className="border-red-200">
       <CardHeader className="pb-2">
         <div className="flex items-start gap-3">
-          {getErrorIcon(normalizedError.type)}
+          {getErrorIcon(error.type)}
           <CardTitle className="text-base">
-            {getErrorTitle(normalizedError.type)}
+            {getErrorTitle(error.type)}
           </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        <p>{normalizedError.message}</p>
+        <p>{error.message}</p>
         
-        {normalizedError.statusCode && (
+        {error.statusCode && (
           <div className="bg-slate-50 p-2 rounded text-xs text-muted-foreground">
-            Code: {normalizedError.statusCode}
+            Code: {error.statusCode}
           </div>
         )}
         
-        {normalizedError.details && (
+        {error.details && (
           <div className="bg-slate-50 p-2 rounded text-xs overflow-auto max-h-24">
-            <pre>{JSON.stringify(normalizedError.details, null, 2)}</pre>
+            <pre>{JSON.stringify(error.details, null, 2)}</pre>
           </div>
         )}
       </CardContent>
@@ -175,12 +142,12 @@ const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
           </Button>
         )}
         <div className="space-x-2">
-          {normalizedError.recoverable && onRecover && (
+          {error.recoverable && onRecover && (
             <Button size="sm" variant="secondary" onClick={onRecover}>
               Réparer
             </Button>
           )}
-          {normalizedError.retryable && onRetry && (
+          {error.retryable && onRetry && (
             <Button size="sm" onClick={onRetry}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Réessayer
@@ -191,52 +158,5 @@ const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
     </Card>
   );
 };
-
-/**
- * Fonction utilitaire pour convertir une NotionError en ApiErrorDetails
- */
-function mapNotionErrorToApiError(error: NotionError): ApiErrorDetails {
-  // Mapper le type d'erreur Notion vers le type d'erreur API
-  let apiErrorType: ApiErrorType = 'unknown';
-  
-  switch (error.type) {
-    case NotionErrorType.NETWORK:
-      apiErrorType = 'connection';
-      break;
-    case NotionErrorType.AUTH:
-      apiErrorType = 'authentication';
-      break;
-    case NotionErrorType.PERMISSION:
-      apiErrorType = 'authorization';
-      break;
-    case NotionErrorType.VALIDATION:
-      apiErrorType = 'validation';
-      break;
-    case NotionErrorType.NOT_FOUND:
-      apiErrorType = 'not_found';
-      break;
-    case NotionErrorType.RATE_LIMIT:
-      apiErrorType = 'rate_limit';
-      break;
-    case NotionErrorType.SERVER:
-      apiErrorType = 'server';
-      break;
-    case NotionErrorType.TIMEOUT:
-      apiErrorType = 'timeout';
-      break;
-    default:
-      apiErrorType = 'unknown';
-  }
-  
-  return {
-    type: apiErrorType,
-    message: error.message,
-    originalError: error.originalError,
-    details: error.details,
-    timestamp: error.timestamp,
-    retryable: error.retryable,
-    recoverable: error.recoverable || false
-  };
-}
 
 export default ApiErrorDisplay;

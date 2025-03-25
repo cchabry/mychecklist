@@ -1,18 +1,19 @@
 
 /**
- * Point d'entrée pour les services de gestion d'erreurs Notion
+ * Point d'entrée pour la gestion des erreurs
  */
 
-import { notionErrorService } from './notionErrorService';
-import { useRetryQueue } from './hooks/useRetryQueue';
-import { notionRetryQueue } from './retryQueueService';
-import { NotionErrorType, NotionErrorSeverity, NotionError } from '../types/unified';
+// Exporter les services
+export { notionErrorService } from './errorService';
+export { notionRetryQueue } from './retryQueue';
+export { autoRetryHandler } from './autoRetry';
+export { notionErrorUtils } from './utils';
 
-export {
-  notionErrorService,
-  notionRetryQueue,
-  useRetryQueue,
-  NotionErrorType,
-  NotionErrorSeverity,
-  NotionError
-};
+// Exporter les hooks
+export { useNotionErrorService } from './useNotionErrorService';
+export { useRetryQueue } from './useRetryQueue';
+export { useAutoRetry } from './useAutoRetry';
+
+// Exporter les types et utilitaires
+export * from '../types/unified';
+export * from './utils';

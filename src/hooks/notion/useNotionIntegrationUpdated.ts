@@ -4,7 +4,7 @@ import { isNotionConfigured } from '@/lib/notion';
 import { useNotionConfig } from './useNotionConfig';
 import { useNotionConnectionStatus } from './useNotionConnectionStatus';
 import { useNotionErrorHandling } from './useNotionErrorHandling';
-import { useOperationMode } from '@/lib/operationMode';
+import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
 
 /**

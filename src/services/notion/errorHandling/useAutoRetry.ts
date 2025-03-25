@@ -1,18 +1,22 @@
 
-import { useState, useCallback, useEffect } from 'react';
+/**
+ * Hook pour utiliser le système de réessai automatique
+ */
+
+import { useState, useCallback } from 'react';
 import { autoRetryHandler } from './autoRetry';
-import { RetryOperationOptions } from '../types/errorTypes';
+import { RetryOperationOptions } from './types';
+import { toast } from 'sonner';
 
 /**
- * Hook pour utiliser le système d'auto-retry
+ * Hook pour utiliser le système de réessai automatique
  */
 export function useAutoRetry() {
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
-  const [lastError, setLastError] = useState<Error | null>(null);
   
   /**
-   * Exécuter une opération avec auto-retry
+   * Exécute une opération avec réessai automatique
    */
   const executeWithRetry = useCallback(async <T>(
     operation: () => Promise<T>,
@@ -22,51 +26,59 @@ export function useAutoRetry() {
       toastMessage?: string;
     } = {}
   ): Promise<T> => {
-    setIsRetrying(true);
-    setRetryCount(0);
-    setLastError(null);
+    const { 
+      showToast = true, 
+      toastMessage = 'Une erreur est survenue, nouvelle tentative...',
+      ...retryOptions 
+    } = options;
     
-    // Créer un gestionnaire de tentatives pour mettre à jour l'état
-    const retryHandler: RetryOperationOptions = {
-      ...options,
-      onSuccess: (result) => {
-        if (options.onSuccess) {
-          options.onSuccess(result);
-        }
-        setIsRetrying(false);
-      },
-      onFailure: (error) => {
-        if (options.onFailure) {
-          options.onFailure(error);
-        }
-        setLastError(error);
-        setIsRetrying(false);
-      }
-    };
+    setIsRetrying(false);
+    setRetryCount(0);
     
     try {
-      // Utiliser l'auto-retry handler
       return await autoRetryHandler.execute<T>(
         operation,
         context,
-        retryHandler
+        {
+          ...retryOptions,
+          onSuccess: (result) => {
+            if (options.onSuccess) {
+              options.onSuccess(result);
+            }
+            
+            setIsRetrying(false);
+          },
+          onFailure: (error) => {
+            if (options.onFailure) {
+              options.onFailure(error);
+            }
+            
+            setIsRetrying(false);
+          }
+        }
       );
     } catch (error) {
       // Gérer l'erreur finale
-      const typedError = error instanceof Error ? error : new Error(String(error));
-      setLastError(typedError);
-      setIsRetrying(false);
-      throw typedError;
+      if (showToast) {
+        toast.error('Échec de l\'opération', {
+          description: error instanceof Error ? error.message : String(error)
+        });
+      }
+      
+      throw error;
     }
   }, []);
   
   /**
-   * Créer une fonction avec auto-retry
+   * Crée une fonction avec réessai automatique
    */
   const createRetryFunction = useCallback(<T, Args extends any[]>(
     fn: (...args: Args) => Promise<T>,
     contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry operation',
-    options: RetryOperationOptions = {}
+    options: RetryOperationOptions & {
+      showToast?: boolean;
+      toastMessage?: string;
+    } = {}
   ): ((...args: Args) => Promise<T>) => {
     return async (...args: Args): Promise<T> => {
       return executeWithRetry(
@@ -81,7 +93,6 @@ export function useAutoRetry() {
     executeWithRetry,
     createRetryFunction,
     isRetrying,
-    retryCount,
-    lastError
+    retryCount
   };
 }

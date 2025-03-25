@@ -1,9 +1,8 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notionApiService } from '@/services/notion/notionApiService';
 import { toast } from 'sonner';
 import { notionCentralService } from '@/services/notion/notionCentralService';
-import { useNotionErrorService } from '@/services/notion/errorHandling';
 
 /**
  * Hook qui permet d'utiliser l'API Notion avec le système de proxy modulaire
@@ -12,7 +11,6 @@ import { useNotionErrorService } from '@/services/notion/errorHandling';
 export function useNotionApi() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { reportError } = useNotionErrorService();
   
   // Fonction pour tester la connexion à l'API Notion
   const testConnection = useCallback(async () => {
@@ -31,24 +29,24 @@ export function useNotionApi() {
       } else {
         const errorMessage = response.error || "Erreur de connexion à Notion";
         setError(new Error(errorMessage));
-        
-        // Utiliser le nouveau système de gestion d'erreurs
-        reportError(new Error(errorMessage), "Test de connexion à Notion");
-        
+        toast.error("Échec de la connexion à Notion", {
+          description: errorMessage
+        });
         return { success: false, error: errorMessage };
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(err instanceof Error ? err : new Error(errorMessage));
       
-      // Utiliser le nouveau système de gestion d'erreurs
-      reportError(err, "Test de connexion à Notion");
+      toast.error("Erreur lors du test de connexion", {
+        description: errorMessage
+      });
       
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [reportError]);
+  }, []);
   
   return {
     isLoading,
