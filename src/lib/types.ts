@@ -1,3 +1,4 @@
+
 // Interfaces principales du système
 
 export interface Project {
@@ -10,6 +11,10 @@ export interface Project {
   status?: string;
   createdAt: string;
   updatedAt: string;
+  url?: string;
+  progress?: number;
+  itemsCount?: number;
+  pagesCount?: number;
 }
 
 export interface Audit {
@@ -22,9 +27,12 @@ export interface Audit {
   status?: string;
   createdAt: string;
   updatedAt: string;
-  // Ajout des propriétés manquantes pour l'affichage dans ProjectCard
+  items?: AuditItem[];
   score?: number;
   progress?: number;
+  version?: string;
+  completedAt?: string;
+  // Propriétés pour l'affichage dans ProjectCard
   itemsCount?: number;
   actionsCount?: {
     total: number;
@@ -33,6 +41,41 @@ export interface Audit {
     [ActionStatus.Done]: number;
     [key: string]: number;
   };
+}
+
+export interface AuditItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  subcategory?: string;
+  metaRefs?: string;
+  criteria: string;
+  profile: string;
+  phase: string;
+  effort: string;
+  priority: string;
+  requirementLevel: string;
+  scope: string;
+  consigne: string;
+  status: ComplianceStatus;
+  pageResults?: PageResult[];
+  importance?: ImportanceLevel;
+  projectRequirement?: string;
+  projectComment?: string;
+  actions?: CorrectiveAction[];
+  comment?: string;
+  reference?: string;
+  profil?: string;
+  details?: string;
+}
+
+export interface ProjectRequirement {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
 }
 
 export interface Page {
