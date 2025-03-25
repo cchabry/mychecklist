@@ -27,8 +27,9 @@ export {
   operationMode,
   operationModeUtils,
   OperationMode,
-  OperationModeSettings,
-  OperationModeHook,
-  SwitchReason,
+  // Utiliser "export type" pour éviter les erreurs de type avec isolatedModules
+  type OperationModeSettings,
+  type OperationModeHook,
+  type SwitchReason,
   DEFAULT_SETTINGS
 };
