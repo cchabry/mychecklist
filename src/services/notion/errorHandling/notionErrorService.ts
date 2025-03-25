@@ -32,7 +32,9 @@ export class NotionErrorService {
       context,
       cause,
       recoveryActions,
-      recoverable = false
+      recoverable = false,
+      retryable = false,
+      name = 'NotionError'
     } = options;
 
     const error: NotionError = {
@@ -44,8 +46,10 @@ export class NotionErrorService {
       cause,
       recoveryActions: recoveryActions || [],
       recoverable,
+      retryable, // Ajout du champ manquant
       timestamp: Date.now(),
-      name: 'NotionError',
+      name,
+      stack: options.stack
     };
 
     return error;
@@ -126,18 +130,20 @@ export class NotionErrorService {
    * Convertir une erreur standard en NotionError
    */
   private ensureNotionError(error: Error | NotionError, context?: string): NotionError {
-    if ('type' in error && 'severity' in error && 'timestamp' in error) {
+    if ('type' in error && 'severity' in error && 'timestamp' in error && 'retryable' in error) {
       return error as NotionError;
     }
     
     // Déterminer le type d'erreur
     let type = NotionErrorType.UNKNOWN;
     let severity = NotionErrorSeverity.ERROR;
+    let retryable = false;
     
     // Analyser le message d'erreur
     const message = error.message.toLowerCase();
     if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
       type = NotionErrorType.NETWORK;
+      retryable = true;
     } else if (message.includes('auth') || message.includes('unauthorized') || message.includes('401')) {
       type = NotionErrorType.AUTH;
       severity = NotionErrorSeverity.CRITICAL;
@@ -146,6 +152,7 @@ export class NotionErrorService {
       severity = NotionErrorSeverity.CRITICAL;
     } else if (message.includes('rate limit') || message.includes('429')) {
       type = NotionErrorType.RATE_LIMIT;
+      retryable = true;
     }
     
     return {
@@ -158,7 +165,7 @@ export class NotionErrorService {
       context: context ? { context } : undefined,
       name: error.name || 'NotionError',
       stack: error.stack,
-      retryable: type === NotionErrorType.NETWORK || type === NotionErrorType.RATE_LIMIT,
+      retryable,
       recoverable: false,
       recoveryActions: []
     };

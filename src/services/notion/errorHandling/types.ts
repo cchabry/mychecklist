@@ -73,6 +73,8 @@ export interface NotionErrorOptions {
     action: () => void;
   }>;
   cause?: Error | unknown;
+  name?: string;           // Ajout du champ name manquant
+  stack?: string;          // Ajout du stack pour plus de flexibilité
 }
 
 /**
@@ -119,6 +121,62 @@ export interface RetryQueueStats {
   failedOperations: number;        // Opérations échouées définitivement
   lastProcessedAt: number | null;  // Dernier traitement
   isProcessing: boolean;           // Si le traitement est en cours
+}
+
+/**
+ * Format de log structuré
+ */
+export interface StructuredLog {
+  timestamp: number;         // Horodatage
+  level: LogLevel;           // Niveau de log
+  message: string;           // Message principal
+  context?: Record<string, any>;  // Contexte supplémentaire
+  error?: {                  // Détails d'erreur (si applicable)
+    message: string;
+    type?: NotionErrorType;
+    stack?: string;
+  };
+  source?: string;           // Source du log (composant, service)
+  tags?: string[];           // Tags pour le filtrage et la recherche
+}
+
+/**
+ * Niveaux de log
+ */
+export enum LogLevel {
+  TRACE = 'trace',
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+  FATAL = 'fatal'
+}
+
+/**
+ * Statistiques de compteur d'erreurs
+ */
+export interface ErrorCounterStats {
+  total: number;                       // Nombre total d'erreurs
+  byType: Record<NotionErrorType, number>;  // Erreurs par type
+  byEndpoint: Record<string, number>;      // Erreurs par endpoint
+  byHour: Record<number, number>;          // Erreurs par heure
+  byMinute: Record<number, number>;        // Erreurs par minute
+  lastError?: {                           // Dernière erreur
+    timestamp: number;
+    message: string;
+    type: NotionErrorType;
+  };
+}
+
+/**
+ * Configuration des seuils d'alerte
+ */
+export interface AlertThresholdConfig {
+  errorRatePerMinute?: number;        // Seuil de taux d'erreur par minute
+  errorRatePerHour?: number;          // Seuil de taux d'erreur par heure
+  consecutiveFailures?: number;       // Nombre d'échecs consécutifs
+  byErrorType?: Partial<Record<NotionErrorType, number>>;  // Seuils par type d'erreur
+  byEndpoint?: Record<string, number>;  // Seuils par endpoint
 }
 
 // Alias pour la compatibilité avec les anciens fichiers

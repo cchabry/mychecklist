@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   AlertCircle, 
@@ -63,7 +64,6 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
       return notionErrorService.createError(error.message, {
         context,
         cause: error,
-        name: error.name,
         stack: error.stack,
         retryable: false,
         recoverable: false
