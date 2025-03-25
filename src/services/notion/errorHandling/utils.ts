@@ -1,100 +1,203 @@
 
+import { NotionError, NotionErrorType, NotionErrorSeverity } from '../types/errorTypes';
+
 /**
  * Utilitaires pour la gestion des erreurs Notion
  */
-import { NotionError, NotionErrorType } from '../types/unified';
-
 export const errorUtils = {
   /**
-   * Formate une erreur pour l'affichage dans l'interface utilisateur
+   * Détermine si une erreur est temporaire (et peut être réessayée)
    */
-  formatErrorForDisplay(error: NotionError): { title: string; message: string } {
-    const title = this.getErrorTitle(error.type);
-    const message = error.message;
+  isTemporaryError(error: Error | string | NotionError): boolean {
+    // Si c'est une NotionError, utiliser sa propriété retryable
+    if (typeof error === 'object' && 'retryable' in error) {
+      return error.retryable;
+    }
     
-    return { title, message };
+    const errorMessage = typeof error === 'string' 
+      ? error.toLowerCase() 
+      : (error.message || '').toLowerCase();
+    
+    // Liste des motifs qui indiquent une erreur temporaire
+    const temporaryPatterns = [
+      'network',
+      'connection',
+      'timeout',
+      'timed out',
+      'rate limit',
+      'too many requests',
+      '429',
+      'service unavailable',
+      '503',
+      'gateway timeout',
+      '504',
+      'temporarily',
+      'temporary',
+      'retry',
+      'overloaded',
+      'reset'
+    ];
+    
+    // Vérifier si l'erreur contient l'un des motifs
+    return temporaryPatterns.some(pattern => errorMessage.includes(pattern));
   },
   
   /**
-   * Obtient un titre convivial pour un type d'erreur
+   * Détermine le type d'une erreur
    */
-  getErrorTitle(type: NotionErrorType): string {
-    switch (type) {
+  getErrorType(error: Error | string): NotionErrorType {
+    const message = typeof error === 'string' ? error : error.message;
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('auth') || lowerMessage.includes('token') || lowerMessage.includes('401')) {
+      return NotionErrorType.AUTH;
+    }
+    
+    if (lowerMessage.includes('permission') || lowerMessage.includes('forbidden') || lowerMessage.includes('403')) {
+      return NotionErrorType.PERMISSION;
+    }
+    
+    if (lowerMessage.includes('not found') || lowerMessage.includes('404')) {
+      return NotionErrorType.NOT_FOUND;
+    }
+    
+    if (lowerMessage.includes('valid') || lowerMessage.includes('schema') || lowerMessage.includes('400')) {
+      return NotionErrorType.VALIDATION;
+    }
+    
+    if (lowerMessage.includes('rate limit') || lowerMessage.includes('429')) {
+      return NotionErrorType.RATE_LIMIT;
+    }
+    
+    if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+      return NotionErrorType.TIMEOUT;
+    }
+    
+    if (lowerMessage.includes('cors') || lowerMessage.includes('origin')) {
+      return NotionErrorType.CORS;
+    }
+    
+    if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('connection')) {
+      return NotionErrorType.NETWORK;
+    }
+    
+    if (lowerMessage.includes('server') || lowerMessage.includes('500') || lowerMessage.includes('502')) {
+      return NotionErrorType.SERVER;
+    }
+    
+    if (lowerMessage.includes('database') || lowerMessage.includes('query')) {
+      return NotionErrorType.DATABASE;
+    }
+    
+    return NotionErrorType.UNKNOWN;
+  },
+  
+  /**
+   * Détermine la sévérité d'une erreur
+   */
+  getErrorSeverity(error: Error | string | NotionError): NotionErrorSeverity {
+    // Si c'est une NotionError, utiliser sa propriété severity
+    if (typeof error === 'object' && 'severity' in error) {
+      return error.severity;
+    }
+    
+    const errorType = typeof error === 'string' || error instanceof Error
+      ? this.getErrorType(error)
+      : NotionErrorType.UNKNOWN;
+    
+    // Déterminer la sévérité en fonction du type
+    switch (errorType) {
       case NotionErrorType.AUTH:
-        return 'Erreur d\'authentification';
       case NotionErrorType.PERMISSION:
-        return 'Erreur de permission';
+        return NotionErrorSeverity.CRITICAL;
+        
       case NotionErrorType.NOT_FOUND:
-        return 'Ressource introuvable';
       case NotionErrorType.VALIDATION:
-        return 'Données invalides';
-      case NotionErrorType.RATE_LIMIT:
-        return 'Limite de requêtes atteinte';
-      case NotionErrorType.TIMEOUT:
-        return 'Délai dépassé';
-      case NotionErrorType.CORS:
-        return 'Erreur CORS';
-      case NotionErrorType.NETWORK:
-        return 'Erreur réseau';
-      case NotionErrorType.SERVER:
-        return 'Erreur serveur';
       case NotionErrorType.DATABASE:
-        return 'Erreur de base de données';
+        return NotionErrorSeverity.ERROR;
+        
+      case NotionErrorType.RATE_LIMIT:
+      case NotionErrorType.TIMEOUT:
+      case NotionErrorType.NETWORK:
+      case NotionErrorType.SERVER:
+        return NotionErrorSeverity.WARNING;
+        
+      case NotionErrorType.CORS:
+      case NotionErrorType.UNKNOWN:
       default:
-        return 'Erreur inattendue';
+        return NotionErrorSeverity.ERROR;
     }
   },
   
   /**
-   * Vérifie si une erreur est critique (nécessite une intervention)
+   * Crée un message utilisateur à partir d'une erreur
    */
-  isCriticalError(error: NotionError): boolean {
-    return [
-      NotionErrorType.AUTH,
-      NotionErrorType.PERMISSION,
-      NotionErrorType.DATABASE
-    ].includes(error.type);
-  },
-  
-  /**
-   * Vérifie si une erreur est temporaire (peut se résoudre d'elle-même)
-   */
-  isTemporaryError(error: NotionError): boolean {
-    return [
-      NotionErrorType.NETWORK,
-      NotionErrorType.TIMEOUT,
-      NotionErrorType.RATE_LIMIT,
-      NotionErrorType.SERVER
-    ].includes(error.type);
-  },
-  
-  /**
-   * Génère une suggestion de résolution pour une erreur
-   */
-  getSuggestion(error: NotionError): string {
-    switch (error.type) {
+  getUserFriendlyMessage(error: Error | string | NotionError): string {
+    // Si c'est une NotionError, utiliser notre fonction spécifique
+    if (typeof error === 'object' && 'type' in error && 'severity' in error) {
+      const notionError = error as NotionError;
+      
+      switch (notionError.type) {
+        case NotionErrorType.AUTH:
+          return "Erreur d'authentification. Vérifiez vos identifiants Notion.";
+          
+        case NotionErrorType.PERMISSION:
+          return "Erreur de permission. Vous n'avez pas accès à cette ressource Notion.";
+          
+        case NotionErrorType.NOT_FOUND:
+          return "Ressource introuvable. Vérifiez l'identifiant utilisé.";
+          
+        case NotionErrorType.VALIDATION:
+          return "Erreur de validation. Vérifiez les données envoyées.";
+          
+        case NotionErrorType.RATE_LIMIT:
+          return "Limite de requêtes atteinte. Veuillez réessayer dans quelques instants.";
+          
+        case NotionErrorType.TIMEOUT:
+          return "Délai d'attente dépassé. L'opération a pris trop de temps.";
+          
+        case NotionErrorType.CORS:
+          return "Erreur de configuration CORS. Vérifiez les paramètres du proxy.";
+          
+        case NotionErrorType.NETWORK:
+          return "Erreur réseau. Vérifiez votre connexion internet.";
+          
+        case NotionErrorType.SERVER:
+          return "Erreur serveur Notion. Veuillez réessayer ultérieurement.";
+          
+        case NotionErrorType.DATABASE:
+          return "Erreur de base de données. Vérifiez la structure de vos bases Notion.";
+          
+        default:
+          return notionError.message || "Une erreur est survenue.";
+      }
+    }
+    
+    // Pour les autres types d'erreurs
+    const message = typeof error === 'string' ? error : error.message;
+    const errorType = this.getErrorType(error);
+    
+    switch (errorType) {
       case NotionErrorType.AUTH:
-        return 'Vérifiez votre clé API Notion ou reconnectez-vous.';
+        return "Erreur d'authentification. Vérifiez vos identifiants.";
+        
       case NotionErrorType.PERMISSION:
-        return 'Vérifiez les permissions de votre compte Notion sur cette ressource.';
+        return "Erreur de permission. Accès refusé à la ressource.";
+        
       case NotionErrorType.NOT_FOUND:
-        return 'Vérifiez l\'identifiant de la ressource ou si elle existe toujours.';
+        return "Ressource introuvable. Vérifiez l'identifiant utilisé.";
+        
       case NotionErrorType.VALIDATION:
-        return 'Vérifiez les données saisies et corrigez les erreurs.';
+        return "Erreur de validation. Vérifiez les données saisies.";
+        
       case NotionErrorType.RATE_LIMIT:
-        return 'Attendez quelques minutes avant de réessayer.';
-      case NotionErrorType.TIMEOUT:
-        return 'Vérifiez votre connexion internet et réessayez.';
-      case NotionErrorType.CORS:
-        return 'Utilisez le proxy pour les requêtes Notion.';
+        return "Limite de requêtes atteinte. Veuillez réessayer ultérieurement.";
+        
       case NotionErrorType.NETWORK:
-        return 'Vérifiez votre connexion internet et réessayez.';
-      case NotionErrorType.SERVER:
-        return 'Réessayez plus tard, le serveur Notion est peut-être surchargé.';
-      case NotionErrorType.DATABASE:
-        return 'Vérifiez la structure de votre base de données Notion.';
+        return "Erreur réseau. Vérifiez votre connexion internet.";
+        
       default:
-        return 'Réessayez l\'opération ou contactez le support.';
+        return message || "Une erreur est survenue.";
     }
   }
 };

@@ -216,10 +216,13 @@ export function useErrorHandling() {
     setLastError(errorDetails);
     setErrorHistory(prev => [errorDetails, ...prev].slice(0, 10));
     
-    // Signaler l'erreur au service Notion
+    // Signaler l'erreur au service Notion si le contexte est lié à Notion
     if (context.toLowerCase().includes('notion')) {
       // Mapper la catégorie vers le type d'erreur Notion
       let notionErrorType = NotionErrorType.UNKNOWN;
+      let notionErrorSeverity = errorDetails.critical 
+        ? NotionErrorSeverity.CRITICAL 
+        : NotionErrorSeverity.ERROR;
       
       switch (errorDetails.category) {
         case 'network':
@@ -237,11 +240,16 @@ export function useErrorHandling() {
         case 'resource':
           notionErrorType = NotionErrorType.NOT_FOUND;
           break;
+        case 'api':
+          notionErrorType = NotionErrorType.API;
+          break;
       }
       
       // Signaler au service d'erreurs Notion
       notionErrorService.reportError(error, context, { 
-        type: notionErrorType 
+        type: notionErrorType,
+        severity: notionErrorSeverity,
+        retryable: errorDetails.retryable
       });
     }
     
@@ -283,5 +291,3 @@ export function useErrorHandling() {
     categorizeError
   };
 }
-
-export default useErrorHandling;

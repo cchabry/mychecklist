@@ -15,4 +15,4 @@ export { useRetryQueue } from './useRetryQueue';
 export { useAutoRetry } from './useAutoRetry';
 
 // Exporter les types et les énumérations
-export * from '../types/unified';
+export * from '../types/errorTypes';

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { notionErrorService } from './errorService';
-import { NotionError, NotionErrorOptions } from '../types/unified';
+import { NotionError, NotionErrorOptions, NotionErrorSeverity } from '../types/errorTypes';
 import { toast } from 'sonner';
 
 /**

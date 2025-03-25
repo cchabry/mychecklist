@@ -1,28 +1,14 @@
 
 /**
- * Point d'entrée principal pour le système operationMode
- * Exporte le service et les hooks associés
+ * Point d'entrée pour le système de mode opérationnel (demo vs real)
  */
 
-// Exporter le service
+// Exporter le service principal
 export { operationMode } from './operationModeService';
 
-// Exporter le hook principal
-export { useOperationMode } from './hooks/useOperationMode';
+// Exporter les constantes et types
+export * from './constants';
+export * from './types';
 
-// Exporter les types
-export type { 
-  OperationModeSettings, 
-  SwitchReason,
-  IOperationModeService,
-  OperationModeHook 
-} from './types';
-
-// Exporter l'énumération OperationMode directement pour simplifier l'usage
-export { OperationMode } from './types';
-
-// Exporter les utilitaires
-export { operationModeUtils } from './utils';
-
-// Exporter les constantes pour les personnes qui en ont besoin
-export { DEFAULT_SETTINGS } from './constants';
+// Hook pour utiliser le mode opérationnel
+export { useOperationMode } from './useOperationMode';

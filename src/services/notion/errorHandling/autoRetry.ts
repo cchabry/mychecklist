@@ -1,111 +1,170 @@
 
-/**
- * Service de réessai automatique pour les opérations Notion
- */
-import { notionRetryQueue } from './retryQueue';
+import { RetryOperationOptions } from '../types/errorTypes';
 import { notionErrorService } from './errorService';
-import { NotionError, NotionErrorType, RetryOperationOptions } from '../types/unified';
 
-class AutoRetryService {
+/**
+ * Configuration de base pour l'auto-retry
+ */
+interface AutoRetryConfig {
+  defaultMaxRetries: number;
+  defaultRetryDelay: number;
+  exponentialBackoff: boolean;
+  jitter: boolean;
+  maxRetryDelay: number;
+}
+
+/**
+ * Service de réessai automatique pour les opérations
+ */
+export class AutoRetryHandler {
+  private static instance: AutoRetryHandler;
+  
+  private config: AutoRetryConfig = {
+    defaultMaxRetries: 3,
+    defaultRetryDelay: 1000, // 1 seconde
+    exponentialBackoff: true,
+    jitter: true,
+    maxRetryDelay: 30000 // 30 secondes
+  };
+  
+  private constructor() {}
+  
   /**
-   * Vérifie si une erreur peut être réessayée automatiquement
+   * Obtenir l'instance unique du service
    */
-  public canAutoRetry(error: NotionError): boolean {
-    // Les erreurs réseau peuvent généralement être réessayées
-    if (error.type === NotionErrorType.NETWORK) {
-      return true;
+  public static getInstance(): AutoRetryHandler {
+    if (!AutoRetryHandler.instance) {
+      AutoRetryHandler.instance = new AutoRetryHandler();
     }
-    
-    // Les erreurs de temps d'attente peuvent être réessayées
-    if (error.type === NotionErrorType.TIMEOUT) {
-      return true;
-    }
-    
-    // Les erreurs de limite de débit peuvent être réessayées après un délai
-    if (error.type === NotionErrorType.RATE_LIMIT) {
-      return true;
-    }
-    
-    // Les erreurs serveur peuvent souvent être réessayées
-    if (error.type === NotionErrorType.SERVER) {
-      return true;
-    }
-    
-    // Par défaut, on considère que l'erreur ne peut pas être réessayée
-    return false;
+    return AutoRetryHandler.instance;
   }
-
+  
   /**
-   * Exécute une opération avec gestion des erreurs et réessais automatiques
+   * Configurer l'auto-retry
+   */
+  public configure(config: Partial<AutoRetryConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+  
+  /**
+   * Exécuter une opération avec réessai automatique
    */
   public async execute<T>(
     operation: () => Promise<T>,
     context: string | Record<string, any> = {},
     options: RetryOperationOptions = {}
   ): Promise<T> {
-    try {
-      // Tentative d'exécution directe
-      return await operation();
-    } catch (error) {
-      // Créer une erreur standardisée
-      const contextStr = typeof context === 'string' ? context : JSON.stringify(context);
-      const notionError = notionErrorService.reportError(error, contextStr);
-      
-      // Vérifier si on peut réessayer
-      if (this.canAutoRetry(notionError) && !options.skipRetryIf?.(error as Error)) {
-        console.log(`Ajout de l'opération à la file d'attente pour réessai automatique. Contexte: ${contextStr}`);
+    const {
+      maxRetries = this.config.defaultMaxRetries,
+      retryDelay = this.config.defaultRetryDelay,
+      onSuccess,
+      onFailure,
+      skipRetryIf
+    } = options;
+    
+    // Convertir le contexte en objet si c'est une chaîne
+    const contextObj = typeof context === 'string' 
+      ? { operation: context } 
+      : context;
+    
+    let attempt = 0;
+    let lastError: Error | null = null;
+    
+    while (attempt <= maxRetries) {
+      try {
+        // Exécuter l'opération
+        const result = await operation();
         
-        // Calculer la priorité en fonction du type d'erreur
-        let priority = options.priority ?? 0;
-        
-        if (notionError.type === NotionErrorType.RATE_LIMIT) {
-          priority -= 10; // Priorité basse pour les limites de débit
-        } else if (notionError.type === NotionErrorType.NETWORK) {
-          priority += 10; // Priorité haute pour les erreurs réseau
+        // Appeler le callback de succès
+        if (onSuccess) {
+          onSuccess(result);
         }
         
-        // Retourner une promesse qui sera résolue/rejetée lorsque l'opération sera réessayée
-        return new Promise<T>((resolve, reject) => {
-          notionRetryQueue.enqueue(
-            contextStr,
-            async () => {
-              try {
-                const result = await operation();
-                
-                if (options.onSuccess) {
-                  options.onSuccess(result);
-                }
-                
-                resolve(result);
-                return result;
-              } catch (retryError) {
-                if (options.onFailure) {
-                  options.onFailure(retryError as Error);
-                }
-                
-                reject(retryError);
-                throw retryError;
-              }
-            },
-            {
-              description: `Réessai automatique: ${contextStr}`,
-              maxRetries: options.maxRetries,
-              priority,
-              tags: [...(options.tags || []), 'auto-retry', `error-type:${notionError.type}`]
-            }
-          );
+        return result;
+      } catch (error) {
+        // Incrémenter le nombre de tentatives
+        attempt++;
+        
+        // Convertir l'erreur en objet Error
+        const typedError = error instanceof Error ? error : new Error(String(error));
+        lastError = typedError;
+        
+        // Signaler l'erreur au service
+        notionErrorService.reportError(typedError, typeof context === 'string' ? context : 'Auto-retry operation', {
+          context: contextObj,
+          retryable: attempt < maxRetries
         });
+        
+        // Vérifier si on doit sauter le réessai
+        if (skipRetryIf && skipRetryIf(typedError)) {
+          console.log(`[AutoRetry] Ignorer le réessai pour ${JSON.stringify(contextObj)}, condition de saut satisfaite`);
+          break;
+        }
+        
+        // Vérifier si on a atteint le nombre maximum de tentatives
+        if (attempt >= maxRetries) {
+          console.error(`[AutoRetry] Abandon après ${attempt} tentatives pour ${JSON.stringify(contextObj)}`);
+          break;
+        }
+        
+        // Calculer le délai avant la prochaine tentative
+        const nextDelay = this.calculateRetryDelay(attempt, retryDelay);
+        
+        console.log(`[AutoRetry] Tentative ${attempt}/${maxRetries} échouée pour ${JSON.stringify(contextObj)}, nouvelle tentative dans ${nextDelay}ms`);
+        
+        // Attendre avant la prochaine tentative
+        await new Promise(resolve => setTimeout(resolve, nextDelay));
       }
-      
-      // Si on ne peut pas réessayer, propager l'erreur
-      if (options.onFailure) {
-        options.onFailure(error as Error);
-      }
-      
-      throw error;
     }
+    
+    // Si on arrive ici, c'est que toutes les tentatives ont échoué
+    if (lastError && onFailure) {
+      onFailure(lastError);
+    }
+    
+    throw lastError || new Error(`Échec de l'opération après ${maxRetries} tentatives`);
+  }
+  
+  /**
+   * Calculer le délai avant la prochaine tentative
+   */
+  private calculateRetryDelay(attempt: number, baseDelay: number): number {
+    let delay = baseDelay;
+    
+    // Appliquer un backoff exponentiel si configuré
+    if (this.config.exponentialBackoff) {
+      delay = baseDelay * Math.pow(2, attempt - 1);
+    }
+    
+    // Limiter le délai maximum
+    delay = Math.min(delay, this.config.maxRetryDelay);
+    
+    // Ajouter du jitter si configuré (variation aléatoire de ±25%)
+    if (this.config.jitter) {
+      const jitterRange = delay * 0.25;
+      delay = delay - jitterRange + Math.random() * jitterRange * 2;
+    }
+    
+    return Math.floor(delay);
+  }
+  
+  /**
+   * Créer une fonction qui utilise auto-retry
+   */
+  public wrapFunction<T, Args extends any[]>(
+    fn: (...args: Args) => Promise<T>,
+    contextGenerator: (args: Args) => string | Record<string, any>,
+    options: RetryOperationOptions = {}
+  ): ((...args: Args) => Promise<T>) {
+    return async (...args: Args): Promise<T> => {
+      return this.execute(
+        () => fn(...args),
+        contextGenerator(args),
+        options
+      );
+    };
   }
 }
 
-// Exporter une instance unique du service
-export const autoRetryHandler = new AutoRetryService();
+// Exporter une instance singleton
+export const autoRetryHandler = AutoRetryHandler.getInstance();

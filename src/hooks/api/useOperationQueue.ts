@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useRetryQueue } from '@/services/notion/errorHandling';
 import { toast } from 'sonner';
 
@@ -92,5 +92,3 @@ export function useOperationQueue() {
     removeOperation
   };
 }
-
-export default useOperationQueue;
