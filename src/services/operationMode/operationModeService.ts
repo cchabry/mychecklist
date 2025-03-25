@@ -1,3 +1,4 @@
+
 import { 
   OperationMode, 
   OperationModeSettings, 
@@ -63,14 +64,10 @@ class OperationModeService implements IOperationModeService {
 
   public markOperationAsCritical(operationContext: string): void {
     this.criticalOperations.add(operationContext);
-    console.log('🏆 [DEBUG] Opération marquée comme critique:', operationContext);
-    console.log('🏆 [DEBUG] Liste des opérations critiques:', Array.from(this.criticalOperations));
   }
 
   public unmarkOperationAsCritical(operationContext: string): void {
-    const wasRemoved = this.criticalOperations.delete(operationContext);
-    console.log('🏆 [DEBUG] Suppression d\'opération critique:', operationContext, wasRemoved ? '(réussie)' : '(échouée/inexistante)');
-    console.log('🏆 [DEBUG] Liste des opérations critiques restantes:', Array.from(this.criticalOperations));
+    this.criticalOperations.delete(operationContext);
   }
 
   public isOperationCritical(operationContext: string): boolean {
@@ -117,8 +114,6 @@ class OperationModeService implements IOperationModeService {
       
       this.notifySubscribers();
       this.persistState();
-      
-      console.log('🔍 [DEBUG] Mode démo activé - Raison:', reason);
     }
   }
   
@@ -141,8 +136,6 @@ class OperationModeService implements IOperationModeService {
       
       this.notifySubscribers();
       this.persistState();
-      
-      console.log('🔍 [DEBUG] Mode réel activé');
     }
   }
   
@@ -167,17 +160,10 @@ class OperationModeService implements IOperationModeService {
   }
   
   public handleConnectionError(error: Error, context: string = 'Opération', isNonCritical: boolean = false): void {
-    console.log(`🔍 [DEBUG] handleConnectionError appelé - Context: ${context}, isNonCritical: ${isNonCritical}`);
-    console.log(`🔍 [DEBUG] Message d'erreur:`, error.message);
-    console.log(`🔍 [DEBUG] Mode actuel:`, this.mode);
-    
     this.lastError = error;
     
     const isTemporaryError = this.isTemporaryError(error);
-    console.log(`🔍 [DEBUG] Est-ce une erreur temporaire?`, isTemporaryError);
-    
     const isCriticalOperation = this.isOperationCritical(context);
-    console.log(`🔍 [DEBUG] Est-ce une opération critique?`, isCriticalOperation);
     
     if ((!isTemporaryError && !isNonCritical) || isCriticalOperation) {
       this.consecutiveFailures++;
@@ -194,11 +180,8 @@ class OperationModeService implements IOperationModeService {
       !isTemporaryError && 
       !isNonCritical;
     
-    console.log(`🔍 [DEBUG] Faut-il basculer en mode démo?`, shouldSwitch);
-    
     if (shouldSwitch) {
       const reason = `Basculement automatique après ${this.consecutiveFailures} échecs`;
-      console.log(`🔍 [DEBUG] Basculement en mode démo avec raison:`, reason);
       this.enableDemoMode(reason);
       
       if (this.settings.showNotifications) {
@@ -209,7 +192,6 @@ class OperationModeService implements IOperationModeService {
     }
     
     this.notifySubscribers();
-    console.log(`🔍 [DEBUG] Fin de handleConnectionError - Mode actuel:`, this.mode);
   }
   
   private isTemporaryError(error: Error): boolean {
@@ -244,34 +226,23 @@ class OperationModeService implements IOperationModeService {
   }
   
   public temporarilyForceReal(): void {
-    console.log('🔍 [DEBUG] temporarilyForceReal appelé - Passage temporaire en mode réel');
-    
     if (this.isDemoMode && !this.temporarilyForcedReal) {
       this.previousMode = this.mode;
-      console.log('🔍 [DEBUG] Mode précédent sauvegardé:', this.previousMode);
       this.temporarilyForcedReal = true;
       this.mode = OperationMode.REAL;
       
-      console.log('🔍 [DEBUG] Mode démo temporairement désactivé');
       this.notifySubscribers();
-    } else {
-      console.log('🔍 [DEBUG] Déjà en mode réel ou forçage déjà actif, aucun changement');
     }
   }
   
   public restorePreviousMode(): void {
-    console.log('🔍 [DEBUG] restorePreviousMode appelé');
-    
     if (this.temporarilyForcedReal && this.previousMode) {
-      console.log('🔍 [DEBUG] Restauration du mode précédent:', this.previousMode);
       this.mode = this.previousMode;
       this.previousMode = null;
       this.temporarilyForcedReal = false;
       
       this.notifySubscribers();
       this.persistState();
-    } else {
-      console.log('🔍 [DEBUG] Aucun mode précédent à restaurer ou forçage non actif');
     }
   }
   

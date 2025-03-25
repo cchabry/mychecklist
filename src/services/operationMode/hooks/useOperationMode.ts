@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { operationMode } from '../operationModeService';
-import { OperationMode, OperationModeSettings, OperationModeHook } from '../types';
+import { OperationMode, OperationModeSettings, OperationModeHook, SwitchReason } from '../types';
 
 /**
  * Hook React pour accéder au système de gestion des modes opérationnels
@@ -9,7 +9,7 @@ import { OperationMode, OperationModeSettings, OperationModeHook } from '../type
  */
 export function useOperationMode(): OperationModeHook {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
-  const [switchReason, setSwitchReason] = useState<string | null>(operationMode.getSwitchReason());
+  const [switchReason, setSwitchReason] = useState<SwitchReason | null>(operationMode.getSwitchReason());
   const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
   const [lastError, setLastError] = useState<Error | null>(operationMode.getLastError());
   const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
@@ -36,13 +36,14 @@ export function useOperationMode(): OperationModeHook {
     settings,
     
     // Propriétés calculées
-    isDemoMode: operationMode.isDemoMode,
-    isRealMode: operationMode.isRealMode,
+    isDemoMode: mode === OperationMode.DEMO,
+    isRealMode: mode === OperationMode.REAL,
     
     // Actions
     enableDemoMode: operationMode.enableDemoMode.bind(operationMode),
     enableRealMode: operationMode.enableRealMode.bind(operationMode),
     toggle: operationMode.toggle.bind(operationMode),
+    toggleMode: operationMode.toggle.bind(operationMode),
     handleConnectionError: operationMode.handleConnectionError.bind(operationMode),
     handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode),
     updateSettings: operationMode.updateSettings.bind(operationMode),

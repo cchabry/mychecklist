@@ -3,93 +3,73 @@ import { OperationMode, OperationModeSettings, SwitchReason } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 
 // Clés de stockage local
-const STORAGE_KEYS = {
-  MODE: 'operation_mode',
-  REASON: 'operation_mode_reason',
-  SETTINGS: 'operation_mode_settings'
-};
+const MODE_KEY = 'operation_mode';
+const REASON_KEY = 'operation_mode_reason';
+const SETTINGS_KEY = 'operation_mode_settings';
 
 /**
- * Service de stockage pour le système operationMode
- * Gère la persistance des paramètres et du mode opérationnel
+ * Utilitaires pour le stockage persistant du mode opérationnel
  */
 export const operationModeStorage = {
   /**
-   * Sauvegarde le mode opérationnel actuel
+   * Sauvegarde le mode opérationnel et la raison
    */
-  saveMode(mode: OperationMode, reason: SwitchReason): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.MODE, mode);
-      
-      if (reason) {
-        localStorage.setItem(STORAGE_KEYS.REASON, reason);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.REASON);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde du mode opérationnel:', error);
+  saveMode(mode: OperationMode, reason: SwitchReason | null): void {
+    localStorage.setItem(MODE_KEY, mode);
+    
+    if (reason) {
+      localStorage.setItem(REASON_KEY, reason);
+    } else {
+      localStorage.removeItem(REASON_KEY);
     }
   },
-
+  
   /**
-   * Charge le mode opérationnel depuis le stockage local
+   * Charge le mode opérationnel et la raison
    */
-  loadMode(): { mode: OperationMode, reason: SwitchReason } {
-    try {
-      const mode = localStorage.getItem(STORAGE_KEYS.MODE) as OperationMode;
-      const reason = localStorage.getItem(STORAGE_KEYS.REASON);
-      
-      return {
-        mode: mode || OperationMode.REAL,
-        reason: reason
-      };
-    } catch (error) {
-      console.error('Erreur lors du chargement du mode opérationnel:', error);
-      return { mode: OperationMode.REAL, reason: null };
-    }
+  loadMode(): { mode: OperationMode, reason: SwitchReason | null } {
+    const savedMode = localStorage.getItem(MODE_KEY) as OperationMode | null;
+    const savedReason = localStorage.getItem(REASON_KEY);
+    
+    return {
+      mode: savedMode || OperationMode.REAL,
+      reason: savedReason
+    };
   },
-
+  
   /**
-   * Sauvegarde les paramètres du mode opérationnel
+   * Sauvegarde les paramètres
    */
   saveSettings(settings: OperationModeSettings): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde des paramètres:', error);
-    }
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   },
-
+  
   /**
-   * Charge les paramètres du mode opérationnel
+   * Charge les paramètres
    */
   loadSettings(): OperationModeSettings {
     try {
-      const storedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      const savedSettings = localStorage.getItem(SETTINGS_KEY);
       
-      if (storedSettings) {
-        const parsedSettings = JSON.parse(storedSettings);
-        // Fusionner avec les paramètres par défaut pour s'assurer de la cohérence
-        return { ...DEFAULT_SETTINGS, ...parsedSettings };
+      if (savedSettings) {
+        return {
+          ...DEFAULT_SETTINGS,
+          ...JSON.parse(savedSettings)
+        };
       }
-      
-      return { ...DEFAULT_SETTINGS };
     } catch (error) {
       console.error('Erreur lors du chargement des paramètres:', error);
-      return { ...DEFAULT_SETTINGS };
     }
+    
+    return { ...DEFAULT_SETTINGS };
   },
-
+  
   /**
-   * Réinitialise tous les paramètres et modes
+   * Efface toutes les données de mode opérationnel
    */
-  reset(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEYS.MODE);
-      localStorage.removeItem(STORAGE_KEYS.REASON);
-      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
-    } catch (error) {
-      console.error('Erreur lors de la réinitialisation du stockage:', error);
-    }
+  clear(): void {
+    localStorage.removeItem(MODE_KEY);
+    localStorage.removeItem(REASON_KEY);
+    localStorage.removeItem(SETTINGS_KEY);
   }
 };
