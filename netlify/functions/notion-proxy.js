@@ -4,273 +4,153 @@ const NOTION_API_VERSION = '2022-06-28';
 const NOTION_API_BASE = 'https://api.notion.com/v1';
 
 exports.handler = async (event, context) => {
-  try {
-    // Log request details for debugging
-    console.log('Netlify function: Notion proxy received request:', event.httpMethod, event.path);
-    console.log('Request headers:', JSON.stringify(event.headers, null, 2));
-    
-    // Set CORS headers for all responses
-    const headers = {
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-      'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version'
-    };
-    
-    // Handle OPTIONS request (preflight)
-    if (event.httpMethod === 'OPTIONS') {
-      console.log('Handling OPTIONS preflight request');
-      return {
-        statusCode: 200,
-        headers,
-        body: ''
-      };
-    }
-    
-    // Handle GET request for testing the proxy
-    if (event.httpMethod === 'GET') {
-      console.log('Handling GET request to notion-proxy');
-      return {
-        statusCode: 200,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'ok',
-          message: 'Notion proxy is working on Netlify',
-          timestamp: new Date().toISOString(),
-          usage: 'Send a POST request with endpoint, method, and token parameters'
-        })
-      };
-    }
+  // En-têtes CORS pour toutes les réponses
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Notion-Version',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Cache-Control': 'no-cache'
+  };
 
-    // Handle POST request for making calls to Notion
-    if (event.httpMethod === 'POST') {
-      console.log('Handling POST request to notion-proxy');
-      console.log('Request body type:', typeof event.body);
-      console.log('Request body has content:', event.body ? 'Yes' : 'No');
-      console.log('Raw body content:', event.body);
-      
-      if (!event.body) {
-        console.error('Request body is missing');
-        return {
-          statusCode: 400,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            error: 'Missing request body',
-            details: 'The request body is required for POST requests'
-          })
-        };
-      }
-      
-      // Parse body
-      let parsedBody;
-      try {
-        parsedBody = JSON.parse(event.body);
-        console.log('Parsed body:', JSON.stringify(parsedBody, null, 2));
-      } catch (parseError) {
-        console.error('Failed to parse request body:', parseError);
-        return {
-          statusCode: 400,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            error: 'Invalid JSON in request body',
-            details: parseError.message,
-            receivedBody: event.body
-          })
-        };
-      }
-      
-      const { endpoint, method, body, token } = parsedBody;
-      console.log('Request parameters:', { 
-        endpoint, 
-        method, 
-        bodyPresent: !!body, 
-        tokenPresent: !!token,
-        tokenLength: token ? token.length : 0,
-        tokenType: token ? (token.startsWith('secret_') ? 'integration' : 
-                           (token.startsWith('ntn_') ? 'oauth' : 'unknown')) : 'none',
-        tokenFirstChars: token ? token.substring(0, 8) + '...' : 'none'
-      });
-
-      // Validate parameters
-      if (!endpoint) {
-        console.error('Missing endpoint parameter');
-        return {
-          statusCode: 400,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            error: 'Missing required parameter: endpoint',
-            receivedParameters: Object.keys(parsedBody).join(', ')
-          })
-        };
-      }
-
-      if (!token) {
-        console.error('Missing token parameter');
-        return {
-          statusCode: 400,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            error: 'Missing required parameter: token',
-            receivedParameters: Object.keys(parsedBody).join(', ')
-          })
-        };
-      }
-
-      // Test token détection
-      if (token === 'test_token' || token === 'test_token_for_proxy_test') {
-        console.log('Test token detected, this is just a connectivity test');
-        return {
-          statusCode: 200,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'ok',
-            message: 'Test proxy connectivity successful',
-            note: 'This was just a connectivity test with a test token',
-            actualApi: false
-          })
-        };
-      }
-
-      // Build full Notion API URL
-      const targetUrl = `${NOTION_API_BASE}${endpoint}`;
-      console.log(`Target URL: ${targetUrl}`);
-
-      // Préparer le token d'authentification au format Bearer
-      let authToken = token;
-      if (!token.startsWith('Bearer ')) {
-        // Si c'est juste le token brut, ajouter le préfixe Bearer (pour les deux types)
-        if (token.startsWith('secret_') || token.startsWith('ntn_')) {
-          authToken = `Bearer ${token}`;
-          console.log('Formatted token with Bearer prefix for Notion API');
-          console.log(`Token type: ${token.startsWith('secret_') ? 'Integration key' : 'OAuth token'}`);
-        }
-      }
-
-      // Prepare headers for Notion API
-      const notionHeaders = {
-        'Authorization': authToken,
-        'Notion-Version': NOTION_API_VERSION,
-        'Content-Type': 'application/json'
-      };
-      
-      console.log(`Making ${method || 'GET'} request to Notion API with headers:`, {
-        'Notion-Version': notionHeaders['Notion-Version'],
-        'Content-Type': notionHeaders['Content-Type'],
-        'Authorization': authToken.substring(0, 15) + '...'
-      });
-      
-      // Make request to Notion API
-      try {
-        const fetch = require('node-fetch');
-        const notionResponse = await fetch(targetUrl, {
-          method: method || 'GET',
-          headers: notionHeaders,
-          body: body ? JSON.stringify(body) : undefined
-        });
-        
-        console.log('Notion API response status:', notionResponse.status);
-        
-        // Get response body
-        let responseData;
-        let responseText;
-        
-        try {
-          responseText = await notionResponse.text();
-          console.log('Response text preview:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
-          
-          // Try to parse as JSON
-          try {
-            responseData = JSON.parse(responseText);
-            console.log('Response parsed as JSON:', typeof responseData);
-            
-            // Si l'erreur est une erreur d'authentification (401), ajouter des détails
-            if (notionResponse.status === 401) {
-              console.log('Authentication error from Notion API');
-              
-              // Ajouter des détails spécifiques selon le type de token
-              if (token && token.startsWith('ntn_')) {
-                responseData.error_details = {
-                  type: 'oauth_token',
-                  message: "Ce token OAuth (ntn_) peut ne pas fonctionner avec certaines API d'intégration",
-                  help: "Certaines API d'intégration nécessitent une clé d'intégration (secret_) au lieu d'un token OAuth"
-                };
-              } else if (token && token.startsWith('secret_')) {
-                responseData.error_details = {
-                  type: 'integration_key',
-                  message: "Veuillez vérifier que votre clé d'intégration est valide et n'a pas expiré",
-                  help: "Assurez-vous que votre intégration a accès à la base de données et aux pages"
-                };
-              } else {
-                responseData.error_details = {
-                  type: 'authentication_error',
-                  message: "Veuillez vérifier que votre clé d'API est valide et n'a pas expiré",
-                  help: "Les clés doivent être utilisées avec le préfixe 'Bearer'"
-                };
-              }
-            }
-          } catch (jsonError) {
-            console.warn('Could not parse response as JSON, returning as text');
-            return {
-              statusCode: notionResponse.status,
-              headers: { ...headers, 'Content-Type': 'text/plain' },
-              body: responseText
-            };
-          }
-        } catch (textError) {
-          console.error('Failed to get response text:', textError);
-          return {
-            statusCode: 500,
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              error: 'Failed to read response from Notion API',
-              message: textError.message
-            })
-          };
-        }
-
-        // Return Notion API response
-        return {
-          statusCode: notionResponse.status,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify(responseData)
-        };
-      } catch (fetchError) {
-        console.error('Fetch error when calling Notion API:', fetchError);
-        return {
-          statusCode: 500,
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            error: 'Failed to fetch from Notion API',
-            message: fetchError.message || 'Unknown fetch error'
-          })
-        };
-      }
-    }
-
-    // Method not supported
-    console.error(`Unsupported method: ${event.httpMethod}`);
+  // Traitement des requêtes preflight OPTIONS
+  if (event.httpMethod === 'OPTIONS') {
     return {
-      statusCode: 405,
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+
+  // Point de terminaison de test pour vérifier que la fonction est active
+  if (event.httpMethod === 'GET' && event.path === '/.netlify/functions/notion-proxy' && !event.queryStringParameters?.url) {
+    return {
+      statusCode: 200,
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: 'Method not allowed',
-        message: 'This endpoint only supports GET and POST methods',
-        receivedMethod: event.httpMethod
+        status: 'ok',
+        message: 'Notion proxy fonction serverless est opérationnelle',
+        timestamp: new Date().toISOString()
       })
     };
+  }
+
+  try {
+    // Valider le contenu de la requête
+    let requestData;
+    
+    // Support pour les requêtes GET avec paramètres d'URL ou POST avec body
+    if (event.httpMethod === 'GET' && event.queryStringParameters?.url) {
+      // Requête GET avec URL en paramètre
+      requestData = {
+        endpoint: '',  // Sera ignoré car nous avons une URL directe
+        method: 'GET',
+        token: event.headers.authorization || event.queryStringParameters.token
+      };
+      
+      // L'URL complète est déjà fournie dans les paramètres
+      const targetUrl = event.queryStringParameters.url;
+      return await proxyNotionRequest(targetUrl, requestData, headers);
+    } 
+    else if (event.body) {
+      // Requête POST standard
+      try {
+        requestData = JSON.parse(event.body);
+      } catch (e) {
+        return {
+          statusCode: 400,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Format JSON invalide', details: e.message })
+        };
+      }
+
+      // Valider les champs requis
+      if (!requestData.endpoint && !requestData.url) {
+        return {
+          statusCode: 400,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'endpoint ou url requis' })
+        };
+      }
+
+      if (!requestData.token) {
+        return {
+          statusCode: 400,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'token requis' })
+        };
+      }
+
+      // Construire l'URL complète pour Notion
+      const targetUrl = requestData.url || `${NOTION_API_BASE}${requestData.endpoint.startsWith('/') ? requestData.endpoint : '/' + requestData.endpoint}`;
+      return await proxyNotionRequest(targetUrl, requestData, headers);
+    } else {
+      // Ni GET avec URL ni POST avec body
+      return {
+        statusCode: 400,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Requête invalide', details: 'La requête doit être soit GET avec un paramètre URL, soit POST avec un body' })
+      };
+    }
   } catch (error) {
-    console.error('Notion proxy error:', error);
+    console.error('Erreur proxy Notion:', error);
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: 'Internal server error',
-        message: error.message || 'Unknown error',
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+        error: 'Erreur interne du proxy',
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })
     };
+  }
+};
+
+/**
+ * Effectue une requête à l'API Notion et renvoie la réponse
+ */
+async function proxyNotionRequest(url, requestData, headers) {
+  const fetch = require('node-fetch');
+  
+  // Préparer les en-têtes pour Notion
+  const notionHeaders = {
+    'Content-Type': 'application/json',
+    'Notion-Version': NOTION_API_VERSION
+  };
+
+  // Formatter le token d'autorisation
+  let authToken = requestData.token;
+  if (authToken && !authToken.startsWith('Bearer ')) {
+    authToken = `Bearer ${authToken}`;
+  }
+  
+  if (authToken) {
+    notionHeaders['Authorization'] = authToken;
+  }
+
+  // Options de la requête
+  const fetchOptions = {
+    method: requestData.method || 'GET',
+    headers: notionHeaders
+  };
+
+  // Ajouter le corps de la requête pour les méthodes non-GET
+  if (requestData.body && fetchOptions.method !== 'GET' && fetchOptions.method !== 'HEAD') {
+    fetchOptions.body = JSON.stringify(requestData.body);
+  }
+
+  try {
+    // Effectuer la requête à l'API Notion
+    const response = await fetch(url, fetchOptions);
+    const responseData = await response.json();
+
+    // Retourner la réponse avec le même code de statut
+    return {
+      statusCode: response.status,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(responseData)
+    };
+  } catch (error) {
+    console.error(`Erreur requête Notion vers ${url}:`, error);
+    throw error;
   }
 }
