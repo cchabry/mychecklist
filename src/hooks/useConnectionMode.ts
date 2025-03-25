@@ -13,10 +13,12 @@ export function useConnectionMode() {
   const [connectionHealth, setConnectionHealth] = useState<ConnectionHealth>(
     connectionModeService.getConnectionHealth()
   );
+  const [switchReason, setSwitchReason] = useState<string | null>(null);
   
   // Pour compatibilité avec ancien système
   const mode = currentMode === ConnectionMode.DEMO ? OperationMode.DEMO : OperationMode.REAL;
-  const [switchReason, setSwitchReason] = useState<string | null>(null);
+  const isDemoMode = currentMode === ConnectionMode.DEMO;
+  const isRealMode = currentMode === ConnectionMode.REAL;
   const failures = connectionHealth.consecutiveErrors;
   const lastError = connectionHealth.lastError;
   
@@ -81,11 +83,39 @@ export function useConnectionMode() {
   const toggle = toggleMode;
   const reset = resetConnectionHealth;
   
+  // Simulation des opérations critiques (non implémentées dans connectionModeService)
+  const criticalOperations = new Set<string>();
+  
+  const markOperationAsCritical = useCallback((operationContext: string) => {
+    criticalOperations.add(operationContext);
+  }, []);
+  
+  const unmarkOperationAsCritical = useCallback((operationContext: string) => {
+    criticalOperations.delete(operationContext);
+  }, []);
+  
+  const isOperationCritical = useCallback((operationContext: string) => {
+    return criticalOperations.has(operationContext);
+  }, []);
+  
+  // Simulation des paramètres (non implémentés dans connectionModeService)
+  const [settings, setSettings] = useState({
+    autoSwitchOnFailure: true,
+    maxConsecutiveFailures: 3,
+    persistentModeStorage: true,
+    showNotifications: true
+  });
+  
+  const updateSettings = useCallback((newSettings: any) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  }, []);
+  
+  // Retourner une API compatible avec useOperationMode
   return {
     // États
     currentMode,
-    isRealMode: connectionModeService.isRealMode,
-    isDemoMode: connectionModeService.isDemoMode,
+    isRealMode,
+    isDemoMode,
     connectionHealth,
     
     // Compatibilité avec ancien système
@@ -93,6 +123,7 @@ export function useConnectionMode() {
     switchReason,
     failures,
     lastError,
+    settings,
     
     // Actions - nouveau système
     toggleMode,
@@ -106,6 +137,17 @@ export function useConnectionMode() {
     
     // Alias pour compatibilité
     toggle,
-    reset
+    reset,
+    
+    // Simulations d'opérations critiques
+    markOperationAsCritical,
+    unmarkOperationAsCritical,
+    isOperationCritical,
+    
+    // Simulations de paramètres
+    updateSettings,
+    
+    // Nouveaux alias pour compatibilité complète
+    restorePreviousMode: restoreMode
   };
 }
