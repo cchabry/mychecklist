@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { connectionModeService } from '@/services/connection/connectionModeService';
 import { ConnectionMode, ConnectionHealth, ModeChangeEvent } from '@/services/connection/types';
-import { OperationMode } from '@/services/operationMode/types';
+import { OperationMode, OperationModeSettings } from '@/services/operationMode/types';
 import { DEFAULT_SETTINGS } from '@/services/operationMode/constants';
 
 /**
@@ -15,6 +15,7 @@ export function useConnectionMode() {
     connectionModeService.getConnectionHealth()
   );
   const [switchReason, setSwitchReason] = useState<string | null>(null);
+  const [settings, setSettings] = useState<OperationModeSettings>(DEFAULT_SETTINGS);
   
   // Pour compatibilité avec ancien système
   const mode = currentMode === ConnectionMode.DEMO ? OperationMode.DEMO : OperationMode.REAL;
@@ -22,9 +23,6 @@ export function useConnectionMode() {
   const isRealMode = currentMode === ConnectionMode.REAL;
   const failures = connectionHealth.consecutiveErrors;
   const lastError = connectionHealth.lastError;
-  
-  // Initialisation des settings pour compatibilité
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   
   // Mettre à jour le mode local lorsqu'il change dans le service
   useEffect(() => {
@@ -104,7 +102,7 @@ export function useConnectionMode() {
   }, []);
   
   // Simulation des paramètres (non implémentés dans connectionModeService)
-  const updateSettings = useCallback((newSettings: any) => {
+  const updateSettings = useCallback((newSettings: Partial<OperationModeSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, []);
   
@@ -115,13 +113,13 @@ export function useConnectionMode() {
     isRealMode,
     isDemoMode,
     connectionHealth,
+    switchReason,
+    settings,
     
     // Compatibilité avec ancien système
     mode,
-    switchReason,
     failures,
     lastError,
-    settings,
     
     // Actions - nouveau système
     toggleMode,

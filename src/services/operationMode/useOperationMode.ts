@@ -1,36 +1,47 @@
 
-/**
- * Hook adapté pour utiliser l'adaptateur operationMode
- * Fournit une interface compatible avec l'ancien système
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import { operationMode } from './operationModeAdapter';
-import { OperationMode, OperationModeSettings, SwitchReason } from './types';
+import { OperationMode, OperationModeSettings, SwitchReason, OperationModeHook } from './types';
 
-export function useOperationMode() {
+/**
+ * Hook React pour accéder au système de gestion des modes opérationnels
+ * Fournit une interface réactive pour interagir avec operationMode
+ */
+export function useOperationMode(): OperationModeHook {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
   const [switchReason, setSwitchReason] = useState<SwitchReason | null>(operationMode.getSwitchReason());
   const [failures, setFailures] = useState<number>(operationMode.getConsecutiveFailures());
   const [lastError, setLastError] = useState<Error | null>(operationMode.getLastError());
   const [settings, setSettings] = useState<OperationModeSettings>(operationMode.getSettings());
 
+  // Valeurs calculées
+  const isDemoMode = mode === OperationMode.DEMO;
+  const isRealMode = mode === OperationMode.REAL;
+  
+  // État de la connexion pour compatibilité
+  const connectionHealth = {
+    lastError,
+    lastSuccess: null as Date | null,
+    consecutiveErrors: failures,
+    healthyConnection: failures < 3
+  };
+
+  // S'abonner aux changements du mode opérationnel
   useEffect(() => {
     const unsubscribe = operationMode.subscribe((newMode, reason) => {
       setMode(newMode);
-      setIsDemoMode(newMode === OperationMode.DEMO);
       setSwitchReason(reason);
       setFailures(operationMode.getConsecutiveFailures());
       setLastError(operationMode.getLastError());
       setSettings(operationMode.getSettings());
     });
-    
+
     return unsubscribe;
   }, []);
-  
+
+  // Méthodes d'action
   const enableDemoMode = useCallback((reason?: string) => {
-    operationMode.enableDemoMode(reason || 'Activation manuelle du mode démonstration');
+    operationMode.enableDemoMode(reason);
   }, []);
   
   const enableRealMode = useCallback(() => {
@@ -49,21 +60,12 @@ export function useOperationMode() {
     operationMode.handleSuccessfulOperation();
   }, []);
   
-  const updateSettings = useCallback((newSettings: Partial<OperationModeSettings>) => {
-    operationMode.updateSettings(newSettings);
-    setSettings({ ...settings, ...newSettings });
-  }, [settings]);
+  const updateSettings = useCallback((partialSettings: Partial<OperationModeSettings>) => {
+    operationMode.updateSettings(partialSettings);
+  }, []);
   
   const reset = useCallback(() => {
     operationMode.reset();
-  }, []);
-  
-  const temporarilyForceReal = useCallback(() => {
-    operationMode.temporarilyForceReal();
-  }, []);
-  
-  const restorePreviousMode = useCallback(() => {
-    operationMode.restorePreviousMode();
   }, []);
   
   const markOperationAsCritical = useCallback((operationContext: string) => {
@@ -78,51 +80,47 @@ export function useOperationMode() {
     return operationMode.isOperationCritical(operationContext);
   }, []);
   
-  // Pour compatibilité avec useConnectionMode
-  const connectionHealth = {
-    lastError,
-    lastSuccess: null as Date | null,
-    consecutiveErrors: failures,
-    healthyConnection: failures === 0
-  };
+  const temporarilyForceReal = useCallback(() => {
+    operationMode.temporarilyForceReal();
+  }, []);
   
-  // Aliases pour compatibilité
+  const restorePreviousMode = useCallback(() => {
+    operationMode.restorePreviousMode();
+  }, []);
+  
+  // Aliases pour la compatibilité
   const currentMode = mode;
-  const isRealMode = !isDemoMode;
   const toggleMode = toggle;
   const restoreMode = restorePreviousMode;
-  
+
   return {
-    // États de base
+    // État
     mode,
-    isDemoMode,
-    isRealMode,
     switchReason,
     failures,
     lastError,
     settings,
-    // Pour la compatibilité avec useConnectionMode
+    
+    // Propriétés calculées
+    isDemoMode,
+    isRealMode,
     currentMode,
     connectionHealth,
     
-    // Actions basiques
-    toggle,
-    toggleMode,
+    // Actions
     enableDemoMode,
     enableRealMode,
+    toggle,
+    toggleMode,
     handleConnectionError,
     handleSuccessfulOperation,
     updateSettings,
     reset,
-    
-    // Actions avancées
-    temporarilyForceReal,
-    restorePreviousMode,
-    restoreMode,
-    
-    // Gestion des opérations critiques
     markOperationAsCritical,
     unmarkOperationAsCritical,
-    isOperationCritical
+    isOperationCritical,
+    temporarilyForceReal,
+    restorePreviousMode,
+    restoreMode
   };
 }
