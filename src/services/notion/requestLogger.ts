@@ -16,7 +16,7 @@ export interface NotionRequest {
 interface RequestLogState {
   requests: NotionRequest[];
   maxRequests: number;
-  addRequest: (request: Omit<NotionRequest, 'id' | 'timestamp'>) => void;
+  addRequest: (request: NotionRequest) => void;
   updateRequest: (id: string, updates: Partial<NotionRequest>) => void;
   clearRequests: () => void;
   setMaxRequests: (count: number) => void;
@@ -28,15 +28,8 @@ export const useRequestLogStore = create<RequestLogState>()(
       requests: [],
       maxRequests: 20,
       
-      addRequest: (requestData) => set((state) => {
-        const newRequest: NotionRequest = {
-          id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          timestamp: Date.now(),
-          ...requestData
-        };
-        
-        // Garder uniquement les N requêtes les plus récentes
-        const updatedRequests = [newRequest, ...state.requests]
+      addRequest: (request) => set((state) => {
+        const updatedRequests = [request, ...state.requests]
           .slice(0, state.maxRequests);
           
         return { requests: updatedRequests };
@@ -68,6 +61,8 @@ export const notionRequestLogger = {
   logRequest: (endpoint: string, method: string) => {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     useRequestLogStore.getState().addRequest({
+      id: requestId,
+      timestamp: Date.now(),
       endpoint,
       method,
       success: false

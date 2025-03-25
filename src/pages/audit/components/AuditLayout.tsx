@@ -2,6 +2,7 @@
 import React, { ReactNode } from 'react';
 import Header from '@/components/Header';
 import NotionRequestLogger from '@/components/notion/NotionRequestLogger';
+import { useNotionRequestLogger } from '@/hooks/useNotionRequestLogger';
 
 interface AuditLayoutProps {
   children: ReactNode;
@@ -13,6 +14,9 @@ interface AuditLayoutProps {
 const AuditLayout: React.FC<AuditLayoutProps> = ({ 
   children, 
 }) => {
+  // Utiliser le hook pour activer l'interception des requêtes
+  useNotionRequestLogger();
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Header />

@@ -38,7 +38,7 @@ export const useNotionRequestLogger = () => {
         );
         
         return response;
-      } catch (error) {
+      } catch (error: any) {
         // Calculer le temps de réponse même en cas d'erreur
         const responseTime = Math.round(performance.now() - startTime);
         
