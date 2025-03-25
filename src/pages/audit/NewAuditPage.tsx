@@ -161,6 +161,20 @@ const NewAuditPage: React.FC = () => {
 
       // Créer l'audit via le service d'écriture Notion directement
       console.log(`🔍 NewAuditPage - Création d'un audit pour le projet ID: "${projectId}"`);
+      console.log(`📊 Données d'audit envoyées au service:`, {
+        name: values.name,
+        projectId: projectId
+      });
+      
+      // Vérifier la configuration Notion actuelle
+      const apiKey = localStorage.getItem('notion_api_key');
+      const auditDbId = localStorage.getItem('notion_audit_database_id');
+      console.log(`🔧 Configuration Notion actuelle:`, {
+        apiKeyPresent: !!apiKey,
+        auditDbIdPresent: !!auditDbId,
+        auditDbId: auditDbId
+      });
+      
       const newAudit = await notionWriteService.createAudit({
         name: values.name,
         projectId: projectId

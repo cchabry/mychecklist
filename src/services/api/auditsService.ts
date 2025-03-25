@@ -53,26 +53,40 @@ class AuditsService {
   }
 
   async create(data: Partial<Audit>): Promise<Audit> {
+    console.log('📝 AuditsService.create - Données reçues:', JSON.stringify(data, null, 2));
+    
     return handleDemoMode<Audit>(
       async () => {
         // Implémentation réelle qui enverrait les données à l'API
-        const response = await fetch('/api/audits', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to create audit');
+        try {
+          console.log('🔍 AuditsService.create - Mode réel, envoi à l\'API');
+          const response = await fetch('/api/audits', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Échec de création de l\'audit:', errorText);
+            throw new Error(`Failed to create audit: ${errorText}`);
+          }
+          
+          const result = await response.json();
+          console.log('✅ Audit créé avec succès:', JSON.stringify(result, null, 2));
+          return result;
+        } catch (error) {
+          console.error('❌ Exception lors de la création de l\'audit:', error);
+          throw error;
         }
-        return response.json();
       },
       async () => {
         // Créer un nouvel audit mocké en mode démo, avec un UUID standard
         // pour assurer la cohérence avec l'API Notion
         const id = uuidv4();
-        console.log('Création d\'un audit démo avec UUID standard:', id);
+        console.log('📝 Création d\'un audit démo avec UUID standard:', id);
         
         const newAudit: Audit = {
           id: id, // UUID standard sans préfixe

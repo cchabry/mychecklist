@@ -95,9 +95,26 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
     "Version": { rich_text: [{ text: { content: '1.0' } }] }
   };
   
-  console.log('Création d\'audit dans Notion avec les propriétés:', JSON.stringify(properties));
+  console.log('🔍 DIAGNOSTIC: Création d\'audit dans Notion');
+  console.log('📊 Database ID utilisée:', dbId);
+  console.log('📝 Propriétés envoyées:', JSON.stringify(properties, null, 2));
   
   try {
+    // Récupérer la structure de la base pour diagnostiquer
+    console.log('🔍 DIAGNOSTIC: Vérification de la structure de la base de données...');
+    try {
+      const dbStructure = await notionApiRequest(
+        `/databases/${dbId}`,
+        'GET',
+        undefined,
+        apiKey
+      );
+      console.log('📊 Structure de la base de données:', JSON.stringify(dbStructure.properties, null, 2));
+    } catch (structureError) {
+      console.error('❌ Impossible de récupérer la structure de la base:', structureError);
+    }
+    
+    // Création de l'audit
     const response = await notionApiRequest(
       `/pages`,
       'POST',
@@ -108,7 +125,7 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
       apiKey
     );
 
-    console.log('Réponse de création d\'audit:', JSON.stringify(response));
+    console.log('✅ Réponse de création d\'audit:', JSON.stringify(response, null, 2));
     
     return {
       id: response.id,
@@ -121,7 +138,12 @@ export const createAudit = async (data: Partial<Audit>): Promise<Audit> => {
       version: '1.0'
     };
   } catch (error) {
-    console.error('Erreur lors de la création de l\'audit:', error);
+    console.error('❌ Erreur détaillée lors de la création de l\'audit:', error);
+    
+    if (error.response) {
+      console.error('Réponse d\'erreur:', JSON.stringify(error.response, null, 2));
+    }
+    
     // En cas d'échec avec l'API, revenir au mode démo pour cet audit
     const id = uuidv4();
     console.log('Création d\'un audit de secours avec UUID standard:', id);
