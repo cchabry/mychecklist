@@ -406,11 +406,13 @@ export const getAuditsByProject = async (projectId: string): Promise<Audit[]> =>
       
       // Chercher une propriété de type relation qui pourrait correspondre au projet
       for (const [name, prop] of Object.entries(properties)) {
-        if (prop.type === 'relation') {
+        // Typage de prop comme any pour résoudre l'erreur
+        const typedProp = prop as any;
+        if (typedProp.type === 'relation') {
           console.log(`✅ Propriété relation trouvée: ${name}`);
           propertyForProject = name;
           break;
-        } else if (prop.type === 'rich_text' && (name === 'ProjectId' || name.toLowerCase().includes('projet'))) {
+        } else if (typedProp.type === 'rich_text' && (name === 'ProjectId' || name.toLowerCase().includes('projet'))) {
           console.log(`✅ Propriété texte liée au projet trouvée: ${name}`);
           propertyForProject = name;
         }
