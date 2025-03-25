@@ -118,7 +118,8 @@ const validateDatabase = async (
   expectedStructure: DatabaseStructure
 ): Promise<DatabaseValidationResult> => {
   try {
-    const response = await notionApi.getDatabaseStructure(databaseId);
+    // Utiliser la fonction databases.retrieve au lieu de getDatabaseStructure
+    const response = await notionApi.databases.retrieve(databaseId);
     
     // Utiliser une assertion de type avec vérification pour les propriétés de la réponse
     if (!response || typeof response !== 'object') {
@@ -168,7 +169,7 @@ const validateDatabase = async (
       );
       
       if (property) {
-        const [_, propDetails] = property;
+        const [_, propDetails] = property as [string, Record<string, any>];
         const actualType = propDetails.type;
         
         if (actualType !== expectedProp.type) {
@@ -202,14 +203,37 @@ const validateDatabase = async (
   }
 };
 
+// Fonction pour récupérer les identifiants des bases de données depuis localStorage
+const getDatabaseIds = (): Record<string, string> => {
+  const configDatabaseIds: Record<string, string> = {};
+  
+  Object.keys(expectedDatabases).forEach(dbKey => {
+    const storageKey = `notion_${dbKey}_database_id`;
+    const dbId = localStorage.getItem(storageKey);
+    if (dbId) {
+      configDatabaseIds[dbKey] = dbId;
+    }
+  });
+  
+  // Cas spécial pour la base de données de projets
+  if (!configDatabaseIds.projects) {
+    const mainDbId = localStorage.getItem('notion_database_id');
+    if (mainDbId) {
+      configDatabaseIds.projects = mainDbId;
+    }
+  }
+  
+  return configDatabaseIds;
+};
+
 // Fonction principale pour valider toutes les bases de données
 export const validateAllDatabases = async (): Promise<Record<string, DatabaseValidationResult>> => {
   const results: Record<string, DatabaseValidationResult> = {};
   
-  // Récupérer les ID de bases de données depuis la configuration Notion
-  const configDatabaseIds = await notionApi.getDatabaseIds();
+  // Récupérer les ID de bases de données depuis localStorage
+  const configDatabaseIds = getDatabaseIds();
   
-  if (!configDatabaseIds) {
+  if (Object.keys(configDatabaseIds).length === 0) {
     toast.error("Impossible de récupérer les identifiants des bases de données Notion");
     return {};
   }
