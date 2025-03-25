@@ -11,14 +11,19 @@ import { useNotionRequestLogger } from '@/hooks/useNotionRequestLogger';
 import { operationModeUtils } from '@/services/operationMode/utils';
 import { operationMode } from '@/services/operationMode';
 import { notionApi } from '@/lib/notionProxy';
+import { cleanProjectId } from '@/lib/utils';
 
 const NewAuditPage: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [auditName, setAuditName] = useState('');
   const [projectExists, setProjectExists] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
+  const [project, setProject] = useState<any>(null);
   const navigate = useNavigate();
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId: rawProjectId } = useParams<{ projectId: string }>();
+  
+  // Nettoyer l'ID du projet pour la cohérence
+  const projectId = rawProjectId ? cleanProjectId(rawProjectId) : '';
   
   // Activer l'interception des requêtes Notion
   useNotionRequestLogger();
@@ -34,28 +39,36 @@ const NewAuditPage: React.FC = () => {
 
       try {
         setIsChecking(true);
+        console.log(`🔍 NewAuditPage - Vérification de l'existence du projet: "${projectId}"`);
         
-        // Vérifier si le projet existe dans le cache d'abord
-        const cachedProjects = localStorage.getItem('projects_cache');
-        if (cachedProjects) {
-          try {
-            const { projects } = JSON.parse(cachedProjects);
-            const projectInCache = projects.find((p: any) => p.id === projectId);
-            if (projectInCache) {
-              console.log('Projet trouvé dans le cache:', projectInCache);
-              setProjectExists(true);
-              setIsChecking(false);
-              return;
-            }
-          } catch (e) {
-            console.error('Erreur lors de la lecture du cache des projets:', e);
+        // Forcer la réinitialisation du cache pour cette vérification
+        localStorage.removeItem('projects_cache');
+        
+        // Si nous sommes en mode mock, désactiver temporairement
+        const wasMockActive = notionApi.mockMode.isActive();
+        if (wasMockActive) {
+          console.log('🔄 NewAuditPage - Désactivation temporaire du mode mock pour vérification');
+          notionApi.mockMode.forceReset();
+        }
+        
+        // Vérifier directement via l'API
+        const projectData = await notionApi.getProject(projectId);
+        console.log('Résultat de la vérification du projet:', projectData);
+        
+        if (projectData) {
+          setProject(projectData);
+          setProjectExists(true);
+          
+          // Définir un nom d'audit par défaut basé sur le nom du projet
+          setAuditName(`Audit ${projectData.name} - ${new Date().toLocaleDateString('fr-FR')}`);
+        } else {
+          setProjectExists(false);
+          
+          // Restaurer le mode mock si nécessaire
+          if (wasMockActive) {
+            notionApi.mockMode.activate();
           }
         }
-
-        // Si pas dans le cache, vérifier via l'API
-        const project = await notionApi.getProject(projectId);
-        console.log('Résultat de la vérification du projet:', project);
-        setProjectExists(!!project);
       } catch (error) {
         console.error('Erreur lors de la vérification du projet:', error);
         setProjectExists(false);
@@ -95,6 +108,12 @@ const NewAuditPage: React.FC = () => {
             <CardTitle>Erreur</CardTitle>
             <CardDescription>Impossible de créer un audit sans projet associé</CardDescription>
           </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-red-50 rounded-md border border-red-200 text-sm text-red-700 mb-4">
+              <p><strong>Détails :</strong> Le projet avec l'ID <code>{projectId}</code> n'a pas été trouvé.</p>
+              <p className="mt-1">Veuillez vérifier que le projet existe et que vous avez les permissions nécessaires.</p>
+            </div>
+          </CardContent>
           <CardFooter>
             <Button onClick={() => navigate('/')}>Retour à l'accueil</Button>
           </CardFooter>
@@ -119,6 +138,7 @@ const NewAuditPage: React.FC = () => {
       }
 
       // Créer l'audit via le service d'écriture Notion directement
+      console.log(`🔍 NewAuditPage - Création d'un audit pour le projet ID: "${projectId}"`);
       const newAudit = await notionWriteService.createAudit({
         name: values.name,
         projectId: projectId
@@ -154,7 +174,13 @@ const NewAuditPage: React.FC = () => {
       <Card className="max-w-md mx-auto">
         <CardHeader>
           <CardTitle>Créer un nouvel audit</CardTitle>
-          <CardDescription>Entrez le nom de l'audit à créer</CardDescription>
+          <CardDescription>
+            {project ? (
+              <>Création d'un audit pour le projet <strong>{project.name}</strong></>
+            ) : (
+              <>Entrez le nom de l'audit à créer</>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">

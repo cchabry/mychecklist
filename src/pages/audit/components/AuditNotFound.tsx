@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigateFunction, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -14,28 +14,84 @@ interface AuditNotFoundProps {
 }
 
 const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
+  // État pour suivre la tentative de rechargement
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  
   // Obtenir l'ID propre du projet
   const cleanedProjectId = projectId ? cleanProjectId(projectId) : '';
   console.log(`🔍 AuditNotFound - projectId original: "${projectId}", nettoyé: "${cleanedProjectId}"`);
   
+  // Essayer une vérification explicite du projet au montage
+  useEffect(() => {
+    const verifyProjectExistence = async () => {
+      if (!cleanedProjectId) return;
+      
+      try {
+        console.log(`🔍 AuditNotFound - Vérification explicite de l'existence du projet: "${cleanedProjectId}"`);
+        
+        // Force le mode mock à être désactivé pour tester l'accès réel
+        const wasMockActive = notionApi.mockMode.isActive();
+        if (wasMockActive) {
+          console.log('🔄 AuditNotFound - Désactivation temporaire du mode mock pour vérification');
+          notionApi.mockMode.forceReset();
+        }
+        
+        // Forcer une réinitialisation du cache pour cette vérification
+        localStorage.removeItem('projects_cache');
+        
+        // Vérifier si le projet existe réellement
+        const project = await notionApi.getProject(cleanedProjectId);
+        
+        if (project) {
+          console.log(`✅ AuditNotFound - Projet vérifié et trouvé: "${project.name}"`);
+          
+          // Si le projet existe mais qu'on est dans AuditNotFound, c'est un problème de cache ou d'état
+          // Naviguer vers la page d'audit avec le projet
+          setTimeout(() => {
+            navigate(`/audit/new/${cleanedProjectId}`);
+          }, 1000);
+        } else {
+          console.log(`❌ AuditNotFound - Projet vérifié mais non trouvé: "${cleanedProjectId}"`);
+          
+          // Restaurer le mode mock si nécessaire
+          if (wasMockActive) {
+            notionApi.mockMode.activate();
+          }
+        }
+      } catch (e) {
+        console.error('Erreur lors de la vérification du projet:', e);
+      }
+    };
+    
+    // Si c'est une tentative de refraîchissement, vérifier le projet
+    if (isRetrying && retryCount === 1) {
+      verifyProjectExistence();
+    }
+  }, [cleanedProjectId, navigate, isRetrying, retryCount]);
+  
   // Fonction pour réinitialiser le mode mock et recharger
   const handleForceReset = () => {
     console.log('🔄 AuditNotFound - Réinitialisation complète demandée');
+    setIsRetrying(true);
+    setRetryCount(prev => prev + 1);
     
     // Supprimer toutes les données de cache
     localStorage.removeItem('notion_mock_mode');
     localStorage.removeItem('projects_cache');
     localStorage.removeItem('audit_cache');
     localStorage.removeItem('notion_last_error');
+    localStorage.removeItem('notion_request_log');
     
     // Désactiver forcément le mode mock
     notionApi.mockMode.forceReset();
     
-    // Redirige vers l'accueil
+    // Redirige vers l'accueil après un court délai
     setTimeout(() => {
-      console.log('🔄 AuditNotFound - Redirection vers l\'accueil après réinitialisation');
-      navigate('/');
-    }, 500);
+      console.log('🔄 AuditNotFound - Redirection vers la page courante après réinitialisation');
+      // Recharger la page actuelle
+      window.location.reload();
+    }, 1000);
   };
   
   // Récupérer des données de diagnostic supplémentaires
@@ -131,9 +187,14 @@ const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, erro
               size="sm" 
               onClick={handleForceReset}
               className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+              disabled={isRetrying}
             >
-              <RefreshCw size={14} className="mr-2" />
-              Réinitialiser et recharger
+              {isRetrying ? (
+                <RefreshCw size={14} className="mr-2 animate-spin" />
+              ) : (
+                <RefreshCw size={14} className="mr-2" />
+              )}
+              {isRetrying ? 'Réinitialisation...' : 'Réinitialiser et recharger'}
             </Button>
           </div>
         </div>

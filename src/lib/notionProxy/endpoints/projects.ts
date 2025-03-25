@@ -58,13 +58,24 @@ export const getProject = async (id) => {
   // Si nous sommes en mode mock, retourner les données mock
   if (operationMode.isDemoMode) {
     console.log(`🔍 getProject - Recherche du projet mock ID: "${cleanedId}"`);
+    
     // Rechercher le projet dans les données mock
-    const mockProject = MOCK_PROJECTS.find((project) => project.id === cleanedId);
+    // Important: Comparer sans les tirets car ils sont parfois inclus dans l'ID
+    const mockProject = MOCK_PROJECTS.find((project) => {
+      // Normaliser les deux IDs pour la comparaison
+      const normalizedProjectId = cleanProjectId(project.id);
+      const normalizedRequestId = cleanedId;
+      
+      console.log(`Comparaison: [${normalizedProjectId}] avec [${normalizedRequestId}]`);
+      return normalizedProjectId === normalizedRequestId;
+    });
     
     if (mockProject) {
       console.log(`✅ getProject - Projet mock trouvé: "${mockProject.name}"`);
     } else {
+      // Logs détaillés pour déboguer pourquoi le projet n'est pas trouvé
       console.error(`❌ getProject - Projet mock non trouvé pour ID: "${cleanedId}"`);
+      console.log("Projets disponibles:", MOCK_PROJECTS.map(p => ({id: p.id, name: p.name})));
     }
     
     return mockProject || null;
@@ -79,6 +90,26 @@ export const getProject = async (id) => {
     }
 
     console.log(`🔍 getProject - Appel API Notion pour page ID: "${cleanedId}"`);
+    
+    // Essayons d'abord de trouver le projet dans le cache
+    const cachedProjects = localStorage.getItem('projects_cache');
+    if (cachedProjects) {
+      try {
+        const { projects } = JSON.parse(cachedProjects);
+        
+        // Utiliser cleanProjectId pour normaliser la comparaison
+        const projectInCache = projects.find(p => cleanProjectId(p.id) === cleanedId);
+        
+        if (projectInCache) {
+          console.log(`✅ getProject - Projet trouvé dans le cache: "${projectInCache.name}"`);
+          return projectInCache;
+        }
+      } catch (e) {
+        console.error('Erreur lors de la lecture du cache des projets:', e);
+      }
+    }
+    
+    // Si pas dans le cache, faire une requête API
     const response = await notionApiRequest(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
     
     if (!response) {

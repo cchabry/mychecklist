@@ -37,17 +37,26 @@ export const formatDateTime = (dateString: string): string => {
 export const cleanProjectId = (id?: string): string => {
   if (!id) return '';
   
+  let cleanedId = id;
+  
   // Si l'ID est une chaîne JSON, l'extraire
-  if (id.startsWith('"') && id.endsWith('"')) {
+  if (typeof id === 'string' && id.startsWith('"') && id.endsWith('"')) {
     try {
-      id = JSON.parse(id);
+      cleanedId = JSON.parse(id);
     } catch (e) {
       console.error('Erreur lors du parsing de l\'ID:', e);
     }
   }
   
   // Supprimer les tirets si présents
-  return id.replace(/[-]/g, '');
+  cleanedId = cleanedId.replace(/[-]/g, '');
+  
+  // Log pour débogage
+  if (cleanedId !== id) {
+    console.log(`cleanProjectId: "${id}" -> "${cleanedId}"`);
+  }
+  
+  return cleanedId;
 };
 
 /**
