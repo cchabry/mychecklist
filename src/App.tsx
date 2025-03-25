@@ -15,6 +15,8 @@ import ErrorPage from '@/pages/ErrorPage';
 import ConfigureExigences from '@/pages/project/ConfigureExigences';
 import ConfigPage from '@/pages/ConfigPage';
 import NotionDatabasesInspector from '@/pages/NotionDatabasesInspector';
+import Diagnostics from '@/pages/Diagnostics';
+import DiagnosticsRoutes from '@/pages/diagnostics/DiagnosticsRoutes';
 
 // Provider pour les services Notion
 import { NotionServiceProvider } from '@/contexts/NotionServiceContext';
@@ -68,6 +70,10 @@ function App() {
             
             {/* Inspection des bases de données Notion */}
             <Route path="/notion-inspector" element={<NotionDatabasesInspector />} />
+            
+            {/* Diagnostics */}
+            <Route path="/diagnostics" element={<Diagnostics />} />
+            <Route path="/diagnostics/*" element={<DiagnosticsRoutes />} />
           </Routes>
         </Router>
       </NotionRequestLoggerProvider>

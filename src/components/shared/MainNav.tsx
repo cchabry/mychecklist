@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { Home, Settings, FilePlus, ClipboardList, Database } from 'lucide-react';
+import { Home, Settings, FilePlus, ClipboardList, Database, TestTube } from 'lucide-react';
 import { useSiteConfig } from "@/hooks/use-site-config";
 import { Icons } from "@/components/icons";
 
@@ -31,6 +31,15 @@ export function MainNav() {
         <div className="flex items-center">
           <ClipboardList className="mr-2 h-4 w-4" />
           Projets
+        </div>
+      </Link>
+      <Link
+        to="/diagnostics"
+        className="text-sm font-medium transition-colors hover:text-primary"
+      >
+        <div className="flex items-center">
+          <TestTube className="mr-2 h-4 w-4" />
+          Diagnostics
         </div>
       </Link>
       <Link

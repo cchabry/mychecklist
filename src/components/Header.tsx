@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -80,7 +81,7 @@ const Header: React.FC = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to="/diagnostics" className="flex items-center gap-2">
+                <Link to="/notion-inspector" className="flex items-center gap-2">
                   <TestTube size={16} />
                   <span>Diagnostics Notion</span>
                 </Link>
