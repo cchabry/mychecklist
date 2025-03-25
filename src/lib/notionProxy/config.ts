@@ -53,17 +53,23 @@ export function getDeploymentType(): DeploymentType {
   
   // Environnement navigateur
   const hostname = window.location.hostname;
+  console.log('📍 Vérification de l\'environnement - Hostname:', hostname);
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('📍 Environnement détecté: local');
     return 'local';
   } else if (hostname.includes('netlify.app') || hostname.endsWith('.netlify.com')) {
+    console.log('📍 Environnement détecté: netlify');
     return 'netlify';
   } else if (hostname.includes('vercel.app') || hostname.endsWith('.now.sh')) {
+    console.log('📍 Environnement détecté: vercel');
     return 'vercel';
   } else if (hostname.includes('lovable.app') || hostname.includes('lovableproject.com')) {
+    console.log('📍 Environnement détecté: lovable preview');
     return 'lovable';
   }
   
+  console.log('📍 Environnement non reconnu, type: unknown');
   return 'unknown';
 }
 

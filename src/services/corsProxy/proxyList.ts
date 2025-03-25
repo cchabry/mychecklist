@@ -1,9 +1,7 @@
 
 import { CorsProxy } from './types';
 
-/**
- * Liste des proxies CORS disponibles
- */
+// Liste complète des proxies CORS publics disponibles
 export const availableProxies: CorsProxy[] = [
   {
     name: 'CORS Anywhere',
@@ -11,31 +9,55 @@ export const availableProxies: CorsProxy[] = [
     enabled: true,
     requiresActivation: true,
     activationUrl: 'https://cors-anywhere.herokuapp.com/corsdemo',
-    instructions: 'Visitez le lien et cliquez sur "Request temporary access to the demo server"'
+    description: 'Populaire mais nécessite une activation'
   },
   {
-    name: 'allOrigins',
-    url: 'https://api.allorigins.win/raw?url=',
-    enabled: true
-  },
-  {
-    name: 'CORS Proxy',
+    name: 'CORS Proxy IO',
     url: 'https://corsproxy.io/?',
-    enabled: true
+    enabled: true,
+    description: 'Service fiable et rapide'
+  },
+  {
+    name: 'All Origins',
+    url: 'https://api.allorigins.win/raw?url=',
+    enabled: true,
+    description: 'Alternative stable et rapide'
+  },
+  {
+    name: 'Proxy Dev Space',
+    url: 'https://proxy.devspace.sh/?',
+    enabled: true,
+    description: 'Service alternatif'
   },
   {
     name: 'CORS Bridge',
-    url: 'https://api.codetabs.com/v1/proxy/?quest=',
-    enabled: true
+    url: 'https://cors.bridged.cc/',
+    enabled: true,
+    description: 'Service alternatif'
   },
   {
-    name: 'CORS Online',
-    url: 'https://cors-anywhere.azm.workers.dev/',
-    enabled: true
+    name: 'CORS.sh',
+    url: 'https://cors.sh/?',
+    enabled: true,
+    description: 'Service payant avec quota gratuit'
+  },
+  {
+    name: 'CORS.express',
+    url: 'https://cors.express/?',
+    enabled: true,
+    description: 'Service récent'
+  },
+  {
+    name: 'JSONP Proxy',
+    url: 'https://jsonp.afeld.me/?url=',
+    enabled: false, // Désactivé car moins compatible avec les API JSON
+    description: 'Uniquement JSONP'
   }
 ];
 
-// Fonction pour obtenir les proxies activés
-export function getEnabledProxies(): CorsProxy[] {
+/**
+ * Récupère tous les proxies activés
+ */
+export const getEnabledProxies = (): CorsProxy[] => {
   return availableProxies.filter(proxy => proxy.enabled);
-}
+};
