@@ -1,41 +1,72 @@
 
 import React from 'react';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+
+type ProxyStatus = {
+  active: boolean;
+  available: boolean;
+  currentProxy: string | null;
+  lastTested: number | null;
+  error?: string;
+};
 
 interface ProxyStatusProps {
-  proxyStatus: {
-    url: string;
-    lastTested: number;
-    success: boolean;
-    latency?: number;
-  } | null;
+  proxyStatus: ProxyStatus;
 }
 
 const ProxyStatus: React.FC<ProxyStatusProps> = ({ proxyStatus }) => {
-  if (!proxyStatus) {
-    return <p className="text-xs text-gray-600">Aucun test de proxy récent</p>;
-  }
-  
-  const timeAgo = Math.round((Date.now() - proxyStatus.lastTested) / 60000);
-  
+  // Fonction pour formater le timestamp en texte relatif
+  const formatTimeAgo = (timestamp: number) => {
+    const minutes = Math.floor((Date.now() - timestamp) / 60000);
+    
+    if (minutes < 1) return 'il y a quelques secondes';
+    if (minutes === 1) return 'il y a 1 minute';
+    if (minutes < 60) return `il y a ${minutes} minutes`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours === 1) return 'il y a 1 heure';
+    if (hours < 24) return `il y a ${hours} heures`;
+    
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'il y a 1 jour';
+    return `il y a ${days} jours`;
+  };
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1">
-        {proxyStatus.success ? (
-          <CheckCircle size={14} className="text-green-500" />
+    <div>
+      <div className="flex items-center text-sm">
+        <span className="font-medium mr-2">État:</span>
+        {proxyStatus.active ? (
+          <span className="text-green-600 flex items-center gap-1">
+            <CheckCircle size={14} /> Actif
+          </span>
+        ) : proxyStatus.available ? (
+          <span className="text-amber-600 flex items-center gap-1">
+            <AlertTriangle size={14} /> Disponible mais non utilisé
+          </span>
         ) : (
-          <AlertCircle size={14} className="text-amber-500" />
+          <span className="text-red-600 flex items-center gap-1">
+            <XCircle size={14} /> Non disponible
+          </span>
         )}
-        <p className="text-xs font-medium">
-          {proxyStatus.success ? 'Proxy fonctionnel' : 'Proxy non fonctionnel'}
-        </p>
       </div>
-      <p className="text-xs text-gray-600">Dernier test: il y a {timeAgo} min</p>
-      <p className="text-xs font-mono bg-gray-50 p-1 rounded overflow-hidden text-ellipsis">
-        {proxyStatus.url}
-      </p>
-      {proxyStatus.latency && (
-        <p className="text-xs text-gray-600">Temps de réponse: {proxyStatus.latency}ms</p>
+      
+      {proxyStatus.currentProxy && (
+        <div className="text-xs text-gray-600 mt-1">
+          Proxy actuel: {proxyStatus.currentProxy}
+        </div>
+      )}
+      
+      {proxyStatus.lastTested && (
+        <div className="text-xs text-gray-600 mt-1">
+          Dernier test: {formatTimeAgo(proxyStatus.lastTested)}
+        </div>
+      )}
+      
+      {proxyStatus.error && (
+        <div className="text-xs text-red-600 bg-red-50 p-1 rounded mt-1">
+          Erreur: {proxyStatus.error}
+        </div>
       )}
     </div>
   );

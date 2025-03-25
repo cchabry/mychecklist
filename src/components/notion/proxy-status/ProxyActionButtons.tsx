@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshCw, Search, RotateCcw } from 'lucide-react';
 
 interface ProxyActionButtonsProps {
   checking: boolean;
@@ -25,11 +25,8 @@ const ProxyActionButtons: React.FC<ProxyActionButtonsProps> = ({
         disabled={checking}
         className="text-xs"
       >
-        {checking ? (
-          <><RefreshCw size={14} className="mr-1 animate-spin" /> Test en cours...</>
-        ) : (
-          <><RefreshCw size={14} className="mr-1" /> Tester le proxy actuel</>
-        )}
+        <RefreshCw size={14} className={`mr-1 ${checking ? 'animate-spin' : ''}`} />
+        {checking ? 'Test en cours...' : 'Vérifier le proxy'}
       </Button>
       
       <Button
@@ -39,20 +36,17 @@ const ProxyActionButtons: React.FC<ProxyActionButtonsProps> = ({
         disabled={checking}
         className="text-xs"
       >
-        {checking ? (
-          <><RefreshCw size={14} className="mr-1 animate-spin" /> Recherche...</>
-        ) : (
-          <>Trouver le meilleur proxy</>
-        )}
+        <Search size={14} className="mr-1" />
+        Chercher un meilleur proxy
       </Button>
       
       <Button
         variant="outline"
         size="sm"
         onClick={onResetProxies}
-        disabled={checking}
-        className="text-xs text-amber-600"
+        className="text-xs"
       >
+        <RotateCcw size={14} className="mr-1" />
         Réinitialiser
       </Button>
     </div>

@@ -1,105 +1,102 @@
 
 import { useState, useEffect } from 'react';
 import { corsProxy } from '@/services/corsProxy';
-import { toast } from 'sonner';
 
-interface ProxyStatus {
-  url: string;
-  lastTested: number;
-  success: boolean;
-  latency?: number;
-}
+// Type définition pour le statut du proxy
+export type ProxyStatus = {
+  active: boolean;
+  available: boolean;
+  currentProxy: string | null;
+  lastTested: number | null;
+  error?: string;
+};
 
-export const useProxyStatus = () => {
-  const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null);
+export function useProxyStatus() {
+  const [proxyStatus, setProxyStatus] = useState<ProxyStatus>({
+    active: false,
+    available: false,
+    currentProxy: null,
+    lastTested: null
+  });
+  
   const [checking, setChecking] = useState(false);
   
-  // Charger l'état du proxy depuis le localStorage
+  // Charger le statut du proxy au montage du composant
   useEffect(() => {
-    try {
-      const lastProxyData = localStorage.getItem('last_working_proxy');
-      if (lastProxyData) {
-        const data = JSON.parse(lastProxyData);
-        setProxyStatus(data);
-      }
-    } catch (e) {
-      console.error('Erreur lors du chargement du statut du proxy:', e);
-    }
+    checkCurrentProxy();
   }, []);
   
   // Vérifier le proxy actuel
   const checkCurrentProxy = async () => {
-    const currentProxy = corsProxy.getCurrentProxy();
-    if (!currentProxy) {
-      toast.error('Aucun proxy disponible');
-      return;
-    }
-    
     setChecking(true);
-    toast.info(`Test du proxy ${currentProxy.url}...`);
     
     try {
-      // Pour le test, on utilise un token factice
-      const result = await corsProxy.testProxy(currentProxy.url, 'Bearer test_token_for_proxy_test');
+      // Vérifier si un proxy est configuré
+      const currentProxy = corsProxy.getCurrentProxy();
+      const availableProxies = corsProxy.getVisibleProxies().length > 0;
       
-      if (result) {
-        const newStatus = {
-          url: currentProxy.url,
-          lastTested: Date.now(),
-          success: true,
-          latency: 0 // Pas de latence disponible dans ce cas
-        };
+      // Test du proxy actuel si disponible
+      if (currentProxy) {
+        const testResult = await corsProxy.testProxy(currentProxy);
         
-        setProxyStatus(newStatus);
-        localStorage.setItem('last_working_proxy', JSON.stringify(newStatus));
-        
-        toast.success(`Proxy ${currentProxy.url} opérationnel!`);
-      } else {
-        toast.error(`Le proxy ${currentProxy.url} ne fonctionne pas`);
-        
-        // Enregistrer l'échec
         setProxyStatus({
-          url: currentProxy.url,
+          active: testResult.success,
+          available: availableProxies,
+          currentProxy: currentProxy,
           lastTested: Date.now(),
-          success: false
+          error: testResult.success ? undefined : testResult.error
+        });
+      } else {
+        setProxyStatus({
+          active: false,
+          available: availableProxies,
+          currentProxy: null,
+          lastTested: Date.now(),
+          error: 'Aucun proxy configuré'
         });
       }
-    } catch (e) {
-      toast.error(`Erreur lors du test du proxy`, {
-        description: e instanceof Error ? e.message : 'Erreur inconnue'
-      });
+    } catch (error) {
+      console.error('Erreur lors de la vérification du proxy:', error);
+      
+      setProxyStatus(prev => ({
+        ...prev,
+        active: false,
+        lastTested: Date.now(),
+        error: error.message || 'Erreur lors du test du proxy'
+      }));
     } finally {
       setChecking(false);
     }
   };
   
-  // Trouver un meilleur proxy
+  // Rechercher un meilleur proxy
   const findBetterProxy = async () => {
     setChecking(true);
-    toast.info('Recherche du meilleur proxy...');
     
     try {
-      const proxy = await corsProxy.findWorkingProxy('Bearer test_token_for_proxy_test');
+      const result = await corsProxy.findBestProxy();
       
-      if (proxy) {
-        toast.success(`Proxy fonctionnel trouvé: ${proxy.url}`);
-        
-        // Mettre à jour l'état
-        const newStatus = {
-          url: proxy.url,
-          lastTested: Date.now(),
-          success: true
-        };
-        
-        setProxyStatus(newStatus);
-        localStorage.setItem('last_working_proxy', JSON.stringify(newStatus));
+      if (result.success) {
+        setProxyStatus({
+          active: true,
+          available: true,
+          currentProxy: result.proxy,
+          lastTested: Date.now()
+        });
       } else {
-        toast.error('Aucun proxy fonctionnel trouvé');
+        setProxyStatus({
+          active: false,
+          available: corsProxy.getVisibleProxies().length > 0,
+          currentProxy: corsProxy.getCurrentProxy(),
+          lastTested: Date.now(),
+          error: result.error || 'Impossible de trouver un proxy fonctionnel'
+        });
       }
-    } catch (e) {
-      toast.error(`Erreur lors de la recherche`, {
-        description: e instanceof Error ? e.message : 'Erreur inconnue'
-      });
+    } catch (error) {
+      setProxyStatus(prev => ({
+        ...prev,
+        error: error.message || 'Erreur lors de la recherche d\'un proxy'
+      }));
     } finally {
       setChecking(false);
     }
@@ -107,10 +104,18 @@ export const useProxyStatus = () => {
   
   // Réinitialiser les proxies
   const resetProxies = () => {
-    corsProxy.resetProxyCache();
-    localStorage.removeItem('last_working_proxy');
-    setProxyStatus(null);
-    toast.success('Configuration des proxies réinitialisée');
+    try {
+      corsProxy.resetProxyCache();
+      
+      setProxyStatus({
+        active: false,
+        available: corsProxy.getVisibleProxies().length > 0,
+        currentProxy: null,
+        lastTested: Date.now()
+      });
+    } catch (error) {
+      console.error('Erreur lors de la réinitialisation des proxies:', error);
+    }
   };
   
   return {
@@ -120,4 +125,4 @@ export const useProxyStatus = () => {
     findBetterProxy,
     resetProxies
   };
-};
+}
