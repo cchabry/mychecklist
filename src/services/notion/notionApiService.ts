@@ -187,5 +187,70 @@ export const notionApiService = {
     async update(auditId: string, data: any): Promise<NotionApiResponse<any>> {
       return notionApiService.request(`/audits/${auditId}`, 'PATCH', data);
     }
+  },
+  
+  /**
+   * ===== API UTILISATEURS =====
+   * Pour compatibilité avec l'ancien code
+   */
+  users: {
+    /**
+     * Récupère l'utilisateur actuel
+     */
+    async me(): Promise<NotionApiResponse<any>> {
+      return notionApiService.request('/users/me');
+    },
+    
+    /**
+     * Liste tous les utilisateurs
+     */
+    async list(): Promise<NotionApiResponse<any>> {
+      return notionApiService.request('/users');
+    }
+  },
+  
+  /**
+   * ===== API BASES DE DONNÉES =====
+   * Pour compatibilité avec l'ancien code
+   */
+  databases: {
+    /**
+     * Récupère les informations d'une base de données
+     */
+    async retrieve(databaseId: string): Promise<NotionApiResponse<any>> {
+      return notionApiService.request(`/databases/${databaseId}`);
+    },
+    
+    /**
+     * Exécute une requête sur une base de données
+     */
+    async query(databaseId: string, params: any): Promise<NotionApiResponse<any>> {
+      return notionApiService.request(`/databases/${databaseId}/query`, 'POST', params);
+    }
+  },
+  
+  /**
+   * ===== COMPATIBILITÉ AVEC L'ANCIEN MODE DÉMO =====
+   */
+  mockMode: {
+    isActive: () => false,
+    enable: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve();
+    },
+    disable: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve();
+    },
+    reset: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve();
+    },
+    forceReset: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve(); 
+    }
   }
 };
+
+export default notionApiService;
