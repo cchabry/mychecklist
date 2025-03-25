@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Audit, ActionStatus } from '@/lib/types';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
@@ -14,9 +14,11 @@ export function useProjectAudits(projectId: string) {
   const [error, setError] = useState<Error | null>(null);
   const { isDemoMode, enableDemoMode } = useOperationMode();
   
+  // Référence pour suivre si nous avons déjà essayé de charger les audits
+  const fetchAttempted = useRef(false);
+  
   useEffect(() => {
-    if (!projectId) {
-      setIsLoading(false);
+    if (!projectId || fetchAttempted.current) {
       return;
     }
     
@@ -26,6 +28,7 @@ export function useProjectAudits(projectId: string) {
       
       try {
         console.log(`Récupération des audits pour le projet: ${projectId}`);
+        fetchAttempted.current = true;
         
         // Vérifier si nous avons tous les éléments nécessaires pour la requête Notion
         const apiKey = localStorage.getItem('notion_api_key');
@@ -93,7 +96,7 @@ export function useProjectAudits(projectId: string) {
             };
             
             // Utiliser des valeurs par défaut si les propriétés sont manquantes
-            const actionsFromAudit = audit.actions ? audit.actions : [];
+            const actionsFromAudit = audit.actions || [];
             
             return {
               ...audit,

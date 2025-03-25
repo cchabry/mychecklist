@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -8,6 +8,14 @@ import NetlifyFunctionStatus from '@/components/notion/NetlifyFunctionStatus';
 
 export default function Home() {
   const { isDemoMode, enableDemoMode, enableRealMode } = useOperationMode();
+  const [statusChecked, setStatusChecked] = useState(false);
+
+  // Vérifier le statut des fonctions Netlify une seule fois
+  useEffect(() => {
+    if (!statusChecked) {
+      setStatusChecked(true);
+    }
+  }, [statusChecked]);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -22,7 +30,7 @@ export default function Home() {
         {/* Statut des fonctions Netlify */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-3">État du système</h2>
-          <NetlifyFunctionStatus />
+          {statusChecked && <NetlifyFunctionStatus />}
         </div>
         
         {/* Mode de fonctionnement */}

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,19 @@ const NetlifyFunctionStatus: React.FC = () => {
   const [responseTime, setResponseTime] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   
+  // Utiliser une référence pour suivre si le composant est monté
+  const isMounted = useRef(true);
+  // Référence pour éviter les vérifications supplémentaires pendant le chargement initial
+  const initialCheckComplete = useRef(false);
+  
+  // Nettoyer quand le composant est démonté
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+  
   const checkFunctionStatus = async () => {
+    if (isChecking) return; // Éviter les vérifications simultanées
+    
     setIsChecking(true);
     setError(null);
     
@@ -29,6 +41,9 @@ const NetlifyFunctionStatus: React.FC = () => {
         }
       });
       
+      // Vérifier si le composant est toujours monté avant de mettre à jour l'état
+      if (!isMounted.current) return;
+      
       const endTime = Date.now();
       setResponseTime(endTime - startTime);
       
@@ -42,17 +57,26 @@ const NetlifyFunctionStatus: React.FC = () => {
         setStatus('unavailable');
       }
     } catch (err) {
+      // Vérifier si le composant est toujours monté avant de mettre à jour l'état
+      if (!isMounted.current) return;
+      
       console.error('Erreur lors du test de la fonction Netlify:', err);
       setError(err instanceof Error ? err.message : String(err));
       setStatus('unavailable');
     } finally {
-      setIsChecking(false);
+      // Vérifier si le composant est toujours monté avant de mettre à jour l'état
+      if (isMounted.current) {
+        setIsChecking(false);
+        initialCheckComplete.current = true;
+      }
     }
   };
   
-  // Vérifier le statut au chargement
+  // Vérifier le statut au chargement, une seule fois
   useEffect(() => {
-    checkFunctionStatus();
+    if (!initialCheckComplete.current) {
+      checkFunctionStatus();
+    }
   }, []);
   
   return (

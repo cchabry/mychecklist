@@ -52,7 +52,7 @@ export const notionApiRequest = async (
   }
   
   try {
-    // Utiliser la fonction Netlify
+    // Utiliser directement la fonction Netlify
     return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
   } catch (error) {
     // En cas d'erreur, signaler au système operationMode
@@ -62,11 +62,11 @@ export const notionApiRequest = async (
     );
     
     // Si la fonction Netlify échoue, passer automatiquement en mode démo
-    console.error('Erreur lors de l\'appel à la fonction Netlify. Activation du mode démo.');
+    console.error('Erreur lors de l\'appel à la fonction Netlify. Activation du mode démo.', error);
     operationMode.enableDemoMode('Erreur de connexion à l\'API Notion');
     
-    // Retourner une erreur standard
-    throw new Error(`Erreur API Notion (${normalizedEndpoint}): ${error.message || 'Erreur inconnue'}`);
+    // Retourner un résultat vide pour éviter de bloquer l'application
+    return { success: false, error: error.message || 'Erreur inconnue' };
   }
 };
 
