@@ -46,6 +46,10 @@ export function useOperationMode(): OperationModeHook {
     handleConnectionError: operationMode.handleConnectionError.bind(operationMode),
     handleSuccessfulOperation: operationMode.handleSuccessfulOperation.bind(operationMode),
     updateSettings: operationMode.updateSettings.bind(operationMode),
-    reset: operationMode.reset.bind(operationMode)
+    reset: operationMode.reset.bind(operationMode),
+    markOperationAsCritical: operationMode.markOperationAsCritical.bind(operationMode),
+    unmarkOperationAsCritical: operationMode.unmarkOperationAsCritical.bind(operationMode),
+    isOperationCritical: operationMode.isOperationCritical.bind(operationMode),
+    temporarilyForceReal: operationMode.temporarilyForceReal.bind(operationMode)
   };
 }

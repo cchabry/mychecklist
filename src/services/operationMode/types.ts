@@ -1,5 +1,5 @@
 
-import { OperationModeSettings } from './constants';
+import { DEFAULT_SETTINGS } from './constants';
 
 export enum OperationMode {
   REAL = 'real',
@@ -12,6 +12,30 @@ export type OperationModeSubscriber = (
   mode: OperationMode,
   reason?: SwitchReason | null
 ) => void;
+
+// Définir les paramètres directement ici pour éviter les références circulaires
+export interface OperationModeSettings {
+  // Bascule automatique en mode démo après un certain nombre d'échecs
+  autoSwitchOnFailure: boolean;
+  
+  // Nombre d'échecs consécutifs avant basculement automatique
+  maxConsecutiveFailures: number;
+  
+  // Conserver le mode entre les sessions
+  persistentModeStorage: boolean;
+  
+  // Afficher les notifications de changement de mode
+  showNotifications: boolean;
+  
+  // Utiliser le cache en mode réel
+  useCacheInRealMode: boolean;
+  
+  // Taux d'erreurs simulées en mode démo (pourcentage)
+  errorSimulationRate: number;
+  
+  // Délai réseau simulé en mode démo (ms)
+  simulatedNetworkDelay: number;
+}
 
 export interface IOperationModeService {
   // Propriétés calculées
@@ -41,7 +65,7 @@ export interface IOperationModeService {
   toggle(): void;
   toggleMode(): void;
   setDemoMode(value: boolean): void;
-  temporarilyForceReal(): void; // Ajout de la méthode manquante
+  temporarilyForceReal(): void;
   
   // Gestion des erreurs
   handleConnectionError(error: Error, context?: string, isNonCritical?: boolean): void;
@@ -61,6 +85,7 @@ export interface OperationModeHook {
   isRealMode: boolean;
   switchReason: SwitchReason | null;
   failures: number;
+  lastError: Error | null; // Ajout de la propriété lastError manquante
   settings: OperationModeSettings;
   enableDemoMode: (reason?: SwitchReason) => void;
   enableRealMode: () => void;
@@ -72,5 +97,5 @@ export interface OperationModeHook {
   markOperationAsCritical: (operationContext: string) => void;
   unmarkOperationAsCritical: (operationContext: string) => void;
   isOperationCritical: (operationContext: string) => boolean;
-  temporarilyForceReal: () => void; // Ajout dans l'interface du hook également
+  temporarilyForceReal: () => void;
 }
