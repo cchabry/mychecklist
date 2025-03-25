@@ -52,10 +52,11 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
     try {
       // Tentative d'appel à la fonction Netlify pour vérifier sa disponibilité
       const response = await fetch(`${this.functionBaseUrl}/${this.proxyFunctionName}`, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ ping: true })
       });
       
       // Si la réponse est 404, la fonction n'existe pas

@@ -61,15 +61,33 @@ export function useNotionApi() {
     setError(null);
     
     try {
-      const response = await notionClient.getCurrentUser();
+      // Utiliser notionApiRequest via la fonction Netlify au lieu d'un appel direct
+      const response = await fetch('/.netlify/functions/notion-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          endpoint: '/users/me',
+          method: 'GET',
+          token: localStorage.getItem('notion_api_key')
+        })
+      });
       
-      if (response.success) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erreur du proxy Netlify: ${response.status} ${errorText}`);
+      }
+      
+      const responseData = await response.json();
+      
+      if (responseData) {
         toast.success("Connexion à Notion réussie", {
-          description: `Connecté en tant que ${response.data?.name || 'Utilisateur Notion'}`
+          description: `Connecté en tant que ${responseData.name || 'Utilisateur Notion'}`
         });
-        return { success: true, user: response.data };
+        return { success: true, user: responseData };
       } else {
-        const errorMessage = response.error?.message || "Erreur de connexion à Notion";
+        const errorMessage = "Erreur de connexion à Notion";
         setError(new Error(errorMessage));
         toast.error("Échec de la connexion à Notion", {
           description: errorMessage

@@ -4,6 +4,7 @@ import {
   ApiResponse, 
   RequestOptions 
 } from '../apiProxy';
+import { notionApiRequest } from '@/lib/notionProxy/proxyFetch';
 
 /**
  * Client API Notion utilisant le nouveau système de proxy modulaire
@@ -25,7 +26,7 @@ export class NotionApiClient {
   };
   
   /**
-   * Effectue une requête à l'API Notion
+   * Effectue une requête à l'API Notion en utilisant exclusivement la fonction Netlify
    */
   async request<T>(
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -36,14 +37,26 @@ export class NotionApiClient {
     // Normaliser l'endpoint
     const normalizedEndpoint = this.normalizeEndpoint(endpoint);
     
-    // Fusionner les options par défaut avec celles fournies
-    const mergedOptions = {
-      ...this.defaultOptions,
-      ...options
-    };
-    
-    // Effectuer la requête via le proxy API
-    return apiProxy.request<T>(method, normalizedEndpoint, data, mergedOptions);
+    try {
+      // Utiliser notionApiRequest qui passe par la fonction Netlify
+      const response = await notionApiRequest(normalizedEndpoint, method, data);
+      
+      return {
+        success: true,
+        data: response as T
+      };
+    } catch (error) {
+      console.error(`Erreur lors de la requête ${method} vers ${normalizedEndpoint}:`, error);
+      
+      return {
+        success: false,
+        error: {
+          status: error.status || 500,
+          message: error.message || 'Erreur lors de la requête à l\'API Notion',
+          details: error
+        }
+      };
+    }
   }
   
   /**

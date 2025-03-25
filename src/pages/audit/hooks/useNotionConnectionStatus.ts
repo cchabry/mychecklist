@@ -1,113 +1,109 @@
 
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useState, useCallback, useEffect } from 'react';
+import { testNotionConnection } from '@/lib/notion/notionClient';
 import { isNotionConfigured } from '@/lib/notion';
-import { STORAGE_KEYS } from '@/lib/notionProxy/config';
+import { cache } from '@/lib/cache';
+
+// Clé de cache pour le statut de connexion Notion
+const NOTION_CONNECTION_STATUS_CACHE_KEY = 'notion_connection_status';
 
 /**
- * Hook pour vérifier et gérer le statut de connexion Notion
+ * Hook spécialisé pour vérifier et gérer l'état de la connexion à Notion
  */
 export const useNotionConnectionStatus = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Fonction pour vérifier la configuration Notion
-  const checkNotionConfig = async () => {
+  // Vérifier si la configuration Notion est valide
+  const checkNotionConfig = useCallback(async (forceCheck: boolean = false) => {
+    // Vérifier si on doit forcer un nouveau test
+    if (!forceCheck) {
+      // Essayer de récupérer le statut depuis le cache
+      const cachedStatus = cache.get(NOTION_CONNECTION_STATUS_CACHE_KEY);
+      
+      if (cachedStatus) {
+        console.log('Utilisation du statut de connexion Notion depuis le cache');
+        setIsConnected(cachedStatus.isConnected);
+        setError(cachedStatus.error);
+        setIsLoading(false);
+        return cachedStatus.isConnected;
+      }
+    }
+    
+    // Si aucune configuration n'est présente, inutile de tester
+    if (!isNotionConfigured()) {
+      setIsConnected(false);
+      setError('Configuration Notion manquante');
+      setIsLoading(false);
+      return false;
+    }
+    
     setIsLoading(true);
     setError(null);
     
-    // Vérifier si Notion est configuré
-    const hasConfig = isNotionConfigured();
-    
-    console.log('🔍 Vérification de la configuration Notion:', {
-      'Notion configuré': hasConfig,
-      'API Key': localStorage.getItem('notion_api_key') ? 'Définie' : 'Non définie',
-      'Database ID': localStorage.getItem('notion_database_id') ? 'Défini' : 'Non défini'
-    });
-    
-    if (!hasConfig) {
-      console.log('⚠️ Notion n\'est pas configuré');
-      setIsConnected(false);
-      setIsLoading(false);
-      return;
-    }
-    
     try {
-      // Tester la connexion via la fonction Netlify
-      const apiKey = localStorage.getItem('notion_api_key');
-      if (apiKey) {
-        console.log('🔑 Test de connexion avec clé API via Netlify:', apiKey.substring(0, 8) + '...');
-        
-        // Utiliser la fonction Netlify pour tester la connexion
-        const response = await fetch('/.netlify/functions/notion-proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            endpoint: '/users/me',
-            method: 'GET',
-            token: apiKey
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Erreur ${response.status}: ${await response.text()}`);
-        }
-        
-        // Si la fonction répond correctement, la connexion est établie
-        console.log('✅ Connexion Notion réussie via fonction Netlify!');
-        
-        // Si la connexion réussit, on nettoie les erreurs stockées
-        localStorage.removeItem('notion_last_error');
-        
+      // Utiliser la fonction testNotionConnection qui utilise la fonction Netlify
+      const result = await testNotionConnection();
+      
+      if (result.success) {
         setIsConnected(true);
         setError(null);
+        
+        // Mettre en cache le statut positif
+        cache.set(NOTION_CONNECTION_STATUS_CACHE_KEY, {
+          isConnected: true,
+          error: null,
+          timestamp: Date.now()
+        });
+        
+        return true;
       } else {
         setIsConnected(false);
-        setError('Clé API manquante');
+        setError(result.error || 'Erreur de connexion à Notion');
+        
+        // Mettre en cache le statut négatif
+        cache.set(NOTION_CONNECTION_STATUS_CACHE_KEY, {
+          isConnected: false,
+          error: result.error || 'Erreur de connexion à Notion',
+          timestamp: Date.now()
+        });
+        
+        return false;
       }
-    } catch (testError) {
-      console.error('❌ Test de connexion Notion échoué:', testError);
-      
-      // Stocker l'erreur pour référence future
-      try {
-        localStorage.setItem('notion_last_error', JSON.stringify({
-          timestamp: Date.now(),
-          message: testError.message || 'Erreur de connexion à Notion'
-        }));
-      } catch (e) {
-        // Ignorer les erreurs de JSON.stringify
-      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('Erreur lors de la vérification de la connexion Notion:', err);
       
       setIsConnected(false);
-      setError(testError.message || 'Erreur de connexion à Notion');
+      setError(errorMessage);
+      
+      // Mettre en cache l'erreur
+      cache.set(NOTION_CONNECTION_STATUS_CACHE_KEY, {
+        isConnected: false,
+        error: errorMessage,
+        timestamp: Date.now()
+      });
+      
+      return false;
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  // Vérifier la configuration au chargement
-  useEffect(() => {
-    checkNotionConfig();
   }, []);
   
-  // Gérer la réinitialisation et tester à nouveau
-  const handleResetAndTest = () => {
-    toast.success('Configuration réinitialisée', {
-      description: 'Tentative de connexion...'
-    });
+  // Réinitialiser et tester à nouveau
+  const handleResetAndTest = useCallback(async () => {
+    // Vider le cache
+    cache.remove(NOTION_CONNECTION_STATUS_CACHE_KEY);
     
-    // Effacer les erreurs stockées
-    localStorage.removeItem('notion_last_error');
-    localStorage.removeItem(STORAGE_KEYS.MOCK_MODE);
-    
-    // Vérifier à nouveau la configuration après un court délai
-    setTimeout(() => {
-      checkNotionConfig();
-    }, 500);
-  };
+    // Forcer un nouveau test
+    return checkNotionConfig(true);
+  }, [checkNotionConfig]);
+  
+  // Vérifier la configuration au chargement initial
+  useEffect(() => {
+    checkNotionConfig();
+  }, [checkNotionConfig]);
   
   return {
     isConnected,
@@ -117,3 +113,5 @@ export const useNotionConnectionStatus = () => {
     handleResetAndTest
   };
 };
+
+export default useNotionConnectionStatus;
