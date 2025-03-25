@@ -11,6 +11,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/notion-proxy/*"
+  to = "/.netlify/functions/notion-proxy"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
@@ -31,3 +36,8 @@
   included_files = []
   external_node_modules = ["node-fetch"]
   environment = { DEBUG = "true", CACHE_TTL = "300" }
+
+# Ajouter une configuration pour assurer que node-fetch est correctement géré
+[functions]
+  external_node_modules = ["node-fetch"]
+  node_bundler = "esbuild"

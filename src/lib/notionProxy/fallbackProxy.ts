@@ -38,7 +38,7 @@ export const fallbackNotionRequest = async (
     // Nettoyer l'endpoint
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
-    console.log(`🔄 Utilisation des fonctions Netlify pour l'appel à l'API Notion`);
+    console.log(`🔄 Utilisation des fonctions Netlify pour l'appel à l'API Notion: ${normalizedEndpoint}`);
     
     // Utiliser la fonction Netlify pour les appels à l'API Notion
     const response = await fetch('/.netlify/functions/notion-proxy', {
@@ -57,6 +57,7 @@ export const fallbackNotionRequest = async (
     // Vérifier si la réponse est OK
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`❌ Erreur API Notion: ${response.status} - ${errorText}`);
       throw new Error(`Erreur API Notion: ${response.status} - ${errorText}`);
     }
     
