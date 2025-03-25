@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { notionRequestLogger } from '@/services/notion/requestLogger';
 import { notionApi } from '@/lib/notionProxy';
@@ -67,5 +68,3 @@ export const useNotionRequestLogger = () => {
     };
   }, []);
 };
-
-export default useNotionRequestLogger;
