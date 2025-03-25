@@ -15,7 +15,7 @@ interface AuditNotFoundProps {
 
 const AuditNotFound: React.FC<AuditNotFoundProps> = ({ navigate, projectId, error }) => {
   // Obtenir l'ID propre du projet
-  const cleanedProjectId = cleanProjectId(projectId);
+  const cleanedProjectId = projectId ? cleanProjectId(projectId) : '';
   console.log(`🔍 AuditNotFound - projectId original: "${projectId}", nettoyé: "${cleanedProjectId}"`);
   
   // Fonction pour réinitialiser le mode mock et recharger

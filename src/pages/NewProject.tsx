@@ -9,12 +9,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useNotionRequestLogger } from '@/hooks/useNotionRequestLogger';
 
 const NewProject: React.FC = () => {
   const navigate = useNavigate();
   const [projectName, setProjectName] = React.useState('');
   const [projectUrl, setProjectUrl] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  
+  // Activer l'interception des requêtes Notion
+  useNotionRequestLogger();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +39,15 @@ const NewProject: React.FC = () => {
       
       if (newProject) {
         toast.success('Projet créé avec succès');
-        navigate(`/project/edit/${newProject.id}`);
+        console.log('Projet créé:', newProject);
+        
+        // Vider le cache des projets pour forcer un rechargement
+        localStorage.removeItem('projects_cache');
+        
+        // Attendre un court instant pour permettre au cache de se vider
+        setTimeout(() => {
+          navigate(`/project/edit/${newProject.id}`);
+        }, 500);
       } else {
         throw new Error('Erreur lors de la création du projet');
       }
