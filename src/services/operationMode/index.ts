@@ -7,11 +7,16 @@
  */
 
 // Exporter l'adaptateur comme remplaçant du service operationMode
-export { operationMode } from './operationModeAdapter';
+import { operationMode } from './operationModeAdapter';
+export { operationMode };
 
 // Exporter les constantes et types
 export * from './constants';
 export * from './types';
+
+// Exporter les utilitaires pour compatibilité avec les imports existants
+import { operationModeUtils } from './utils';
+export { operationModeUtils };
 
 // Hook pour utiliser le mode opérationnel
 export { useOperationMode } from './useOperationMode';

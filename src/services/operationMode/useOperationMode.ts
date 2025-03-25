@@ -7,7 +7,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { operationMode } from './operationModeAdapter';
 import { OperationMode, OperationModeSettings, SwitchReason } from './types';
-import { toast } from 'sonner';
 
 export function useOperationMode() {
   const [mode, setMode] = useState<OperationMode>(operationMode.getMode());
@@ -24,6 +23,7 @@ export function useOperationMode() {
       setSwitchReason(reason);
       setFailures(operationMode.getConsecutiveFailures());
       setLastError(operationMode.getLastError());
+      setSettings(operationMode.getSettings());
     });
     
     return unsubscribe;

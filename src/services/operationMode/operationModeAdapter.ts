@@ -15,6 +15,7 @@ import {
   SwitchReason,
   OperationModeSubscriber
 } from './types';
+import { DEFAULT_SETTINGS } from './constants';
 
 // Mapper les modes entre les deux systèmes
 const mapConnectionModeToOperationMode = (mode: ConnectionMode): OperationMode => {
@@ -43,6 +44,8 @@ const mapOperationModeToConnectionMode = (mode: OperationMode): ConnectionMode =
 class OperationModeAdapter {
   private subscribers: OperationModeSubscriber[] = [];
   private lastSwitchReason: SwitchReason | null = null;
+  private settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
+  private criticalOperations: Set<string> = new Set();
   
   // Propriétés calculées pour émuler l'ancien système
   public get isDemoMode(): boolean {
@@ -71,16 +74,7 @@ class OperationModeAdapter {
   }
   
   public getSettings(): OperationModeSettings {
-    // Retourne des settings par défaut, car le nouveau système est simplifié
-    return {
-      autoSwitchOnFailure: true,
-      maxConsecutiveFailures: 3,
-      persistentModeStorage: true,
-      showNotifications: true,
-      useCacheInRealMode: true,
-      errorSimulationRate: 10,
-      simulatedNetworkDelay: 500,
-    };
+    return { ...this.settings };
   }
   
   public get settings(): OperationModeSettings {
@@ -145,13 +139,14 @@ class OperationModeAdapter {
   }
   
   public updateSettings(partialSettings: Partial<OperationModeSettings>): void {
-    // Les paramètres sont ignorés car le nouveau système est simplifié
-    console.log('Mise à jour des paramètres demandée mais non implémentée:', partialSettings);
+    this.settings = {
+      ...this.settings,
+      ...partialSettings
+    };
   }
   
   public reset(): void {
     // Réinitialiser le compteur d'erreurs
-    console.log('Réinitialisation demandée');
     connectionModeService.handleSuccessfulOperation();
   }
   
@@ -194,20 +189,19 @@ class OperationModeAdapter {
   
   public offModeChange(subscriber: (isDemoMode: boolean) => void): void {
     // Cette méthode est maintenue pour compatibilité mais n'a plus d'utilité réelle
-    console.log('offModeChange appelé - utilisez plutôt la fonction de désinscription retournée par subscribe()');
   }
   
   // Méthodes spécifiques pour les opérations critiques (émulation simplifiée)
   public markOperationAsCritical(operationContext: string): void {
-    console.log('Opération marquée comme critique (émulation):', operationContext);
+    this.criticalOperations.add(operationContext);
   }
 
   public unmarkOperationAsCritical(operationContext: string): void {
-    console.log('Suppression d\'opération critique (émulation):', operationContext);
+    this.criticalOperations.delete(operationContext);
   }
 
   public isOperationCritical(operationContext: string): boolean {
-    return false;
+    return this.criticalOperations.has(operationContext);
   }
 }
 

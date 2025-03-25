@@ -9,7 +9,11 @@ import { useOperationMode } from '@/services/operationMode';
  */
 export function useOperationModeListener() {
   const [isDemoMode, setIsDemoMode] = useState<boolean>(operationMode.isDemoMode);
-  const { toggle, enableRealMode, enableDemoMode } = useOperationMode();
+  const { 
+    toggle, 
+    enableRealMode, 
+    enableDemoMode 
+  } = useOperationMode();
 
   // S'abonner aux changements du mode opérationnel
   useEffect(() => {
