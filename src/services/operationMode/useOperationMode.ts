@@ -78,26 +78,36 @@ export function useOperationMode() {
     return operationMode.isOperationCritical(operationContext);
   }, []);
   
+  // Pour compatibilité avec useConnectionMode
+  const connectionHealth = {
+    lastError,
+    lastSuccess: null as Date | null,
+    consecutiveErrors: failures,
+    healthyConnection: failures === 0
+  };
+  
+  // Aliases pour compatibilité
+  const currentMode = mode;
+  const isRealMode = !isDemoMode;
+  const toggleMode = toggle;
+  const restoreMode = restorePreviousMode;
+  
   return {
     // États de base
     mode,
     isDemoMode,
-    isRealMode: !isDemoMode,
+    isRealMode,
     switchReason,
     failures,
     lastError,
     settings,
     // Pour la compatibilité avec useConnectionMode
-    currentMode: mode,
-    connectionHealth: {
-      lastError,
-      lastSuccess: null,
-      consecutiveErrors: failures,
-      healthyConnection: failures === 0
-    },
+    currentMode,
+    connectionHealth,
     
     // Actions basiques
     toggle,
+    toggleMode,
     enableDemoMode,
     enableRealMode,
     handleConnectionError,
@@ -108,8 +118,7 @@ export function useOperationMode() {
     // Actions avancées
     temporarilyForceReal,
     restorePreviousMode,
-    toggleMode: toggle,
-    restoreMode: restorePreviousMode,
+    restoreMode,
     
     // Gestion des opérations critiques
     markOperationAsCritical,

@@ -136,6 +136,7 @@ export function useConnectionMode() {
     // Alias pour compatibilité
     toggle,
     reset,
+    restorePreviousMode,
     
     // Simulations d'opérations critiques
     markOperationAsCritical,
@@ -143,9 +144,6 @@ export function useConnectionMode() {
     isOperationCritical,
     
     // Simulations de paramètres
-    updateSettings,
-    
-    // Nouveaux alias pour compatibilité complète
-    restorePreviousMode
+    updateSettings
   };
 }

@@ -16,7 +16,7 @@ export function useNotionAutoFallback() {
     handleConnectionError, 
     handleSuccessfulOperation,
     connectionHealth,
-    switchReason 
+    switchReason
   } = useConnectionMode();
 
   // S'abonner aux changements de mode
