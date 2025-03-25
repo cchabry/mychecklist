@@ -43,7 +43,7 @@ const DatabaseResultItem: React.FC<{ result: DatabaseValidationResult }> = ({ re
         )}
         
         {result.incorrectTypes.length > 0 && (
-          <Alert variant="destructive" className="mb-3">
+          <Alert variant="warning" className="mb-3">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Types incorrects</AlertTitle>
             <AlertDescription>
@@ -59,7 +59,7 @@ const DatabaseResultItem: React.FC<{ result: DatabaseValidationResult }> = ({ re
         )}
         
         {result.isValid && (
-          <Alert variant="default" className="mb-3">
+          <Alert variant="success" className="mb-3">
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Structure valide</AlertTitle>
             <AlertDescription>

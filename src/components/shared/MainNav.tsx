@@ -53,7 +53,6 @@ export function MainNav() {
           BDD Notion
         </div>
       </Link>
-      
     </nav>
   );
 }

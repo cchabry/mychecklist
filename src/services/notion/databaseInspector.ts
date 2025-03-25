@@ -1,145 +1,137 @@
 
-import { notionApi } from '@/lib/notionProxy';
-import { toast } from 'sonner';
+import { notionClient } from './client';
+import { operationMode } from '@/services/operationMode';
 
-export interface DatabaseProperty {
+// Interface pour décrire les propriétés requises d'une base de données
+interface RequiredProperty {
   name: string;
   type: string;
   required: boolean;
+  description?: string;
 }
 
-export interface DatabaseRequirements {
+// Structure d'une base de données à valider
+interface DatabaseRequirement {
   name: string;
-  properties: DatabaseProperty[];
+  description: string;
+  configKey: string; // Clé de configuration dans localStorage
+  requiredProperties: RequiredProperty[];
 }
 
+// Résultat de validation d'une base de données
 export interface DatabaseValidationResult {
   databaseId: string;
   databaseName: string;
   isValid: boolean;
   missingProperties: string[];
-  incorrectTypes: Array<{property: string, expected: string, actual: string}>;
-  fullStructure?: Record<string, any>;
+  incorrectTypes: Array<{ property: string, expected: string, actual: string }>;
+  fullStructure: Record<string, any>;
 }
 
-/**
- * Les exigences de structure pour chaque type de base de données
- */
-const DATABASE_REQUIREMENTS: Record<string, DatabaseRequirements> = {
-  projects: {
-    name: 'Projets',
-    properties: [
-      { name: 'Name', type: 'title', required: true },
-      { name: 'URL', type: 'url', required: true },
-      { name: 'Description', type: 'rich_text', required: false },
-      { name: 'Status', type: 'select', required: false },
-      { name: 'Progress', type: 'number', required: false }
+// Définition des bases de données requises par l'application
+const requiredDatabases: DatabaseRequirement[] = [
+  {
+    name: "Projets",
+    description: "Base de données principale des projets",
+    configKey: "notion_database_id",
+    requiredProperties: [
+      { name: "Name", type: "title", required: true, description: "Nom du projet" },
+      { name: "URL", type: "url", required: true, description: "URL principale du site" },
+      { name: "Status", type: "select", required: false, description: "Statut du projet" },
+      { name: "Description", type: "rich_text", required: false, description: "Description du projet" }
     ]
   },
-  checklists: {
-    name: 'Checklist',
-    properties: [
-      { name: 'Name', type: 'title', required: true },
-      { name: 'Description', type: 'rich_text', required: true },
-      { name: 'Category', type: 'select', required: true },
-      { name: 'Subcategory', type: 'select', required: false },
-      { name: 'Reference', type: 'multi_select', required: false },
-      { name: 'Profile', type: 'multi_select', required: false },
-      { name: 'Phase', type: 'multi_select', required: false },
-      { name: 'Effort', type: 'select', required: false },
-      { name: 'Priority', type: 'select', required: false }
+  {
+    name: "Audits",
+    description: "Base de données des audits",
+    configKey: "notion_audit_database_id",
+    requiredProperties: [
+      { name: "Name", type: "title", required: true, description: "Nom de l'audit" },
+      { name: "Project", type: "relation", required: true, description: "Relation vers le projet" },
+      { name: "Score", type: "number", required: false, description: "Score global de l'audit" },
+      { name: "Version", type: "rich_text", required: false, description: "Version de l'audit" }
     ]
   },
-  audits: {
-    name: 'Audits',
-    properties: [
-      { name: 'Name', type: 'title', required: true },
-      { name: 'Project', type: 'relation', required: true },
-      { name: 'Score', type: 'number', required: false },
-      { name: 'Version', type: 'rich_text', required: false }
+  {
+    name: "Checklists",
+    description: "Référentiel de bonnes pratiques",
+    configKey: "notion_checklists_database_id",
+    requiredProperties: [
+      { name: "Name", type: "title", required: true, description: "Titre de l'item" },
+      { name: "Description", type: "rich_text", required: false, description: "Description détaillée" },
+      { name: "Category", type: "select", required: true, description: "Catégorie de l'item" },
+      { name: "Subcategory", type: "select", required: false, description: "Sous-catégorie" },
+      { name: "Effort", type: "select", required: false, description: "Complexité de mise en œuvre" },
+      { name: "Priority", type: "select", required: false, description: "Priorité de l'item" }
     ]
   },
-  pages: {
-    name: 'Pages d\'échantillon',
-    properties: [
-      { name: 'Title', type: 'title', required: true },
-      { name: 'URL', type: 'url', required: true },
-      { name: 'Project', type: 'relation', required: true },
-      { name: 'Description', type: 'rich_text', required: false },
-      { name: 'Order', type: 'number', required: false }
+  {
+    name: "Pages",
+    description: "Échantillon de pages pour les audits",
+    configKey: "notion_pages_database_id",
+    requiredProperties: [
+      { name: "Name", type: "title", required: true, description: "Titre de la page" },
+      { name: "URL", type: "url", required: true, description: "URL de la page" },
+      { name: "Project", type: "relation", required: true, description: "Relation vers le projet" },
+      { name: "Description", type: "rich_text", required: false, description: "Description ou contexte" }
     ]
   },
-  exigences: {
-    name: 'Exigences',
-    properties: [
-      { name: 'Name', type: 'title', required: true },
-      { name: 'Project', type: 'relation', required: true },
-      { name: 'Item', type: 'relation', required: true },
-      { name: 'Importance', type: 'select', required: true },
-      { name: 'Comment', type: 'rich_text', required: false }
-    ]
-  },
-  evaluations: {
-    name: 'Évaluations',
-    properties: [
-      { name: 'Name', type: 'title', required: true },
-      { name: 'Audit', type: 'relation', required: true },
-      { name: 'Page', type: 'relation', required: true },
-      { name: 'Exigence', type: 'relation', required: true },
-      { name: 'Score', type: 'select', required: true },
-      { name: 'Comment', type: 'rich_text', required: false }
-    ]
-  },
-  actions: {
-    name: 'Actions correctives',
-    properties: [
-      { name: 'Name', type: 'title', required: true },
-      { name: 'Evaluation', type: 'relation', required: true },
-      { name: 'Priority', type: 'select', required: true },
-      { name: 'DueDate', type: 'date', required: false },
-      { name: 'Responsible', type: 'rich_text', required: false },
-      { name: 'Status', type: 'select', required: true }
+  {
+    name: "Exigences",
+    description: "Exigences spécifiques à un projet",
+    configKey: "notion_exigences_database_id",
+    requiredProperties: [
+      { name: "Name", type: "title", required: true, description: "Titre de l'exigence" },
+      { name: "Project", type: "relation", required: true, description: "Relation vers le projet" },
+      { name: "Checklist", type: "relation", required: true, description: "Relation vers l'item de la checklist" },
+      { name: "Importance", type: "select", required: true, description: "Niveau d'importance" },
+      { name: "Comment", type: "rich_text", required: false, description: "Commentaire explicatif" }
     ]
   }
-};
+];
 
 /**
- * Vérifie la structure d'une base de données Notion
+ * Valide une base de données Notion par rapport aux propriétés requises
  */
-export async function validateDatabaseStructure(
+const validateDatabase = async (
   databaseId: string, 
-  databaseType: string,
-  apiKey?: string | null
-): Promise<DatabaseValidationResult> {
-  if (!databaseId) {
-    throw new Error('ID de base de données manquant');
+  requirement: DatabaseRequirement
+): Promise<DatabaseValidationResult> => {
+  // Désactiver temporairement le mode démo si actif
+  const wasDemoMode = operationMode.isDemoMode;
+  if (wasDemoMode) {
+    operationMode.temporarilyForceReal();
   }
-
-  if (!databaseType || !DATABASE_REQUIREMENTS[databaseType]) {
-    throw new Error(`Type de base de données inconnu: ${databaseType}`);
-  }
-
-  // Utiliser la clé d'API fournie ou celle stockée dans localStorage
-  const key = apiKey || localStorage.getItem('notion_api_key');
-  if (!key) {
-    throw new Error('Clé API Notion manquante');
-  }
-
+  
   try {
-    // Récupérer les informations de la base de données
-    const dbInfo = await notionApi.databases.retrieve(databaseId, key);
-    const requirements = DATABASE_REQUIREMENTS[databaseType];
+    // Récupérer la structure de la base de données
+    const response = await notionClient.get(`/databases/${databaseId}`);
     
-    // Vérifier les propriétés
+    if (!response.success) {
+      return {
+        databaseId,
+        databaseName: requirement.name,
+        isValid: false,
+        missingProperties: [requirement.name === "Projets" ? "Base de données inaccessible" : "Base de données non configurée"],
+        incorrectTypes: [],
+        fullStructure: {}
+      };
+    }
+    
+    const data = response.data;
+    const properties = data.properties || {};
+    const databaseName = data.title?.[0]?.plain_text || requirement.name;
+    
+    // Vérifier les propriétés requises
     const missingProperties: string[] = [];
-    const incorrectTypes: Array<{property: string, expected: string, actual: string}> = [];
-
-    requirements.properties.forEach(reqProp => {
-      // Rechercher la propriété par nom (insensible à la casse)
-      const foundProperty = Object.entries(dbInfo.properties).find(
-        ([propName, _]) => propName.toLowerCase() === reqProp.name.toLowerCase()
+    const incorrectTypes: Array<{ property: string, expected: string, actual: string }> = [];
+    
+    for (const reqProp of requirement.requiredProperties) {
+      // Chercher la propriété dans la base de données
+      const foundProperty = Object.entries(properties).find(([name, _]) => 
+        name.toLowerCase() === reqProp.name.toLowerCase()
       );
-
+      
       if (!foundProperty) {
         if (reqProp.required) {
           missingProperties.push(reqProp.name);
@@ -159,68 +151,64 @@ export async function validateDatabaseStructure(
           });
         }
       }
-    });
-
-    // Préparer le résultat
-    const result: DatabaseValidationResult = {
+    }
+    
+    // Restaurer le mode démo si nécessaire
+    if (wasDemoMode) {
+      operationMode.enableDemoMode("Mode démo réactivé après validation de base de données");
+    }
+    
+    return {
       databaseId,
-      databaseName: dbInfo.title.map(t => t.plain_text).join('') || databaseType,
+      databaseName,
       isValid: missingProperties.length === 0 && incorrectTypes.length === 0,
       missingProperties,
       incorrectTypes,
-      fullStructure: dbInfo.properties
+      fullStructure: properties
     };
-
-    return result;
   } catch (error) {
-    console.error(`Erreur lors de la validation de la base de données ${databaseType}:`, error);
-    throw error;
+    console.error(`Erreur lors de la validation de la base de données ${databaseId}:`, error);
+    
+    // Restaurer le mode démo si nécessaire
+    if (wasDemoMode) {
+      operationMode.enableDemoMode("Mode démo réactivé après erreur de validation");
+    }
+    
+    return {
+      databaseId,
+      databaseName: requirement.name,
+      isValid: false,
+      missingProperties: ["Erreur d'accès à la base de données"],
+      incorrectTypes: [],
+      fullStructure: { error: error.message || String(error) }
+    };
   }
-}
+};
 
 /**
- * Vérifie la structure de toutes les bases de données configurées
+ * Valide toutes les bases de données configurées
  */
-export async function validateAllDatabases(): Promise<Record<string, DatabaseValidationResult>> {
+export const validateAllDatabases = async (): Promise<Record<string, DatabaseValidationResult>> => {
   const results: Record<string, DatabaseValidationResult> = {};
-  const apiKey = localStorage.getItem('notion_api_key');
   
-  if (!apiKey) {
-    toast.error('Clé API Notion manquante');
-    throw new Error('Clé API Notion manquante');
+  for (const dbRequirement of requiredDatabases) {
+    const databaseId = localStorage.getItem(dbRequirement.configKey);
+    
+    if (databaseId) {
+      // Base de données configurée, la valider
+      results[dbRequirement.configKey] = await validateDatabase(databaseId, dbRequirement);
+    } else {
+      // Base de données non configurée
+      results[dbRequirement.configKey] = {
+        databaseId: "non_configurée",
+        databaseName: dbRequirement.name,
+        isValid: false,
+        missingProperties: ["Base de données non configurée dans les paramètres"],
+        incorrectTypes: [],
+        fullStructure: {}
+      };
+    }
   }
-
-  // Récupérer tous les IDs de base de données configurés
-  const databaseConfigs: Record<string, string> = {
-    projects: localStorage.getItem('notion_database_id') || '',
-    checklists: localStorage.getItem('notion_checklists_database_id') || '',
-    audits: localStorage.getItem('notion_audit_database_id') || '',
-    pages: localStorage.getItem('notion_pages_database_id') || '',
-    exigences: localStorage.getItem('notion_exigences_database_id') || '',
-    evaluations: localStorage.getItem('notion_evaluations_database_id') || '',
-    actions: localStorage.getItem('notion_actions_database_id') || ''
-  };
-
-  // Valider chaque base de données configurée
-  const validationPromises = Object.entries(databaseConfigs)
-    .filter(([_, dbId]) => dbId) // Ignorer les bases non configurées
-    .map(async ([dbType, dbId]) => {
-      try {
-        const result = await validateDatabaseStructure(dbId, dbType, apiKey);
-        results[dbType] = result;
-      } catch (error) {
-        console.error(`Erreur de validation pour ${dbType}:`, error);
-        results[dbType] = {
-          databaseId: dbId,
-          databaseName: DATABASE_REQUIREMENTS[dbType]?.name || dbType,
-          isValid: false,
-          missingProperties: [],
-          incorrectTypes: [],
-          fullStructure: { error: String(error) }
-        };
-      }
-    });
-
-  await Promise.all(validationPromises);
+  
   return results;
-}
+};

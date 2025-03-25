@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -42,6 +43,7 @@ function App() {
             {/* Gestion des projets */}
             <Route path="/project/new" element={<NewProject />} />
             <Route path="/project/edit/:id" element={<EditProject />} />
+            <Route path="/projects" element={<Dashboard />} />
             
             {/* Audits */}
             <Route path="/audit/:projectId" element={<ProjectAudit />} />
@@ -53,6 +55,7 @@ function App() {
             
             {/* Configuration du Mode Opérationnel */}
             <Route path="/config" element={<ConfigPage />} />
+            <Route path="/settings" element={<ConfigPage />} />
             
             {/* Pages d'erreur */}
             <Route path="/error/:errorType" element={<ErrorPage />} />
