@@ -2,20 +2,16 @@
 /**
  * Module de proxy de secours pour l'API Notion
  * 
- * Ce module fournit une alternative au proxy Vercel en utilisant
- * un service CORS public pour contourner les limitations CORS.
+ * NOTE: Ce module est maintenant obsolète car tous les appels
+ * passent par les fonctions Netlify. Il est conservé pour la compatibilité
+ * avec le code existant, mais toutes les fonctions redirigent vers
+ * les fonctions Netlify.
  */
 
 import { toast } from 'sonner';
 
 // Options de configuration
 const CONFIG = {
-  // Services CORS publics (si un ne fonctionne pas, nous essaierons le suivant)
-  CORS_PROXIES: [
-    'https://corsproxy.io/?',
-    'https://cors-anywhere.herokuapp.com/',
-    'https://api.allorigins.win/raw?url='
-  ],
   // URL de base de l'API Notion
   NOTION_API_BASE: 'https://api.notion.com/v1',
   // Version de l'API Notion
@@ -25,58 +21,7 @@ const CONFIG = {
 };
 
 /**
- * Prépare l'URL de l'API Notion complète
- */
-const prepareNotionUrl = (endpoint: string): string => {
-  // S'assurer que l'endpoint commence par un slash
-  const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  
-  // Construire l'URL complète
-  return `${CONFIG.NOTION_API_BASE}${formattedEndpoint}`;
-};
-
-/**
- * Trouve un proxy CORS qui fonctionne
- * @returns URL du proxy fonctionnel ou null si aucun ne fonctionne
- */
-export const findWorkingCorsProxy = async (): Promise<string | null> => {
-  for (const proxyUrl of CONFIG.CORS_PROXIES) {
-    try {
-      // Test simple avec une requête de ping à l'API Notion
-      const testUrl = `${proxyUrl}${CONFIG.NOTION_API_BASE}/users/me`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(testUrl, {
-        method: 'HEAD',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      // Si le proxy répond, même avec une erreur d'authentification, c'est bon
-      if (response.status === 401 || response.ok) {
-        console.log(`✅ Proxy CORS trouvé: ${proxyUrl}`);
-        return proxyUrl;
-      }
-    } catch (error) {
-      console.log(`❌ Proxy CORS non disponible: ${proxyUrl}`, error.message);
-    }
-  }
-  
-  return null;
-};
-
-/**
- * Cache pour stocker le proxy fonctionnel
- */
-let cachedWorkingProxy: string | null = null;
-
-/**
- * Effectue une requête via le proxy CORS public
+ * Effectue une requête via les fonctions Netlify
  */
 export const fallbackNotionRequest = async (
   endpoint: string,
@@ -90,39 +35,24 @@ export const fallbackNotionRequest = async (
       throw new Error('Clé API Notion introuvable');
     }
     
-    // Trouver un proxy CORS qui fonctionne (ou utiliser celui en cache)
-    if (!cachedWorkingProxy) {
-      cachedWorkingProxy = await findWorkingCorsProxy();
-      if (!cachedWorkingProxy) {
-        throw new Error('Aucun proxy CORS public disponible');
-      }
-    }
+    // Nettoyer l'endpoint
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
-    // Préparer l'URL complète
-    const notionUrl = prepareNotionUrl(endpoint);
-    const proxyUrl = `${cachedWorkingProxy}${notionUrl}`;
+    console.log(`🔄 Utilisation des fonctions Netlify pour l'appel à l'API Notion`);
     
-    // Préparer les options de la requête
-    const fetchOptions: RequestInit = {
-      method: options.method || 'GET',
+    // Utiliser la fonction Netlify pour les appels à l'API Notion
+    const response = await fetch('/.netlify/functions/notion-proxy', {
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Notion-Version': CONFIG.NOTION_API_VERSION,
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
-      body: options.body
-    };
-    
-    console.log(`🔄 Utilisation du proxy CORS alternatif: ${cachedWorkingProxy}`);
-    
-    // Configurer un timeout pour la requête
-    const controller = new AbortController();
-    fetchOptions.signal = controller.signal;
-    const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
-    
-    // Effectuer la requête
-    const response = await fetch(proxyUrl, fetchOptions);
-    clearTimeout(timeoutId);
+      body: JSON.stringify({
+        endpoint: normalizedEndpoint,
+        method: options.method || 'GET',
+        body: options.body ? JSON.parse(options.body.toString()) : undefined,
+        token
+      })
+    });
     
     // Vérifier si la réponse est OK
     if (!response.ok) {
@@ -134,15 +64,10 @@ export const fallbackNotionRequest = async (
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('❌ Erreur proxy CORS alternatif:', error);
+    console.error('❌ Erreur lors de l\'appel à la fonction Netlify:', error);
     
-    // Si le proxy CORS échoue, on le réinitialise pour la prochaine tentative
-    if (error.message.includes('Aucun proxy CORS') || error.name === 'AbortError') {
-      cachedWorkingProxy = null;
-    }
-    
-    toast.error('Erreur du proxy alternatif', {
-      description: `${error.message}. Essayez de rafraîchir la page ou un autre proxy.`,
+    toast.error('Erreur de l\'API Notion', {
+      description: error.message || 'Erreur inconnue lors de l\'appel à l\'API Notion',
     });
     
     throw error;
@@ -150,8 +75,12 @@ export const fallbackNotionRequest = async (
 };
 
 /**
- * Réinitialise le cache du proxy
+ * Ces fonctions sont conservées pour la compatibilité mais ne font rien
  */
+export const findWorkingCorsProxy = async (): Promise<string> => {
+  return '/.netlify/functions/notion-proxy';
+};
+
 export const resetCorsProxyCache = () => {
-  cachedWorkingProxy = null;
+  // Ne fait rien car on utilise toujours les fonctions Netlify
 };
