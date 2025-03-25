@@ -1,4 +1,8 @@
 
+/**
+ * Point d'entrée pour la gestion des erreurs
+ */
+
 // Exporter les services
 export { notionErrorService } from './errorService';
 export { notionRetryQueue } from './retryQueue';

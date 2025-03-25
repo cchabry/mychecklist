@@ -1,210 +1,108 @@
-import { operationMode } from '@/services/operationMode';
-import { notionErrorService } from './errorService';
-import { retryQueueService } from './retryQueue';
-import { NotionError, NotionErrorType, AutoRetryConfig } from './types';
-
-// Configuration par défaut
-const DEFAULT_CONFIG: AutoRetryConfig = {
-  enabled: true,
-  maxRetries: 3,
-  delayMs: 2000,
-  typesToRetry: [
-    NotionErrorType.NETWORK,
-    NotionErrorType.RATE_LIMIT,
-    NotionErrorType.TIMEOUT
-  ]
-};
 
 /**
- * Gestionnaire automatique de retry pour les erreurs Notion
+ * Service de réessai automatique pour les opérations Notion
  */
-class AutoRetryHandler {
-  private config: AutoRetryConfig = { ...DEFAULT_CONFIG };
-  
-  /**
-   * Initialise le gestionnaire de retry automatique
-   */
-  initialize() {
-    // S'abonner aux erreurs Notion
-    notionErrorService.subscribe(this.handleNewErrors.bind(this));
-    
-    // Configurer les callbacks de retry
-    retryQueueService.updateCallbacks({
-      onSuccess: this.handleRetrySuccess.bind(this),
-      onFailure: this.handleRetryFailure.bind(this),
-      onProcessingComplete: this.handleProcessingComplete.bind(this)
-    });
-    
-    console.log('AutoRetryHandler initialisé');
-  }
-  
-  /**
-   * Vérifie si le service est activé
-   */
-  isEnabled(): boolean {
-    return this.config.enabled;
-  }
-  
-  /**
-   * Active le service
-   */
-  enable(): void {
-    this.config.enabled = true;
-  }
-  
-  /**
-   * Désactive le service
-   */
-  disable(): void {
-    this.config.enabled = false;
-  }
-  
-  /**
-   * Obtient la configuration actuelle
-   */
-  getConfig(): AutoRetryConfig {
-    return { ...this.config };
-  }
-  
-  /**
-   * Met à jour la configuration
-   */
-  configure(newConfig: Partial<AutoRetryConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-  }
-  
-  /**
-   * Traite les nouvelles erreurs pour détecter celles qui peuvent être automatiquement retentées
-   */
-  handleNewErrors(errors: NotionError[]) {
-    if (!this.isEnabled()) return;
-    
-    // Traiter uniquement les nouvelles erreurs retryables
-    const retryableErrors = errors.filter(error => 
-      error.retryable && 
-      this.config.typesToRetry.includes(error.type) &&
-      !retryQueueService.hasOperation(error.operation || '')
-    );
-    
-    if (retryableErrors.length === 0) return;
-    
-    console.log(`AutoRetryHandler: ${retryableErrors.length} nouvelles erreurs retryables détectées`);
-    
-    // Ajouter automatiquement à la file d'attente en fonction du type d'erreur
-    retryableErrors.forEach(error => {
-      // Pour les erreurs CORS, tenter de passer en mode démo
-      if (error.type === NotionErrorType.CORS) {
-        const errorMessage = typeof error.message === 'string' ? error.message : 'Erreur CORS détectée';
-        const contextStr = error.context ? 
-                          (typeof error.context === 'string' ? 
-                            error.context : 
-                            JSON.stringify(error.context)) : 
-                          "Erreur CORS détectée";
-                          
-        operationMode.handleConnectionError(
-          new Error(errorMessage),
-          contextStr
-        );
-      }
-    });
-  }
-  
-  /**
-   * Gère le succès d'une opération retry
-   */
-  handleRetrySuccess(operation) {
-    console.log(`AutoRetryHandler: Opération ${operation.id} réussie`);
-    
-    // Si nous avons une série de succès, tenter de revenir en mode réel
-    if (retryQueueService.getStats().completedOperations > 2) {
-      // Utiliser la méthode correcte de l'API operationMode
-      this.attemptToEnableRealMode();
-    }
-  }
-  
-  /**
-   * Tente de revenir en mode réel
-   */
-  private attemptToEnableRealMode() {
-    // Vérifier si le mode est actuellement démo
-    if (operationMode.getMode() === 'demo') {
-      console.log("AutoRetryHandler: Tentative de retour en mode réel après plusieurs opérations réussies");
-      operationMode.enableRealMode();
-    }
-  }
-  
-  /**
-   * Gère l'échec d'une opération retry
-   */
-  handleRetryFailure(operation, error) {
-    console.log(`AutoRetryHandler: Échec de l'opération ${operation.id}`, error);
-    
-    // Si trop d'échecs, passer en mode démo
-    if (operation.currentRetries >= operation.maxRetries) {
-      operationMode.handleConnectionError(
-        error,
-        `Échec après ${operation.maxRetries} tentatives: ${operation.operation}`
-      );
-    }
-  }
-  
-  /**
-   * Gère la fin du traitement de la file d'attente
-   */
-  handleProcessingComplete(stats) {
-    console.log('AutoRetryHandler: Traitement de la file terminé', stats);
-  }
-  
-  /**
-   * Gère une erreur et tente de l'exécuter automatiquement
-   */
-  async handleError<T>(
-    error: NotionError, 
-    operation: () => Promise<T>, 
-    options: {
-      context?: string;
-      maxRetries?: number;
-      onSuccess?: (result: T) => void;
-      onFailure?: (error: Error | NotionError) => void;
-    } = {}
-  ): Promise<T> {
-    if (!this.isEnabled() || !this.shouldRetry(error)) {
-      if (options.onFailure) {
-        // Acceptons NotionError et Error pour une meilleure compatibilité
-        options.onFailure(error);
-      }
-      throw error;
-    }
-    
-    // Enqueue l'opération
-    const operationId = retryQueueService.enqueue(
-      operation,
-      options.context || error.context || 'Auto retry operation',
-      {
-        maxRetries: options.maxRetries || this.config.maxRetries,
-        onSuccess: options.onSuccess,
-        onFailure: options.onFailure
-      }
-    );
-    
-    console.log(`Opération ${operationId} mise en file d'attente pour retry automatique`);
-    
-    // Créer une nouvelle promesse qui sera résolue quand l'opération sera terminée
-    return new Promise<T>((resolve, reject) => {
-      // TODO: Implémenter une attente de la fin de l'opération
-      // Pour l'instant, on échoue immédiatement pour permettre à l'appelant de gérer l'erreur
-      reject(error);
-    });
-  }
-  
-  /**
-   * Détermine si une erreur devrait être retentée
-   */
-  private shouldRetry(error: NotionError): boolean {
-    return error.retryable !== false && 
-           this.config.typesToRetry.includes(error.type);
-  }
-}
 
-// Créer et exporter une instance unique
-export const autoRetryHandler = new AutoRetryHandler();
+import { notionErrorUtils } from './utils';
+import { notionRetryQueue } from './retryQueue';
+import { RetryOperationOptions } from './types';
+
+/**
+ * Utilitaire pour réessayer automatiquement les opérations Notion
+ */
+export const autoRetryHandler = {
+  /**
+   * Exécute une opération avec réessai automatique
+   */
+  async execute<T>(
+    operation: () => Promise<T>,
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions = {}
+  ): Promise<T> {
+    try {
+      // Tenter d'exécuter l'opération directement
+      return await operation();
+    } catch (error) {
+      // Convertir en instance d'Error
+      const err = error instanceof Error ? error : new Error(String(error));
+      
+      // Vérifier si l'erreur est réessayable
+      if (!notionErrorUtils.isRetryableError(err)) {
+        throw err;
+      }
+      
+      // Si des conditions spécifiques empêchent le réessai
+      if (options.skipRetryIf && options.skipRetryIf(err)) {
+        throw err;
+      }
+      
+      // Ajouter à la file d'attente de réessai
+      return new Promise<T>((resolve, reject) => {
+        const operationId = notionRetryQueue.enqueue(
+          operation,
+          context,
+          {
+            ...options,
+            onSuccess: (result) => {
+              if (options.onSuccess) {
+                options.onSuccess(result);
+              }
+              resolve(result as T);
+            },
+            onFailure: (error) => {
+              if (options.onFailure) {
+                options.onFailure(error);
+              }
+              reject(error);
+            }
+          }
+        );
+        
+        console.log(`[AutoRetry] Opération placée en file d'attente: ${operationId}`);
+      });
+    }
+  },
+  
+  /**
+   * Crée une version avec réessai automatique d'une fonction
+   */
+  createAutoRetryFunction<T, Args extends any[]>(
+    fn: (...args: Args) => Promise<T>,
+    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry operation',
+    options: RetryOperationOptions = {}
+  ): (...args: Args) => Promise<T> {
+    return async (...args: Args): Promise<T> => {
+      return this.execute(
+        () => fn(...args),
+        contextGenerator(args),
+        options
+      );
+    };
+  },
+  
+  /**
+   * Décore une méthode de classe avec réessai automatique
+   */
+  autoRetry<T, Args extends any[]>(
+    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry method',
+    options: RetryOperationOptions = {}
+  ): MethodDecorator {
+    return function(
+      target: any,
+      propertyKey: string | symbol,
+      descriptor: PropertyDescriptor
+    ) {
+      const originalMethod = descriptor.value as (...args: Args) => Promise<T>;
+      
+      descriptor.value = async function(...args: Args): Promise<T> {
+        return autoRetryHandler.execute(
+          () => originalMethod.apply(this, args),
+          contextGenerator(args),
+          options
+        );
+      };
+      
+      return descriptor;
+    };
+  }
+};

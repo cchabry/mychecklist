@@ -63,7 +63,8 @@ export function createNotionService() {
         return {
           success: result.success,
           data: result.success ? { user: result.user || 'Unknown' } : undefined,
-          error: !result.success ? { message: result.error || 'Unknown error' } : undefined
+          error: !result.success ? { message: result.error || 'Unknown error' } : undefined,
+          user: result.success ? result.user || 'Unknown' : undefined
         };
       } catch (error) {
         connectionStatus = ConnectionStatus.Error;
@@ -74,6 +75,16 @@ export function createNotionService() {
           }
         };
       }
+    },
+    
+    // Récupérer l'état de connexion
+    getConnectionStatus: (): ConnectionStatus => {
+      return connectionStatus;
+    },
+    
+    // Définir l'état de connexion
+    setConnectionStatus: (status: ConnectionStatus): void => {
+      connectionStatus = status;
     },
     
     // API Utilisateurs

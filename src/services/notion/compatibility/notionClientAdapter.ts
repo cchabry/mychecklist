@@ -44,13 +44,14 @@ export const notionClientAdapter = {
       return {
         success: result.success,
         data: result.success ? { user: result.user || 'Unknown user' } : undefined,
-        error: !result.success ? { message: result.error || 'Unknown error' } : undefined
+        error: !result.success ? { message: result.error || 'Unknown error' } : undefined,
+        user: result.success ? result.user || 'Unknown user' : undefined
       };
     } catch (error) {
       return {
         success: false,
         error: {
-          message: error.message || 'Une erreur inconnue est survenue'
+          message: error instanceof Error ? error.message : 'Une erreur inconnue est survenue'
         }
       };
     }
@@ -58,11 +59,11 @@ export const notionClientAdapter = {
   
   // Gestion de l'état de connexion
   getConnectionStatus: (): ConnectionStatus => {
-    return notionService.connectionStatus || ConnectionStatus.Disconnected;
+    return notionService.getConnectionStatus();
   },
   
   setConnectionStatus: (status: ConnectionStatus): void => {
-    notionService.connectionStatus = status;
+    notionService.setConnectionStatus(status);
   },
   
   // Proxy pour les opérations de l'API Notion (databases, users, pages, etc.)
@@ -72,7 +73,10 @@ export const notionClientAdapter = {
         const result = await notionService.databases.query(databaseId, query);
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     },
     
@@ -81,18 +85,25 @@ export const notionClientAdapter = {
         const result = await notionService.databases.retrieve(databaseId);
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     }
   },
   
+  // API Pages
   pages: {
     retrieve: async (pageId: string): Promise<NotionAPIResponse<NotionAPIPage>> => {
       try {
         const result = await notionService.pages.retrieve(pageId);
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     },
     
@@ -101,7 +112,10 @@ export const notionClientAdapter = {
         const result = await notionService.pages.create(data);
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     },
     
@@ -110,18 +124,25 @@ export const notionClientAdapter = {
         const result = await notionService.pages.update(pageId, data);
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     }
   },
   
+  // API Utilisateurs
   users: {
     me: async (): Promise<NotionAPIResponse<any>> => {
       try {
         const result = await notionService.users.me();
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     },
     
@@ -130,17 +151,24 @@ export const notionClientAdapter = {
         const result = await notionService.users.list();
         return { success: true, data: result.data };
       } catch (error) {
-        return { success: false, error: { message: error.message } };
+        return { 
+          success: false, 
+          error: { message: error instanceof Error ? error.message : String(error) } 
+        };
       }
     }
   },
   
+  // API Recherche
   search: async (query: string, options = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
     try {
       const result = await notionService.search(query, options);
       return { success: true, data: result.data };
     } catch (error) {
-      return { success: false, error: { message: error.message } };
+      return { 
+        success: false, 
+        error: { message: error instanceof Error ? error.message : String(error) } 
+      };
     }
   }
 };

@@ -1,126 +1,98 @@
 
-import { useState, useEffect } from 'react';
+/**
+ * Hook pour utiliser le système de réessai automatique
+ */
+
+import { useState, useCallback } from 'react';
 import { autoRetryHandler } from './autoRetry';
-import { NotionError, NotionErrorType, AutoRetryConfig, NotionErrorSeverity } from './types';
+import { RetryOperationOptions } from './types';
+import { toast } from 'sonner';
 
 /**
- * Hook pour utiliser le service de retry automatique
+ * Hook pour utiliser le système de réessai automatique
  */
 export function useAutoRetry() {
-  const [isEnabled, setIsEnabled] = useState(autoRetryHandler.isEnabled());
-  const [config, setConfig] = useState<AutoRetryConfig>(autoRetryHandler.getConfig());
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState<number>(0);
   
-  // Suivre les changements de configuration
-  useEffect(() => {
-    // Synchroniser l'état local avec la configuration du service
-    setIsEnabled(autoRetryHandler.isEnabled());
-    setConfig(autoRetryHandler.getConfig());
+  /**
+   * Exécute une opération avec réessai automatique
+   */
+  const executeWithRetry = useCallback(async <T>(
+    operation: () => Promise<T>,
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions & {
+      showToast?: boolean;
+      toastMessage?: string;
+    } = {}
+  ): Promise<T> => {
+    const { 
+      showToast = true, 
+      toastMessage = 'Une erreur est survenue, nouvelle tentative...',
+      ...retryOptions 
+    } = options;
+    
+    setIsRetrying(false);
+    setRetryCount(0);
+    
+    try {
+      return await autoRetryHandler.execute<T>(
+        operation,
+        context,
+        {
+          ...retryOptions,
+          onSuccess: (result) => {
+            if (options.onSuccess) {
+              options.onSuccess(result);
+            }
+            
+            setIsRetrying(false);
+          },
+          onFailure: (error) => {
+            if (options.onFailure) {
+              options.onFailure(error);
+            }
+            
+            setIsRetrying(false);
+          }
+        }
+      );
+    } catch (error) {
+      // Gérer l'erreur finale
+      if (showToast) {
+        toast.error('Échec de l\'opération', {
+          description: error instanceof Error ? error.message : String(error)
+        });
+      }
+      
+      throw error;
+    }
   }, []);
   
   /**
-   * Activer le retry automatique
+   * Crée une fonction avec réessai automatique
    */
-  const enable = () => {
-    autoRetryHandler.enable();
-    setIsEnabled(true);
-  };
-  
-  /**
-   * Désactiver le retry automatique
-   */
-  const disable = () => {
-    autoRetryHandler.disable();
-    setIsEnabled(false);
-  };
-  
-  /**
-   * Configurer le retry automatique
-   */
-  const configure = (newConfig: Partial<AutoRetryConfig>) => {
-    autoRetryHandler.configure(newConfig);
-    setConfig(autoRetryHandler.getConfig());
-  };
-  
-  /**
-   * Ajouter un type d'erreur à retrier automatiquement
-   */
-  const addErrorTypeToRetry = (errorType: NotionErrorType) => {
-    if (!config.typesToRetry.includes(errorType)) {
-      const newTypes = [...config.typesToRetry, errorType];
-      configure({ typesToRetry: newTypes });
-    }
-  };
-  
-  /**
-   * Retirer un type d'erreur à retrier automatiquement
-   */
-  const removeErrorTypeToRetry = (errorType: NotionErrorType) => {
-    if (config.typesToRetry.includes(errorType)) {
-      const newTypes = config.typesToRetry.filter(type => type !== errorType);
-      configure({ typesToRetry: newTypes });
-    }
-  };
-  
-  /**
-   * Définir le nombre maximum de tentatives
-   */
-  const setMaxRetries = (maxRetries: number) => {
-    configure({ maxRetries });
-  };
-  
-  /**
-   * Définir le délai entre les tentatives
-   */
-  const setDelayMs = (delayMs: number) => {
-    configure({ delayMs });
-  };
-  
-  /**
-   * Wrapper pour handle l'erreur et retrier automatiquement
-   */
-  const handleError = async <T>(
-    error: NotionError | Error,
-    operation: () => Promise<T>,
-    options: {
-      context?: string;
-      maxRetries?: number;
-      onSuccess?: (result: T) => void;
-      onFailure?: (error: NotionError) => void;
+  const createRetryFunction = useCallback(<T, Args extends any[]>(
+    fn: (...args: Args) => Promise<T>,
+    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry operation',
+    options: RetryOperationOptions & {
+      showToast?: boolean;
+      toastMessage?: string;
     } = {}
-  ): Promise<T> => {
-    // Convertir en NotionError si nécessaire
-    const notionError: NotionError = (error as NotionError).type !== undefined 
-      ? (error as NotionError)
-      : {
-          id: Math.random().toString(36).substring(2, 9),
-          timestamp: Date.now(),
-          type: NotionErrorType.UNKNOWN,
-          message: error.message,
-          name: error.name,
-          stack: error.stack,
-          retryable: false,
-          context: options.context,
-          severity: NotionErrorSeverity.ERROR // Ajout de la sévérité obligatoire
-        };
-    
-    try {
-      return await autoRetryHandler.handleError(notionError, operation, options);
-    } catch (err) {
-      // Si l'erreur est déjà gérée par le retryHandler, la propager
-      throw err;
-    }
-  };
+  ): ((...args: Args) => Promise<T>) => {
+    return async (...args: Args): Promise<T> => {
+      return executeWithRetry(
+        () => fn(...args),
+        contextGenerator(args),
+        options
+      );
+    };
+  }, [executeWithRetry]);
   
   return {
-    isEnabled,
-    config,
-    enable,
-    disable,
-    configure,
-    addErrorTypeToRetry,
-    removeErrorTypeToRetry,
-    setMaxRetries,
-    setDelayMs,
-    handleError
+    executeWithRetry,
+    createRetryFunction,
+    isRetrying,
+    retryCount
   };
 }

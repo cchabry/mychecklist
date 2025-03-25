@@ -1,84 +1,92 @@
 
 /**
+ * Types pour la gestion d'erreur
+ */
+
+import { v4 as uuidv4 } from 'uuid';
+
+/**
  * Types d'erreurs Notion
  */
 export enum NotionErrorType {
-  API = 'api',
-  CORS = 'cors',
-  DATABASE = 'database',
-  AUTHENTICATION = 'authentication',
-  NETWORK = 'network',
-  UNKNOWN = 'unknown',
-  AUTH = 'auth',
-  PERMISSION = 'permission',
-  RATE_LIMIT = 'rate_limit',
-  TIMEOUT = 'timeout',
-  NOT_FOUND = 'notFound'
+  AUTH = 'auth',               // Erreurs d'authentification
+  PERMISSION = 'permission',   // Problèmes de permission
+  RATE_LIMIT = 'rate_limit',   // Limite de requêtes
+  NETWORK = 'network',         // Problèmes réseau
+  TIMEOUT = 'timeout',         // Délais d'attente
+  DATABASE = 'database',       // Erreurs de base de données
+  VALIDATION = 'validation',   // Erreurs de validation
+  NOT_FOUND = 'not_found',     // Ressource non trouvée
+  SERVER = 'server',           // Erreurs serveur
+  CORS = 'cors',               // Problèmes CORS
+  PROXY = 'proxy',             // Erreurs de proxy
+  CONFIG = 'config',           // Erreurs de configuration
+  UNKNOWN = 'unknown'          // Type inconnu
 }
 
 /**
- * Niveaux de sévérité des erreurs
+ * Niveaux de gravité des erreurs
  */
 export enum NotionErrorSeverity {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical'
+  DEBUG = 'debug',        // Informations de débogage
+  INFO = 'info',          // Informations générales
+  WARNING = 'warning',    // Avertissements
+  ERROR = 'error',        // Erreurs standards
+  CRITICAL = 'critical'   // Erreurs critiques
 }
 
 /**
- * Structure d'une erreur Notion enrichie
- * Étend Error pour assurer la compatibilité avec les API standard
+ * Interface détaillée d'une erreur Notion
  */
 export interface NotionError {
-  id: string;
-  timestamp: number;
-  message: string;
-  type: NotionErrorType;
-  operation?: string;
-  context?: string | Record<string, any>;
-  originError?: Error;
-  details?: any;
-  retryable?: boolean;
-  name: string; // Rendu obligatoire pour compatibilité avec Error
-  stack?: string; // Pour compatibilité avec Error
-  recoverable?: boolean;
-  recoveryActions?: any[];
-  severity: NotionErrorSeverity; // Rendu obligatoire
-  cause?: Error | unknown;
+  id: string;              // Identifiant unique
+  timestamp: number;       // Timestamp de l'erreur
+  message: string;         // Message d'erreur
+  type: NotionErrorType;   // Type d'erreur
+  operation?: string;      // Opération en cours
+  context?: string;        // Contexte d'erreur
+  originError?: Error;     // Erreur d'origine
+  details?: any;           // Détails supplémentaires
+  retryable: boolean;      // Si l'erreur peut être réessayée
+  name: string;            // Nom de l'erreur
+  stack?: string;          // Stack trace
+  severity: NotionErrorSeverity; // Niveau de gravité
+  recoverable: boolean;    // Si l'erreur est récupérable
+  recoveryActions?: Array<{
+    label: string;         // Libellé de l'action
+    action: () => void;    // Fonction à exécuter
+  }>;
+  cause?: Error | unknown; // Cause de l'erreur (pour les erreurs chaînées)
 }
 
 /**
- * Options pour la création d'erreurs
+ * Options pour la création d'erreur
  */
 export interface NotionErrorOptions {
   type?: NotionErrorType;
   operation?: string;
-  context?: string | Record<string, any>;
+  context?: string;
   details?: any;
   retryable?: boolean;
   severity?: NotionErrorSeverity;
   recoverable?: boolean;
-  recoveryActions?: any[];
+  recoveryActions?: Array<{
+    label: string;
+    action: () => void;
+  }>;
   cause?: Error | unknown;
 }
 
 /**
- * Paramètres pour rapporter une erreur
+ * Options pour signaler une erreur
  */
-export interface ReportErrorOptions {
-  operation?: string;
-  context?: string | Record<string, any>;
-  type?: NotionErrorType;
-  details?: any;
-  retryable?: boolean;
-  severity?: NotionErrorSeverity;
-  recoverable?: boolean;
-  recoveryActions?: any[];
+export interface ReportErrorOptions extends NotionErrorOptions {
+  showToast?: boolean;
+  logToConsole?: boolean;
 }
 
 /**
- * Structure pour les abonnés aux erreurs
+ * Gestion des abonnements aux erreurs
  */
 export interface ErrorSubscriber {
   id: string;
@@ -86,56 +94,33 @@ export interface ErrorSubscriber {
 }
 
 /**
- * Fonction d'abonnement aux erreurs
+ * Options d'une opération à réessayer
  */
-export type NotionErrorSubscriber = (errors: NotionError[]) => void;
-
-/**
- * Structure pour les opérations de retry
- */
-export interface RetryOperation {
-  id: string;
-  timestamp: number;
-  operation: string;
-  context?: string | Record<string, any>;
-  retryFn: () => Promise<any>;
-  maxRetries: number;
-  currentRetries: number;
-  lastError?: Error;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+export interface RetryOperationOptions {
+  maxRetries?: number;       // Nombre maximal de tentatives
+  retryDelay?: number;       // Délai entre les tentatives (ms)
+  backoff?: boolean;         // Si le délai doit augmenter exponentiellement
+  context?: string;          // Contexte de l'opération
+  onSuccess?: (result: any) => void;  // Callback de succès
+  onFailure?: (error: Error) => void; // Callback d'échec
+  skipRetryIf?: (error: Error) => boolean; // Condition pour sauter la réessai
 }
 
 /**
- * Statistiques de la file d'attente de retry
+ * Statistiques de la file d'attente de réessai
  */
 export interface RetryQueueStats {
-  pendingOperations: number;
-  completedOperations: number;
-  failedOperations: number;
-  totalOperations: number;
-  lastProcessedAt: number | null;
-  isProcessing: boolean;
-  successful?: number;    // Ajouté pour compatibilité
-  failed?: number;        // Ajouté pour compatibilité
-  successRate?: number;   // Ajouté pour compatibilité
+  totalOperations: number;         // Nombre total d'opérations traitées
+  pendingOperations: number;       // Opérations en attente
+  completedOperations: number;     // Opérations réussies
+  failedOperations: number;        // Opérations échouées définitivement
+  lastProcessedAt: number | null;  // Dernier traitement
+  isProcessing: boolean;           // Si le traitement est en cours
 }
 
 /**
- * Callbacks pour la file d'attente de retry
+ * Création d'un ID unique pour les erreurs
  */
-export interface RetryQueueCallbacks {
-  onSuccess?: (operation: RetryOperation) => void;
-  onFailure?: (operation: RetryOperation, error: Error) => void;
-  onProcessingStart?: () => void;
-  onProcessingComplete?: (stats: RetryQueueStats) => void;
-}
-
-/**
- * Configuration du service d'auto-retry
- */
-export interface AutoRetryConfig {
-  enabled: boolean;
-  maxRetries: number;
-  delayMs: number;
-  typesToRetry: NotionErrorType[];
-}
+export const createErrorId = (): string => {
+  return uuidv4();
+};

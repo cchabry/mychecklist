@@ -1,37 +1,28 @@
 
 /**
  * Point d'entrée principal pour les services Notion
- * Intègre le nouveau client avec l'abstraction de proxy API
  */
 
-// Exporter la nouvelle API client (version moderne)
+// Exporter le client de base
 export * from './client';
 
-// Exporter le système de configuration
+// Exporter les configurations
 export * from './config';
 
-// Compatibilité avec l'ancien code
-import { notionClientAdapter } from './compatibility/notionClientAdapter';
-import { ConnectionStatus } from './client/legacy';
-
-// Exporter les hooks et utilitaires communs
-export * from './hooks';
-export * from './utils';
-
-// Exporter les services spécifiques
-export * from './projects';
-export * from './checklist';
-export * from './audits';
-export * from './exigences';
-export * from './samples';
+// Exporter les utilitaires de diagnostic
 export * from './diagnostics';
 
-// Ajouter l'interface de compatibilité vers l'ancien client
-export const notionClient = notionClientAdapter;
+// Exporter les services spécialisés
+export * from './errorHandling';
 
-// Re-exporter certains types et enums pour la compatibilité
-export { ConnectionStatus };
+// Exporter les optimisations
+export * from './optimization';
 
-// Exporter le nouveau service comme interface principale
-export { notionService } from './client';
+// Exporter l'adaptateur de compatibilité
+export { notionClientAdapter } from './compatibility/notionClientAdapter';
+
+// Exporter le service principal
+import { notionService } from './client';
+
+// Exporter par défaut pour un accès rapide
 export default notionService;
