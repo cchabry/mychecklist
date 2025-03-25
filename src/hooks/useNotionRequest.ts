@@ -1,82 +1,73 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { notionApi } from '@/lib/notionProxy';
-import { handleNotionError } from '@/lib/notionProxy/errorHandling';
 import { operationMode } from '@/services/operationMode';
 
-interface RequestOptions<T, R> {
-  onSuccess?: (data: R) => void;
-  onError?: (error: Error) => void;
-  successMessage?: string;
+/**
+ * Options pour l'exécution des requêtes
+ */
+interface RequestOptions {
   errorMessage?: string;
-  mockResponse?: T;
+  onSuccess?: (data: any) => void;
+  onError?: (error: Error) => void;
 }
 
 /**
- * Hook optimisé pour effectuer des requêtes à l'API Notion
+ * Hook pour gérer les requêtes à l'API Notion
  */
-export function useNotionRequest<T = unknown>() {
+export function useNotionRequest() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<T | null>(null);
-
+  
+  // Vérifier si l'utilisateur est authentifié
+  const isAuthenticated = !!localStorage.getItem('notion_api_key');
+  
   /**
    * Exécute une requête à l'API Notion
    */
-  const executeRequest = useCallback(async <R = T>(
-    requestFn: () => Promise<R>,
-    options: RequestOptions<T, R> = {}
-  ): Promise<R | null> => {
-    const { onSuccess, onError, successMessage, errorMessage, mockResponse } = options;
+  const executeRequest = useCallback(async <T>(
+    requestFn: () => Promise<T>,
+    options: RequestOptions = {}
+  ): Promise<T | null> => {
+    const { errorMessage = 'Erreur lors de la requête', onSuccess, onError } = options;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      // Vérifier si nous sommes en mode démo et si une réponse mock est fournie
-      if (operationMode.isDemoMode && mockResponse !== undefined) {
-        // Simuler un délai pour l'expérience utilisateur
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        if (onSuccess) {
-          onSuccess(mockResponse as unknown as R);
-        }
-        
-        setData(mockResponse as unknown as T);
-        setIsLoading(false);
-        
-        return mockResponse as unknown as R;
+      // Conserver le mode actuel
+      const wasDemoMode = operationMode.isDemoMode;
+      
+      // Si nous sommes en mode démo mais qu'il s'agit d'une requête de test,
+      // forçons temporairement le mode réel
+      if (wasDemoMode && options.errorMessage?.includes('connexion')) {
+        operationMode.temporarilyForceReal();
       }
       
       const result = await requestFn();
-      
-      // Signaler une opération réussie
-      operationMode.handleSuccessfulOperation();
-      
-      if (successMessage) {
-        toast.success(successMessage);
-      }
       
       if (onSuccess) {
         onSuccess(result);
       }
       
-      setData(result as unknown as T);
+      // Signaler l'opération réussie
+      operationMode.handleSuccessfulOperation();
+      
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
       
-      // Signaler une opération échouée
-      operationMode.handleConnectionError(error, 'API Notion');
-      
-      // Utiliser le service de gestion d'erreur
-      handleNotionError(error, errorMessage);
-      
       if (onError) {
         onError(error);
+      } else {
+        toast.error(errorMessage, {
+          description: error.message
+        });
       }
+      
+      // Signaler l'erreur à operationMode
+      operationMode.handleConnectionError(error, errorMessage);
       
       return null;
     } finally {
@@ -87,7 +78,7 @@ export function useNotionRequest<T = unknown>() {
   return {
     isLoading,
     error,
-    data,
+    isAuthenticated,
     executeRequest
   };
 }
