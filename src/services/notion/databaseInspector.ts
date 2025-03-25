@@ -146,7 +146,9 @@ export async function validateDatabaseStructure(
         }
       } else {
         const [actualName, propDetails] = foundProperty;
-        const actualType = propDetails.type;
+        
+        // Utiliser type assertion pour accéder à la propriété type
+        const actualType = (propDetails as any).type;
         
         // Vérifier le type
         if (actualType !== reqProp.type) {

@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 
 import { Icons } from "@/components/icons"
@@ -16,7 +17,7 @@ export function MainNav() {
         </span>
       </Link>
       <Link
-        to="/projects/new"
+        to="/project/new"
         className="text-sm font-medium transition-colors hover:text-primary"
       >
         <div className="flex items-center">
