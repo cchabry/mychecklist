@@ -1,130 +1,135 @@
 
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, ChevronRight, KeyRound, ServerCrash, Database } from 'lucide-react';
-import { useNotionErrorService } from '@/services/notion/errorHandling';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { RefreshCw, XCircle, AlertCircle } from 'lucide-react';
+import { 
+  useNotionErrorService,
+  useRetryQueue
+} from '@/services/notion/errorHandling';
+import { NotionError } from '@/services/notion/types/unified';
 
 interface NotionErrorsListProps {
-  maxItems?: number;
+  title?: string;
+  maxErrors?: number;
   onRetryAll?: () => void;
-  onShowDetails?: (error: NotionError) => void;
-  compact?: boolean;
-  title?: string; // Ajout de la propriété title
+  showClearButton?: boolean;
 }
 
 const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
-  maxItems = 5,
+  title = 'Erreurs récentes',
+  maxErrors = 5,
   onRetryAll,
-  onShowDetails,
-  compact = false,
-  title
+  showClearButton = true
 }) => {
   const { errors, clearErrors } = useNotionErrorService();
+  const { processQueue } = useRetryQueue();
   
+  // Aucune erreur à afficher
   if (errors.length === 0) {
     return (
-      <div className="text-center py-4 text-sm text-muted-foreground">
-        Aucune erreur récente
-      </div>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-6 text-muted-foreground text-sm">
+            Aucune erreur à afficher
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   
-  const getErrorIcon = (error: NotionError) => {
-    switch(error.type) {
-      case NotionErrorType.AUTH:
-        return <KeyRound className="h-4 w-4 text-amber-500" />;
-        
-      case NotionErrorType.API:
-      case NotionErrorType.RATE_LIMIT:
-        return <ServerCrash className="h-4 w-4 text-red-500" />;
-        
-      case NotionErrorType.DATABASE:
-      case NotionErrorType.PERMISSION:
-        return <Database className="h-4 w-4 text-amber-500" />;
-        
-      default:
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+  // Limiter le nombre d'erreurs affichées
+  const displayedErrors = errors.slice(0, maxErrors);
+  
+  // Formater l'horodatage
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+  
+  // Gérer le réessai de toutes les opérations
+  const handleRetryAll = () => {
+    if (onRetryAll) {
+      onRetryAll();
+    } else {
+      processQueue();
     }
   };
   
-  const errorItems = errors.slice(0, maxItems).map((error) => (
-    <div 
-      key={error.id} 
-      className="p-3 border rounded-md bg-slate-50 hover:bg-slate-100 transition-colors"
-    >
-      <div className="flex items-start gap-2">
-        <div className="mt-1">
-          {getErrorIcon(error)}
-        </div>
-        
-        <div className="flex-grow">
-          <div className="font-medium text-sm">{error.message}</div>
-          {error.context && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {typeof error.context === 'string' 
-                ? error.context 
-                : JSON.stringify(error.context)}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground mt-1">
-            {new Date(error.timestamp).toLocaleString()}
-          </p>
-        </div>
-        
-        {onShowDetails && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => onShowDetails(error)}
-            className="p-1 h-auto"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  ));
-  
-  if (compact) {
-    return (
-      <div className="space-y-2">
-        {title && <h4 className="text-sm font-medium mb-2">{title}</h4>}
-        {errorItems}
-      </div>
-    );
-  }
-  
   return (
-    <div className="space-y-4">
-      {title && <h3 className="text-base font-medium">{title}</h3>}
-      
-      <div className="space-y-2">
-        {errorItems}
-      </div>
-      
-      {errors.length > 0 && (
-        <div className="flex justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={clearErrors}
-          >
-            Effacer toutes les erreurs
-          </Button>
-          
-          {onRetryAll && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRetryAll}
+    <Card>
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <div className="flex gap-2">
+          {showClearButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearErrors}
+              title="Effacer toutes les erreurs"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer toutes
+              <XCircle className="h-4 w-4" />
+            </Button>
+          )}
+          {onRetryAll && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetryAll}
+              title="Réessayer toutes les opérations en échec"
+            >
+              <RefreshCw className="h-4 w-4" />
             </Button>
           )}
         </div>
-      )}
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {displayedErrors.map((error) => (
+            <ErrorItem key={error.id} error={error} />
+          ))}
+          
+          {errors.length > maxErrors && (
+            <div className="text-xs text-muted-foreground mt-2 text-center">
+              + {errors.length - maxErrors} autres erreurs...
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+interface ErrorItemProps {
+  error: NotionError;
+}
+
+// Sous-composant pour afficher une erreur individuelle
+const ErrorItem: React.FC<ErrorItemProps> = ({ error }) => {
+  return (
+    <div className="p-2 border border-red-100 bg-red-50 rounded-md">
+      <div className="flex gap-2">
+        <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-red-800 break-words">{error.message}</p>
+          
+          <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-red-600">
+            <span>Type: {error.type}</span>
+            <span>Heure: {formatTimestamp(error.timestamp)}</span>
+            {error.operation && <span>Opération: {error.operation}</span>}
+          </div>
+          
+          {error.context && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {typeof error.context === 'string' 
+                ? error.context 
+                : JSON.stringify(error.context)}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

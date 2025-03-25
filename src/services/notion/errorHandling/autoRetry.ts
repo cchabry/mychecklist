@@ -1,108 +1,129 @@
 
 /**
- * Service de réessai automatique pour les opérations Notion
+ * Traitement automatique des erreurs Notion
  */
 
-import { notionErrorUtils } from './utils';
 import { notionRetryQueue } from './retryQueue';
-import { RetryOperationOptions } from '../types/unified';
+import { notionErrorService } from './errorService';
+import { NotionError, NotionErrorType } from '../types/unified';
 
 /**
- * Utilitaire pour réessayer automatiquement les opérations Notion
+ * Gestionnaire de réessai automatique des erreurs
  */
 export const autoRetryHandler = {
   /**
-   * Exécute une opération avec réessai automatique
+   * Vérifie si une erreur peut être réessayée automatiquement
    */
-  async execute<T>(
-    operation: () => Promise<T>,
-    context: string | Record<string, any> = {},
-    options: RetryOperationOptions = {}
-  ): Promise<T> {
-    try {
-      // Tenter d'exécuter l'opération directement
-      return await operation();
-    } catch (error) {
-      // Convertir en instance d'Error
-      const err = error instanceof Error ? error : new Error(String(error));
-      
-      // Vérifier si l'erreur est réessayable
-      if (!notionErrorUtils.isRetryableError(err)) {
-        throw err;
-      }
-      
-      // Si des conditions spécifiques empêchent le réessai
-      if (options.skipRetryIf && options.skipRetryIf(err)) {
-        throw err;
-      }
-      
-      // Ajouter à la file d'attente de réessai
-      return new Promise<T>((resolve, reject) => {
-        const operationId = notionRetryQueue.enqueue(
-          operation,
-          context,
-          {
-            ...options,
-            onSuccess: (result) => {
-              if (options.onSuccess) {
-                options.onSuccess(result);
-              }
-              resolve(result as T);
-            },
-            onFailure: (error) => {
-              if (options.onFailure) {
-                options.onFailure(error);
-              }
-              reject(error);
-            }
-          }
-        );
-        
-        console.log(`[AutoRetry] Opération placée en file d'attente: ${operationId}`);
-      });
+  canAutoRetry(error: NotionError): boolean {
+    // Les erreurs réseau peuvent généralement être réessayées
+    if (error.type === NotionErrorType.NETWORK) {
+      return true;
     }
+    
+    // Les erreurs de temps d'attente peuvent être réessayées
+    if (error.type === NotionErrorType.TIMEOUT) {
+      return true;
+    }
+    
+    // Les erreurs de limite de débit peuvent être réessayées après un délai
+    if (error.type === NotionErrorType.RATE_LIMIT) {
+      return true;
+    }
+    
+    // Les erreurs serveur peuvent souvent être réessayées
+    if (error.type === NotionErrorType.SERVER) {
+      return true;
+    }
+    
+    // Par défaut, on considère que l'erreur ne peut pas être réessayée
+    return false;
   },
   
   /**
-   * Crée une version avec réessai automatique d'une fonction
+   * Enregistre une opération pour réessai automatique
    */
-  createAutoRetryFunction<T, Args extends any[]>(
-    fn: (...args: Args) => Promise<T>,
-    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry operation',
-    options: RetryOperationOptions = {}
-  ): (...args: Args) => Promise<T> {
-    return async (...args: Args): Promise<T> => {
-      return this.execute(
-        () => fn(...args),
-        contextGenerator(args),
-        options
-      );
-    };
+  registerForRetry(
+    name: string,
+    operation: () => Promise<any>,
+    error: NotionError,
+    options: {
+      maxRetries?: number;
+      priority?: number;
+      tags?: string[];
+    } = {}
+  ): string | null {
+    // Vérifier si l'erreur peut être réessayée
+    if (!this.canAutoRetry(error)) {
+      return null;
+    }
+    
+    // Déterminer le nombre maximal de tentatives en fonction du type d'erreur
+    let maxRetries = options.maxRetries || 3;
+    let priority = options.priority || 0;
+    
+    // Ajuster les paramètres en fonction du type d'erreur
+    switch (error.type) {
+      case NotionErrorType.RATE_LIMIT:
+        // Plus d'attente entre les tentatives pour les limites de débit
+        maxRetries = options.maxRetries || 5;
+        priority = -10; // Priorité basse
+        break;
+        
+      case NotionErrorType.NETWORK:
+        // Priorité plus élevée pour les erreurs réseau
+        priority = 10;
+        break;
+        
+      case NotionErrorType.SERVER:
+        // Priorité moyenne pour les erreurs serveur
+        priority = 0;
+        break;
+    }
+    
+    // Ajouter à la file d'attente
+    return notionRetryQueue.enqueue(name, operation, {
+      ...options,
+      maxRetries,
+      priority,
+      tags: [...(options.tags || []), 'auto-retry', `error-type:${error.type}`]
+    });
   },
   
   /**
-   * Décore une méthode de classe avec réessai automatique
+   * Traite une erreur et l'enregistre pour réessai si possible
    */
-  autoRetry<T, Args extends any[]>(
-    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry method',
-    options: RetryOperationOptions = {}
-  ): MethodDecorator {
-    return function(
-      target: any,
-      propertyKey: string | symbol,
-      descriptor: PropertyDescriptor
-    ) {
-      const originalMethod = descriptor.value as (...args: Args) => Promise<T>;
-      
-      descriptor.value = async function(...args: Args): Promise<T> {
-        return autoRetryHandler.execute(
-          () => originalMethod.apply(this, args),
-          contextGenerator(args),
-          options
-        );
-      };
-      
-      return descriptor;
-    };
+  handleError(
+    error: Error | any,
+    operationName: string,
+    operation: () => Promise<any>,
+    options: {
+      context?: string;
+      maxRetries?: number;
+      priority?: number;
+      tags?: string[];
+      autoRetry?: boolean;
+    } = {}
+  ): NotionError {
+    // Créer une erreur standardisée
+    const notionError = notionErrorService.reportError(
+      error,
+      options.context || operationName
+    );
+    
+    // Si le réessai automatique est désactivé, s'arrêter ici
+    if (options.autoRetry === false) {
+      return notionError;
+    }
+    
+    // Tenter d'enregistrer pour réessai
+    this.registerForRetry(operationName, operation, notionError, {
+      maxRetries: options.maxRetries,
+      priority: options.priority,
+      tags: options.tags
+    });
+    
+    return notionError;
   }
 };
+
+export default autoRetryHandler;

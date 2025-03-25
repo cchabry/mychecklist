@@ -3,13 +3,14 @@
  * Service centralisé pour la gestion des erreurs Notion
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { 
   NotionError, 
   NotionErrorType, 
-  NotionErrorSeverity, 
+  NotionErrorSeverity,
   NotionErrorOptions,
-  ErrorSubscriber
+  ErrorSubscriber,
+  createNotionError,
+  mapLegacyError 
 } from '../types/unified';
 
 // Stockage local des erreurs récentes
@@ -32,41 +33,7 @@ export const notionErrorService = {
     messageOrError: string | Error,
     options: NotionErrorOptions = {}
   ): NotionError {
-    // Récupérer le message d'erreur
-    const message = typeof messageOrError === 'string' 
-      ? messageOrError 
-      : messageOrError.message || 'Erreur inconnue';
-    
-    // Créer l'objet d'erreur
-    const error: NotionError = {
-      id: uuidv4(),
-      message,
-      type: options.type || NotionErrorType.UNKNOWN,
-      severity: options.severity || NotionErrorSeverity.ERROR,
-      timestamp: Date.now(),
-      retryable: options.retryable ?? false,
-      context: options.context,
-      details: options.details,
-      operation: options.operation,
-      recoverable: options.recoverable,
-      recoveryActions: options.recoveryActions
-    };
-    
-    // Ajouter la stack trace si disponible
-    if (options.stack) {
-      error.stack = options.stack;
-    } else if (typeof messageOrError === 'object' && messageOrError instanceof Error) {
-      error.stack = messageOrError.stack;
-    }
-    
-    // Ajouter l'erreur originale
-    if (typeof messageOrError === 'object' && messageOrError instanceof Error) {
-      error.originalError = messageOrError;
-    } else if (options.cause) {
-      error.cause = options.cause;
-    }
-    
-    return error;
+    return createNotionError(messageOrError, options);
   },
   
   /**
@@ -132,7 +99,7 @@ export const notionErrorService = {
    * S'abonner aux changements d'erreurs
    */
   subscribe(callback: ErrorSubscriber): () => void {
-    const id = uuidv4();
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
     subscribers.push({ id, callback });
     
     // Retourner une fonction pour se désabonner
@@ -174,5 +141,80 @@ export const notionErrorService = {
       default:
         return error.message || 'Une erreur est survenue lors de l\'interaction avec Notion.';
     }
+  },
+  
+  /**
+   * Récupère l'erreur la plus récente
+   */
+  getLastError(): NotionError | null {
+    return recentErrors.length > 0 ? recentErrors[0] : null;
+  },
+  
+  // Ajout pour compatibilité avec l'ancien service
+  identifyErrorType(error: Error): NotionErrorType {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('network') || message.includes('failed to fetch') || 
+        message.includes('fetch') || message.includes('connection')) {
+      return NotionErrorType.NETWORK;
+    }
+    
+    if (message.includes('unauthorized') || message.includes('auth') || 
+        message.includes('token') || message.includes('401')) {
+      return NotionErrorType.AUTH;
+    }
+    
+    if (message.includes('forbidden') || message.includes('permission') || 
+        message.includes('403')) {
+      return NotionErrorType.PERMISSION;
+    }
+    
+    if (message.includes('not found') || message.includes('404') || 
+        message.includes('introuvable')) {
+      return NotionErrorType.NOT_FOUND;
+    }
+    
+    if (message.includes('timeout') || message.includes('délai')) {
+      return NotionErrorType.TIMEOUT;
+    }
+    
+    if (message.includes('rate limit') || message.includes('429') || 
+        message.includes('trop de requêtes')) {
+      return NotionErrorType.RATE_LIMIT;
+    }
+    
+    if (message.includes('validation') || message.includes('invalid')) {
+      return NotionErrorType.VALIDATION;
+    }
+    
+    if (message.includes('cors') || message.includes('cross-origin')) {
+      return NotionErrorType.CORS;
+    }
+    
+    if (message.includes('database') || message.includes('base de données')) {
+      return NotionErrorType.DATABASE;
+    }
+    
+    return NotionErrorType.UNKNOWN;
+  },
+  
+  // Pour compatibilité avec l'ancien service
+  addRecentError(error: Error | any): void {
+    const convertedError = typeof error === 'object' && error.type
+      ? mapLegacyError(error)
+      : this.createError(error instanceof Error ? error : String(error));
+    
+    this.reportError(convertedError);
+  },
+  
+  getFriendlyMessage(error: any): string {
+    // Convertir en NotionError si nécessaire
+    const notionError = typeof error === 'object' && error.type
+      ? mapLegacyError(error)
+      : this.createError(error instanceof Error ? error : String(error));
+      
+    return this.createUserFriendlyMessage(notionError);
   }
 };
+
+export default notionErrorService;

@@ -7,13 +7,14 @@
 export { notionErrorService } from './errorService';
 export { notionRetryQueue } from './retryQueue';
 export { autoRetryHandler } from './autoRetry';
-export { notionErrorUtils } from './utils';
 
 // Exporter les hooks
 export { useNotionErrorService } from './useNotionErrorService';
 export { useRetryQueue } from './useRetryQueue';
 export { useAutoRetry } from './useAutoRetry';
 
-// Exporter les types et utilitaires
+// Exporter les types et les énumérations
 export * from '../types/unified';
+
+// Réexporter pour la compatibilité avec l'ancien système
 export * from './utils';

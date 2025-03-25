@@ -1,69 +1,124 @@
 
 import React from 'react';
-import { RefreshCw, CheckCircle, XCircle } from 'lucide-react';
-import { useRetryQueue } from '@/services/notion/errorHandling';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Inbox, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { useRetryQueue } from '@/services/notion/errorHandling';
 
 interface RetryQueueStatusProps {
-  compact?: boolean;
-  onProcess?: () => void;
+  minimal?: boolean;
+  showControls?: boolean;
 }
 
+/**
+ * Composant pour afficher l'état de la file d'attente de réessais
+ */
 const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
-  compact = false,
-  onProcess
+  minimal = false,
+  showControls = true
 }) => {
-  const { stats, processQueue } = useRetryQueue();
-  const hasPendingOperations = stats.pendingOperations > 0;
+  const { 
+    pendingCount,
+    successCount,
+    errorCount,
+    isProcessing,
+    processQueue,
+    clearQueue
+  } = useRetryQueue();
   
-  const handleProcess = async () => {
-    if (onProcess) {
-      onProcess();
-    } else {
-      await processQueue();
-    }
-  };
+  const totalOperations = pendingCount + 
+    (successCount || 0) + 
+    (errorCount || 0);
   
-  if (compact) {
-    if (!hasPendingOperations) return null;
-    
+  // Pas de contenu si aucune opération
+  if (totalOperations === 0) {
+    return null;
+  }
+  
+  // Calculer les pourcentages pour la barre de progression
+  const calculatePercentage = (count: number) => Math.round((count / totalOperations) * 100);
+  
+  const pendingPercent = calculatePercentage(pendingCount);
+  const successPercent = calculatePercentage(successCount || 0);
+  const failedPercent = calculatePercentage(errorCount || 0);
+  
+  // Version minimale pour affichage dans un header ou un footer
+  if (minimal) {
     return (
-      <div className="flex items-center gap-2 text-xs">
-        <RefreshCw className="h-3 w-3 text-amber-500" />
-        <span className="text-amber-700">
-          {stats.pendingOperations} opération{stats.pendingOperations > 1 ? 's' : ''} en attente
+      <div className="flex items-center gap-2">
+        <Inbox className="h-4 w-4 text-blue-500" />
+        <span className="text-sm">
+          {pendingCount} opération{pendingCount !== 1 ? 's' : ''} en attente
         </span>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="h-6 px-2 text-[10px]"
-          onClick={handleProcess}
-        >
-          Traiter
-        </Button>
+        {showControls && pendingCount > 0 && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2" 
+            onClick={() => processQueue()}
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Exécuter
+          </Button>
+        )}
       </div>
     );
   }
   
-  if (!hasPendingOperations) {
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <CheckCircle className="h-4 w-4 text-green-500" />
-        <span className="text-green-700">File d'attente vide</span>
-      </div>
-    );
-  }
-  
+  // Version complète
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      className="text-xs"
-      onClick={handleProcess}
-    >
-      <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
-      {stats.pendingOperations} opération{stats.pendingOperations > 1 ? 's' : ''} en attente
-    </Button>
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <h4 className="text-sm font-medium">
+          État de la file d'attente
+        </h4>
+        {showControls && (
+          <div className="space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => processQueue()}
+              disabled={pendingCount === 0}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Exécuter
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => clearQueue()}
+              disabled={pendingCount === 0}
+            >
+              Vider
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      <Progress value={successPercent + pendingPercent} className="h-2" />
+      
+      <div className="grid grid-cols-3 gap-2 text-sm">
+        <div className="flex items-center">
+          <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+          <span>En attente: {pendingCount}</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+          <span>Réussies: {successCount || 0}</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+          <span>Échouées: {errorCount || 0}</span>
+        </div>
+      </div>
+      
+      {isProcessing && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+          <RefreshCw className="h-3 w-3 animate-spin" />
+          <span>Traitement en cours...</span>
+        </div>
+      )}
+    </div>
   );
 };
 
