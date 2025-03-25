@@ -1,5 +1,4 @@
-
-import { notionApi } from '../notionProxy';
+import { notionCentralService } from '@/services/notion/notionCentralService';
 
 export const getNotionClient = () => {
   const apiKey = localStorage.getItem('notion_api_key');
@@ -53,30 +52,19 @@ export const testNotionConnection = async () => {
       return { success: false, error: 'Configuration Notion manquante' };
     }
     
-    // CORRECTION: Utiliser exclusivement la fonction Netlify
+    // Utiliser EXCLUSIVEMENT le service centralisé
     try {
-      console.log('Test de connexion à l\'API Notion via la fonction Netlify');
+      console.log('Test de connexion à l\'API Notion via le service centralisé');
       
-      // Tester directement la fonction Netlify au lieu d'appeler l'API Notion
-      const response = await fetch('/.netlify/functions/notion-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          endpoint: '/users/me',
-          method: 'GET',
-          token: apiKey
-        })
-      });
+      // Tester la connexion via le service centralisé
+      const connectionResponse = await notionCentralService.testConnection(apiKey);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Erreur lors du test de connexion: ${response.status} - ${errorText}`);
-        throw new Error(`Erreur ${response.status}: ${errorText}`);
+      if (!connectionResponse.success) {
+        console.error(`❌ Erreur lors du test de connexion: ${connectionResponse.error}`);
+        throw new Error(connectionResponse.error || 'Erreur de connexion');
       }
       
-      const user = await response.json();
+      const user = connectionResponse.user || 'Utilisateur Notion';
       
       // Tester aussi l'accès aux bases de données
       let projectsDbName = '';
@@ -86,25 +74,7 @@ export const testNotionConnection = async () => {
       try {
         console.log(`Test d'accès à la base de données des projets: ${dbId}`);
         
-        const dbResponse = await fetch('/.netlify/functions/notion-proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            endpoint: `/databases/${dbId}`,
-            method: 'GET',
-            token: apiKey
-          })
-        });
-        
-        if (!dbResponse.ok) {
-          const dbErrorText = await dbResponse.text();
-          console.error(`❌ Erreur d'accès à la base de données: ${dbResponse.status} - ${dbErrorText}`);
-          throw new Error(`Erreur ${dbResponse.status}: ${dbErrorText}`);
-        }
-        
-        const dbInfo = await dbResponse.json();
+        const dbInfo = await notionCentralService.databases.retrieve(dbId, apiKey);
         projectsDbName = dbInfo.title?.[0]?.plain_text || dbId;
       } catch (dbError) {
         console.error('❌ Échec de l\'accès à la base de données des projets:', dbError);
@@ -120,25 +90,7 @@ export const testNotionConnection = async () => {
         try {
           console.log(`Test d'accès à la base de données des checklists: ${checklistsDbId}`);
           
-          const checklistDbResponse = await fetch('/.netlify/functions/notion-proxy', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              endpoint: `/databases/${checklistsDbId}`,
-              method: 'GET',
-              token: apiKey
-            })
-          });
-          
-          if (!checklistDbResponse.ok) {
-            const checklistDbErrorText = await checklistDbResponse.text();
-            console.error(`❌ Erreur d'accès à la base de données des checklists: ${checklistDbResponse.status} - ${checklistDbErrorText}`);
-            throw new Error(`Erreur ${checklistDbResponse.status}: ${checklistDbErrorText}`);
-          }
-          
-          const checklistDbInfo = await checklistDbResponse.json();
+          const checklistDbInfo = await notionCentralService.databases.retrieve(checklistsDbId, apiKey);
           checklistsDbName = checklistDbInfo.title?.[0]?.plain_text || checklistsDbId;
         } catch (checklistDbError) {
           console.error('❌ Échec de l\'accès à la base de données des checklists:', checklistDbError);
@@ -152,11 +104,11 @@ export const testNotionConnection = async () => {
       }
       
       // Test réussi
-      console.log('✅ Test de connexion à Notion réussi avec l\'utilisateur:', user.name);
+      console.log('✅ Test de connexion à Notion réussi avec l\'utilisateur:', user);
       
       return { 
         success: true,
-        user: user.name || 'Utilisateur Notion',
+        user,
         projectsDbName,
         checklistsDbName: checklistsDbName || '(Non configurée)',
         hasChecklistsDb: !!checklistsDbName

@@ -3,9 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { notionClient } from '@/services/notion/notionApiClient';
 import { apiProxy, initializeApiProxy } from '@/services/apiProxy';
 import { toast } from 'sonner';
+import { notionCentralService } from '@/services/notion/notionCentralService';
 
 /**
  * Hook qui permet d'utiliser l'API Notion avec le système de proxy modulaire
+ * Utilise exclusivement le service centralisé pour les appels à l'API Notion
  */
 export function useNotionApi() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -61,33 +63,16 @@ export function useNotionApi() {
     setError(null);
     
     try {
-      // IMPORTANT: Utiliser EXCLUSIVEMENT la fonction Netlify pour tous les appels
-      const response = await fetch('/.netlify/functions/notion-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          endpoint: '/users/me',
-          method: 'GET',
-          token: localStorage.getItem('notion_api_key')
-        })
-      });
+      // Utiliser EXCLUSIVEMENT le service centralisé
+      const response = await notionCentralService.testConnection();
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erreur du proxy Netlify: ${response.status} ${errorText}`);
-      }
-      
-      const responseData = await response.json();
-      
-      if (responseData) {
+      if (response.success) {
         toast.success("Connexion à Notion réussie", {
-          description: `Connecté en tant que ${responseData.name || 'Utilisateur Notion'}`
+          description: `Connecté en tant que ${response.user || 'Utilisateur Notion'}`
         });
-        return { success: true, user: responseData };
+        return { success: true, user: response.user };
       } else {
-        const errorMessage = "Erreur de connexion à Notion";
+        const errorMessage = response.error || "Erreur de connexion à Notion";
         setError(new Error(errorMessage));
         toast.error("Échec de la connexion à Notion", {
           description: errorMessage

@@ -1,12 +1,15 @@
 
 /**
- * Fonction utilitaire pour effectuer des requêtes à l'API Notion exclusivement via les fonctions Netlify
+ * Fonction utilitaire pour effectuer des requêtes à l'API Notion exclusivement via le service centralisé
  * @param endpoint Point d'accès de l'API Notion (relatif)
  * @param method Méthode HTTP (GET, POST, PUT, PATCH, DELETE)
  * @param body Corps de la requête (optionnel)
  * @param token Jeton d'authentification Notion (optionnel, pris du localStorage par défaut)
  * @returns Promesse contenant la réponse JSON
  */
+
+import { notionCentralService } from '@/services/notion/notionCentralService';
+
 export const notionApiRequest = async (
   endpoint: string,
   method: string = 'GET',
@@ -14,56 +17,18 @@ export const notionApiRequest = async (
   token?: string
 ): Promise<any> => {
   // Log de débogage
-  console.log(`🔧 Requête Notion (${method}): ${endpoint}`);
+  console.log(`🔧 Requête Notion (${method}): ${endpoint} via service centralisé`);
 
   // Normaliser l'endpoint pour garantir le format correct
   const normalizedEndpoint = normalizeEndpoint(endpoint);
   
-  // Récupérer le token d'authentification si non fourni
-  const authToken = token || localStorage.getItem('notion_api_key');
-  
-  if (!authToken) {
-    throw new Error('Token Notion manquant');
-  }
-  
-  // Formater correctement le token pour l'API Notion
-  let formattedToken = authToken;
-  if (!formattedToken.startsWith('Bearer ')) {
-    if (formattedToken.startsWith('secret_') || formattedToken.startsWith('ntn_')) {
-      formattedToken = `${formattedToken}`; // La fonction serverless ajoutera 'Bearer '
-    }
-  }
-  
-  try {
-    // Utiliser exclusivement la fonction Netlify
-    console.log(`📡 Requête via fonction Netlify: ${method} ${normalizedEndpoint}`);
-    
-    const response = await fetch('/.netlify/functions/notion-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        endpoint: normalizedEndpoint,
-        method,
-        body,
-        token: formattedToken
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Erreur du proxy Netlify: ${response.status} - ${errorText}`);
-      throw new Error(`Erreur du proxy Netlify: ${response.status} ${errorText}`);
-    }
-    
-    const data = await response.json();
-    console.log(`✅ Réponse reçue via fonction Netlify: ${method} ${normalizedEndpoint}`);
-    return data;
-  } catch (error) {
-    console.error(`❌ Erreur lors de l'appel à la fonction Netlify: ${error.message}`);
-    throw error;
-  }
+  // Appeler le service centralisé
+  return await notionCentralService.request({
+    endpoint: normalizedEndpoint,
+    method: method as any,
+    body,
+    token
+  });
 };
 
 /**

@@ -1,10 +1,10 @@
 
 import { useState, useCallback } from 'react';
-import { notionApiRequest } from '@/lib/notionProxy/proxyFetch';
+import { notionCentralService } from '@/services/notion/notionCentralService';
 import { toast } from 'sonner';
 
 /**
- * Hook simplifié pour les requêtes Notion via les fonctions Netlify
+ * Hook simplifié pour les requêtes Notion via le service centralisé
  */
 export const useNotionRequest = <T>(
   options: {
@@ -31,8 +31,15 @@ export const useNotionRequest = <T>(
     try {
       console.log(`Exécution d'une requête Notion: ${method} ${endpoint}`);
       
-      // Exécuter la requête via le proxy Netlify
-      const result = await notionApiRequest(endpoint, method, body, token) as T;
+      // Exécuter la requête via le service centralisé
+      const result = await notionCentralService.request<T>({
+        endpoint,
+        method: method as any,
+        body,
+        token,
+        showErrorToast: false
+      });
+      
       setData(result);
       
       if (onSuccess) {
