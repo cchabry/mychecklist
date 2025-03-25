@@ -36,8 +36,12 @@ export function useMonitoringInit(options: {
     
     // Installer un gestionnaire d'erreurs global si demandé
     if (automaticErrorLogging) {
+      // Stocker les gestionnaires d'origine
       const originalOnError = window.onerror;
-      window.onerror = (message, source, lineno, colno, error) => {
+      const originalOnUnhandledRejection = window.onunhandledrejection;
+      
+      // Gérer les erreurs non interceptées
+      window.onerror = function(message, source, lineno, colno, error) {
         structuredLogger.error(
           `Erreur non gérée: ${message}`,
           error || { message, source, lineno, colno },
@@ -49,15 +53,14 @@ export function useMonitoringInit(options: {
         
         // Appeler le gestionnaire original s'il existe
         if (originalOnError) {
-          return originalOnError(message, source, lineno, colno, error);
+          return originalOnError.call(this, message, source, lineno, colno, error);
         }
         
         return false;
       };
       
       // Installer un gestionnaire de promesses non gérées
-      const originalOnUnhandledRejection = window.onunhandledrejection;
-      window.onunhandledrejection = (event) => {
+      window.onunhandledrejection = function(event) {
         structuredLogger.error(
           'Promesse rejetée non gérée',
           event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
@@ -69,7 +72,7 @@ export function useMonitoringInit(options: {
         
         // Appeler le gestionnaire original s'il existe
         if (originalOnUnhandledRejection) {
-          return originalOnUnhandledRejection(event);
+          return originalOnUnhandledRejection.call(this, event);
         }
       };
     }

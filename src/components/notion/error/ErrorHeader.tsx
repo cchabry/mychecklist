@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
 import { AlertTriangle, AlertCircle, KeyRound, ServerCrash, Database, Clock } from 'lucide-react';
@@ -29,9 +30,6 @@ const ErrorHeader: React.FC<ErrorHeaderProps> = ({ error }) => {
         return <AlertCircle className="h-5 w-5 text-red-500" />;
     }
   };
-  
-  // Formater l'horodatage
-  const formattedTime = new Date(error.timestamp).toLocaleString();
   
   // Déterminer le titre en fonction du type d'erreur
   const getErrorTitle = () => {

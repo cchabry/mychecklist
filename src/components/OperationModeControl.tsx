@@ -1,181 +1,119 @@
 
-import React from 'react';
-import { useOperationModeListener } from '@/hooks/useOperationModeListener';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Database, Layers, Activity, Settings, Info, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { operationMode } from '@/services/operationMode';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import React, { useState } from 'react';
 import { useOperationMode } from '@/services/operationMode';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Database, Zap, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface OperationModeControlProps {
-  className?: string;
   onToggle?: () => void;
-  compact?: boolean;
-  simplified?: boolean; // Add the simplified prop to match usage in Header.tsx
 }
 
 /**
- * Composant central pour contrôler et afficher le mode opérationnel de l'application
+ * Composant permettant de contrôler le mode opérationnel de l'application
  */
-const OperationModeControl: React.FC<OperationModeControlProps> = ({ 
-  className = '',
-  onToggle,
-  compact = false,
-  simplified = false // Add default value
-}) => {
-  const { isDemoMode, toggleMode } = useOperationModeListener();
-  const { failures, lastError, switchReason } = useOperationMode();
+const OperationModeControl: React.FC<OperationModeControlProps> = ({ onToggle }) => {
+  const { mode, isDemoMode, enableRealMode, enableDemoMode, failures, switchReason } = useOperationMode();
+  const [reason, setReason] = useState('');
   
-  const handleToggle = () => {
-    toggleMode();
-    if (onToggle) onToggle();
+  const handleToggleMode = () => {
+    if (isDemoMode) {
+      enableRealMode();
+      toast.success('Mode réel activé', {
+        description: 'L\'application communique désormais directement avec l\'API Notion'
+      });
+    } else {
+      enableDemoMode(reason || 'Activation manuelle du mode démonstration');
+      toast.success('Mode démonstration activé', {
+        description: 'L\'application utilise des données simulées'
+      });
+    }
+    
+    // Appeler le callback si fourni
+    if (onToggle) {
+      onToggle();
+    }
   };
   
-  // If simplified prop is true, use this simplified version
-  if (simplified) {
-    return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        {isDemoMode ? (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
-            <Database size={14} className="text-blue-500" />
-            <span className="text-xs">Démo</span>
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
-            <Activity size={14} className="text-green-500" />
-            <span className="text-xs">Réel</span>
-          </Badge>
-        )}
-        
-        <Button variant="ghost" size="sm" onClick={handleToggle} className="h-7 text-xs">
-          Changer
-        </Button>
-      </div>
-    );
-  }
-  
-  // Use compact version if requested
-  if (compact) {
-    return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        {isDemoMode ? (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
-            <Database size={14} className="text-blue-500" />
-            <span className="text-xs">Démo</span>
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
-            <Activity size={14} className="text-green-500" />
-            <span className="text-xs">Réel</span>
-          </Badge>
-        )}
-        
-        <Button variant="ghost" size="sm" onClick={handleToggle} className="h-7 text-xs">
-          Changer
-        </Button>
-      </div>
-    );
-  }
-  
-  // Full card version (default)
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Mode opérationnel</span>
-          {isDemoMode ? (
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              <Database size={14} className="mr-1" /> Démonstration
-            </Badge>
-          ) : (
-            <Badge variant="default" className="bg-green-600">
-              <Activity size={14} className="mr-1" /> Réel
-            </Badge>
-          )}
-        </CardTitle>
-        <CardDescription>
-          {isDemoMode
-            ? "L'application utilise des données de démonstration"
-            : "L'application est connectée aux services réels"}
-        </CardDescription>
-      </CardHeader>
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <h3 className="text-lg font-medium">Mode de fonctionnement</h3>
+        <p className="text-sm text-muted-foreground">
+          Contrôler la manière dont l'application interagit avec l'API Notion
+        </p>
+      </div>
       
-      <CardContent>
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="flex items-start gap-2">
-              <Info size={16} className="text-blue-500 mt-0.5" />
-              <div>
-                <span className="font-medium">Mode actuel :</span>
-                <span className="ml-1">{isDemoMode ? 'Démonstration' : 'Réel'}</span>
-                
-                {switchReason && (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Raison : {switchReason}
-                  </p>
-                )}
-              </div>
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <div className="flex items-center">
+              {isDemoMode ? (
+                <Database className="mr-2 h-5 w-5 text-blue-500" />
+              ) : (
+                <Zap className="mr-2 h-5 w-5 text-green-500" />
+              )}
+              <Label className="font-medium">
+                {isDemoMode ? 'Mode démonstration' : 'Mode réel'}
+              </Label>
             </div>
-            
-            {failures > 0 && (
-              <div className="flex items-start gap-2 mt-2">
-                <AlertTriangle size={16} className="text-amber-500 mt-0.5" />
-                <div>
-                  <span className="font-medium text-amber-700">
-                    {failures} tentative{failures > 1 ? 's' : ''} échouée{failures > 1 ? 's' : ''}
-                  </span>
-                  
-                  {lastError && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Dernière erreur : {lastError.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            <div className="text-sm text-muted-foreground">
+              {isDemoMode 
+                ? 'Utilise des données simulées sans appels à l\'API' 
+                : 'Communique directement avec l\'API Notion'}
+            </div>
           </div>
+          <Switch
+            checked={!isDemoMode}
+            onCheckedChange={() => handleToggleMode()}
+            aria-label="Toggle operation mode"
+          />
         </div>
-      </CardContent>
-      
-      <CardFooter className="flex justify-between">
-        <Button 
-          variant={isDemoMode ? "outline" : "default"} 
-          onClick={handleToggle}
-          className={isDemoMode ? "" : "bg-green-600 hover:bg-green-700"}
-        >
-          {isDemoMode ? (
-            <>
-              <Activity size={16} className="mr-2" />
-              Activer mode réel
-            </>
-          ) : (
-            <>
-              <Database size={16} className="mr-2" />
-              Passer en démo
-            </>
-          )}
-        </Button>
         
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" asChild>
-                <a href="/config">
-                  <Settings size={16} />
-                </a>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Configurer le mode opérationnel</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </CardFooter>
-    </Card>
+        {failures > 0 && !isDemoMode && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-amber-700">
+                Attention : {failures} erreur{failures > 1 ? 's' : ''} de connexion détectée{failures > 1 ? 's' : ''}
+              </p>
+              <p className="text-xs text-amber-600">
+                Passer en mode démonstration peut être utile si vous rencontrez des problèmes avec l'API Notion.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {isDemoMode && (
+          <div className="space-y-2">
+            <Label htmlFor="reason">Raison du mode démonstration</Label>
+            <textarea
+              id="reason"
+              placeholder="Pourquoi activer le mode démonstration ? (Optionnel)"
+              className="w-full p-2 border rounded-md text-sm min-h-[80px]"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+        )}
+        
+        {switchReason && isDemoMode && (
+          <div className="text-sm p-3 bg-gray-50 rounded-md border">
+            <p className="font-medium text-gray-700">Raison actuelle :</p>
+            <p className="text-gray-600 mt-1">{switchReason}</p>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={handleToggleMode}>
+          {isDemoMode ? 'Activer le mode réel' : 'Activer le mode démonstration'}
+        </Button>
+      </div>
+    </div>
   );
 };
 
 export default OperationModeControl;
-
