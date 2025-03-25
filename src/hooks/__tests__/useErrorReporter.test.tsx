@@ -103,3 +103,4 @@ describe('useErrorReporter Hook', () => {
     expect(toast.success).toHaveBeenCalledWith(successMessage);
   });
 });
+
