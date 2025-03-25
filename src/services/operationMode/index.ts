@@ -20,3 +20,6 @@ export { operationModeUtils };
 
 // Hook pour utiliser le mode opérationnel
 export { useOperationMode } from './useOperationMode';
+
+// Exporter également l'énumération OperationMode pour les imports qui en ont besoin
+export { OperationMode } from './types';

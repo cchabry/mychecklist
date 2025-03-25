@@ -43,8 +43,8 @@ const mapOperationModeToConnectionMode = (mode: OperationMode): ConnectionMode =
 // Adaptateur avec l'API de l'ancien operationMode qui délègue au nouveau service
 class OperationModeAdapter {
   private subscribers: OperationModeSubscriber[] = [];
-  private lastSwitchReason: SwitchReason | null = null;
-  private settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
+  private _lastSwitchReason: SwitchReason | null = null;
+  private _settings: OperationModeSettings = { ...DEFAULT_SETTINGS };
   private criticalOperations: Set<string> = new Set();
   
   // Propriétés calculées pour émuler l'ancien système
@@ -66,7 +66,7 @@ class OperationModeAdapter {
   }
   
   public getSwitchReason(): SwitchReason | null {
-    return this.lastSwitchReason;
+    return this._lastSwitchReason;
   }
   
   public get switchReason(): SwitchReason | null {
@@ -74,7 +74,7 @@ class OperationModeAdapter {
   }
   
   public getSettings(): OperationModeSettings {
-    return { ...this.settings };
+    return { ...this._settings };
   }
   
   public get settings(): OperationModeSettings {
@@ -99,12 +99,12 @@ class OperationModeAdapter {
   
   // Méthodes d'action pour la compatibilité
   public enableDemoMode(reason: SwitchReason = 'Changement manuel'): void {
-    this.lastSwitchReason = reason;
+    this._lastSwitchReason = reason;
     connectionModeService.enableDemoMode(reason);
   }
   
   public enableRealMode(): void {
-    this.lastSwitchReason = null;
+    this._lastSwitchReason = null;
     connectionModeService.enableRealMode();
   }
   
@@ -130,7 +130,7 @@ class OperationModeAdapter {
   
   public handleConnectionError(error: Error, context: string = 'Opération', isNonCritical: boolean = false): void {
     // Stocker l'erreur et le contexte pour référence future
-    this.lastSwitchReason = context;
+    this._lastSwitchReason = context;
     connectionModeService.handleConnectionError(error);
   }
   
@@ -139,8 +139,8 @@ class OperationModeAdapter {
   }
   
   public updateSettings(partialSettings: Partial<OperationModeSettings>): void {
-    this.settings = {
-      ...this.settings,
+    this._settings = {
+      ...this._settings,
       ...partialSettings
     };
   }
@@ -166,7 +166,7 @@ class OperationModeAdapter {
     const unsubscribe = connectionModeService.subscribe((event: ModeChangeEvent) => {
       const newMode = mapConnectionModeToOperationMode(event.currentMode);
       const reason = event.reason;
-      this.lastSwitchReason = reason;
+      this._lastSwitchReason = reason;
       
       // Notifier l'abonné
       subscriber(newMode, reason);

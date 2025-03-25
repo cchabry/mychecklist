@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { connectionModeService } from '@/services/connection/connectionModeService';
 import { ConnectionMode, ConnectionHealth, ModeChangeEvent } from '@/services/connection/types';
+import { OperationMode } from '@/services/operationMode/types';
 
 /**
  * Hook pour utiliser le service de mode de connexion
@@ -13,10 +14,18 @@ export function useConnectionMode() {
     connectionModeService.getConnectionHealth()
   );
   
+  // Pour compatibilité avec ancien système
+  const mode = currentMode === ConnectionMode.DEMO ? OperationMode.DEMO : OperationMode.REAL;
+  const [switchReason, setSwitchReason] = useState<string | null>(null);
+  const failures = connectionHealth.consecutiveErrors;
+  const lastError = connectionHealth.lastError;
+  
   // Mettre à jour le mode local lorsqu'il change dans le service
   useEffect(() => {
     const unsubscribe = connectionModeService.subscribe((event: ModeChangeEvent) => {
       setCurrentMode(event.currentMode);
+      setSwitchReason(event.reason);
+      
       // Mettre à jour également l'état de santé car il peut changer avec le mode
       setConnectionHealth(connectionModeService.getConnectionHealth());
     });
@@ -50,18 +59,27 @@ export function useConnectionMode() {
   }, []);
   
   // Fonction pour signaler une erreur de connexion
-  const reportConnectionError = useCallback((error: Error) => {
+  const handleConnectionError = useCallback((error: Error, context?: string) => {
     connectionModeService.handleConnectionError(error);
     // Mettre à jour l'état de santé
     setConnectionHealth(connectionModeService.getConnectionHealth());
   }, []);
   
   // Fonction pour signaler une opération réussie
-  const reportSuccessfulOperation = useCallback(() => {
+  const handleSuccessfulOperation = useCallback(() => {
     connectionModeService.handleSuccessfulOperation();
     // Mettre à jour l'état de santé
     setConnectionHealth(connectionModeService.getConnectionHealth());
   }, []);
+  
+  const resetConnectionHealth = useCallback(() => {
+    connectionModeService.handleSuccessfulOperation();
+    setConnectionHealth(connectionModeService.getConnectionHealth());
+  }, []);
+  
+  // Alias pour compatibilité
+  const toggle = toggleMode;
+  const reset = resetConnectionHealth;
   
   return {
     // États
@@ -70,13 +88,24 @@ export function useConnectionMode() {
     isDemoMode: connectionModeService.isDemoMode,
     connectionHealth,
     
-    // Actions
+    // Compatibilité avec ancien système
+    mode,
+    switchReason,
+    failures,
+    lastError,
+    
+    // Actions - nouveau système
     toggleMode,
     enableDemoMode,
     enableRealMode,
     temporarilyForceReal,
     restoreMode,
-    reportConnectionError,
-    reportSuccessfulOperation
+    handleConnectionError,
+    handleSuccessfulOperation,
+    resetConnectionHealth,
+    
+    // Alias pour compatibilité
+    toggle,
+    reset
   };
 }

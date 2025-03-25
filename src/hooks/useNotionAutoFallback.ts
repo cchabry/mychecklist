@@ -9,7 +9,7 @@ import { toast } from 'sonner';
  */
 export function useNotionAutoFallback() {
   const { 
-    mode: currentMode, 
+    mode, 
     switchReason: lastReason, 
     failures, 
     isDemoMode, 
@@ -71,7 +71,7 @@ export function useNotionAutoFallback() {
   return {
     isDemoMode,
     isRealMode,
-    currentMode,
+    currentMode: mode,
     lastReason,
     failures,
     reportNotionError,

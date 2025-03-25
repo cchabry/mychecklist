@@ -116,7 +116,7 @@ export function useNotionFallbackAPI<T = unknown>() {
       
       // Tenter de basculer automatiquement en mode démo
       try {
-        if (operationMode.isRealMode && demoData) {
+        if (!isDemoMode && demoData) {
           const mockResult = typeof demoData === 'function' 
             ? (demoData as () => R)() 
             : demoData;
