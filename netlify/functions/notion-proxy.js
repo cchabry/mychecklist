@@ -165,7 +165,18 @@ exports.handler = async (event, context) => {
   }
   
   // Normaliser l'endpoint
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  let normalizedEndpoint = endpoint;
+  
+  // S'assurer que l'endpoint commence par /
+  if (!normalizedEndpoint.startsWith('/')) {
+    normalizedEndpoint = `/${normalizedEndpoint}`;
+  }
+  
+  // Vérifier si l'endpoint commence par /v1 et l'ajuster si nécessaire
+  if (normalizedEndpoint.startsWith('/v1/')) {
+    normalizedEndpoint = normalizedEndpoint.substring(3); // Supprimer le /v1 préfixe
+  }
+  
   const targetUrl = `${NOTION_API_BASE}${normalizedEndpoint}`;
   logDebug(`Requête ${method} vers ${targetUrl}`);
   
