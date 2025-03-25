@@ -39,7 +39,7 @@ export const notionClientAdapter = {
   // Test de connexion
   testConnection: async (): Promise<NotionAPIResponse<{ user: string }>> => {
     try {
-      const result = await notionService.users.testConnection();
+      const result = await notionService.testConnection();
       
       return {
         success: result.success,
@@ -58,24 +58,19 @@ export const notionClientAdapter = {
   
   // Gestion de l'état de connexion
   getConnectionStatus: (): ConnectionStatus => {
-    // Obtenir le statut depuis le service principal
-    const { client } = notionService;
-    return client._connectionStatus || ConnectionStatus.Disconnected;
+    return notionService.connectionStatus || ConnectionStatus.Disconnected;
   },
   
   setConnectionStatus: (status: ConnectionStatus): void => {
-    // Définir le statut dans le service principal
-    const { client } = notionService;
-    client._connectionStatus = status;
+    notionService.connectionStatus = status;
   },
   
   // Proxy pour les opérations de l'API Notion (databases, users, pages, etc.)
   databases: {
     query: async (databaseId: string, query = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
       try {
-        const { client } = notionService;
-        const result = await client.databases.query(databaseId, query);
-        return { success: true, data: result };
+        const result = await notionService.databases.query(databaseId, query);
+        return { success: true, data: result.data };
       } catch (error) {
         return { success: false, error: { message: error.message } };
       }
@@ -83,9 +78,8 @@ export const notionClientAdapter = {
     
     retrieve: async (databaseId: string): Promise<NotionAPIResponse<any>> => {
       try {
-        const { client } = notionService;
-        const result = await client.databases.retrieve(databaseId);
-        return { success: true, data: result };
+        const result = await notionService.databases.retrieve(databaseId);
+        return { success: true, data: result.data };
       } catch (error) {
         return { success: false, error: { message: error.message } };
       }
@@ -95,9 +89,8 @@ export const notionClientAdapter = {
   pages: {
     retrieve: async (pageId: string): Promise<NotionAPIResponse<NotionAPIPage>> => {
       try {
-        const { client } = notionService;
-        const result = await client.pages.retrieve(pageId);
-        return { success: true, data: result };
+        const result = await notionService.pages.retrieve(pageId);
+        return { success: true, data: result.data };
       } catch (error) {
         return { success: false, error: { message: error.message } };
       }
@@ -105,9 +98,8 @@ export const notionClientAdapter = {
     
     create: async (data: any): Promise<NotionAPIResponse<NotionAPIPage>> => {
       try {
-        const { client } = notionService;
-        const result = await client.pages.create(data);
-        return { success: true, data: result };
+        const result = await notionService.pages.create(data);
+        return { success: true, data: result.data };
       } catch (error) {
         return { success: false, error: { message: error.message } };
       }
@@ -115,9 +107,8 @@ export const notionClientAdapter = {
     
     update: async (pageId: string, data: any): Promise<NotionAPIResponse<NotionAPIPage>> => {
       try {
-        const { client } = notionService;
-        const result = await client.pages.update(pageId, data);
-        return { success: true, data: result };
+        const result = await notionService.pages.update(pageId, data);
+        return { success: true, data: result.data };
       } catch (error) {
         return { success: false, error: { message: error.message } };
       }
@@ -146,7 +137,7 @@ export const notionClientAdapter = {
   
   search: async (query: string, options = {}): Promise<NotionAPIResponse<NotionAPIListResponse>> => {
     try {
-      const result = await notionService.search.search(query, options);
+      const result = await notionService.search(query, options);
       return { success: true, data: result.data };
     } catch (error) {
       return { success: false, error: { message: error.message } };

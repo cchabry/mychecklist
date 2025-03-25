@@ -1,78 +1,12 @@
 
 /**
- * Configuration centralisée pour les services Notion
+ * Gestion de la configuration du service Notion
+ * Ce module centralise la configuration et la gestion des différentes sources
+ * (localStorage, variables d'environnement, etc.)
  */
 
-import { NotionClientConfig } from '../client/types';
-import { detectEnvironment } from '@/services/apiProxy/environmentDetector';
-
-// Enum pour les environnements de déploiement
-export enum DeploymentEnvironment {
-  Local = 'local',
-  Vercel = 'vercel',
-  Netlify = 'netlify',
-  Other = 'other'
-}
-
-// Types pour la configuration
-export interface NotionConfig {
-  // Identifiants d'API et bases de données
-  apiKey: string | null;
-  databaseIds: {
-    projects: string | null;
-    checklists: string | null;
-    exigences: string | null;
-    pages: string | null;
-    audits: string | null;
-    evaluations: string | null;
-    actions: string | null;
-    progress: string | null;
-  };
-  
-  // Configuration du client
-  client: NotionClientConfig;
-  
-  // Configuration du mode
-  mode: {
-    demoMode: boolean;
-    autoFallback: boolean; // Active le basculement automatique en mode démo en cas d'erreur
-    persistentMode: boolean; // Persiste le mode dans localStorage
-  };
-  
-  // Configuration des erreurs
-  errors: {
-    logLevel: 'none' | 'error' | 'warn' | 'info' | 'debug';
-    maxRetries: number;
-    retryDelay: number; // en ms
-    showToasts: boolean;
-  };
-  
-  // Configuration de la mise en cache
-  cache: {
-    enabled: boolean;
-    ttl: number; // en ms
-    storageKey: string;
-  };
-}
-
-// Clés de stockage
-export const STORAGE_KEYS = {
-  API_KEY: 'notion_api_key',
-  DATABASE_PROJECTS: 'notion_database_id',
-  DATABASE_CHECKLISTS: 'notion_checklists_database_id',
-  DATABASE_EXIGENCES: 'notion_exigences_database_id',
-  DATABASE_PAGES: 'notion_pages_database_id',
-  DATABASE_AUDITS: 'notion_audits_database_id',
-  DATABASE_EVALUATIONS: 'notion_evaluations_database_id',
-  DATABASE_ACTIONS: 'notion_actions_database_id',
-  DATABASE_PROGRESS: 'notion_progress_database_id',
-  MODE: 'notion_operation_mode',
-  LAST_ERROR: 'notion_last_error',
-  LAST_CONFIG_DATE: 'notion_last_config_date'
-};
-
 // Configuration par défaut
-const DEFAULT_CONFIG: NotionConfig = {
+export const DEFAULT_CONFIG = {
   apiKey: null,
   databaseIds: {
     projects: null,
@@ -84,227 +18,146 @@ const DEFAULT_CONFIG: NotionConfig = {
     actions: null,
     progress: null
   },
-  client: {
-    apiVersion: '2022-06-28',
-    debug: process.env.NODE_ENV === 'development'
+  mock: {
+    enabled: false,
+    autoFallback: true
   },
-  mode: {
-    demoMode: false,
-    autoFallback: true,
-    persistentMode: true
-  },
-  errors: {
-    logLevel: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
-    maxRetries: 3,
-    retryDelay: 1000,
-    showToasts: true
-  },
-  cache: {
-    enabled: true,
-    ttl: 5 * 60 * 1000, // 5 minutes
-    storageKey: 'notion_api_cache'
-  }
+  debug: false
 };
 
-// Obtient la configuration actuelle depuis le localStorage
-export function getStoredConfig(): NotionConfig {
-  // Initialiser avec les valeurs par défaut
-  const config: NotionConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
-  
-  // Charger l'API key
-  config.apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
-  
-  // Charger les IDs des bases de données
-  config.databaseIds = {
-    projects: localStorage.getItem(STORAGE_KEYS.DATABASE_PROJECTS),
-    checklists: localStorage.getItem(STORAGE_KEYS.DATABASE_CHECKLISTS),
-    exigences: localStorage.getItem(STORAGE_KEYS.DATABASE_EXIGENCES),
-    pages: localStorage.getItem(STORAGE_KEYS.DATABASE_PAGES),
-    audits: localStorage.getItem(STORAGE_KEYS.DATABASE_AUDITS),
-    evaluations: localStorage.getItem(STORAGE_KEYS.DATABASE_EVALUATIONS),
-    actions: localStorage.getItem(STORAGE_KEYS.DATABASE_ACTIONS),
-    progress: localStorage.getItem(STORAGE_KEYS.DATABASE_PROGRESS)
+// Type pour la configuration
+export interface NotionConfig {
+  apiKey: string | null;
+  databaseIds: {
+    projects: string | null;
+    checklists: string | null;
+    exigences: string | null;
+    pages: string | null;
+    audits: string | null;
+    evaluations: string | null;
+    actions: string | null;
+    progress: string | null;
   };
-  
-  // Charger le mode d'opération
+  mock: {
+    enabled: boolean;
+    autoFallback: boolean;
+  };
+  debug: boolean;
+}
+
+// Clés localStorage pour la configuration
+export const STORAGE_KEYS = {
+  CONFIG: 'notion_config',
+  API_KEY: 'notion_api_key',
+  DB_PROJECTS: 'notion_database_id',
+  DB_CHECKLISTS: 'notion_checklists_database_id'
+};
+
+/**
+ * Récupère la configuration stockée dans localStorage
+ */
+export function getStoredConfig(): NotionConfig {
   try {
-    const storedMode = localStorage.getItem(STORAGE_KEYS.MODE);
-    if (storedMode) {
-      const parsedMode = JSON.parse(storedMode);
-      config.mode = { ...config.mode, ...parsedMode };
-    }
-  } catch (e) {
-    console.error('Erreur lors du chargement du mode:', e);
-  }
-  
-  return config;
-}
-
-// Sauvegarde la configuration dans le localStorage
-export function saveConfig(config: Partial<NotionConfig>): void {
-  // Sauvegarder l'API key si fournie
-  if (config.apiKey !== undefined) {
-    if (config.apiKey) {
-      localStorage.setItem(STORAGE_KEYS.API_KEY, config.apiKey);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.API_KEY);
-    }
-  }
-  
-  // Sauvegarder les IDs des bases de données si fournis
-  if (config.databaseIds) {
-    const { databaseIds } = config;
-    
-    if (databaseIds.projects !== undefined) {
-      databaseIds.projects 
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_PROJECTS, databaseIds.projects)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_PROJECTS);
+    // Vérifier d'abord la nouvelle structure de configuration
+    const storedConfigJson = localStorage.getItem(STORAGE_KEYS.CONFIG);
+    if (storedConfigJson) {
+      return JSON.parse(storedConfigJson);
     }
     
-    if (databaseIds.checklists !== undefined) {
-      databaseIds.checklists 
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_CHECKLISTS, databaseIds.checklists)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_CHECKLISTS);
-    }
+    // Fallback sur l'ancien format de stockage
+    const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+    const projectsDbId = localStorage.getItem(STORAGE_KEYS.DB_PROJECTS);
+    const checklistsDbId = localStorage.getItem(STORAGE_KEYS.DB_CHECKLISTS);
     
-    if (databaseIds.exigences !== undefined) {
-      databaseIds.exigences
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_EXIGENCES, databaseIds.exigences)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_EXIGENCES);
-    }
-    
-    if (databaseIds.pages !== undefined) {
-      databaseIds.pages
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_PAGES, databaseIds.pages)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_PAGES);
-    }
-    
-    if (databaseIds.audits !== undefined) {
-      databaseIds.audits
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_AUDITS, databaseIds.audits)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_AUDITS);
-    }
-    
-    if (databaseIds.evaluations !== undefined) {
-      databaseIds.evaluations
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_EVALUATIONS, databaseIds.evaluations)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_EVALUATIONS);
-    }
-    
-    if (databaseIds.actions !== undefined) {
-      databaseIds.actions
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_ACTIONS, databaseIds.actions)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_ACTIONS);
-    }
-    
-    if (databaseIds.progress !== undefined) {
-      databaseIds.progress
-        ? localStorage.setItem(STORAGE_KEYS.DATABASE_PROGRESS, databaseIds.progress)
-        : localStorage.removeItem(STORAGE_KEYS.DATABASE_PROGRESS);
-    }
-  }
-  
-  // Sauvegarder le mode d'opération si fourni
-  if (config.mode && config.mode.persistentMode !== false) {
-    try {
-      const currentMode = localStorage.getItem(STORAGE_KEYS.MODE);
-      const currentModeObj = currentMode ? JSON.parse(currentMode) : {};
-      const newMode = { ...currentModeObj, ...config.mode };
-      localStorage.setItem(STORAGE_KEYS.MODE, JSON.stringify(newMode));
-    } catch (e) {
-      console.error('Erreur lors de la sauvegarde du mode:', e);
-    }
-  }
-  
-  // Enregistrer la date de dernière configuration
-  localStorage.setItem(STORAGE_KEYS.LAST_CONFIG_DATE, new Date().toISOString());
-}
-
-// Vérifie si une configuration est valide
-export function isConfigValid(config: NotionConfig): boolean {
-  // Une configuration minimale valide nécessite une API key et au moins l'ID de la base de projets
-  return !!(config.apiKey && config.databaseIds.projects);
-}
-
-// Génère une configuration optimisée pour l'environnement actuel
-export function generateEnvironmentConfig(): Partial<NotionConfig> {
-  const env = detectEnvironment();
-  
-  switch (env) {
-    case 'netlify':
-      return {
-        client: {
-          debug: false
-        },
-        errors: {
-          logLevel: 'error',
-          maxRetries: 3,
-          retryDelay: 1000,
-          showToasts: true
-        },
-        cache: {
-          enabled: true,
-          ttl: 10 * 60 * 1000, // 10 minutes pour production
-          storageKey: 'notion_api_cache'
-        }
-      };
-      
-    case 'vercel':
-      return {
-        client: {
-          debug: false
-        },
-        errors: {
-          logLevel: 'error',
-          maxRetries: 3,
-          retryDelay: 1000,
-          showToasts: true
-        },
-        cache: {
-          enabled: true,
-          ttl: 10 * 60 * 1000, // 10 minutes pour production
-          storageKey: 'notion_api_cache'
-        }
-      };
-      
-    case 'local':
-      return {
-        client: {
-          debug: true
-        },
-        errors: {
-          logLevel: 'debug',
-          maxRetries: 3,
-          retryDelay: 1000,
-          showToasts: true
-        },
-        cache: {
-          enabled: true,
-          ttl: 2 * 60 * 1000, // 2 minutes pour développement
-          storageKey: 'notion_api_cache'
-        }
-      };
-      
-    default:
-      return {};
+    return {
+      ...DEFAULT_CONFIG,
+      apiKey,
+      databaseIds: {
+        ...DEFAULT_CONFIG.databaseIds,
+        projects: projectsDbId,
+        checklists: checklistsDbId
+      }
+    };
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la configuration:', error);
+    return { ...DEFAULT_CONFIG };
   }
 }
 
-// Vérifie si tous les champs requis sont configurés
-export function hasRequiredConfig(): boolean {
-  const config = getStoredConfig();
-  return isConfigValid(config);
-}
-
-// Exporte la configuration actuelle
-export const currentConfig = getStoredConfig();
-
-// Fonction pour mettre à jour la configuration et sauvegarder les changements
+/**
+ * Met à jour la configuration stockée
+ */
 export function updateConfig(newConfig: Partial<NotionConfig>): NotionConfig {
-  const updatedConfig = { ...getStoredConfig(), ...newConfig };
-  saveConfig(newConfig);
-  return updatedConfig;
+  try {
+    // Récupérer la configuration existante
+    const currentConfig = getStoredConfig();
+    
+    // Fusionner avec les nouvelles valeurs
+    const updatedConfig = {
+      ...currentConfig,
+      ...newConfig,
+      databaseIds: {
+        ...currentConfig.databaseIds,
+        ...(newConfig.databaseIds || {})
+      },
+      mock: {
+        ...currentConfig.mock,
+        ...(newConfig.mock || {})
+      }
+    };
+    
+    // Stocker la configuration complète
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(updatedConfig));
+    
+    // Pour compatibilité avec l'ancien format, également stocker séparément
+    if (updatedConfig.apiKey) {
+      localStorage.setItem(STORAGE_KEYS.API_KEY, updatedConfig.apiKey);
+    }
+    
+    if (updatedConfig.databaseIds.projects) {
+      localStorage.setItem(STORAGE_KEYS.DB_PROJECTS, updatedConfig.databaseIds.projects);
+    }
+    
+    if (updatedConfig.databaseIds.checklists) {
+      localStorage.setItem(STORAGE_KEYS.DB_CHECKLISTS, updatedConfig.databaseIds.checklists);
+    }
+    
+    return updatedConfig;
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la configuration:', error);
+    return newConfig as NotionConfig;
+  }
 }
 
-// Exporte les constantes et types
-export { STORAGE_KEYS };
+/**
+ * Vérifie si la configuration est valide
+ */
+export function isConfigValid(config: NotionConfig): boolean {
+  return !!config.apiKey && !!config.databaseIds.projects;
+}
+
+/**
+ * Supprime toutes les configurations stockées
+ */
+export function clearConfig(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.CONFIG);
+    localStorage.removeItem(STORAGE_KEYS.API_KEY);
+    localStorage.removeItem(STORAGE_KEYS.DB_PROJECTS);
+    localStorage.removeItem(STORAGE_KEYS.DB_CHECKLISTS);
+    
+    // Supprimer les autres clés de configuration connues
+    Object.values(STORAGE_KEYS).forEach(key => {
+      localStorage.removeItem(key);
+    });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la configuration:', error);
+  }
+}
+
+// Exporter les utilitaires et types
+export * from './environment';
+export * from './initialization';
+
+// Exporter une configuration par défaut
+export const defaultConfig: NotionConfig = { ...DEFAULT_CONFIG };
