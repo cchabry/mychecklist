@@ -1,13 +1,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { notionRetryQueue, QueuedOperation, OperationStatus } from './retryQueue';
+import { notionRetryQueue } from './retryQueue';
+import { QueuedOperation, OperationStatus, RetryQueueStats } from '../types/unified';
 
 /**
  * Hook pour accéder à la file d'attente des opérations à réessayer
  */
 export function useRetryQueue() {
   const [operations, setOperations] = useState<QueuedOperation[]>([]);
-  const [stats, setStats] = useState(() => notionRetryQueue.getStats());
+  const [stats, setStats] = useState<RetryQueueStats>(notionRetryQueue.getStats());
   
   // S'abonner aux changements de la file d'attente
   useEffect(() => {
@@ -61,15 +62,13 @@ export function useRetryQueue() {
     pendingOperations: operations.filter(op => op.status === OperationStatus.PENDING),
     successOperations: operations.filter(op => op.status === OperationStatus.SUCCESS),
     failedOperations: operations.filter(op => op.status === OperationStatus.FAILED),
-    pendingCount: stats.pending,
-    successCount: stats.success,
+    pendingCount: stats.pendingOperations,
+    successCount: stats.successful,
     errorCount: stats.failed,
-    isProcessing: stats.processing,
+    isProcessing: stats.isProcessing,
     enqueue,
     processQueue,
     removeOperation,
     clearQueue
   };
 }
-
-export default useRetryQueue;

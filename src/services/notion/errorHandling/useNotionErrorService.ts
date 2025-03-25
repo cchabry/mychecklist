@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { notionErrorService } from './errorService';
-import { NotionError, NotionErrorSeverity, NotionErrorOptions } from '../types/unified';
+import { NotionError, NotionErrorOptions } from '../types/unified';
 import { toast } from 'sonner';
 
 /**
@@ -28,7 +28,7 @@ export function useNotionErrorService() {
   const reportError = (
     error: Error | string, 
     context: string = 'Opération Notion', 
-    options: Partial<NotionErrorOptions> = {}
+    options: Partial<NotionErrorOptions> & { showToast?: boolean } = {}
   ) => {
     const notionError = notionErrorService.reportError(error, context, options);
     
@@ -64,5 +64,3 @@ export function useNotionErrorService() {
     service: notionErrorService
   };
 }
-
-export default useNotionErrorService;

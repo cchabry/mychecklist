@@ -3,44 +3,22 @@
  * Types unifiés pour la gestion des erreurs Notion
  */
 
-import { v4 as uuidv4 } from 'uuid';
-
-/**
- * Niveaux de journalisation
- */
-export enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3,
-  FATAL = 4,
-  TRACE = -1 // Pour rétrocompatibilité
-}
-
-/**
- * Types d'erreurs Notion
- */
+// Énumération des types d'erreurs possibles
 export enum NotionErrorType {
-  // Types principaux
-  API = 'api',
   AUTH = 'auth',
   PERMISSION = 'permission',
-  NETWORK = 'network',
-  TIMEOUT = 'timeout',
-  DATABASE = 'database',
-  CORS = 'cors',
   NOT_FOUND = 'not_found',
   VALIDATION = 'validation',
-  CONFIG = 'config',
-  SERVER = 'server',
-  PROXY = 'proxy',
   RATE_LIMIT = 'rate_limit',
+  TIMEOUT = 'timeout',
+  CORS = 'cors',
+  NETWORK = 'network',
+  SERVER = 'server',
+  DATABASE = 'database',
   UNKNOWN = 'unknown'
 }
 
-/**
- * Niveau de sévérité des erreurs
- */
+// Niveaux de sévérité des erreurs
 export enum NotionErrorSeverity {
   INFO = 'info',
   WARNING = 'warning',
@@ -48,150 +26,75 @@ export enum NotionErrorSeverity {
   CRITICAL = 'critical'
 }
 
-/**
- * Options pour la création d'erreurs
- */
+// Options pour la création d'erreurs Notion
 export interface NotionErrorOptions {
   type?: NotionErrorType;
   severity?: NotionErrorSeverity;
+  originalError?: any;
+  context?: string;
   retryable?: boolean;
-  recoverable?: boolean;
-  recoveryActions?: string[];
-  operation?: string;
-  details?: any;
-  context?: string | Record<string, any>;
-  stack?: string;
-  cause?: Error | any;
+  endpoint?: string;
+  status?: number;
 }
 
-/**
- * Structure standardisée des erreurs Notion
- */
+// Structure d'une erreur Notion
 export interface NotionError {
   id: string;
-  message: string;
   type: NotionErrorType;
+  message: string;
   severity: NotionErrorSeverity;
-  timestamp: number;
+  originalError?: any;
+  context?: string;
   retryable: boolean;
-  recoverable?: boolean;
-  recoveryActions?: string[];
-  operation?: string;
-  context?: string | Record<string, any>;
-  details?: any;
-  stack?: string;
-  originalError?: Error;
-  cause?: Error | any;
+  endpoint?: string;
+  status?: number;
+  timestamp: number;
 }
 
-/**
- * Fonction pour créer un ID d'erreur
- */
-export function createErrorId(): string {
-  return uuidv4();
+// Statut d'une opération dans la file d'attente
+export enum OperationStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled'
 }
 
-/**
- * Type pour les abonnés aux erreurs
- */
-export type ErrorSubscriber = (errors: NotionError[]) => void;
-
-/**
- * Créateur d'erreurs
- */
-export function createNotionError(
-  messageOrError: string | Error,
-  options: NotionErrorOptions = {}
-): NotionError {
-  // Récupérer le message d'erreur
-  const message = typeof messageOrError === 'string' 
-    ? messageOrError 
-    : messageOrError.message || 'Erreur inconnue';
-  
-  // Créer l'objet d'erreur
-  const error: NotionError = {
-    id: uuidv4(),
-    message,
-    type: options.type || NotionErrorType.UNKNOWN,
-    severity: options.severity || NotionErrorSeverity.ERROR,
-    timestamp: Date.now(),
-    retryable: options.retryable ?? false,
-    recoverable: options.recoverable,
-    recoveryActions: options.recoveryActions,
-    operation: options.operation,
-    context: options.context,
-    details: options.details
-  };
-  
-  // Ajouter la stack trace si disponible
-  if (options.stack) {
-    error.stack = options.stack;
-  } else if (typeof messageOrError === 'object' && messageOrError instanceof Error) {
-    error.stack = messageOrError.stack;
-  }
-  
-  // Ajouter l'erreur originale
-  if (typeof messageOrError === 'object' && messageOrError instanceof Error) {
-    error.originalError = messageOrError;
-  } else if (options.cause) {
-    error.cause = options.cause;
-  }
-  
-  return error;
+// Options pour une opération à réessayer
+export interface RetryOperationOptions {
+  maxRetries?: number;
+  retryDelay?: number;
+  priority?: number;
+  tags?: string[];
+  onSuccess?: (result: any) => void;
+  onFailure?: (error: Error) => void;
+  skipRetryIf?: (error: Error) => boolean;
 }
 
-/**
- * Mapper une ancienne erreur vers le nouveau format
- */
-export function mapLegacyError(oldError: any): NotionError {
-  if (!oldError) {
-    return createNotionError('Erreur inconnue');
-  }
-  
-  // Si c'est déjà une NotionError, la retourner telle quelle
-  if (oldError.id && oldError.type && typeof oldError.timestamp === 'number') {
-    return oldError as NotionError;
-  }
-  
-  // Convertir une erreur ancien format
-  return createNotionError(
-    oldError.message || String(oldError),
-    {
-      type: mapLegacyErrorType(oldError.type),
-      context: oldError.source || oldError.context,
-      details: oldError.details || oldError.originalError,
-      stack: oldError.stack
-    }
-  );
+// Structure d'une opération dans la file d'attente
+export interface QueuedOperation {
+  id: string;
+  name: string;
+  operation: () => Promise<any>;
+  retries: number;
+  maxRetries: number;
+  lastError?: Error;
+  priority: number;
+  tags: string[];
+  status: OperationStatus;
+  createdAt: number;
+  updatedAt: number;
+  description?: string;
 }
 
-/**
- * Mapper les anciens types d'erreur vers les nouveaux
- */
-function mapLegacyErrorType(legacyType: string): NotionErrorType {
-  switch (legacyType) {
-    case 'CONNECTION':
-    case 'connection':
-      return NotionErrorType.NETWORK;
-    case 'AUTHENTICATION':
-    case 'authentication':
-      return NotionErrorType.AUTH;
-    case 'PERMISSION':
-    case 'permission':
-      return NotionErrorType.PERMISSION;
-    case 'VALIDATION':
-    case 'validation':
-      return NotionErrorType.VALIDATION;
-    case 'RATE_LIMIT':
-    case 'rate_limit':
-      return NotionErrorType.RATE_LIMIT;
-    case 'SERVER':
-    case 'server':
-      return NotionErrorType.SERVER;
-    case 'not_found':
-    case 'NOT_FOUND':
-      return NotionErrorType.NOT_FOUND;
-    default:
-      return NotionErrorType.UNKNOWN;
-  }
+// Statistiques de la file d'attente
+export interface RetryQueueStats {
+  totalOperations: number;
+  pendingOperations: number;
+  completedOperations: number;
+  failedOperations: number;
+  successful: number;
+  failed: number;
+  lastProcessedAt: number | null;
+  isProcessing: boolean;
 }

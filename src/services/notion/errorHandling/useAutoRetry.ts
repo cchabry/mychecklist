@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { autoRetryHandler } from './autoRetry';
 import { useNotionErrorService } from './useNotionErrorService';
 import { useRetryQueue } from './useRetryQueue';
-import { NotionError } from '../types/unified';
+import { NotionError, RetryOperationOptions } from '../types/unified';
 
 /**
  * Hook pour utiliser le système de réessai automatique
@@ -18,12 +18,8 @@ export function useAutoRetry() {
   const executeWithRetry = useCallback(async <T>(
     name: string,
     operation: () => Promise<T>,
-    options: {
+    options: RetryOperationOptions & {
       context?: string;
-      maxRetries?: number;
-      priority?: number;
-      tags?: string[];
-      autoRetry?: boolean;
       showToast?: boolean;
       onSuccess?: (result: T) => void;
       onError?: (error: NotionError) => void;
@@ -53,7 +49,7 @@ export function useAutoRetry() {
       }
       
       // Si le réessai automatique est désactivé, s'arrêter ici
-      if (options.autoRetry === false) {
+      if (options.skipRetryIf && error instanceof Error && options.skipRetryIf(error)) {
         return null;
       }
       
@@ -88,7 +84,7 @@ export function useAutoRetry() {
   ): Promise<T | null> => {
     return executeWithRetry(name, operation, {
       ...options,
-      autoRetry: false
+      skipRetryIf: () => true // Désactiver le réessai
     });
   }, [executeWithRetry]);
   
@@ -99,5 +95,3 @@ export function useAutoRetry() {
     autoRetryHandler
   };
 }
-
-export default useAutoRetry;

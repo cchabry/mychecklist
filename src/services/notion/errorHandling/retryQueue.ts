@@ -1,59 +1,36 @@
 
 /**
- * Service de file d'attente pour les opérations à réessayer
+ * Service de file d'attente pour réessayer les opérations Notion
  */
-
 import { v4 as uuidv4 } from 'uuid';
-import { notionErrorService } from './errorService';
-import { NotionErrorType } from '../types/unified';
+import { 
+  QueuedOperation, 
+  OperationStatus,
+  RetryQueueStats
+} from '../types/unified';
 
-/**
- * État d'une opération dans la file d'attente
- */
-export enum OperationStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  SUCCESS = 'success',
-  FAILED = 'failed'
-}
+type QueueSubscriber = (operations: QueuedOperation[]) => void;
 
-/**
- * Structure d'une opération dans la file d'attente
- */
-export interface QueuedOperation {
-  id: string;
-  name: string;
-  description?: string;
-  operation: () => Promise<any>;
-  status: OperationStatus;
-  createdAt: number;
-  lastAttempt?: number;
-  error?: Error;
-  result?: any;
-  maxRetries?: number;
-  retryCount: number;
-  tags?: string[];
-  priority: number;
-}
+class NotionRetryQueueService {
+  private operations: QueuedOperation[] = [];
+  private subscribers: QueueSubscriber[] = [];
+  private isProcessing: boolean = false;
+  private processingTimeout: NodeJS.Timeout | null = null;
+  private stats: RetryQueueStats = {
+    totalOperations: 0,
+    pendingOperations: 0,
+    completedOperations: 0,
+    failedOperations: 0,
+    successful: 0,
+    failed: 0,
+    lastProcessedAt: null,
+    isProcessing: false
+  };
 
-// Stockage des opérations en file d'attente
-let operationsQueue: QueuedOperation[] = [];
-
-// Callbacks
-type QueueChangeCallback = (operations: QueuedOperation[]) => void;
-const subscribers: Array<{ id: string; callback: QueueChangeCallback }> = [];
-
-// État du processeur de file d'attente
-let isProcessing = false;
-
-/**
- * Service de gestion de file d'attente pour les réessais
- */
-export const notionRetryQueue = {
   /**
    * Ajoute une opération à la file d'attente
    */
-  enqueue(
+  public enqueue(
     name: string,
     operation: () => Promise<any>,
     options: {
@@ -68,185 +45,194 @@ export const notionRetryQueue = {
     const queuedOperation: QueuedOperation = {
       id,
       name,
-      description: options.description,
       operation,
+      retries: 0,
+      maxRetries: options.maxRetries ?? 3,
+      priority: options.priority ?? 0,
+      tags: options.tags ?? [],
       status: OperationStatus.PENDING,
       createdAt: Date.now(),
-      maxRetries: options.maxRetries || 3,
-      retryCount: 0,
-      priority: options.priority || 0,
-      tags: options.tags || []
+      updatedAt: Date.now(),
+      description: options.description
     };
     
-    // Ajouter à la file d'attente
-    operationsQueue.push(queuedOperation);
+    // Ajouter l'opération à la file d'attente
+    this.operations.push(queuedOperation);
     
-    // Trier par priorité
-    operationsQueue.sort((a, b) => b.priority - a.priority);
+    // Trier la file d'attente par priorité (plus élevée d'abord)
+    this.operations.sort((a, b) => b.priority - a.priority);
+    
+    // Mettre à jour les statistiques
+    this.updateStats();
     
     // Notifier les abonnés
     this.notifySubscribers();
     
     return id;
-  },
-  
+  }
+
   /**
-   * Supprime une opération de la file d'attente
+   * Traite toutes les opérations en attente
    */
-  remove(id: string): void {
-    const index = operationsQueue.findIndex(op => op.id === id);
-    
-    if (index !== -1) {
-      operationsQueue.splice(index, 1);
-      this.notifySubscribers();
+  public async processQueue(): Promise<void> {
+    if (this.isProcessing) {
+      console.log('File d\'attente déjà en cours de traitement...');
+      return;
     }
-  },
-  
-  /**
-   * Vide la file d'attente
-   */
-  clearQueue(): void {
-    if (operationsQueue.length === 0) return;
     
-    operationsQueue = operationsQueue.filter(op => op.status === OperationStatus.RUNNING);
-    this.notifySubscribers();
-  },
-  
-  /**
-   * Lance le traitement de la file d'attente
-   */
-  async processQueue(): Promise<void> {
-    if (isProcessing || operationsQueue.length === 0) return;
-    
-    isProcessing = true;
+    this.isProcessing = true;
+    this.stats.isProcessing = true;
     this.notifySubscribers();
     
     try {
-      // Traiter chaque opération en attente
-      const pendingOperations = operationsQueue
-        .filter(op => op.status === OperationStatus.PENDING);
+      // Récupérer les opérations en attente
+      const pendingOperations = this.operations.filter(
+        op => op.status === OperationStatus.PENDING
+      );
+      
+      console.log(`Traitement de ${pendingOperations.length} opération(s) en attente...`);
       
       for (const operation of pendingOperations) {
-        // Éviter de traiter les opérations déjà en cours
-        if (operation.status !== OperationStatus.PENDING) continue;
-        
-        // Mettre à jour le statut
-        operation.status = OperationStatus.RUNNING;
-        operation.lastAttempt = Date.now();
+        // Marquer l'opération en cours de traitement
+        operation.status = OperationStatus.PROCESSING;
+        operation.updatedAt = Date.now();
         this.notifySubscribers();
         
         try {
           // Exécuter l'opération
-          const result = await operation.operation();
+          await operation.operation();
           
-          // Mettre à jour avec le succès
+          // Marquer l'opération comme réussie
           operation.status = OperationStatus.SUCCESS;
-          operation.result = result;
+          this.stats.successful++;
+          
+          console.log(`Opération ${operation.name} (${operation.id}) réussie.`);
         } catch (error) {
-          console.error(`Échec de l'opération ${operation.name}:`, error);
+          console.error(`Erreur lors de l'opération ${operation.name} (${operation.id}):`, error);
           
-          // Signaler l'erreur
-          operation.error = error instanceof Error ? error : new Error(String(error));
+          // Stocker l'erreur
+          operation.lastError = error instanceof Error ? error : new Error(String(error));
           
-          // Incrémenter le compteur de réessais
-          operation.retryCount++;
+          // Incrémenter le compteur d'essais
+          operation.retries++;
           
-          // Vérifier si on peut encore réessayer
-          if (operation.retryCount <= (operation.maxRetries || 3)) {
-            operation.status = OperationStatus.PENDING;
-          } else {
+          // Vérifier si on a atteint le nombre max de tentatives
+          if (operation.retries >= operation.maxRetries) {
             operation.status = OperationStatus.FAILED;
-            
-            // Signaler l'erreur au service d'erreurs
-            notionErrorService.reportError(
-              operation.error,
-              `Échec définitif de l'opération: ${operation.name}`,
-              {
-                type: NotionErrorType.API,
-                details: {
-                  operation: operation.name,
-                  retries: operation.retryCount,
-                  maxRetries: operation.maxRetries
-                }
-              }
-            );
+            this.stats.failed++;
+            console.warn(`Nombre maximum de tentatives atteint pour l'opération ${operation.name} (${operation.id}).`);
+          } else {
+            // Remettre dans la file d'attente pour une nouvelle tentative
+            operation.status = OperationStatus.PENDING;
+            console.log(`Réessai de l'opération ${operation.name} (${operation.id}) plus tard. Tentative ${operation.retries}/${operation.maxRetries}.`);
           }
         }
         
-        // Notifier les abonnés de chaque changement
+        // Mettre à jour la date de modification
+        operation.updatedAt = Date.now();
+        
+        // Mettre à jour les statistiques et notifier les abonnés après chaque opération
+        this.updateStats();
         this.notifySubscribers();
       }
+      
+      this.stats.lastProcessedAt = Date.now();
+      console.log('Traitement de la file d\'attente terminé.');
     } finally {
-      isProcessing = false;
+      this.isProcessing = false;
+      this.stats.isProcessing = false;
+      this.updateStats();
       this.notifySubscribers();
     }
-  },
-  
+  }
+
   /**
-   * S'abonne aux changements de la file d'attente
+   * Supprime une opération de la file d'attente
    */
-  subscribe(callback: QueueChangeCallback): () => void {
-    const id = uuidv4();
-    subscribers.push({ id, callback });
+  public remove(id: string): boolean {
+    const initialLength = this.operations.length;
+    this.operations = this.operations.filter(op => op.id !== id);
     
-    // Notification initiale
-    callback([...operationsQueue]);
+    const removed = initialLength > this.operations.length;
     
-    // Retourner une fonction pour se désabonner
-    return () => {
-      const index = subscribers.findIndex(sub => sub.id === id);
-      if (index !== -1) {
-        subscribers.splice(index, 1);
-      }
-    };
-  },
-  
+    if (removed) {
+      this.updateStats();
+      this.notifySubscribers();
+    }
+    
+    return removed;
+  }
+
   /**
-   * Notifie tous les abonnés des changements
+   * Vide la file d'attente
    */
-  notifySubscribers(): void {
-    const operations = [...operationsQueue];
-    subscribers.forEach(sub => {
-      try {
-        sub.callback(operations);
-      } catch (e) {
-        console.error('Erreur lors de la notification d\'un abonné de la file d\'attente:', e);
-      }
-    });
-  },
-  
+  public clearQueue(): void {
+    this.operations = [];
+    this.updateStats();
+    this.notifySubscribers();
+  }
+
   /**
-   * Récupère l'état actuel de la file d'attente
+   * Récupère toutes les opérations
    */
-  getQueue(): QueuedOperation[] {
-    return [...operationsQueue];
-  },
-  
+  public getOperations(): QueuedOperation[] {
+    return [...this.operations];
+  }
+
   /**
    * Récupère les statistiques de la file d'attente
    */
-  getStats() {
-    const pendingCount = operationsQueue.filter(op => op.status === OperationStatus.PENDING).length;
-    const runningCount = operationsQueue.filter(op => op.status === OperationStatus.RUNNING).length;
-    const successCount = operationsQueue.filter(op => op.status === OperationStatus.SUCCESS).length;
-    const failedCount = operationsQueue.filter(op => op.status === OperationStatus.FAILED).length;
-    
-    return {
-      total: operationsQueue.length,
-      pending: pendingCount,
-      running: runningCount,
-      success: successCount,
-      failed: failedCount,
-      processing: isProcessing
-    };
-  },
-  
-  /**
-   * Vérifie si le processeur est actif
-   */
-  isProcessing(): boolean {
-    return isProcessing;
+  public getStats(): RetryQueueStats {
+    return { ...this.stats };
   }
-};
 
-export default notionRetryQueue;
+  /**
+   * Met à jour les statistiques de la file d'attente
+   */
+  private updateStats(): void {
+    const pendingOperations = this.operations.filter(op => op.status === OperationStatus.PENDING).length;
+    const completedOperations = this.operations.filter(op => op.status === OperationStatus.SUCCESS).length;
+    const failedOperations = this.operations.filter(op => op.status === OperationStatus.FAILED).length;
+    
+    this.stats = {
+      ...this.stats,
+      totalOperations: this.operations.length,
+      pendingOperations,
+      completedOperations,
+      failedOperations,
+      isProcessing: this.isProcessing
+    };
+  }
+
+  /**
+   * S'abonne aux mises à jour de la file d'attente
+   */
+  public subscribe(callback: QueueSubscriber): () => void {
+    this.subscribers.push(callback);
+    
+    // Retourner une fonction pour se désabonner
+    return () => {
+      const index = this.subscribers.indexOf(callback);
+      if (index !== -1) {
+        this.subscribers.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notifie tous les abonnés
+   */
+  private notifySubscribers(): void {
+    const operations = this.getOperations();
+    for (const subscriber of this.subscribers) {
+      try {
+        subscriber(operations);
+      } catch (e) {
+        console.error('Erreur lors de la notification d\'un abonné à la file d\'attente:', e);
+      }
+    }
+  }
+}
+
+// Exporter une instance unique du service
+export const notionRetryQueue = new NotionRetryQueueService();

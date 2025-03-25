@@ -1,20 +1,16 @@
 
 /**
- * Traitement automatique des erreurs Notion
+ * Service de réessai automatique pour les opérations Notion
  */
-
 import { notionRetryQueue } from './retryQueue';
 import { notionErrorService } from './errorService';
-import { NotionError, NotionErrorType } from '../types/unified';
+import { NotionError, NotionErrorType, RetryOperationOptions } from '../types/unified';
 
-/**
- * Gestionnaire de réessai automatique des erreurs
- */
-export const autoRetryHandler = {
+class AutoRetryService {
   /**
    * Vérifie si une erreur peut être réessayée automatiquement
    */
-  canAutoRetry(error: NotionError): boolean {
+  public canAutoRetry(error: NotionError): boolean {
     // Les erreurs réseau peuvent généralement être réessayées
     if (error.type === NotionErrorType.NETWORK) {
       return true;
@@ -37,93 +33,79 @@ export const autoRetryHandler = {
     
     // Par défaut, on considère que l'erreur ne peut pas être réessayée
     return false;
-  },
-  
-  /**
-   * Enregistre une opération pour réessai automatique
-   */
-  registerForRetry(
-    name: string,
-    operation: () => Promise<any>,
-    error: NotionError,
-    options: {
-      maxRetries?: number;
-      priority?: number;
-      tags?: string[];
-    } = {}
-  ): string | null {
-    // Vérifier si l'erreur peut être réessayée
-    if (!this.canAutoRetry(error)) {
-      return null;
-    }
-    
-    // Déterminer le nombre maximal de tentatives en fonction du type d'erreur
-    let maxRetries = options.maxRetries || 3;
-    let priority = options.priority || 0;
-    
-    // Ajuster les paramètres en fonction du type d'erreur
-    switch (error.type) {
-      case NotionErrorType.RATE_LIMIT:
-        // Plus d'attente entre les tentatives pour les limites de débit
-        maxRetries = options.maxRetries || 5;
-        priority = -10; // Priorité basse
-        break;
-        
-      case NotionErrorType.NETWORK:
-        // Priorité plus élevée pour les erreurs réseau
-        priority = 10;
-        break;
-        
-      case NotionErrorType.SERVER:
-        // Priorité moyenne pour les erreurs serveur
-        priority = 0;
-        break;
-    }
-    
-    // Ajouter à la file d'attente
-    return notionRetryQueue.enqueue(name, operation, {
-      ...options,
-      maxRetries,
-      priority,
-      tags: [...(options.tags || []), 'auto-retry', `error-type:${error.type}`]
-    });
-  },
-  
-  /**
-   * Traite une erreur et l'enregistre pour réessai si possible
-   */
-  handleError(
-    error: Error | any,
-    operationName: string,
-    operation: () => Promise<any>,
-    options: {
-      context?: string;
-      maxRetries?: number;
-      priority?: number;
-      tags?: string[];
-      autoRetry?: boolean;
-    } = {}
-  ): NotionError {
-    // Créer une erreur standardisée
-    const notionError = notionErrorService.reportError(
-      error,
-      options.context || operationName
-    );
-    
-    // Si le réessai automatique est désactivé, s'arrêter ici
-    if (options.autoRetry === false) {
-      return notionError;
-    }
-    
-    // Tenter d'enregistrer pour réessai
-    this.registerForRetry(operationName, operation, notionError, {
-      maxRetries: options.maxRetries,
-      priority: options.priority,
-      tags: options.tags
-    });
-    
-    return notionError;
   }
-};
 
-export default autoRetryHandler;
+  /**
+   * Exécute une opération avec gestion des erreurs et réessais automatiques
+   */
+  public async execute<T>(
+    operation: () => Promise<T>,
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions = {}
+  ): Promise<T> {
+    try {
+      // Tentative d'exécution directe
+      return await operation();
+    } catch (error) {
+      // Créer une erreur standardisée
+      const contextStr = typeof context === 'string' ? context : JSON.stringify(context);
+      const notionError = notionErrorService.reportError(error, contextStr);
+      
+      // Vérifier si on peut réessayer
+      if (this.canAutoRetry(notionError) && !options.skipRetryIf?.(error as Error)) {
+        console.log(`Ajout de l'opération à la file d'attente pour réessai automatique. Contexte: ${contextStr}`);
+        
+        // Calculer la priorité en fonction du type d'erreur
+        let priority = options.priority ?? 0;
+        
+        if (notionError.type === NotionErrorType.RATE_LIMIT) {
+          priority -= 10; // Priorité basse pour les limites de débit
+        } else if (notionError.type === NotionErrorType.NETWORK) {
+          priority += 10; // Priorité haute pour les erreurs réseau
+        }
+        
+        // Retourner une promesse qui sera résolue/rejetée lorsque l'opération sera réessayée
+        return new Promise<T>((resolve, reject) => {
+          notionRetryQueue.enqueue(
+            contextStr,
+            async () => {
+              try {
+                const result = await operation();
+                
+                if (options.onSuccess) {
+                  options.onSuccess(result);
+                }
+                
+                resolve(result);
+                return result;
+              } catch (retryError) {
+                if (options.onFailure) {
+                  options.onFailure(retryError as Error);
+                }
+                
+                reject(retryError);
+                throw retryError;
+              }
+            },
+            {
+              description: `Réessai automatique: ${contextStr}`,
+              maxRetries: options.maxRetries,
+              priority,
+              tags: [...(options.tags || []), 'auto-retry', `error-type:${notionError.type}`]
+            }
+          );
+        });
+      }
+      
+      // Si on ne peut pas réessayer, propager l'erreur
+      if (options.onFailure) {
+        options.onFailure(error as Error);
+      }
+      
+      throw error;
+    }
+  }
+}
+
+// Exporter une instance unique du service
+export const autoRetryHandler = new AutoRetryService();
