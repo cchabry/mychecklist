@@ -6,11 +6,12 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Play, RefreshCw, Clock, Ban, ArrowUp, RotateCw } from 'lucide-react';
 import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
+import { QueuedOperation } from '@/services/notion/types/unified';
 
 const RetryQueueMonitor: React.FC = () => {
   const { 
     stats, 
-    queuedOperations, 
+    queuedOperations = [], // Fournir un fallback au cas où
     processQueue, 
     clearQueue 
   } = useRetryQueue();
@@ -39,7 +40,17 @@ const RetryQueueMonitor: React.FC = () => {
     const nextOperation = queuedOperations.reduce((earliest, op) => {
       if (!earliest.nextRetry) return op;
       if (!op.nextRetry) return earliest;
-      return op.nextRetry < earliest.nextRetry ? op : earliest;
+      
+      // Convertir en timestamp si c'est un objet Date
+      const earliestTime = earliest.nextRetry instanceof Date 
+        ? earliest.nextRetry.getTime() 
+        : earliest.nextRetry;
+      
+      const opTime = op.nextRetry instanceof Date 
+        ? op.nextRetry.getTime() 
+        : op.nextRetry;
+        
+      return opTime < earliestTime ? op : earliest;
     });
     
     if (!nextOperation.nextRetry) {
@@ -50,7 +61,10 @@ const RetryQueueMonitor: React.FC = () => {
     // Calculer le temps restant
     const updateCountdown = () => {
       const now = Date.now();
-      const nextRetryTime = new Date(nextOperation.nextRetry).getTime();
+      const nextRetryTime = nextOperation.nextRetry instanceof Date
+        ? nextOperation.nextRetry.getTime()
+        : (typeof nextOperation.nextRetry === 'number' ? nextOperation.nextRetry : 0);
+        
       const remaining = Math.max(0, Math.floor((nextRetryTime - now) / 1000));
       
       setCountdown(remaining);
@@ -124,12 +138,16 @@ const RetryQueueMonitor: React.FC = () => {
           
           <div className="bg-slate-50 p-3 rounded-md border">
             <div className="text-sm text-slate-500 mb-1">Réussies</div>
-            <div className="text-2xl font-bold text-green-600">{stats.successful || 0}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.successful !== undefined ? stats.successful : stats.completedOperations}
+            </div>
           </div>
           
           <div className="bg-slate-50 p-3 rounded-md border">
             <div className="text-sm text-slate-500 mb-1">Échouées</div>
-            <div className="text-2xl font-bold text-red-600">{stats.failed || 0}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {stats.failed !== undefined ? stats.failed : stats.failedOperations}
+            </div>
           </div>
         </div>
         
@@ -182,7 +200,11 @@ const RetryQueueMonitor: React.FC = () => {
                     <div className="mt-2 flex items-center text-slate-500">
                       <Clock className="h-3 w-3 mr-1" />
                       <span>
-                        Prochain essai: {new Date(op.nextRetry).toLocaleTimeString()}
+                        Prochain essai: {
+                          op.nextRetry instanceof Date 
+                            ? op.nextRetry.toLocaleTimeString() 
+                            : new Date(op.nextRetry).toLocaleTimeString()
+                        }
                       </span>
                     </div>
                   )}

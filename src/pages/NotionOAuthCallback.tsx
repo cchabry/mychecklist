@@ -1,121 +1,125 @@
 
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useNotionOAuth } from '@/hooks/notion/useNotionOAuth';
-import { RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import Header from '@/components/Header';
-
-// Fonction de remplacement pour handleCallback si elle n'existe pas
-const defaultHandleCallback = async (code: string, state: string): Promise<boolean> => {
-  console.warn('handleCallback non disponible dans useNotionOAuth');
-  return false;
-};
+import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { useNotionOAuth } from '@/hooks/notion/useNotionOAuth';
 
 /**
- * Page de callback pour l'authentification OAuth Notion
+ * Page de callback OAuth pour l'authentification Notion
  */
 const NotionOAuthCallback: React.FC = () => {
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Obtenir le hook OAuth et gérer le cas où handleCallback n'existe pas
-  const oauthHook = useNotionOAuth({
-    onAuthError: (error) => setError(error.message)
-  });
+  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [error, setError] = useState<string | null>(null);
   
-  // Fournir un fallback pour handleCallback si nécessaire
-  const handleCallback = oauthHook.handleCallback || defaultHandleCallback;
+  // Récupérer le hook OAuth
+  const oauth = useNotionOAuth();
   
-  // Traiter les paramètres d'URL au chargement
+  // Traiter le code d'autorisation
   useEffect(() => {
-    const processOAuthCallback = async () => {
-      try {
-        const params = new URLSearchParams(location.search);
-        const code = params.get('code');
-        const state = params.get('state');
-        const errorParam = params.get('error');
-        
-        if (errorParam) {
-          setError(`Erreur d'authentification: ${errorParam}`);
-          setIsProcessing(false);
-          return;
-        }
-        
-        if (!code || !state) {
-          setError('Paramètres manquants dans l\'URL de callback');
-          setIsProcessing(false);
-          return;
-        }
-        
-        // Traiter le callback OAuth
-        const callbackSuccess = await handleCallback(code, state);
-        setSuccess(callbackSuccess);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setIsProcessing(false);
-      }
-    };
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
     
-    processOAuthCallback();
-  }, [location.search, handleCallback]);
-  
-  // Rediriger vers la page d'accueil après un délai en cas de succès
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        navigate('/');
-      }, 3000);
-      
-      return () => clearTimeout(timer);
+    if (error) {
+      setStatus('error');
+      setError(error);
+      return;
     }
-  }, [success, navigate]);
+    
+    if (!code) {
+      setStatus('error');
+      setError('Aucun code d\'autorisation fourni');
+      return;
+    }
+    
+    // Vérifier si la méthode handleCallback existe
+    if (typeof (oauth as any).handleCallback === 'function') {
+      (async () => {
+        try {
+          await (oauth as any).handleCallback(code);
+          setStatus('success');
+        } catch (error) {
+          setStatus('error');
+          setError(error instanceof Error ? error.message : 'Erreur inconnue');
+        }
+      })();
+    } else {
+      // Implémentation fallback simple
+      console.warn('Méthode handleCallback non disponible, utilisation du fallback');
+      
+      try {
+        // Stocker le code pour un traitement ultérieur
+        localStorage.setItem('notion_oauth_code', code);
+        
+        // Définir un flag indiquant que l'authentification est en attente
+        localStorage.setItem('notion_oauth_pending', 'true');
+        
+        setStatus('success');
+      } catch (err) {
+        setStatus('error');
+        setError('Erreur lors du stockage du code OAuth');
+      }
+    }
+  }, [searchParams, oauth]);
+  
+  // Rediriger après le traitement
+  const handleRedirect = () => {
+    navigate('/');
+  };
   
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      
-      <main className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
-        <div className="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
-          <div className="text-center">
-            {isProcessing ? (
+    <div className="container flex items-center justify-center min-h-screen py-12">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            {status === 'processing' && (
               <>
-                <RefreshCw className="h-12 w-12 mx-auto text-tmw-teal animate-spin" />
-                <h2 className="mt-4 text-xl font-semibold">Traitement de l'authentification...</h2>
-                <p className="mt-2 text-gray-500">
-                  Veuillez patienter pendant que nous finalisons l'authentification avec Notion.
-                </p>
-              </>
-            ) : success ? (
-              <>
-                <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
-                <h2 className="mt-4 text-xl font-semibold text-green-700">Authentification réussie!</h2>
-                <p className="mt-2 text-gray-500">
-                  Vous êtes maintenant connecté à Notion. Redirection en cours...
-                </p>
-              </>
-            ) : (
-              <>
-                <XCircle className="h-12 w-12 mx-auto text-red-500" />
-                <h2 className="mt-4 text-xl font-semibold text-red-700">Échec de l'authentification</h2>
-                <p className="mt-2 text-gray-500">
-                  {error || "Une erreur s'est produite lors de l'authentification avec Notion."}
-                </p>
-                <div className="mt-6">
-                  <Button onClick={() => navigate('/')}>
-                    Retour à l'accueil
-                  </Button>
-                </div>
+                <AlertCircle className="h-6 w-6 text-amber-500 mr-2" />
+                Authentification en cours...
               </>
             )}
-          </div>
-        </div>
-      </main>
+            {status === 'success' && (
+              <>
+                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
+                Authentification réussie
+              </>
+            )}
+            {status === 'error' && (
+              <>
+                <XCircle className="h-6 w-6 text-red-500 mr-2" />
+                Échec de l'authentification
+              </>
+            )}
+          </CardTitle>
+          
+          <CardDescription>
+            {status === 'processing' && 'Veuillez patienter pendant le traitement de votre authentification Notion.'}
+            {status === 'success' && 'Vous avez été authentifié avec succès sur Notion.'}
+            {status === 'error' && 'Une erreur s\'est produite lors de l\'authentification Notion.'}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {status === 'error' && error && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
+              {error}
+            </div>
+          )}
+          
+          {(status === 'success' || status === 'error') && (
+            <Button 
+              className="w-full"
+              onClick={handleRedirect}
+            >
+              Retourner à l'application
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

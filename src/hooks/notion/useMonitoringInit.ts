@@ -26,8 +26,8 @@ export function useMonitoringInit(options: UseMonitoringInitOptions = {}) {
     try {
       if (structuredLogger) {
         // Vérifier si la méthode configure existe
-        if (typeof structuredLogger.configure === 'function') {
-          structuredLogger.configure(loggerConfig);
+        if (typeof (structuredLogger as any).configure === 'function') {
+          (structuredLogger as any).configure(loggerConfig);
         } else if (typeof structuredLogger.setMinLevel === 'function') {
           // Fallback: configurer uniquement le niveau minimal
           structuredLogger.setMinLevel(loggerConfig.minLevel || LogLevel.INFO);

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionRetryQueue } from '@/services/notion/errorHandling';
-import { RetryOperationOptions, RetryQueueStats } from '@/services/notion/types/unified';
+import { RetryOperationOptions, RetryQueueStats, QueuedOperation } from '@/services/notion/types/unified';
 
 /**
  * Hook pour interagir avec la file d'attente de réessai
@@ -12,18 +12,35 @@ export function useRetryQueue() {
     pendingOperations: 0,
     completedOperations: 0,
     failedOperations: 0,
+    successful: 0,
+    failed: 0,
     lastProcessedAt: null,
     isProcessing: false
   });
+  
+  const [queuedOperations, setQueuedOperations] = useState<QueuedOperation[]>([]);
   
   // S'abonner aux mises à jour des statistiques
   useEffect(() => {
     const unsubscribe = notionRetryQueue.subscribe((updatedStats) => {
       setStats(updatedStats);
+      
+      // Si la file d'attente expose les opérations, les récupérer
+      if (typeof notionRetryQueue.getQueuedOperations === 'function') {
+        setQueuedOperations(notionRetryQueue.getQueuedOperations());
+      } else {
+        // Fallback: créer un tableau vide
+        setQueuedOperations([]);
+      }
     });
     
     // Charger les stats initiales
     setStats(notionRetryQueue.getStats());
+    
+    // Charger les opérations initiales si disponibles
+    if (typeof notionRetryQueue.getQueuedOperations === 'function') {
+      setQueuedOperations(notionRetryQueue.getQueuedOperations());
+    }
     
     return unsubscribe;
   }, []);
@@ -128,9 +145,10 @@ export function useRetryQueue() {
   
   return {
     stats,
+    queuedOperations,
     enqueue,
     processQueue,
-    processNow: processNow,
+    processNow,
     cancelOperation,
     clearQueue,
     executeWithRetry
