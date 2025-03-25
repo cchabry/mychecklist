@@ -1,16 +1,16 @@
 
-import { legacyApiAdapter } from '../adapters';
+import { notionApiRequest } from '../proxyFetch';
 
 /**
- * Récupère l'utilisateur courant
+ * Récupère l'utilisateur actuel
  */
-export const me = (token: string) => {
-  return legacyApiAdapter('/users/me', 'GET', null, token);
+export const me = async (token: string) => {
+  return notionApiRequest('/users/me', 'GET', undefined, token);
 };
 
 /**
- * Liste les utilisateurs
+ * Récupère tous les utilisateurs
  */
-export const list = (token: string) => {
-  return legacyApiAdapter('/users', 'GET', null, token);
+export const list = async (token: string) => {
+  return notionApiRequest('/users', 'GET', undefined, token);
 };

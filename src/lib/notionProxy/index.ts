@@ -1,88 +1,63 @@
 
-import { notionApiRequest } from './proxyFetch';
-import { mockMode } from './mockMode';
-import { legacyApiAdapter, convertMethodToOptions } from './adapters';
-import * as actions from './endpoints/actions';
-import * as audits from './endpoints/audits';
-import * as checklist from './endpoints/checklist';
+// Importer tous les endpoints de l'API
+import * as users from './endpoints/users';
 import * as databases from './endpoints/databases';
-import * as evaluations from './endpoints/evaluations';
-import * as exigences from './endpoints/exigences';
 import * as pages from './endpoints/pages';
 import * as projects from './endpoints/projects';
+import * as checklist from './endpoints/checklist';
+import * as exigences from './endpoints/exigences';
 import * as samplePages from './endpoints/samplePages';
-import * as users from './endpoints/users';
+import * as audits from './endpoints/audits';
+import * as evaluations from './endpoints/evaluations';
+import * as actions from './endpoints/actions';
 
-// Méthodes de compatibilité pour les projets
-const projectsCompat = {
-  list: () => legacyApiAdapter('/v1/databases/projects/query', 'POST'),
-  retrieve: (id: string) => legacyApiAdapter(`/projects/${id}`, 'GET'),
-  create: (data: any) => legacyApiAdapter('/projects', 'POST', data),
-  update: (id: string, data: any) => legacyApiAdapter(`/projects/${id}`, 'PATCH', data),
-  delete: (id: string) => legacyApiAdapter(`/projects/${id}`, 'DELETE')
-};
+// Importer l'adaptateur mockMode
+import mockMode from './mock/mode';
 
-// Méthodes de compatibilité pour les audits
-const auditsCompat = {
-  retrieve: (id: string) => legacyApiAdapter(`/audits/${id}`, 'GET'),
-  listByProject: (projectId: string) => legacyApiAdapter(`/projects/${projectId}/audits`, 'GET')
-};
+// Importer l'API Proxy
+import { proxyFetch, notionApiRequest } from './proxyFetch';
 
-// Méthodes de compatibilité pour les pages d'échantillon
-const samplePagesCompat = {
-  create: (data: any) => legacyApiAdapter('/sample-pages', 'POST', data)
-};
-
-// Créer un API wrapper qui expose toutes les fonctions
+// Créer et exporter l'API Notion
 export const notionApi = {
-  // API de bas niveau
-  request: notionApiRequest,
-  requestLegacy: legacyApiAdapter,
+  // Fonction de base pour toutes les requêtes
+  request: proxyFetch,
   
-  // Gestionnaire de mode mock
-  mockMode,
-  
-  // Endpoints spécifiques
-  actions,
-  audits,
-  checklist,
-  databases,
-  evaluations,
-  exigences,
-  pages,
-  projects,
-  samplePages,
+  // Endpoints pour les utilisateurs
   users,
   
-  // Méthodes de compatibilité pour les appellants existants
-  getProjects: () => projectsCompat.list(),
-  getProject: (id: string) => projectsCompat.retrieve(id),
-  createProject: (data: any) => projectsCompat.create(data),
-  updateProject: (id: string, data: any) => projectsCompat.update(id, data),
-  deleteProject: (id: string) => projectsCompat.delete(id),
+  // Endpoints pour les bases de données
+  databases,
   
-  getAudit: (id: string) => auditsCompat.retrieve(id),
-  getAuditsByProject: (projectId: string) => auditsCompat.listByProject(projectId),
+  // Endpoints pour les pages
+  pages,
   
-  createSamplePage: (data: any) => samplePagesCompat.create(data)
+  // Endpoints pour les projets
+  ...projects,
+  
+  // Endpoints pour les checklists
+  ...checklist,
+  
+  // Endpoints pour les exigences
+  ...exigences,
+  
+  // Endpoints pour les pages d'échantillon
+  ...samplePages,
+  
+  // Endpoints pour les audits
+  ...audits,
+  
+  // Endpoints pour les évaluations
+  ...evaluations,
+  
+  // Endpoints pour les actions correctives
+  ...actions,
+  
+  // Système de mode mock (pour compatibilité)
+  mockMode,
+  
+  // Méthode pour récupérer les audits par projet
+  getAuditsByProject: audits.getAuditsByProject
 };
 
-// Compatibilité avec les importations existantes
-export { notionApiRequest };
-export { mockMode };
-export { legacyApiAdapter, convertMethodToOptions };
-
-// Exporter les types
-export type { ApiRequestContext } from './adapters';
-
-// Exporter de manière explicite pour éviter les ambiguïtés
-export { actions };
-export { audits };
-export { checklist };
-export { databases };
-export { evaluations };
-export { exigences };
-export { pages };
-export { projects };
-export { samplePages };
-export { users };
+// Exporter par défaut
+export default notionApi;

@@ -1,209 +1,185 @@
 
-import React, { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { Check, X, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { operationMode } from '@/services/operationMode';
-import { STORAGE_KEYS } from '@/lib/notionProxy/config';
-import { notionApi } from '@/lib/notionProxy';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { useOperationMode } from '@/services/operationMode';
+import { OperationMode } from '@/services/operationMode/types';
 
-interface StatusDetails {
-  lastChecked: number;
-  isConnected: boolean;
-  error?: string;
+interface NotionConnectionStatusProps {
+  onConfigClick?: () => void;
+  onReset?: () => void;
+  className?: string;
+  compact?: boolean;
 }
 
-const NotionConnectionStatus: React.FC = () => {
-  const [status, setStatus] = useState<StatusDetails | null>(null);
-  const [isChecking, setIsChecking] = useState(false);
+/**
+ * Composant affichant l'état de connexion à Notion
+ * avec le nouveau système operationMode
+ */
+const NotionConnectionStatus: React.FC<NotionConnectionStatusProps> = ({
+  onConfigClick,
+  onReset,
+  className = '',
+  compact = false
+}) => {
+  const { 
+    mode, 
+    isDemoMode, 
+    isRealMode, 
+    switchReason, 
+    failures, 
+    lastError,
+    enableRealMode,
+  } = useOperationMode();
   
-  // Charger le statut enregistré au chargement du composant
-  useEffect(() => {
-    try {
-      const savedStatus = localStorage.getItem('notion_connection_status');
-      if (savedStatus) {
-        setStatus(JSON.parse(savedStatus));
-      }
-    } catch (e) {
-      console.error('Erreur lors du chargement du statut de connexion:', e);
-    }
-  }, []);
+  // Déterminer si une configuration Notion est disponible
+  const hasNotionConfig = !!localStorage.getItem('notion_api_key') && 
+                          !!localStorage.getItem('notion_database_id');
   
-  // Vérifier la connexion Notion
-  const checkConnection = async () => {
-    setIsChecking(true);
-    
-    try {
-      const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
-      
-      if (!apiKey) {
-        throw new Error('Clé API Notion non configurée');
-      }
-      
-      // Force real mode
-      const wasMockMode = notionApi.mockMode.isActive();
-      if (wasMockMode) {
-        notionApi.mockMode.deactivate();
-      }
-      
-      // Tester la connexion
-      console.log(`🔍 Test de connexion Notion avec clé: ${apiKey.substring(0, 4)}...`);
-      await notionApi.users.me(apiKey);
-      
-      const newStatus = {
-        lastChecked: Date.now(),
-        isConnected: true
-      };
-      
-      setStatus(newStatus);
-      localStorage.setItem('notion_connection_status', JSON.stringify(newStatus));
-      
-      toast.success('Connexion Notion OK', {
-        description: 'L\'API Notion est accessible'
-      });
-      
-      // Si on était en mode mock et que la connexion fonctionne, rester en mode réel
-      if (wasMockMode) {
-        operationMode.enableRealMode();
-        toast.info('Mode réel activé', {
-          description: 'La connexion fonctionne, le mode démo a été désactivé'
-        });
-      }
-    } catch (error) {
-      console.error('Erreur de connexion Notion:', error);
-      
-      const newStatus = {
-        lastChecked: Date.now(),
-        isConnected: false,
-        error: error.message
-      };
-      
-      setStatus(newStatus);
-      localStorage.setItem('notion_connection_status', JSON.stringify(newStatus));
-      
-      // Afficher l'erreur
-      toast.error('Erreur de connexion Notion', {
-        description: error.message
-      });
-      
-      // Avertir le système d'opération de l'erreur
-      operationMode.handleConnectionError(error, 'Test de connexion Notion');
-    } finally {
-      setIsChecking(false);
-    }
-  };
-  
-  // Forcer le mode démo
-  const forceDemo = () => {
-    operationMode.enableDemoMode('Activation manuelle');
-    toast.success('Mode démo activé', {
-      description: 'L\'application utilise maintenant des données de démonstration'
-    });
-  };
-  
-  // Forcer le mode réel
-  const forceReal = () => {
-    operationMode.enableRealMode();
-    toast.success('Mode réel activé', {
-      description: 'L\'application tente d\'utiliser l\'API Notion réelle'
-    });
-  };
-  
-  // Formater le temps écoulé
-  const formatTimeAgo = (timestamp: number) => {
-    const minutes = Math.floor((Date.now() - timestamp) / 60000);
-    
-    if (minutes < 1) return 'il y a quelques secondes';
-    if (minutes === 1) return 'il y a 1 minute';
-    if (minutes < 60) return `il y a ${minutes} minutes`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours === 1) return 'il y a 1 heure';
-    if (hours < 24) return `il y a ${hours} heures`;
-    
-    const days = Math.floor(hours / 24);
-    if (days === 1) return 'il y a 1 jour';
-    return `il y a ${days} jours`;
-  };
-  
-  return (
-    <div className="bg-gray-50 p-3 rounded-md border mb-3">
-      <h3 className="font-medium mb-2 flex items-center gap-2">
-        {operationMode.isDemoMode ? (
-          <AlertCircle size={16} className="text-amber-500" />
-        ) : status?.isConnected ? (
-          <CheckCircle size={16} className="text-green-500" />
+  // Version compacte (pour sidebars, etc.)
+  if (compact) {
+    return (
+      <div className={`flex items-center gap-2 p-2 rounded ${className} ${
+        isRealMode
+          ? 'bg-green-50 text-green-700'
+          : isDemoMode
+            ? 'bg-blue-50 text-blue-700'
+            : 'bg-gray-100 text-gray-700'
+      }`}>
+        {isRealMode ? (
+          <Check size={16} className="text-green-600" />
+        ) : isDemoMode ? (
+          <Info size={16} className="text-blue-600" />
         ) : (
-          <XCircle size={16} className="text-red-500" />
+          <AlertTriangle size={16} className="text-amber-500" />
         )}
-        Statut de connexion Notion
-      </h3>
+        
+        <span className="text-sm font-medium">
+          {isRealMode 
+            ? "Connecté à Notion" 
+            : isDemoMode 
+              ? "Mode démonstration" 
+              : "Non configuré"}
+        </span>
+        
+        {onConfigClick && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={onConfigClick}
+          >
+            <RefreshCw size={14} />
+          </Button>
+        )}
+      </div>
+    );
+  }
+  
+  // Version complète
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Notion {isDemoMode ? "(Mode démonstration)" : ""}</span>
+          
+          {mode === OperationMode.REAL && (
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+              Connecté
+            </Badge>
+          )}
+          
+          {mode === OperationMode.DEMO && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              Démo
+            </Badge>
+          )}
+        </CardTitle>
+        
+        <CardDescription>
+          {isRealMode
+            ? "L'application est connectée à vos bases de données Notion"
+            : isDemoMode
+              ? "L'application utilise des données de démonstration"
+              : "Configuration de la connexion à Notion"}
+        </CardDescription>
+      </CardHeader>
       
-      <div className="bg-white p-2 rounded border mb-3 text-sm">
-        {operationMode.isDemoMode ? (
-          <p className="text-amber-600">Mode démonstration actif - données simulées</p>
-        ) : status ? (
-          <div className="space-y-1">
-            <div className="flex items-center text-sm">
-              <span className="font-medium mr-2">État:</span>
-              {status.isConnected ? (
-                <span className="text-green-600">Connecté</span>
-              ) : (
-                <span className="text-red-600">Non connecté</span>
+      <CardContent>
+        <div className="space-y-2">
+          {hasNotionConfig ? (
+            <div className="text-sm">
+              <div className="grid grid-cols-[24px_1fr] items-center gap-1">
+                <Check size={18} className={isRealMode ? "text-green-600" : "text-gray-400"} />
+                <span>Configuration Notion présente</span>
+              </div>
+              
+              {isDemoMode && switchReason && (
+                <div className="grid grid-cols-[24px_1fr] items-center gap-1 mt-1">
+                  <Info size={18} className="text-blue-600" />
+                  <span className="text-sm text-gray-600">{switchReason}</span>
+                </div>
+              )}
+              
+              {failures > 0 && (
+                <div className="grid grid-cols-[24px_1fr] items-center gap-1 mt-1">
+                  <AlertTriangle size={18} className="text-amber-500" />
+                  <span className="text-sm text-gray-600">
+                    {failures} tentative{failures > 1 ? 's' : ''} de connexion échouée{failures > 1 ? 's' : ''}
+                    {lastError && <span className="block text-xs text-gray-500">{lastError.message}</span>}
+                  </span>
+                </div>
               )}
             </div>
-            
-            <p className="text-xs text-gray-600">
-              Dernier test: {formatTimeAgo(status.lastChecked)}
-            </p>
-            
-            {status.error && (
-              <p className="text-xs text-red-600 bg-red-50 p-1 rounded">
-                Erreur: {status.error}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-600 text-sm">Aucune vérification effectuée</p>
-        )}
-      </div>
-      
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={checkConnection}
-          disabled={isChecking}
-          className="text-xs"
-        >
-          {isChecking ? (
-            <><RefreshCw size={14} className="mr-1 animate-spin" /> Test en cours...</>
           ) : (
-            <><RefreshCw size={14} className="mr-1" /> Tester la connexion</>
+            <div className="grid grid-cols-[24px_1fr] items-center gap-1">
+              <X size={18} className="text-red-500" />
+              <span className="text-sm">Configuration Notion manquante</span>
+            </div>
           )}
-        </Button>
+        </div>
+      </CardContent>
+      
+      <CardFooter className="flex justify-between pt-2">
+        <div className="flex gap-2">
+          {hasNotionConfig && isDemoMode && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={() => enableRealMode()}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Check size={16} className="mr-1" />
+              Activer le mode réel
+            </Button>
+          )}
+          
+          {onReset && failures > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onReset}
+            >
+              <RefreshCw size={16} className="mr-1" />
+              Réessayer
+            </Button>
+          )}
+        </div>
         
-        {operationMode.isDemoMode ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={forceReal}
-            className="text-xs text-blue-600"
+        {onConfigClick && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onConfigClick}
           >
-            Forcer mode réel
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={forceDemo}
-            className="text-xs text-amber-600"
-          >
-            Forcer mode démo
+            Configurer
           </Button>
         )}
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 

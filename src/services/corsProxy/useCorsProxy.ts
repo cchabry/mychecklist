@@ -1,93 +1,69 @@
 
 import { useState, useEffect } from 'react';
-import { corsProxy } from '.';
-import { ProxyInfo, ProxyTestResult } from './types';
+import { corsProxyService } from './corsProxyService';
+import { CorsProxy, ProxyTestResult } from './types';
 
 /**
- * Hook qui fournit des fonctionnalités pour interagir avec le service de proxy CORS
+ * Hook React pour interagir avec le service de proxy CORS
  */
 export function useCorsProxy() {
-  const [currentProxy, setCurrentProxy] = useState<ProxyInfo | null>(null);
-  const [proxies, setProxies] = useState<ProxyInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentProxy, setCurrentProxy] = useState<CorsProxy>(corsProxyService.getCurrentProxy());
+  const [availableProxies, setAvailableProxies] = useState<CorsProxy[]>(corsProxyService.getAvailableProxies());
+  const [isTestingProxy, setIsTestingProxy] = useState<boolean>(false);
+  const [lastTestResult, setLastTestResult] = useState<ProxyTestResult | null>(null);
   
-  // Charger l'état initial
   useEffect(() => {
-    // Fonction pour initialiser l'état
-    const initializeState = () => {
-      const current = corsProxy.getCurrentProxy();
-      setCurrentProxy(current);
-      setProxies(corsProxy.getEnabledProxies());
-    };
+    // S'abonner aux changements
+    const unsubscribe = corsProxyService.subscribe(() => {
+      setCurrentProxy(corsProxyService.getCurrentProxy());
+      setAvailableProxies(corsProxyService.getAvailableProxies());
+    });
     
-    initializeState();
-    
-    // Aucune fonction de nettoyage nécessaire
-    return () => {};
+    // Se désabonner au démontage
+    return unsubscribe;
   }, []);
   
-  // Tester un proxy spécifique
-  const testProxy = async (url: string): Promise<ProxyTestResult> => {
-    setIsLoading(true);
-    
+  /**
+   * Teste un proxy spécifique
+   */
+  const testProxy = async (proxy: CorsProxy, token: string): Promise<ProxyTestResult> => {
+    setIsTestingProxy(true);
     try {
-      const result = await corsProxy.testProxy(url);
-      
-      // Mettre à jour l'état local si le proxy testé est le proxy actuel
-      if (currentProxy && currentProxy.url === url) {
-        setCurrentProxy({
-          ...currentProxy,
-          lastTested: Date.now(),
-          success: result.success,
-          latency: result.success ? result.latency : currentProxy.latency
-        });
-      }
-      
+      const result = await corsProxyService.testProxy(proxy, token);
+      setLastTestResult(result);
       return result;
-    } catch (error: any) {
-      return {
-        success: false,
-        latency: 0,
-        error: error.message,
-        proxyName: 'CORS Proxy'
-      };
     } finally {
-      setIsLoading(false);
+      setIsTestingProxy(false);
     }
   };
   
-  // Trouver un proxy fonctionnel
-  const findWorkingProxy = async (): Promise<ProxyInfo | null> => {
-    setIsLoading(true);
-    
+  /**
+   * Trouve un proxy qui fonctionne
+   */
+  const findWorkingProxy = async (token: string): Promise<CorsProxy | null> => {
+    setIsTestingProxy(true);
     try {
-      const proxy = await corsProxy.findWorkingProxy();
-      
-      if (proxy) {
-        setCurrentProxy(proxy);
-      }
-      
-      return proxy;
-    } catch (error) {
-      console.error('Erreur lors de la recherche d\'un proxy:', error);
-      return null;
+      return await corsProxyService.findWorkingProxy(token);
     } finally {
-      setIsLoading(false);
+      setIsTestingProxy(false);
     }
-  };
-  
-  // Réinitialiser le cache des proxies
-  const resetProxyCache = () => {
-    corsProxy.resetProxyCache();
-    setCurrentProxy(corsProxy.getCurrentProxy());
   };
   
   return {
     currentProxy,
-    proxies,
-    isLoading,
+    availableProxies,
+    isTestingProxy,
+    lastTestResult,
+    
+    // Fonctions du service
     testProxy,
     findWorkingProxy,
-    resetProxyCache
+    buildProxyUrl: corsProxyService.buildProxyUrl.bind(corsProxyService),
+    rotateProxy: corsProxyService.rotateProxy.bind(corsProxyService),
+    setSelectedProxy: corsProxyService.setSelectedProxy.bind(corsProxyService),
+    reset: corsProxyService.reset.bind(corsProxyService),
+    resetProxyCache: corsProxyService.resetProxyCache.bind(corsProxyService),
+    requiresActivation: corsProxyService.requiresActivation.bind(corsProxyService),
+    getActivationUrl: corsProxyService.getActivationUrl.bind(corsProxyService)
   };
 }

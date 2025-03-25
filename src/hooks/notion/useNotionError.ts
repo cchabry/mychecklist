@@ -1,132 +1,107 @@
 
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
+import { NotionErrorType } from '@/lib/notionProxy/errorHandling';
 
-/**
- * Types pour les erreurs Notion
- */
-export enum NotionErrorType {
-  UNKNOWN = "unknown",
-  AUTH = "auth",
-  PERMISSION = "permission",
-  NOT_FOUND = "notFound",
-  NETWORK = "network",
-  TIMEOUT = "timeout",
-  CORS = "cors"
-}
-
-/**
- * Type pour les détails d'erreur Notion
- */
-export interface NotionErrorDetails {
-  show: boolean;
-  error: string;
+interface NotionErrorDetails {
+  message: string;
   context?: string;
-  timestamp?: number;
-  type?: NotionErrorType;
+  timestamp: number;
+  stack?: string;
+  type: NotionErrorType;
 }
 
 /**
- * Hook pour gérer les erreurs liées à Notion
+ * Hook pour la gestion centralisée des erreurs de l'API Notion
  */
-export const useNotionError = () => {
-  // État pour les détails de l'erreur
-  const [notionErrorDetails, setNotionErrorDetails] = useState<NotionErrorDetails | null>(null);
-  
+export function useNotionError() {
+  const [errorDetails, setErrorDetails] = useState<NotionErrorDetails | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
+
   /**
-   * Détermine le type d'erreur Notion à partir du message
+   * Affiche une erreur dans l'UI et l'enregistre dans l'état
    */
-  const categorizeNotionError = useCallback((errorMessage: string): NotionErrorType => {
-    const lowerMessage = errorMessage.toLowerCase();
+  const showError = useCallback((error: Error, context?: string) => {
+    console.error(`Erreur Notion ${context ? `(${context})` : ''}:`, error);
     
-    if (lowerMessage.includes('authenticate') || lowerMessage.includes('token') || lowerMessage.includes('authorization')) {
-      return NotionErrorType.AUTH;
-    }
+    // Déterminer le type d'erreur
+    const type: NotionErrorType = error.message.toLowerCase().includes('auth') ? 'auth' :
+                                  error.message.toLowerCase().includes('permission') ? 'permission' :
+                                  error.message.toLowerCase().includes('not found') ? 'notFound' :
+                                  error.message.toLowerCase().includes('network') ? 'network' :
+                                  error.message.toLowerCase().includes('timeout') ? 'timeout' :
+                                  error.message.toLowerCase().includes('cors') ? 'cors' : 'unknown';
     
-    if (lowerMessage.includes('permission') || lowerMessage.includes('access denied')) {
-      return NotionErrorType.PERMISSION;
-    }
-    
-    if (lowerMessage.includes('not found') || lowerMessage.includes('does not exist')) {
-      return NotionErrorType.NOT_FOUND;
-    }
-    
-    if (lowerMessage.includes('network') || lowerMessage.includes('failed to fetch')) {
-      return NotionErrorType.NETWORK;
-    }
-    
-    if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
-      return NotionErrorType.TIMEOUT;
-    }
-    
-    if (lowerMessage.includes('cors') || lowerMessage.includes('origin')) {
-      return NotionErrorType.CORS;
-    }
-    
-    return NotionErrorType.UNKNOWN;
-  }, []);
-  
-  /**
-   * Capture et traite une erreur Notion
-   */
-  const captureNotionError = useCallback((error: Error | string, context?: string) => {
-    const errorMessage = typeof error === 'string' ? error : error.message;
-    const errorType = categorizeNotionError(errorMessage);
-    
-    setNotionErrorDetails({
-      show: true,
-      error: errorMessage,
+    // Créer l'objet d'erreur
+    const errorInfo: NotionErrorDetails = {
+      message: error.message || 'Erreur inconnue',
       context,
       timestamp: Date.now(),
-      type: errorType
+      stack: error.stack,
+      type
+    };
+    
+    // Mettre à jour l'état
+    setErrorDetails(errorInfo);
+    
+    // Afficher un toast d'erreur
+    toast.error(`Erreur Notion${context ? ` (${context})` : ''}`, {
+      description: error.message || 'Une erreur s\'est produite lors de la communication avec Notion'
     });
     
-    return errorType;
-  }, [categorizeNotionError]);
-  
-  /**
-   * Masque l'erreur Notion actuelle
-   */
-  const hideNotionError = useCallback(() => {
-    setNotionErrorDetails(prev => prev ? { ...prev, show: false } : null);
+    // Stocker l'erreur dans localStorage pour référence
+    try {
+      localStorage.setItem('notion_last_error', JSON.stringify(errorInfo));
+    } catch (e) {
+      // Ignorer les erreurs de stockage
+    }
+    
+    return errorInfo;
   }, []);
-  
+
   /**
-   * Efface l'erreur Notion actuelle
+   * Efface l'erreur actuelle
    */
-  const clearNotionError = useCallback(() => {
-    setNotionErrorDetails(null);
+  const clearError = useCallback(() => {
+    setErrorDetails(null);
   }, []);
-  
-  // Ajouter les méthodes manquantes
-  const showError = useCallback((error: string | Error, context?: string) => {
-    captureNotionError(error, context);
-  }, [captureNotionError]);
-  
-  const clearError = clearNotionError;
-  
-  const openErrorModal = useCallback((error: string | Error, context?: string) => {
-    captureNotionError(error, context);
-  }, [captureNotionError]);
-  
-  const closeErrorModal = hideNotionError;
-  
+
+  /**
+   * Récupère la dernière erreur stockée
+   */
+  const getLastStoredError = useCallback((): NotionErrorDetails | null => {
+    try {
+      const stored = localStorage.getItem('notion_last_error');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      // Ignorer les erreurs de parsing
+    }
+    return null;
+  }, []);
+
+  /**
+   * Ouvre la modal d'erreur
+   */
+  const openErrorModal = useCallback(() => {
+    setShowErrorModal(true);
+  }, []);
+
+  /**
+   * Ferme la modal d'erreur
+   */
+  const closeErrorModal = useCallback(() => {
+    setShowErrorModal(false);
+  }, []);
+
   return {
-    notionErrorDetails,
-    setNotionErrorDetails,
-    captureNotionError,
-    hideNotionError,
-    clearNotionError,
-    categorizeNotionError,
-    // Méthodes supplémentaires pour compatibilité
+    errorDetails,
     showError,
     clearError,
+    getLastStoredError,
+    showErrorModal,
     openErrorModal,
-    closeErrorModal,
-    // Propriétés calculées pour compatibilité
-    errorDetails: notionErrorDetails,
-    showErrorModal: notionErrorDetails ? notionErrorDetails.show : false
+    closeErrorModal
   };
-};
-
-// Réexporter le type pour éviter les ambiguïtés
-export type { NotionErrorDetails };
+}

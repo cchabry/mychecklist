@@ -1,69 +1,170 @@
 
-// Fonction simple pour journaliser les erreurs
-export const logError = (error: any, context: string = 'Erreur Notion'): void => {
-  console.error(`❌ ${context}:`, error);
-  
-  // Stocker les erreurs dans le localStorage pour diagnostic
-  try {
-    const errorsKey = 'notion_api_errors';
-    const storedErrors = localStorage.getItem(errorsKey) || '[]';
-    const errors = JSON.parse(storedErrors);
-    
-    // Ajouter la nouvelle erreur
-    errors.push({
-      timestamp: Date.now(),
-      message: error?.message || String(error),
-      context,
-      stack: error?.stack
-    });
-    
-    // Limiter le nombre d'erreurs stockées
-    if (errors.length > 10) {
-      errors.shift(); // Supprimer la plus ancienne erreur
-    }
-    
-    // Sauvegarder
-    localStorage.setItem(errorsKey, JSON.stringify(errors));
-  } catch (e) {
-    console.error('Erreur lors de la journalisation des erreurs:', e);
-  }
-};
+/**
+ * Utilitaires de gestion d'erreurs pour l'API Notion
+ */
 
-// Fonction pour nettoyer les erreurs Notion stockées
-export const clearStoredNotionErrors = (): void => {
-  try {
-    localStorage.removeItem('notion_api_errors');
-    localStorage.removeItem('notion_last_error');
-  } catch (e) {
-    console.error('Erreur lors du nettoyage des erreurs Notion:', e);
-  }
-};
+import { toast } from 'sonner';
 
-// Types pour les erreurs Notion
-export enum NotionErrorType {
-  CONNECTION = 'connection',
-  AUTHENTICATION = 'authentication',
-  PERMISSIONS = 'permissions',
-  NOT_FOUND = 'not_found',
-  VALIDATION = 'validation',
-  RATE_LIMIT = 'rate_limit',
-  INTERNAL = 'internal',
-  UNKNOWN = 'unknown',
-  TIMEOUT = 'timeout'
+// Types d'erreur
+export type NotionErrorType = 'auth' | 'permission' | 'notFound' | 'network' | 'timeout' | 'cors' | 'unknown';
+
+export interface NotionErrorDetails {
+  message: string;
+  type: NotionErrorType;
+  originalError?: Error;
+  context?: string;
+  endpoint?: string;
+  timestamp?: number;
 }
 
-// Fonction pour gérer les erreurs Notion
-export const handleNotionError = (error: any, context: string = 'Opération Notion'): void => {
-  logError(error, context);
+/**
+ * Extrait un message d'erreur plus lisible des réponses d'erreur de Notion
+ */
+export const extractNotionErrorMessage = (status: number, errorData: any): string => {
+  if (!errorData) return `Erreur ${status}`;
   
-  // Stocker également la dernière erreur
-  try {
-    localStorage.setItem('notion_last_error', JSON.stringify({
-      timestamp: Date.now(),
-      message: error?.message || String(error),
-      context
-    }));
-  } catch (e) {
-    console.error('Erreur lors de la sauvegarde de la dernière erreur:', e);
+  // Erreurs d'authentification
+  if (status === 401) {
+    return "Erreur d'authentification: La clé d'API Notion est invalide ou a expiré";
   }
+  
+  // Problèmes d'autorisation
+  if (status === 403) {
+    return "Erreur d'autorisation: Votre intégration Notion n'a pas accès à cette ressource";
+  }
+  
+  // Problèmes de ressource non trouvée
+  if (status === 404) {
+    if (errorData.code === 'object_not_found') {
+      return "Ressource introuvable: L'ID de base de données ou de page n'existe pas";
+    }
+    return "Ressource introuvable: Vérifiez les identifiants utilisés";
+  }
+  
+  // Renvoyer le message d'erreur fourni par Notion si disponible
+  return errorData.message || errorData.code 
+    ? `Erreur Notion (${status}): ${errorData.message || errorData.code}`
+    : `Erreur inattendue (${status})`;
+};
+
+/**
+ * Détermine le type d'erreur Notion
+ */
+export const getNotionErrorType = (error: Error): NotionErrorType => {
+  const message = error.message.toLowerCase();
+  
+  if (message.includes('auth') || message.includes('401') || message.includes('token')) {
+    return 'auth';
+  }
+  
+  if (message.includes('permission') || message.includes('403') || message.includes('access')) {
+    return 'permission';
+  }
+  
+  if (message.includes('not found') || message.includes('404') || message.includes('introuvable')) {
+    return 'notFound';
+  }
+  
+  if (message.includes('network') || message.includes('fetch') || message.includes('réseau')) {
+    return 'network';
+  }
+  
+  if (message.includes('timeout') || message.includes('expir') || message.includes('délai')) {
+    return 'timeout';
+  }
+  
+  if (message.includes('cors')) {
+    return 'cors';
+  }
+  
+  return 'unknown';
+};
+
+/**
+ * Stocke les détails d'erreur dans le localStorage
+ */
+export const storeNotionError = (error: Error, endpoint?: string): void => {
+  try {
+    const errorType = getNotionErrorType(error);
+    const errorDetails: NotionErrorDetails = {
+      message: error.message,
+      type: errorType,
+      endpoint,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem('notion_last_error', JSON.stringify(errorDetails));
+  } catch (e) {
+    // Ignorer les erreurs de localStorage
+    console.error('Failed to store error in localStorage:', e);
+  }
+};
+
+/**
+ * Récupère les dernières erreurs stockées
+ */
+export const getStoredNotionError = (): NotionErrorDetails | null => {
+  try {
+    const storedError = localStorage.getItem('notion_last_error');
+    return storedError ? JSON.parse(storedError) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Efface les erreurs stockées
+ */
+export const clearStoredNotionErrors = (): void => {
+  localStorage.removeItem('notion_last_error');
+};
+
+/**
+ * Gère une erreur Notion de manière standard
+ */
+export const handleNotionError = (error: Error, context?: string): NotionErrorDetails => {
+  const errorType = getNotionErrorType(error);
+  const errorDetails: NotionErrorDetails = {
+    message: error.message,
+    type: errorType,
+    originalError: error,
+    context,
+    timestamp: Date.now()
+  };
+  
+  // Stocker l'erreur
+  storeNotionError(error);
+  
+  // Afficher un toast d'erreur
+  let toastMessage = "Erreur avec l'API Notion";
+  let toastDescription = error.message;
+  
+  switch (errorType) {
+    case 'auth':
+      toastMessage = "Erreur d'authentification";
+      toastDescription = "Votre clé API Notion est invalide ou a expiré";
+      break;
+    case 'permission':
+      toastMessage = "Erreur d'autorisation";
+      toastDescription = "Votre intégration n'a pas accès à cette ressource";
+      break;
+    case 'notFound':
+      toastMessage = "Ressource introuvable";
+      toastDescription = "Vérifiez les identifiants de base de données ou de page";
+      break;
+    case 'network':
+      toastMessage = "Erreur réseau";
+      toastDescription = "Vérifiez votre connexion Internet";
+      break;
+    case 'cors':
+      toastMessage = "Erreur CORS";
+      toastDescription = "Le proxy CORS n'a pas pu accéder à l'API Notion";
+      break;
+  }
+  
+  toast.error(toastMessage, {
+    description: toastDescription
+  });
+  
+  return errorDetails;
 };

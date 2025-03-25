@@ -1,8 +1,12 @@
 
 import { corsProxyService } from './corsProxyService';
+import { useCorsProxy } from './useCorsProxy';
+import { CorsProxy, ProxyTestResult } from './types';
+import { availableProxies, getEnabledProxies } from './proxyList';
 
-// Exporter une instance unique du service de proxy CORS
+// Exporter pour rétrocompatibilité avec le code existant
 export const corsProxy = corsProxyService;
 
-// Réexporter les types pour être utilisés par les consommateurs
-export * from './types';
+// Exporter tous les modules et types
+export { useCorsProxy, availableProxies, getEnabledProxies };
+export type { CorsProxy, ProxyTestResult };

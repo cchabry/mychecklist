@@ -1,38 +1,66 @@
 
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
-import { ProxyStatus, ProxyActionButtons, DemoModeIndicator, useProxyStatus } from './proxy-status';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Globe } from 'lucide-react';
+import { corsProxy } from '@/services/corsProxy';
 
 interface ProxyStatusIndicatorProps {
   isDemoMode: boolean;
 }
 
 const ProxyStatusIndicator: React.FC<ProxyStatusIndicatorProps> = ({ isDemoMode }) => {
-  const { proxyStatus, checking, checkCurrentProxy, findBetterProxy, resetProxies } = useProxyStatus();
+  // Obtenir l'URL du proxy actuel s'il existe
+  const currentProxy = corsProxy.getCurrentProxy();
+  const hasProxy = !!currentProxy;
   
-  // Si on est en mode démo, ne pas afficher les contrôles de proxy
+  // Si nous sommes en mode démo, ce composant n'est pas pertinent
   if (isDemoMode) {
-    return <DemoModeIndicator isDemoMode={isDemoMode} />;
+    return (
+      <Card className="border-amber-200 bg-amber-50">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-medium text-amber-800">Mode démo actif</h3>
+              <p className="text-xs text-amber-700 mt-1">
+                Le mode démo est activé, le proxy CORS n'est pas utilisé.
+                Désactivez le mode démo pour utiliser le proxy CORS.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
   
   return (
-    <div className="bg-green-50 p-3 rounded-md border border-green-200 mb-3">
-      <h3 className="font-medium mb-2 flex items-center gap-2 text-green-700">
-        <ExternalLink size={16} />
-        État du proxy CORS
-      </h3>
-      
-      <div className="bg-white p-2 rounded border border-green-100 mb-3">
-        <ProxyStatus proxyStatus={proxyStatus} />
-      </div>
-      
-      <ProxyActionButtons 
-        checking={checking}
-        onCheckCurrentProxy={checkCurrentProxy}
-        onFindBetterProxy={findBetterProxy}
-        onResetProxies={resetProxies}
-      />
-    </div>
+    <Card className={hasProxy ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          {hasProxy ? (
+            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+          ) : (
+            <Globe className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          )}
+          
+          <div>
+            <h3 className="text-sm font-medium text-amber-800">
+              {hasProxy ? "Proxy CORS configuré" : "Proxy CORS non configuré"}
+            </h3>
+            <p className="text-xs text-amber-700 mt-1">
+              {hasProxy 
+                ? `Le proxy est configuré à l'adresse: ${currentProxy.url}`
+                : "Aucun proxy CORS n'est configuré. Les appels directs à l'API Notion seront bloqués par le navigateur."}
+            </p>
+            {!hasProxy && (
+              <p className="text-xs text-amber-700 mt-1">
+                Pour utiliser l'API Notion, vous devez configurer un proxy CORS ou déployer l'application avec les fonctions serverless.
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,116 +1,315 @@
 
+import { operationMode } from '@/services/operationMode';
+import { operationModeUtils } from '@/services/operationMode/utils';
 import { corsProxy } from '@/services/corsProxy';
-import { operationModeUtils } from '@/services/operationMode/operationModeUtils';
-import { ApiRequestContext } from './adapters';
-import { logError } from './errorHandling';
-
-// URL de base de l'API Notion
-const NOTION_API_BASE_URL = 'https://api.notion.com/v1';
+import { 
+  getDeploymentType, 
+  isNetlifyDeployment, 
+  isLovablePreview,
+  isDeploymentDebuggingEnabled 
+} from './config';
 
 /**
- * Fonction principale pour faire des requêtes à l'API Notion via un proxy CORS
- * Version avec la nouvelle signature (3 arguments)
+ * Fonction utilitaire pour effectuer des requêtes à l'API Notion via un proxy
+ * @param endpoint Point d'accès de l'API Notion (relatif)
+ * @param method Méthode HTTP (GET, POST, PUT, PATCH, DELETE)
+ * @param body Corps de la requête (optionnel)
+ * @param token Jeton d'authentification Notion (optionnel, pris du localStorage par défaut)
+ * @returns Promesse contenant la réponse JSON
  */
-export async function notionApiRequest(
+export const notionApiRequest = async (
   endpoint: string,
-  options: RequestInit = {},
-  context: ApiRequestContext = {}
-): Promise<any> {
+  method: string = 'GET',
+  body?: any,
+  token?: string
+): Promise<any> => {
+  // Log de débogage pour le type de déploiement
+  const deploymentType = getDeploymentType();
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🌍 Type de déploiement détecté: ${deploymentType}`);
+    console.log(`🔧 Requête Notion (${method}): ${endpoint}`);
+  }
+
+  // Normaliser l'endpoint pour garantir le format correct
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  
+  // Vérifier si nous sommes en mode démo simulé
+  if (operationMode.isDemoMode) {
+    // Simuler un délai réseau
+    await operationModeUtils.applySimulatedDelay();
+    
+    // Simuler une erreur aléatoire selon le taux configuré
+    if (operationModeUtils.shouldSimulateError()) {
+      throw new Error(`Erreur simulée lors de l'appel à ${normalizedEndpoint}`);
+    }
+    
+    // En mode démo, on devrait normalement utiliser les données mock au lieu d'appeler cette fonction
+    console.warn(`notionApiRequest appelé en mode démo pour ${normalizedEndpoint}. Utiliser les données mock directement.`);
+    
+    // Retourner un résultat fictif générique
+    return { success: true, message: "Opération simulée avec succès" };
+  }
+  
+  // Récupérer le token d'authentification si non fourni
+  const authToken = token || localStorage.getItem('notion_api_key');
+  
+  if (!authToken) {
+    throw new Error('Token Notion manquant');
+  }
+  
+  // Formater correctement le token pour l'API Notion
+  let formattedToken = authToken;
+  if (!formattedToken.startsWith('Bearer ')) {
+    if (formattedToken.startsWith('secret_') || formattedToken.startsWith('ntn_')) {
+      formattedToken = `Bearer ${formattedToken}`;
+    }
+  }
+  
   try {
-    // Récupérer le token depuis le contexte
-    const token = context.token || localStorage.getItem('notion_api_key');
-    
-    // Vérifier si nous sommes en mode mock
-    if (operationModeUtils.isMockActive()) {
-      console.log(`🔶 Mock mode actif: simulation de requête ${options.method || 'GET'} ${endpoint}`);
+    // Adapter la stratégie en fonction du type de déploiement
+    if (isNetlifyDeployment()) {
+      // Sur Netlify, utiliser directement les fonctions Netlify
+      if (isDeploymentDebuggingEnabled()) {
+        console.log('📡 Environnement Netlify détecté, utilisation directe des fonctions Netlify');
+      }
       
-      // Dans un scénario réel, nous aurions ici une logique de mock
-      // qui retournerait des données simulées en fonction de l'endpoint
-      
-      // Attendre un peu pour simuler une latence réseau
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      return { success: true, mock: true };
-    }
-    
-    // Construire l'URL complète en s'assurant qu'elle n'a pas de double slash
-    const apiEndpoint = endpoint.startsWith('/')
-      ? `${NOTION_API_BASE_URL}${endpoint}`
-      : `${NOTION_API_BASE_URL}/${endpoint}`;
-    
-    // Récupérer le proxy actuel
-    const currentProxy = corsProxy.getCurrentProxy();
-    
-    if (!currentProxy) {
-      throw new Error("Aucun proxy CORS n'est disponible. Veuillez configurer un proxy.");
-    }
-    
-    // Construire l'URL avec le proxy
-    const proxyUrl = `${currentProxy.url}${apiEndpoint}`;
-    
-    // Préparer les headers
-    const headers = {
-      'Accept': 'application/json',
-      'Notion-Version': '2022-06-28',
-      ...(options.headers || {})
-    };
-    
-    // Ajouter l'authentification si un token est fourni
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    // Options de la requête
-    const requestOptions: RequestInit = {
-      ...options,
-      headers
-    };
-    
-    // Exécuter la requête
-    const response = await fetch(proxyUrl, requestOptions);
-    
-    // Vérifier si la réponse est OK
-    if (!response.ok) {
-      // Essayer de lire le message d'erreur
-      const errorText = await response.text();
-      
-      let errorMessage;
       try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorText;
-      } catch (e) {
-        errorMessage = errorText || `HTTP ${response.status}`;
+        return await useNetlifyProxy(normalizedEndpoint, method, body, formattedToken);
+      } catch (netlifyError) {
+        console.error('❌ Erreur avec la fonction Netlify:', netlifyError);
+        // En cas d'échec, utiliser le proxy CORS
+        return await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
       }
-      
-      throw new Error(`Notion API error: ${errorMessage}`);
+    } else {
+      // Pour les autres environnements, essayer d'abord les fonctions serverless génériques
+      try {
+        if (isDeploymentDebuggingEnabled()) {
+          console.log('🔄 Tentative d\'utilisation des fonctions serverless pour:', normalizedEndpoint);
+        }
+        return await useServerlessProxy(normalizedEndpoint, method, body, formattedToken);
+      } catch (serverlessError) {
+        if (isDeploymentDebuggingEnabled()) {
+          console.log('⚠️ Fonctions serverless non disponibles, tentative d\'utilisation du proxy CORS:', serverlessError);
+        }
+        
+        // Si aucun proxy n'est configuré, essayer d'en trouver un automatiquement
+        const currentProxy = corsProxy.getCurrentProxy();
+        if (!currentProxy) {
+          if (isDeploymentDebuggingEnabled()) {
+            console.log('⚠️ Aucun proxy CORS configuré, recherche automatique...');
+          }
+          await corsProxy.findWorkingProxy();
+        }
+        
+        // Ensuite essayer d'utiliser le proxy CORS
+        return await useCorsProxy(normalizedEndpoint, method, body, formattedToken);
+      }
     }
-    
-    // Traiter la réponse JSON
-    const result = await response.json();
-    return result;
   } catch (error) {
-    // Journaliser l'erreur
-    logError(error, `API Request (${endpoint})`);
+    // En cas d'erreur, signaler au système operationMode
+    operationMode.handleConnectionError(
+      error instanceof Error ? error : new Error(String(error)),
+      `notionApiRequest: ${normalizedEndpoint}`
+    );
     
-    // Gérer l'erreur de fallback proxy
-    if (error.message.includes('proxy') || error.message.includes('Failed to fetch')) {
-      console.log('🔄 Tentative de trouver un proxy alternatif...');
-      
-      // Obtenir tous les proxies disponibles
-      const availableProxies = corsProxy.getEnabledProxies();
-      
-      if (availableProxies.length > 1 && availableProxies.length > corsProxy.getEnabledProxies().indexOf(corsProxy.getCurrentProxy())) {
-        // Choisir le prochain proxy dans la liste
-        corsProxy.findWorkingProxy();
-        
-        // Retenter la requête après un court délai
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        console.log('🔄 Nouvel essai avec un proxy différent');
-        return notionApiRequest(endpoint, options, context);
-      }
+    // Propager l'erreur avec des informations utiles pour le débogage
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const enhancedError = new Error(`Erreur API Notion (${normalizedEndpoint}): ${errorMessage}`);
+    throw enhancedError;
+  }
+};
+
+/**
+ * Normalise les endpoints pour garantir la cohérence
+ * Cette fonction est cruciale pour résoudre les problèmes d'endpoints
+ */
+function normalizeEndpoint(endpoint: string): string {
+  // Enlever les barres obliques de début et de fin pour la normalisation
+  let cleanedEndpoint = endpoint.trim();
+  
+  // Gérer le cas spécial où l'endpoint est déjà complet avec /v1
+  if (cleanedEndpoint.startsWith('/v1/')) {
+    return cleanedEndpoint; // Déjà au bon format
+  }
+  
+  // S'assurer que l'endpoint commence par une barre oblique
+  if (!cleanedEndpoint.startsWith('/')) {
+    cleanedEndpoint = '/' + cleanedEndpoint;
+  }
+  
+  // Ajouter le préfixe /v1 si nécessaire (ce sera retiré pour serverless, mais gardé pour CORS)
+  return `/v1${cleanedEndpoint}`;
+}
+
+/**
+ * Utilise les fonctions Netlify spécifiquement pour appeler l'API Notion
+ * Optimisé pour les déploiements Netlify
+ */
+async function useNetlifyProxy(
+  endpoint: string,
+  method: string = 'GET',
+  body?: any,
+  token?: string
+): Promise<any> {
+  // Pour les fonctions Netlify, on doit retirer le préfixe /v1
+  const serverlessEndpoint = endpoint.startsWith('/v1/')
+    ? endpoint.substring(3) // Enlever le /v1 car il sera ajouté par le proxy serverless
+    : endpoint;
+  
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🔄 Préparation endpoint Netlify: "${serverlessEndpoint}" (depuis "${endpoint}")`);
+  }
+  
+  // Utiliser directement le chemin Netlify
+  const netlifyResponse = await fetch('/.netlify/functions/notion-proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      endpoint: serverlessEndpoint,
+      method,
+      body,
+      token
+    })
+  });
+  
+  if (!netlifyResponse.ok) {
+    const errorText = await netlifyResponse.text();
+    throw new Error(`Erreur du proxy Netlify: ${netlifyResponse.status} ${errorText}`);
+  }
+  
+  // Signaler une opération réussie au système operationMode
+  operationMode.handleSuccessfulOperation();
+  
+  return netlifyResponse.json();
+}
+
+/**
+ * Utilise le proxy serverless (Vercel, Netlify) pour appeler l'API Notion
+ * Version générique qui essaie plusieurs endpoints
+ */
+async function useServerlessProxy(
+  endpoint: string,
+  method: string = 'GET',
+  body?: any,
+  token?: string
+): Promise<any> {
+  // Pour les fonctions serverless, on doit retirer le préfixe /v1
+  const serverlessEndpoint = endpoint.startsWith('/v1/')
+    ? endpoint.substring(3) // Enlever le /v1 car il sera ajouté par le proxy serverless
+    : endpoint;
+  
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🔄 Préparation endpoint serverless: "${serverlessEndpoint}" (depuis "${endpoint}")`);
+  }
+  
+  // Essayer d'abord le proxy Vercel
+  try {
+    const vercelResponse = await fetch('/api/notion-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        endpoint: serverlessEndpoint,
+        method,
+        body,
+        token
+      })
+    });
+    
+    if (!vercelResponse.ok) {
+      const errorText = await vercelResponse.text();
+      throw new Error(`Erreur du proxy Vercel: ${vercelResponse.status} ${errorText}`);
     }
     
-    throw error;
+    // Signaler une opération réussie au système operationMode
+    operationMode.handleSuccessfulOperation();
+    
+    return vercelResponse.json();
+  } catch (vercelError) {
+    if (isDeploymentDebuggingEnabled()) {
+      console.log('⚠️ Proxy Vercel non disponible, tentative d\'utilisation du proxy Netlify:', vercelError);
+    }
+    
+    // Ensuite essayer le proxy Netlify
+    return useNetlifyProxy(endpoint, method, body, token);
   }
 }
+
+/**
+ * Utilise un proxy CORS côté client pour appeler l'API Notion
+ */
+async function useCorsProxy(
+  endpoint: string,
+  method: string = 'GET',
+  body?: any,
+  token?: string
+): Promise<any> {
+  // Pour le proxy CORS, on maintient le format complet avec /v1
+  const corsEndpoint = endpoint.startsWith('/v1/') 
+    ? endpoint 
+    : `/v1${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    
+  // Construire l'URL complète vers l'API Notion
+  const baseUrl = 'https://api.notion.com';
+  const url = `${baseUrl}${corsEndpoint}`;
+  
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`📡 Requête Notion via proxy CORS: ${method} ${url}`);
+  }
+  
+  // Obtenir le proxy CORS
+  const currentProxy = corsProxy.getCurrentProxy();
+  if (!currentProxy) {
+    throw new Error('Aucun proxy CORS disponible. Activez le mode démo ou configurez un proxy.');
+  }
+  
+  // Construire l'URL du proxy
+  const proxiedUrl = corsProxy.proxify(url);
+  if (isDeploymentDebuggingEnabled()) {
+    console.log(`🔄 Utilisation du proxy CORS: ${currentProxy.url} pour appeler ${url}`);
+  }
+  
+  // Configurer les options de la requête
+  const options: RequestInit = {
+    method,
+    headers: {
+      'Authorization': token || '',
+      'Content-Type': 'application/json',
+      'Notion-Version': '2022-06-28'
+    }
+  };
+  
+  // Ajouter le corps de la requête si nécessaire
+  if (body && (method !== 'GET' && method !== 'HEAD')) {
+    options.body = JSON.stringify(body);
+  }
+  
+  // Effectuer la requête HTTP
+  const response = await fetch(proxiedUrl, options);
+  
+  // Vérifier si la réponse est OK (statut 2xx)
+  if (!response.ok) {
+    // En cas d'erreur, essayer de récupérer les détails
+    const errorData = await response.json().catch(() => null);
+    const errorMessage = errorData?.message || `Erreur HTTP ${response.status}`;
+    
+    // Transformer en erreur avec détails
+    const error = new Error(`${errorMessage} (${response.status})`);
+    throw error;
+  }
+  
+  // Signaler une opération réussie au système operationMode
+  operationMode.handleSuccessfulOperation();
+  
+  // Analyser et retourner la réponse JSON
+  return await response.json();
+}
+
+/**
+ * Fonction proxy pour les requêtes Notion, alias de notionApiRequest
+ * Maintenue pour la compatibilité avec le code existant
+ */
+export const proxyFetch = notionApiRequest;

@@ -5,25 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import NotionDeploymentChecker from './NotionDeploymentChecker';
 import { toast } from 'sonner';
-import { getDeploymentType, DeploymentType } from '@/lib/notionProxy/config';
-import NotionDebugPanel from './NotionDebugPanel';
+import { getDeploymentType } from '@/lib/notionProxy/config';
 
 const NotionProxyConfigGuide: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
-  // Mise à jour du type pour inclure 'other' et gérer le type 'unknown'
+  // Update the type to include 'lovable'
   const [deploymentType, setDeploymentType] = useState<'vercel' | 'netlify' | 'local' | 'lovable' | 'other'>('other');
   const [testResults, setTestResults] = useState<Record<string, { status: number; success: boolean; response?: any }>>({});
   
   // Vérifier le type de déploiement au chargement
   useEffect(() => {
-    const type = getDeploymentType();
-    // Conversion du type si nécessaire
-    if (type === 'unknown') {
-      setDeploymentType('other');
-    } else {
-      setDeploymentType(type as 'vercel' | 'netlify' | 'local' | 'lovable');
-    }
+    setDeploymentType(getDeploymentType());
   }, []);
   
   // Vérifier si nous sommes dans un environnement de développement local
@@ -50,12 +43,7 @@ const NotionProxyConfigGuide: React.FC = () => {
       let result;
       
       if (method === 'GET') {
-        console.log(`Testing GET ${endpoint}`, {
-          url: `${window.location.origin}${endpoint}`,
-          method: 'GET',
-          timestamp: new Date().toISOString()
-        });
-        
+        console.log(`Testing GET ${endpoint}`);
         response = await fetch(`${window.location.origin}${endpoint}`);
         try {
           result = await response.text();
@@ -64,11 +52,7 @@ const NotionProxyConfigGuide: React.FC = () => {
           result = 'Could not get response text';
         }
       } else if (method === 'POST') {
-        console.log(`Testing POST ${endpoint}`, {
-          url: `${window.location.origin}${endpoint}`,
-          method: 'POST',
-          timestamp: new Date().toISOString()
-        });
+        console.log(`Testing POST ${endpoint}`);
         
         // Récupérer la clé API Notion depuis localStorage pour le test
         const apiKey = localStorage.getItem('notion_api_key');
@@ -387,9 +371,44 @@ const NotionProxyConfigGuide: React.FC = () => {
                   )}
                 </Button>
               </div>
+              
+              <div className="mt-4 p-3 bg-white rounded-md border border-green-200">
+                <h4 className="text-sm font-medium mb-2 text-green-700">Comment ajouter ces APIs à votre projet</h4>
+                <p className="text-xs text-gray-600 mb-2">
+                  Si vous obtenez des erreurs 404, vous devez ajouter ces fichiers à votre projet {deploymentType === 'netlify' ? 'dans le dossier netlify/functions/' : 'dans le dossier api/'} à la racine.
+                </p>
+                
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">
+                    <strong>1. Créez un dossier {deploymentType === 'netlify' ? 'netlify/functions' : 'api'} à la racine du projet</strong>
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    <strong>2. Créez les fichiers suivants à l'intérieur:</strong>
+                  </p>
+                  <ul className="text-xs text-gray-600 space-y-1 list-disc pl-5">
+                    {deploymentType === 'netlify' ? (
+                      <>
+                        <li><code className="bg-gray-100 px-1 rounded">netlify/functions/ping.js</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">netlify/functions/netlify-debug.js</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">netlify/functions/notion-proxy.js</code></li>
+                      </>
+                    ) : (
+                      <>
+                        <li><code className="bg-gray-100 px-1 rounded">api/ping.ts</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">api/vercel-debug.ts</code></li>
+                        <li><code className="bg-gray-100 px-1 rounded">api/notion-proxy.ts</code></li>
+                      </>
+                    )}
+                  </ul>
+                  <p className="text-xs text-gray-600">
+                    <strong>3. Ajoutez le fichier {deploymentType === 'netlify' ? 'netlify.toml' : 'vercel.json'} à la racine du projet</strong>
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    <strong>4. Déployez les changements</strong>
+                  </p>
+                </div>
+              </div>
             </div>
-            
-            <NotionDebugPanel />
           </div>
         </DialogContent>
       </Dialog>
