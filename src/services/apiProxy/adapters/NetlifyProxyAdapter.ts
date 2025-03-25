@@ -82,7 +82,6 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
   
   /**
    * Effectue une requête à l'API via la fonction Netlify
-   * CORRECTION: Utilisation cohérente de la fonction Netlify
    */
   async request<T>(
     method: HttpMethod,
@@ -107,7 +106,7 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       
       if (!authToken) {
         this.log('Erreur: Token d\'authentification Notion manquant');
-        // Correction: Créer un objet ProxyError complet au lieu d'un simple objet avec status et message
+        // Création d'un objet ProxyError complet
         const proxyError = this.createProxyError(
           {
             status: 401,

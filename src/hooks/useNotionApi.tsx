@@ -61,7 +61,7 @@ export function useNotionApi() {
     setError(null);
     
     try {
-      // CORRECTION: Utiliser EXCLUSIVEMENT la fonction Netlify pour tous les appels
+      // IMPORTANT: Utiliser EXCLUSIVEMENT la fonction Netlify pour tous les appels
       const response = await fetch('/.netlify/functions/notion-proxy', {
         method: 'POST',
         headers: {
