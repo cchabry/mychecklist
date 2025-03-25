@@ -12,7 +12,7 @@ export const notionApiRequest = async (
   method: string = 'GET',
   body?: any,
   token?: string
-): Promise<any> {
+): Promise<any> => {
   // Log de débogage
   console.log(`🔧 Requête Notion (${method}): ${endpoint}`);
 
