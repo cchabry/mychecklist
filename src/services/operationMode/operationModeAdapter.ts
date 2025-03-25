@@ -56,31 +56,34 @@ class OperationModeAdapter {
     return connectionModeService.isRealMode;
   }
   
-  // Méthodes de compatibilité pour l'ancien système
-  public getMode(): OperationMode {
+  // Mode actuel
+  public get mode(): OperationMode {
     return mapConnectionModeToOperationMode(connectionModeService.getMode());
   }
   
-  public get mode(): OperationMode {
-    return this.getMode();
+  public getMode(): OperationMode {
+    return this.mode;
   }
   
-  public getSwitchReason(): SwitchReason | null {
+  // Raison du dernier changement
+  public get switchReason(): SwitchReason | null {
     return this._lastSwitchReason;
   }
   
-  public get switchReason(): SwitchReason | null {
-    return this.getSwitchReason();
+  public getSwitchReason(): SwitchReason | null {
+    return this.switchReason;
   }
   
-  public getSettings(): OperationModeSettings {
+  // Paramètres
+  public get settings(): OperationModeSettings {
     return { ...this._settings };
   }
   
-  public get settings(): OperationModeSettings {
-    return this.getSettings();
+  public getSettings(): OperationModeSettings {
+    return this.settings;
   }
   
+  // Compteur d'échecs
   public get failures(): number {
     return connectionModeService.getConnectionHealth().consecutiveErrors;
   }
@@ -89,6 +92,7 @@ class OperationModeAdapter {
     return this.failures;
   }
   
+  // Dernière erreur
   public get lastError(): Error | null {
     return connectionModeService.getConnectionHealth().lastError;
   }

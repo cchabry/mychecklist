@@ -79,6 +79,7 @@ export function useOperationMode() {
   }, []);
   
   return {
+    // États de base
     mode,
     isDemoMode,
     isRealMode: !isDemoMode,
@@ -86,7 +87,16 @@ export function useOperationMode() {
     failures,
     lastError,
     settings,
+    // Pour la compatibilité avec useConnectionMode
+    currentMode: mode,
+    connectionHealth: {
+      lastError,
+      lastSuccess: null,
+      consecutiveErrors: failures,
+      healthyConnection: failures === 0
+    },
     
+    // Actions basiques
     toggle,
     enableDemoMode,
     enableRealMode,
@@ -94,9 +104,13 @@ export function useOperationMode() {
     handleSuccessfulOperation,
     updateSettings,
     reset,
+    
+    // Actions avancées
     temporarilyForceReal,
     restorePreviousMode,
+    toggleMode: toggle,
     
+    // Gestion des opérations critiques
     markOperationAsCritical,
     unmarkOperationAsCritical,
     isOperationCritical
