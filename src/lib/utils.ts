@@ -1,3 +1,7 @@
+
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 export const formatNumber = (number: number): string => {
   return new Intl.NumberFormat('fr-FR').format(number);
 };
@@ -44,4 +48,27 @@ export const cleanProjectId = (id?: string): string => {
   
   // Supprimer les tirets si présents
   return id.replace(/[-]/g, '');
+};
+
+/**
+ * Fonction utilitaire pour combiner des classes CSS conditionnellement
+ * Utilisée par les composants shadcn/ui
+ */
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+
+/**
+ * Réinitialise l'état de l'application en supprimant les données du localStorage
+ */
+export const resetApplicationState = (): void => {
+  // Supprimer toutes les données de cache
+  localStorage.removeItem('notion_mock_mode');
+  localStorage.removeItem('projects_cache');
+  localStorage.removeItem('audit_cache');
+  localStorage.removeItem('notion_last_error');
+  localStorage.removeItem('notion_request_log');
+  
+  // Autres réinitialisations peuvent être ajoutées ici si nécessaire
+  console.log('État de l\'application réinitialisé avec succès');
 };
