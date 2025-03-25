@@ -12,6 +12,7 @@ export class OperationModeService {
   private switchReason: string | null = null;
   private consecutiveFailures: number = 0;
   private lastErrorTimestamp: number | null = null;
+  private lastError: Error | null = null;
   private listeners: Array<(mode: OperationMode, reason: string | null) => void> = [];
   
   constructor() {
@@ -126,6 +127,7 @@ export class OperationModeService {
   public reset(): void {
     this.settings = DEFAULT_SETTINGS;
     this.consecutiveFailures = 0;
+    this.lastError = null;
     console.log('[OperationMode] Paramètres réinitialisés');
     
     localStorage.removeItem('operation_mode');
@@ -143,6 +145,7 @@ export class OperationModeService {
     console.warn(`[OperationMode] Échecs consécutifs: ${this.consecutiveFailures}/${this.settings.maxConsecutiveFailures}`);
     
     this.lastErrorTimestamp = Date.now();
+    this.lastError = error;
     
     // En mode réel et si le basculement automatique est activé, envisager le passage en mode démo
     // NB: Désactivé pour les tests sur demande de l'utilisateur
@@ -239,6 +242,13 @@ export class OperationModeService {
    */
   public getLastErrorTimestamp(): number | null {
     return this.lastErrorTimestamp;
+  }
+  
+  /**
+   * Récupère la dernière erreur
+   */
+  public getLastError(): Error | null {
+    return this.lastError;
   }
   
   /**

@@ -1,3 +1,4 @@
+
 import { notionApi } from '../notionProxy';
 import { operationMode } from '@/services/operationMode';
 import { MOCK_PROJECTS } from '@/lib/mockData';
@@ -20,7 +21,12 @@ export const getProjects = async () => {
     throw new Error('Configuration Notion manquante');
   }
 
-  const response = await notionApi(`/databases/${dbId}/query`, 'POST', {}, apiKey);
+  // Vérifier le type de notionApi et l'utiliser correctement
+  const request = typeof notionApi.request === 'function' 
+    ? notionApi.request 
+    : notionApi;
+  
+  const response = await request(`/databases/${dbId}/query`, 'POST', {}, apiKey);
 
   // Mapper les résultats en projets
   return response.results.map((page) => {
@@ -108,8 +114,13 @@ export const getProject = async (id) => {
       }
     }
     
+    // Vérifier le type de notionApi et l'utiliser correctement
+    const request = typeof notionApi.request === 'function' 
+      ? notionApi.request 
+      : notionApi;
+    
     // Si pas dans le cache, faire une requête API
-    const response = await notionApi(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
+    const response = await request(`/pages/${cleanedId}`, 'GET', undefined, apiKey);
     
     if (!response) {
       console.error(`❌ getProject - Réponse vide de l'API Notion pour ID: "${cleanedId}"`);
@@ -211,7 +222,12 @@ export const createProject = async (data) => {
     }
   };
 
-  const response = await notionApi(`/pages`, 'POST', {
+  // Vérifier le type de notionApi et l'utiliser correctement
+  const request = typeof notionApi.request === 'function' 
+    ? notionApi.request 
+    : notionApi;
+
+  const response = await request(`/pages`, 'POST', {
     parent: {
       database_id: dbId
     },
@@ -276,7 +292,12 @@ export const updateProject = async (id, data) => {
     }
   };
 
-  await notionApi(`/pages/${id}`, 'PATCH', {
+  // Vérifier le type de notionApi et l'utiliser correctement
+  const request = typeof notionApi.request === 'function' 
+    ? notionApi.request 
+    : notionApi;
+
+  await request(`/pages/${id}`, 'PATCH', {
     properties
   }, apiKey);
 
@@ -308,7 +329,12 @@ export const deleteProject = async (id) => {
   }
 
   try {
-    await notionApi(`/pages/${id}`, 'PATCH', {
+    // Vérifier le type de notionApi et l'utiliser correctement
+    const request = typeof notionApi.request === 'function' 
+      ? notionApi.request 
+      : notionApi;
+      
+    await request(`/pages/${id}`, 'PATCH', {
       archived: true
     }, apiKey);
     
@@ -318,4 +344,3 @@ export const deleteProject = async (id) => {
     return false;
   }
 };
-

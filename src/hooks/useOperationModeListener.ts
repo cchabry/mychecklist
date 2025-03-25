@@ -13,7 +13,9 @@ export function useOperationModeListener() {
 
   // S'abonner aux changements du mode opérationnel
   useEffect(() => {
-    const unsubscribe = operationMode.onModeChange(setIsDemoMode);
+    const unsubscribe = operationMode.addListener((mode) => {
+      setIsDemoMode(operationMode.isDemoMode);
+    });
     return unsubscribe;
   }, []);
 
