@@ -84,10 +84,6 @@ export const notionWriteService = {
     try {
       console.log('📝 [DEBUG] Début de la création en mode réel');
       
-      // Désactiver temporairement le mode mock pour cette opération
-      notionApi.mockMode.temporarilyForceReal();
-      console.log('📝 [DEBUG] Après temporarilyForceReal, mode démo actif?', operationMode.isDemoMode);
-      
       // Marquer cette opération comme critique pour éviter la bascule en mode démo
       operationMode.markOperationAsCritical('Création de projet Notion');
       console.log('📝 [DEBUG] Opération marquée comme critique');
@@ -160,24 +156,10 @@ export const notionWriteService = {
       // Signaler l'opération réussie
       operationMode.handleSuccessfulOperation();
       console.log('📝 [DEBUG] Operation réussie signalée');
-      console.log('📝 [DEBUG] Mode démo actif après succès?', operationMode.isDemoMode);
       
       return newProject;
     } catch (error) {
       console.error('❌ [DEBUG] Erreur détaillée lors de la création du projet:', error);
-      console.error('❌ [DEBUG] Stack trace:', error.stack);
-      console.error('❌ [DEBUG] Type d\'erreur:', typeof error);
-      console.error('❌ [DEBUG] Est-ce une instance d\'Error?', error instanceof Error);
-      
-      if (typeof error === 'object' && error !== null) {
-        console.error('❌ [DEBUG] Propriétés de l\'erreur:', Object.keys(error));
-        if ('response' in error) {
-          console.error('❌ [DEBUG] Contenu de error.response:', error.response);
-        }
-        if ('status' in error) {
-          console.error('❌ [DEBUG] Status code:', error.status);
-        }
-      }
       
       // Gérer les erreurs spécifiques
       this.handleNotionError(error, 'création de projet');
@@ -186,14 +168,10 @@ export const notionWriteService = {
       // car l'opération est marquée comme critique
       operationMode.handleConnectionError(
         error instanceof Error ? error : new Error(String(error)),
-        'Création de projet Notion',
-        true // Marquer explicitement comme non-critique
+        'Création de projet Notion'
       );
       
-      console.log('📝 [DEBUG] Après handleConnectionError, mode démo actif?', operationMode.isDemoMode);
-      
       // Si le projet a été créé malgré l'erreur, on peut tenter de le récupérer
-      // C'est souvent le cas avec des erreurs CORS ou de timeout après création
       try {
         // Vérifier si on peut récupérer des informations sur le projet créé
         if (error.response?.id) {
@@ -227,10 +205,6 @@ export const notionWriteService = {
       // Démarquer l'opération comme critique
       operationMode.unmarkOperationAsCritical('Création de projet Notion');
       console.log('📝 [DEBUG] Opération démarquée comme critique');
-      
-      // Restaurer le mode mock si nécessaire
-      notionApi.mockMode.restoreAfterForceReal();
-      console.log('📝 [DEBUG] Après restoreAfterForceReal, mode démo actif?', operationMode.isDemoMode);
     }
   },
   

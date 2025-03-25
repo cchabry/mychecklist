@@ -26,6 +26,7 @@ class OperationModeService implements IOperationModeService {
     /CORS/i,
     /headers/i
   ];
+  private previousMode: OperationMode | null = null;
   private temporarilyForcedReal: boolean = false;
   
   constructor() {
@@ -62,10 +63,14 @@ class OperationModeService implements IOperationModeService {
 
   public markOperationAsCritical(operationContext: string): void {
     this.criticalOperations.add(operationContext);
+    console.log('🏆 [DEBUG] Opération marquée comme critique:', operationContext);
+    console.log('🏆 [DEBUG] Liste des opérations critiques:', Array.from(this.criticalOperations));
   }
 
   public unmarkOperationAsCritical(operationContext: string): void {
-    this.criticalOperations.delete(operationContext);
+    const wasRemoved = this.criticalOperations.delete(operationContext);
+    console.log('🏆 [DEBUG] Suppression d\'opération critique:', operationContext, wasRemoved ? '(réussie)' : '(échouée/inexistante)');
+    console.log('🏆 [DEBUG] Liste des opérations critiques restantes:', Array.from(this.criticalOperations));
   }
 
   public isOperationCritical(operationContext: string): boolean {
@@ -98,6 +103,10 @@ class OperationModeService implements IOperationModeService {
   
   public enableDemoMode(reason: SwitchReason = 'Changement manuel'): void {
     if (this.mode !== OperationMode.DEMO) {
+      if (!this.temporarilyForcedReal) {
+        this.previousMode = this.mode;
+      }
+      
       this.mode = OperationMode.DEMO;
       this.switchReason = reason;
       this.temporarilyForcedReal = false;
@@ -108,13 +117,20 @@ class OperationModeService implements IOperationModeService {
       
       this.notifySubscribers();
       this.persistState();
+      
+      console.log('🔍 [DEBUG] Mode démo activé - Raison:', reason);
     }
   }
   
   public enableRealMode(): void {
     if (this.mode !== OperationMode.REAL) {
+      if (!this.temporarilyForcedReal) {
+        this.previousMode = this.mode;
+      }
+      
       this.mode = OperationMode.REAL;
       this.switchReason = null;
+      this.temporarilyForcedReal = false;
       
       this.consecutiveFailures = 0;
       this.lastError = null;
@@ -125,6 +141,8 @@ class OperationModeService implements IOperationModeService {
       
       this.notifySubscribers();
       this.persistState();
+      
+      console.log('🔍 [DEBUG] Mode réel activé');
     }
   }
   
@@ -228,36 +246,32 @@ class OperationModeService implements IOperationModeService {
   public temporarilyForceReal(): void {
     console.log('🔍 [DEBUG] temporarilyForceReal appelé - Passage temporaire en mode réel');
     
-    // Stocker l'état actuel avant de modifier
-    const previousMode = this.mode;
-    this.temporarilyForcedReal = true;
-    
-    if (this.isDemoMode) {
+    if (this.isDemoMode && !this.temporarilyForcedReal) {
+      this.previousMode = this.mode;
+      console.log('🔍 [DEBUG] Mode précédent sauvegardé:', this.previousMode);
+      this.temporarilyForcedReal = true;
       this.mode = OperationMode.REAL;
+      
       console.log('🔍 [DEBUG] Mode démo temporairement désactivé');
-      
-      // Sauvegarder le mode précédent pour permettre de le restaurer explicitement si nécessaire
-      localStorage.setItem('operation_mode_previous', previousMode);
-      
       this.notifySubscribers();
+    } else {
+      console.log('🔍 [DEBUG] Déjà en mode réel ou forçage déjà actif, aucun changement');
     }
   }
   
   public restorePreviousMode(): void {
     console.log('🔍 [DEBUG] restorePreviousMode appelé');
     
-    if (this.temporarilyForcedReal) {
-      const previousMode = localStorage.getItem('operation_mode_previous');
-      
-      if (previousMode === OperationMode.DEMO) {
-        console.log('🔍 [DEBUG] Restauration du mode démo après forçage temporaire');
-        this.mode = OperationMode.DEMO;
-        this.notifySubscribers();
-      }
-      
-      // Réinitialiser l'état de forçage
+    if (this.temporarilyForcedReal && this.previousMode) {
+      console.log('🔍 [DEBUG] Restauration du mode précédent:', this.previousMode);
+      this.mode = this.previousMode;
+      this.previousMode = null;
       this.temporarilyForcedReal = false;
-      localStorage.removeItem('operation_mode_previous');
+      
+      this.notifySubscribers();
+      this.persistState();
+    } else {
+      console.log('🔍 [DEBUG] Aucun mode précédent à restaurer ou forçage non actif');
     }
   }
   
