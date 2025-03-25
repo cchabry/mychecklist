@@ -1,3 +1,75 @@
+// Interfaces principales du système
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  client?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Audit {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Ajout des propriétés manquantes pour l'affichage dans ProjectCard
+  score?: number;
+  progress?: number;
+  itemsCount?: number;
+  actionsCount?: {
+    total: number;
+    [ActionStatus.ToDo]: number;
+    [ActionStatus.InProgress]: number;
+    [ActionStatus.Done]: number;
+    [key: string]: number;
+  };
+}
+
+export interface Page {
+  id: string;
+  auditId: string;
+  name: string;
+  url: string;
+  description?: string;
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SamplePage {
+  id: string;
+  projectId: string;
+  url: string;
+  title: string;
+  description?: string;
+  order: number;
+}
+
+export interface Checklist {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Exigence {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
+}
 
 export interface ChecklistItem {
   id: string;
@@ -14,7 +86,7 @@ export interface ChecklistItem {
   requirementLevel: string;
   scope: string;
   consigne: string;
-  status: ComplianceStatus; // Make sure status is required, not optional
+  status: ComplianceStatus;
   pageResults?: PageResult[];
   importance?: ImportanceLevel;
   projectRequirement?: string;
@@ -23,37 +95,8 @@ export interface ChecklistItem {
   comment?: string;
   reference?: string;
   profil?: string;
-  details?: string; // Pour remplacer les références à subsubcategory et autres détails
+  details?: string;
 }
-
-export interface Project {
-  id: string;
-  name: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-  progress: number;
-  itemsCount: number;
-  pagesCount: number;
-  description?: string;
-  status?: string;
-}
-
-export interface Audit {
-  id: string;
-  projectId: string;
-  name: string;
-  items: ChecklistItem[];
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
-  score: number;
-  version: string;
-}
-
-// Alias pour la compatibilité avec le code existant
-export type AuditItem = ChecklistItem;
-export type ProjectRequirement = Exigence;
 
 export enum ComplianceStatus {
   Compliant = "Compliant",
@@ -63,7 +106,7 @@ export enum ComplianceStatus {
   NotApplicable = "NotApplicable"
 }
 
-// Ajout de l'alias ComplianceLevel pour compatibilité
+// Alias pour la compatibilité avec le code existant
 export type ComplianceLevel = ComplianceStatus;
 
 // Valeurs numériques pour les statuts de conformité (pour les calculs de score)
@@ -87,15 +130,6 @@ export interface PageResult {
   pageId: string;
   status: ComplianceStatus;
   comment?: string;
-}
-
-export interface SamplePage {
-  id: string;
-  projectId: string;
-  url: string;
-  title: string;
-  description?: string;
-  order: number;
 }
 
 export enum ActionPriority {
@@ -130,7 +164,7 @@ export interface Evaluation {
 export interface CorrectiveAction {
   id: string;
   evaluationId: string;
-  pageId: string; // Ajout du champ pageId manquant
+  pageId: string;
   targetScore: ComplianceStatus;
   priority: ActionPriority;
   dueDate: string;
@@ -150,13 +184,4 @@ export interface ActionProgress {
   comment: string;
   score: ComplianceStatus;
   status: ActionStatus;
-}
-
-// Type pour les exigences spécifiques à un projet
-export interface Exigence {
-  id: string;
-  projectId: string;
-  itemId: string;
-  importance: ImportanceLevel;
-  comment?: string;
 }

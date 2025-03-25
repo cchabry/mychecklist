@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useOperationMode } from '@/services/operationMode';
 
 /**
- * Hook pour récupérer les audits associés à un projet
+ * Hook pour récupérer et enrichir les audits associés à un projet
  */
 export function useProjectAudits(projectId: string) {
   const [audits, setAudits] = useState<Audit[]>([]);
@@ -28,14 +28,14 @@ export function useProjectAudits(projectId: string) {
         console.log(`🔍 Récupération des audits pour le projet: ${projectId}`);
         const fetchedAudits = await notionApi.getAuditsByProject(projectId);
         
-        // Transformer les audits récupérés pour inclure les données d'actions requises par les cards
+        // Enrichir les audits avec les propriétés nécessaires pour les cartes
         const enrichedAudits = fetchedAudits.map(audit => ({
           ...audit,
-          // Calcul simulé de progression car nous n'avons pas encore les données d'évaluation complètes
-          progress: audit.score || Math.floor(Math.random() * 100),
+          // Utiliser le score existant ou calculer une progression simulée
+          progress: audit.score !== undefined ? audit.score : Math.floor(Math.random() * 100),
+          // Nombre d'items évalués (utiliser la longueur du tableau items s'il existe)
           itemsCount: audit.items?.length || 0,
-          // Simuler les données d'action pour le moment
-          // Dans une implémentation complète, on chargerait ces données depuis Notion
+          // Données d'action pour le plan d'action (à implémenter dans une future version)
           actionsCount: {
             total: 0,
             [ActionStatus.ToDo]: 0,
