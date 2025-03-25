@@ -3,11 +3,14 @@ import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useOperationModeListener } from '../useOperationModeListener';
 import { operationMode } from '../../services/operationMode';
+import { OperationMode } from '../../services/operationMode/types';
 
 // Mock de operationMode et useOperationMode
 jest.mock('../../services/operationMode', () => ({
   operationMode: {
     isDemoMode: false,
+    isRealMode: true,
+    getMode: () => OperationMode.REAL,
     onModeChange: jest.fn(cb => {
       // Stocker le callback
       (operationMode as any)._modeChangeListeners = 
@@ -19,22 +22,18 @@ jest.mock('../../services/operationMode', () => ({
         (operationMode as any)._modeChangeListeners = 
           (operationMode as any)._modeChangeListeners.filter((l: Function) => l !== cb);
       };
-    })
-  }
-}));
-
-jest.mock('../../services/operationMode/hooks/useOperationMode', () => ({
-  useOperationMode: () => ({
-    toggle: jest.fn(),
-    enableRealMode: jest.fn(),
+    }),
     enableDemoMode: jest.fn(),
-  })
+    enableRealMode: jest.fn(),
+    toggle: jest.fn()
+  }
 }));
 
 // Helper pour simuler un changement de mode
 const triggerModeChange = (isDemoMode: boolean) => {
   // Mettre à jour le mock
   (operationMode.isDemoMode as boolean) = isDemoMode;
+  (operationMode.isRealMode as boolean) = !isDemoMode;
   
   // Notifier les listeners
   if ((operationMode as any)._modeChangeListeners) {
@@ -46,6 +45,7 @@ describe('useOperationModeListener Hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (operationMode.isDemoMode as boolean) = false;
+    (operationMode.isRealMode as boolean) = true;
   });
   
   it('should return the current demo mode state', () => {

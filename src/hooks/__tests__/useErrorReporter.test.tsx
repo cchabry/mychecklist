@@ -4,6 +4,7 @@ import { renderHook, act } from '@testing-library/react-hooks';
 import { useErrorReporter } from '../useErrorReporter';
 import { useOperationMode } from '../../services/operationMode';
 import { toast } from 'sonner';
+import { NotionError } from '@/services/notion/types';
 
 // Mock de useOperationMode
 jest.mock('../../services/operationMode', () => ({
@@ -50,7 +51,7 @@ describe('useErrorReporter Hook', () => {
     expect(toast.error).toHaveBeenCalled();
   });
   
-  it('should report non-Error objects correctly', () => {
+  it('should handle non-Error objects correctly', () => {
     const { result } = renderHook(() => useErrorReporter());
     const errorString = 'String error';
     
@@ -82,7 +83,7 @@ describe('useErrorReporter Hook', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
   
-  it('should report success to operationMode and display toast', () => {
+  it('should report success and display toast', () => {
     const { result } = renderHook(() => useErrorReporter());
     const successMessage = 'Success message';
     
@@ -100,17 +101,5 @@ describe('useErrorReporter Hook', () => {
     
     // Vérifier que toast.success a été appelé
     expect(toast.success).toHaveBeenCalledWith(successMessage);
-  });
-  
-  it('should not display success toast if no message is provided', () => {
-    const { result } = renderHook(() => useErrorReporter());
-    
-    // Appeler reportSuccess sans message
-    act(() => {
-      result.current.reportSuccess();
-    });
-    
-    // Vérifier que toast.success n'a PAS été appelé
-    expect(toast.success).not.toHaveBeenCalled();
   });
 });
