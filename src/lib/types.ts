@@ -1,4 +1,3 @@
-
 // Interfaces principales du système
 
 export interface Project {
@@ -41,6 +40,7 @@ export interface Audit {
     [ActionStatus.Done]: number;
     [key: string]: number;
   };
+  actions?: CorrectiveAction[];
 }
 
 export interface AuditItem {

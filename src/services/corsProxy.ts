@@ -146,7 +146,19 @@ class CorsProxyService {
       return null;
     }
   }
+  
+  // Méthode pour proxifier une URL
+  proxify(url: string): string {
+    const proxy = this.getCurrentProxy();
+    if (!proxy) {
+      throw new Error('Aucun proxy CORS configuré');
+    }
+    return `${proxy.url}${encodeURIComponent(url)}`;
+  }
 }
 
 // Exporter une instance unique
 export const corsProxy = new CorsProxyService();
+
+// Exporter aussi les constantes des proxies publics pour les composants qui en ont besoin
+export { PUBLIC_CORS_PROXIES } from '@/lib/notionProxy/config';

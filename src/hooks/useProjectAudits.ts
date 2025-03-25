@@ -94,20 +94,33 @@ export function useProjectAudits(projectId: string) {
           const fetchedAudits = await notionApi.getAuditsByProject(projectId);
           
           // Enrichir les audits avec les propriétés nécessaires pour les cartes
-          const enrichedAudits = fetchedAudits.map(audit => ({
-            ...audit,
-            // Utiliser le score existant ou calculer une progression simulée
-            progress: audit.score !== undefined ? audit.score : Math.floor(Math.random() * 100),
-            // Nombre d'items évalués (utiliser la longueur du tableau items s'il existe)
-            itemsCount: audit.items?.length || 0,
-            // Données d'action pour le plan d'action
-            actionsCount: {
-              total: audit.actions?.length || 0,
-              [ActionStatus.ToDo]: audit.actions?.filter(a => a.status === ActionStatus.ToDo).length || 0,
-              [ActionStatus.InProgress]: audit.actions?.filter(a => a.status === ActionStatus.InProgress).length || 0,
-              [ActionStatus.Done]: audit.actions?.filter(a => a.status === ActionStatus.Done).length || 0
-            }
-          }));
+          const enrichedAudits = fetchedAudits.map(audit => {
+            // Créer une action count par défaut si elle n'existe pas
+            const defaultActionsCount = {
+              total: 0,
+              [ActionStatus.ToDo]: 0,
+              [ActionStatus.InProgress]: 0,
+              [ActionStatus.Done]: 0
+            };
+            
+            // Utiliser des valeurs par défaut si les propriétés sont manquantes
+            const actionsFromAudit = Array.isArray(audit.actions) ? audit.actions : [];
+            
+            return {
+              ...audit,
+              // Utiliser le score existant ou calculer une progression simulée
+              progress: audit.score !== undefined ? audit.score : Math.floor(Math.random() * 100),
+              // Nombre d'items évalués (utiliser la longueur du tableau items s'il existe)
+              itemsCount: audit.items?.length || 0,
+              // Données d'action pour le plan d'action
+              actionsCount: {
+                total: actionsFromAudit.length || 0,
+                [ActionStatus.ToDo]: actionsFromAudit.filter(a => a.status === ActionStatus.ToDo).length || 0,
+                [ActionStatus.InProgress]: actionsFromAudit.filter(a => a.status === ActionStatus.InProgress).length || 0,
+                [ActionStatus.Done]: actionsFromAudit.filter(a => a.status === ActionStatus.Done).length || 0
+              }
+            };
+          });
           
           info(`${enrichedAudits.length} audits récupérés pour le projet ${projectId}`);
           setAudits(enrichedAudits);
