@@ -1,8 +1,14 @@
+
 import { operationMode } from '@/services/operationMode';
 import { corsProxy } from '@/services/corsProxy';
-import { ApiRequestContext } from './types';
 import { operationModeUtils } from '@/services/operationMode/operationModeUtils';
-import { logError } from './errorHandling';
+
+// Types locales pour proxyFetch
+interface ApiRequestContext {
+  token?: string;
+  proxyUrl?: string;
+  [key: string]: any;
+}
 
 // Base URL de l'API Notion
 const NOTION_API_BASE = 'https://api.notion.com/v1';
@@ -92,7 +98,8 @@ const useCorsProxy = async (
         
         // Construction de l'URL avec le proxy
         const targetUrl = `${NOTION_API_BASE}${normalizedEndpoint}`;
-        const proxyUrl = corsProxy.buildProxyUrl(targetUrl);
+        // Construire l'URL avec le proxy
+        const proxyUrl = `${currentProxy.url}${encodeURIComponent(targetUrl)}`;
         
         console.log(`🔍 [${requestId}] useCorsProxy - URL complète: ${proxyUrl}`);
         
@@ -135,7 +142,10 @@ const useCorsProxy = async (
           // En cas d'erreur 403, essayer de changer de proxy pour la prochaine fois
           if (response.status === 403) {
             console.warn(`🔍 [${requestId}] useCorsProxy - Erreur 403, rotation du proxy pour la prochaine requête`);
-            corsProxy.rotateProxy();
+            // Utiliser la première proxy disponible pour la prochaine fois
+            if (corsProxy.getAvailableProxies) {
+              corsProxy.setSelectedProxy(corsProxy.getAvailableProxies()[0]?.url || '');
+            }
           }
           
           throw new Error(`Erreur HTTP ${response.status} ${statusText ? `(${statusText})` : ''}`);
@@ -144,7 +154,7 @@ const useCorsProxy = async (
         return response;
       } catch (error) {
         // En cas d'erreur, logger et rethrow
-        logError(error, 'Erreur lors de la requête via proxy CORS');
+        console.error(`Erreur lors de la requête via proxy CORS`, error);
         throw error;
       }
     }
@@ -164,7 +174,7 @@ const useCorsProxy = async (
     });
   } catch (error) {
     // En cas d'erreur, logger et rethrow
-    logError(error, 'Erreur globale lors de la requête proxy');
+    console.error(`Erreur globale lors de la requête proxy`, error);
     throw error;
   }
 };
@@ -211,3 +221,4 @@ export const notionApiRequest = async (
     throw error;
   }
 };
+

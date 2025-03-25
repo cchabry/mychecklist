@@ -26,7 +26,7 @@ export function useCorsProxy() {
   /**
    * Teste un proxy spécifique
    */
-  const testProxy = async (proxy: CorsProxy, token: string): Promise<ProxyTestResult> => {
+  const testProxy = async (proxy: CorsProxy | string, token: string): Promise<ProxyTestResult> => {
     setIsTestingProxy(true);
     try {
       const result = await corsProxyService.testProxy(proxy, token);
