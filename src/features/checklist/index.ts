@@ -6,8 +6,9 @@
  * et des exigences.
  */
 
-// Réexporter les composants, hooks et utilitaires pour faciliter l'accès
-// Ce fichier sera enrichi au fur et à mesure du développement de cette feature
+// Réexporter les composants, types et utilitaires de la feature
+export * from '@/components/checklist';
+export type { ChecklistItem } from '@/types/domain/checklist';
 
 /**
  * Structure des composants:

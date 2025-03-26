@@ -7,7 +7,7 @@
  * les erreurs.
  */
 
-import { auditService } from '@/services/notion/audit';
+import { auditsApi } from '@/services/notion/api/audits';
 import { Audit, CreateAuditData, UpdateAuditData } from './types';
 
 // Réexporter les composants, hooks et utilitaires pour faciliter l'accès
@@ -25,10 +25,12 @@ export * from './constants';
  * @throws Error si la récupération échoue
  */
 export async function getProjectAudits(projectId: string): Promise<Audit[]> {
-  // Utiliser le service d'audit pour récupérer les audits
-  // Cette partie sera implémentée lorsque le service d'audit sera terminé
-  // Pour l'instant, renvoie un tableau vide
-  return [];
+  try {
+    return await auditsApi.getAudits(projectId);
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des audits du projet ${projectId}:`, error);
+    return [];
+  }
 }
 
 /**
@@ -39,9 +41,13 @@ export async function getProjectAudits(projectId: string): Promise<Audit[]> {
  * @throws Error si la récupération échoue
  */
 export async function getAuditById(id: string): Promise<Audit | null> {
-  // Cette partie sera implémentée lorsque le service d'audit sera terminé
-  // Pour l'instant, renvoie null
-  return null;
+  try {
+    const audit = await auditsApi.getAuditById(id);
+    return audit;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération de l'audit ${id}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -52,8 +58,16 @@ export async function getAuditById(id: string): Promise<Audit | null> {
  * @throws Error si la création échoue
  */
 export async function createAudit(data: CreateAuditData): Promise<Audit> {
-  // Cette partie sera implémentée lorsque le service d'audit sera terminé
-  throw new Error('Non implémenté');
+  const auditData = {
+    projectId: data.projectId,
+    name: data.name,
+    description: data.description,
+    progress: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
+  return await auditsApi.createAudit(auditData);
 }
 
 /**
@@ -65,8 +79,19 @@ export async function createAudit(data: CreateAuditData): Promise<Audit> {
  * @throws Error si la mise à jour échoue
  */
 export async function updateAudit(id: string, data: UpdateAuditData): Promise<Audit> {
-  // Cette partie sera implémentée lorsque le service d'audit sera terminé
-  throw new Error('Non implémenté');
+  try {
+    const existingAudit = await auditsApi.getAuditById(id);
+    const updatedAudit = {
+      ...existingAudit,
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return await auditsApi.updateAudit(updatedAudit);
+  } catch (error) {
+    console.error(`Erreur lors de la mise à jour de l'audit ${id}:`, error);
+    throw new Error(`Impossible de mettre à jour l'audit: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 /**
@@ -77,6 +102,10 @@ export async function updateAudit(id: string, data: UpdateAuditData): Promise<Au
  * @throws Error si la suppression échoue
  */
 export async function deleteAudit(id: string): Promise<boolean> {
-  // Cette partie sera implémentée lorsque le service d'audit sera terminé
-  throw new Error('Non implémenté');
+  try {
+    return await auditsApi.deleteAudit(id);
+  } catch (error) {
+    console.error(`Erreur lors de la suppression de l'audit ${id}:`, error);
+    throw new Error(`Impossible de supprimer l'audit: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
