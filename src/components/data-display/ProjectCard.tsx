@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, FilePlus, FileText } from 'lucide-react';
+import { ArrowRight, ExternalLink, FilePlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -54,33 +54,30 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           ) : audits.length > 0 ? (
             <div className="space-y-3">
               {audits.map((audit) => (
-                <div key={audit.id} className="bg-gray-50 p-3 rounded-md border text-sm">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{audit.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(audit.updatedAt)}
-                    </span>
-                  </div>
-                  
-                  {audit.progress !== undefined && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Progression</span>
-                        <span>{audit.progress}%</span>
-                      </div>
-                      <Progress value={audit.progress} className="h-2" />
+                <Link 
+                  key={audit.id} 
+                  to={`/projects/${project.id}/audits/${audit.id}`}
+                  className="block"
+                >
+                  <div className="bg-gray-50 p-3 rounded-md border text-sm transition-colors hover:bg-gray-100 cursor-pointer">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">{audit.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(audit.updatedAt)}
+                      </span>
                     </div>
-                  )}
-                  
-                  <div className="flex justify-end mt-2">
-                    <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
-                      <Link to={`/projects/${project.id}/audits/${audit.id}`}>
-                        <FileText className="h-3.5 w-3.5 mr-1" />
-                        Voir l'audit
-                      </Link>
-                    </Button>
+                    
+                    {audit.progress !== undefined && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Progression</span>
+                          <span>{audit.progress}%</span>
+                        </div>
+                        <Progress value={audit.progress} className="h-2" />
+                      </div>
+                    )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
