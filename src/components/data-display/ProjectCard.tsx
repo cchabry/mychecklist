@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, FilePlus } from 'lucide-react';
+import { ArrowRight, ExternalLink, FilePlus, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -18,7 +18,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const { audits, isLoading: isLoadingAudits, error: auditsError } = useProjectAudits(project.id);
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col relative">
+      <Link 
+        to={`/projects/${project.id}`} 
+        className="absolute top-4 right-4 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+        title="Voir les détails du projet"
+      >
+        <MoreHorizontal size={18} />
+      </Link>
+      
       <CardHeader>
         <CardTitle className="text-xl">{project.name}</CardTitle>
         <CardDescription className="flex items-center gap-1">
@@ -98,11 +106,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         <span className="text-xs text-muted-foreground">
           Mis à jour le {formatDate(project.updatedAt)}
         </span>
-        <Button asChild size="sm">
-          <Link to={`/projects/${project.id}`} className="flex items-center gap-1">
-            Détails <ArrowRight size={14} />
-          </Link>
-        </Button>
       </CardFooter>
     </Card>
   );
