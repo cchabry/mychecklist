@@ -15,6 +15,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import Layout from './components/Layout';
 import { ThemeProvider } from './contexts/ThemeContext';
 
+// Build triggered for version "Finalize Sprint 1 tasks"
 function App() {
   // Utiliser l'intercepteur Notion API pour la journalisation et le débogage
   useNotionApiInterceptor();
