@@ -3,8 +3,17 @@ import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useProjects } from '@/hooks/useProjects'
+import { ProjectCard } from '@/components/data-display/ProjectCard'
 
 const Dashboard = () => {
+  const { projects, isLoading } = useProjects();
+  
+  // Afficher seulement les 3 projets les plus récents
+  const recentProjects = projects
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 3);
+  
   return (
     <div className="space-y-8">
       <header>
@@ -51,6 +60,38 @@ const Dashboard = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {recentProjects.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">Projets récents</h2>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {isLoading ? (
+              // Placeholders de chargement
+              Array.from({ length: 3 }).map((_, i) => (
+                <div 
+                  key={i} 
+                  className="h-[250px] bg-gray-100 rounded-lg animate-pulse"
+                />
+              ))
+            ) : (
+              // Liste des projets récents
+              recentProjects.map(project => (
+                <ProjectCard key={project.id} project={project} />
+              ))
+            )}
+          </div>
+          
+          <div className="flex justify-center mt-4">
+            <Button variant="outline" asChild>
+              <Link to="/projects">
+                Voir tous les projets
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
