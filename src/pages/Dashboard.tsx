@@ -12,7 +12,7 @@ import { ProjectCard, type Project } from '@/components/data-display/ProjectCard
  */
 const Dashboard = () => {
   const [search, setSearch] = useState('');
-  const [projects, setProjects] = useState<Project[]>([
+  const [projects] = useState<Project[]>([
     {
       id: '1',
       name: 'Site Corporate',
