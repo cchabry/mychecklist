@@ -12,6 +12,9 @@ export * from './form';
 // Hooks d'API
 export * from './api/useApiClient';
 
+// Hooks d'erreur
+export * from './error';
+
 // Hooks spécifiques au domaine
 export * from './useProjects';
 export * from './useProjectById';
@@ -25,3 +28,6 @@ export * from './notion/useNotionService';
 
 // Hooks de cache
 export * from './cache/useCache';
+
+// Hooks de toast
+export * from './use-toast';

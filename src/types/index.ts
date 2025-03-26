@@ -1,27 +1,13 @@
 
 /**
- * Index principal pour tous les types de l'application
+ * Point d'entrée pour tous les types de l'application
  */
 
-// Types de domaine
-export * from './domain';
-
-// Types d'API
+// Re-export des types spécifiques
 export * from './api';
-
-// Types d'énumérations
-// Export spécifique pour éviter les ambiguïtés
-export {
-  ComplianceLevel,
-  PriorityLevel,
-  StatusType,
-  UserProfile,
-  ProjectPhase,
-  ReferenceType
-} from './enums';
-
-// Types du mode opérationnel
+export * from './domain';
 export * from './operation';
-
-// Types de routage
 export * from './route';
+export * from './error';
+export * from './design';
+export * from './enums';

@@ -12,6 +12,7 @@ export * from './layout';
 // Composants spécifiques
 export { default as Navbar } from './Navbar';
 export { OperationModeIndicator } from './OperationModeIndicator';
+export { default as ErrorBoundary } from './ErrorBoundary';
 
 // Composants de filtres
 export * from './filters';
