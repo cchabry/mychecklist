@@ -1,8 +1,7 @@
+
 /**
  * Types pour l'API et les opérations de requête
  */
-
-import { Project, Audit, ChecklistItem, Exigence, SamplePage, Evaluation, CorrectiveAction, ActionProgress } from '../domain/models';
 
 /**
  * Options pour les requêtes API
