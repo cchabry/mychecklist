@@ -7,12 +7,12 @@ import { useNotionApiInterceptor } from '@/hooks/useNotionApiInterceptor';
 // Importer les pages
 import Dashboard from './pages/Dashboard';
 import ProjectAudit from './pages/audit/ProjectAudit';
-import SettingsPage from './pages/Settings/SettingsPage';
+import SettingsPage from './pages/Settings';
 import NotFoundPage from './pages/NotFound';
 
 // Importer les composants principaux
-import Layout from './components/app/Layout';
-import { ThemeProvider } from './contexts/ThemeProvider';
+import Layout from './components/layout/Layout';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
 
 function App() {
   // Utiliser l'intercepteur Notion API pour la journalisation et le débogage

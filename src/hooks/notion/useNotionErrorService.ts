@@ -11,12 +11,14 @@ export function useNotionErrorService() {
 
   // Récupérer les erreurs au chargement
   useEffect(() => {
-    setErrors(notionErrorService.getRecentErrors());
+    const recentErrors = notionErrorService.getRecentErrors();
+    setErrors([...recentErrors]);
     
     // Pour un cas réel, il faudrait un mécanisme de mise à jour 
     // lorsque de nouvelles erreurs sont ajoutées
     const interval = setInterval(() => {
-      setErrors(notionErrorService.getRecentErrors());
+      const currentErrors = notionErrorService.getRecentErrors();
+      setErrors([...currentErrors]);
     }, 5000);
     
     return () => clearInterval(interval);
@@ -25,7 +27,8 @@ export function useNotionErrorService() {
   // Rapporter une nouvelle erreur
   const reportError = (error: Error, context?: string) => {
     const notionError = notionErrorService.reportError(error, context);
-    setErrors(notionErrorService.getRecentErrors());
+    const updatedErrors = notionErrorService.getRecentErrors();
+    setErrors([...updatedErrors]);
     return notionError;
   };
 

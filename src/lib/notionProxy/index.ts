@@ -28,6 +28,23 @@ export interface NotionProxyApi {
   mockMode: typeof mockModeAdapter;
 }
 
+// Implémentation adaptée pour la compatibilité des types
+const adaptedTestConnection = async (token?: string): Promise<{ success: boolean; user?: string; error?: string }> => {
+  try {
+    const response = await notionApiService.testConnection(token);
+    return {
+      success: response.success,
+      user: response.data?.user,
+      error: response.error?.message
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+};
+
 /**
  * API Notion avec compatibilité mockMode
  */
@@ -42,9 +59,7 @@ export const notionApi: NotionProxyApi = {
   /**
    * Tester la connexion à l'API Notion
    */
-  testConnection: (token?: string) => {
-    return notionApiService.testConnection(token);
-  },
+  testConnection: adaptedTestConnection,
   
   /**
    * API pour les projets

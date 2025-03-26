@@ -21,6 +21,7 @@ export interface LegacyMockModeInterface {
   temporarilyForceReal(): void;
   isTemporarilyForcedReal(reset?: boolean): boolean;
   restoreAfterForceReal(restore?: boolean): void;
+  _tempForcedRealStatus?: boolean; // Propriété privée pour tracking interne
 }
 
 /**
