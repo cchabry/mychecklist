@@ -3,12 +3,9 @@ import {
   DeploymentEnvironment, 
   HttpMethod, 
   RequestOptions, 
-  ApiResponse,
-  ProxyErrorType,
-  ProxyError
+  ApiResponse 
 } from '../types';
 import { AbstractProxyAdapter } from '../AbstractProxyAdapter';
-import { notionCentralService } from '@/services/notion/notionCentralService';
 
 /**
  * Adaptateur de proxy spécifique pour l'environnement Netlify
@@ -52,16 +49,13 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
    * Vérifie si l'adaptateur est disponible dans l'environnement actuel
    */
   async isAvailable(): Promise<boolean> {
-    console.log('Vérification de la disponibilité de l\'adaptateur Netlify');
-    
     try {
       // Tentative d'appel à la fonction Netlify pour vérifier sa disponibilité
       const response = await fetch(`${this.functionBaseUrl}/${this.proxyFunctionName}`, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ ping: true })
+        }
       });
       
       // Si la réponse est 404, la fonction n'existe pas
@@ -92,8 +86,9 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
     options?: RequestOptions
   ): Promise<ApiResponse<T>> {
     try {
-      // Utiliser EXCLUSIVEMENT le service centralisé pour tous les appels
-      this.log(`Requête ${method} vers ${endpoint} via le service centralisé`);
+      const url = `${this.functionBaseUrl}/${this.proxyFunctionName}`;
+      
+      this.log(`Requête ${method} vers ${endpoint} via Netlify`);
       
       // Fusionner les en-têtes par défaut avec ceux fournis dans les options
       const headers = {
@@ -105,46 +100,44 @@ export class NetlifyProxyAdapter extends AbstractProxyAdapter {
       // Récupérer le token d'authentification des headers ou du localStorage
       const authToken = headers['Authorization'] || headers['authorization'] || localStorage.getItem('notion_api_key');
       
-      if (!authToken) {
-        this.log('Erreur: Token d\'authentification Notion manquant');
-        // Création d'un objet ProxyError complet
-        const proxyError: ProxyError = {
-          type: ProxyErrorType.Auth,
-          message: 'Token d\'authentification Notion manquant',
-          endpoint,
-          status: 401,
-          timestamp: Date.now()
-        };
-        return this.createErrorResponse(proxyError);
+      // Préparer le corps de la requête à envoyer à la fonction Netlify
+      const body = {
+        endpoint,
+        method,
+        body: data,
+        token: authToken
+      };
+      
+      // Effectuer la requête à la fonction Netlify
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      
+      // Analyser la réponse
+      const responseData = await response.json();
+      
+      // Si la fonction Netlify a généré une erreur
+      if (!response.ok) {
+        const error = this.createProxyError(
+          { 
+            status: response.status, 
+            message: responseData.error || responseData.message || 'Erreur de la fonction Netlify',
+            ...responseData
+          },
+          endpoint
+        );
+        
+        return this.createErrorResponse(error);
       }
       
-      try {
-        // Appeler le service centralisé
-        const result = await notionCentralService.request<T>({
-          endpoint,
-          method,
-          body: data,
-          token: authToken
-        });
-        
-        // Retourner la réponse formatée
-        this.log(`Réponse reçue du service centralisé pour ${endpoint}`);
-        return this.createSuccessResponse(result);
-      } catch (error) {
-        // Gérer les erreurs du service centralisé
-        this.log(`Erreur lors de l'appel au service centralisé pour ${endpoint}:`, error);
-        const proxyError: ProxyError = {
-          type: ProxyErrorType.Unknown,
-          message: error instanceof Error ? error.message : String(error),
-          originalError: error,
-          endpoint,
-          timestamp: Date.now()
-        };
-        return this.createErrorResponse(proxyError);
-      }
+      // Retourner la réponse formatée
+      return this.createSuccessResponse(responseData);
     } catch (error) {
       // Gérer les erreurs de réseau ou autres
-      this.log(`Erreur lors de l'appel à la fonction Netlify pour ${endpoint}:`, error);
       const proxyError = this.createProxyError(error, endpoint);
       return this.createErrorResponse(proxyError);
     }

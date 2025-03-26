@@ -3,11 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { notionClient } from '@/services/notion/notionApiClient';
 import { apiProxy, initializeApiProxy } from '@/services/apiProxy';
 import { toast } from 'sonner';
-import { notionCentralService } from '@/services/notion/notionCentralService';
 
 /**
  * Hook qui permet d'utiliser l'API Notion avec le système de proxy modulaire
- * Utilise exclusivement le service centralisé pour les appels à l'API Notion
  */
 export function useNotionApi() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -63,16 +61,15 @@ export function useNotionApi() {
     setError(null);
     
     try {
-      // Utiliser EXCLUSIVEMENT le service centralisé
-      const response = await notionCentralService.testConnection();
+      const response = await notionClient.getCurrentUser();
       
       if (response.success) {
         toast.success("Connexion à Notion réussie", {
-          description: `Connecté en tant que ${response.user || 'Utilisateur Notion'}`
+          description: `Connecté en tant que ${response.data?.name || 'Utilisateur Notion'}`
         });
-        return { success: true, user: response.user };
+        return { success: true, user: response.data };
       } else {
-        const errorMessage = response.error || "Erreur de connexion à Notion";
+        const errorMessage = response.error?.message || "Erreur de connexion à Notion";
         setError(new Error(errorMessage));
         toast.error("Échec de la connexion à Notion", {
           description: errorMessage

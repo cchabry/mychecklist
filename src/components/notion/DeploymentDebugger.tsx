@@ -10,10 +10,12 @@ import {
   enableDeploymentDebugging, 
   disableDeploymentDebugging 
 } from '@/lib/notionProxy/config';
+import { corsProxy } from '@/services/corsProxy';
 
 const DeploymentDebugger: React.FC = () => {
   const [isDebugEnabled, setIsDebugEnabled] = useState(false);
   const [deploymentType, setDeploymentType] = useState('inconnu');
+  const [currentProxy, setCurrentProxy] = useState<string | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
   
@@ -21,6 +23,9 @@ const DeploymentDebugger: React.FC = () => {
   useEffect(() => {
     setIsDebugEnabled(isDeploymentDebuggingEnabled());
     setDeploymentType(getDeploymentType());
+    
+    const proxy = corsProxy.getCurrentProxy();
+    setCurrentProxy(proxy?.url || null);
   }, []);
   
   // Gérer l'activation/désactivation du débogage
@@ -97,7 +102,7 @@ const DeploymentDebugger: React.FC = () => {
         <div className="space-y-2">
           <p className="text-sm font-medium">Proxy CORS actif</p>
           <p className="text-xs bg-muted p-2 rounded overflow-auto">
-            Fonctions Netlify (gestion CORS automatique)
+            {currentProxy || "Aucun proxy configuré"}
           </p>
         </div>
         

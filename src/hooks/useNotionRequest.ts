@@ -1,81 +1,84 @@
 
 import { useState, useCallback } from 'react';
-import { notionCentralService } from '@/services/notion/notionCentralService';
 import { toast } from 'sonner';
+import { operationMode } from '@/services/operationMode';
 
 /**
- * Hook simplifié pour les requêtes Notion via le service centralisé
+ * Options pour l'exécution des requêtes
  */
-export const useNotionRequest = <T>(
-  options: {
-    onSuccess?: (data: T) => void;
-    onError?: (error: Error) => void;
-  } = {}
-) => {
-  const { onSuccess, onError } = options;
+interface RequestOptions {
+  errorMessage?: string;
+  onSuccess?: (data: any) => void;
+  onError?: (error: Error) => void;
+}
 
-  const [data, setData] = useState<T | null>(null);
+/**
+ * Hook pour gérer les requêtes à l'API Notion
+ */
+export function useNotionRequest() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-
-  // Fonction pour exécuter la requête Notion
-  const execute = useCallback(async (
-    endpoint: string,
-    method: string = 'GET',
-    body?: any,
-    token?: string
+  
+  // Vérifier si l'utilisateur est authentifié
+  const isAuthenticated = !!localStorage.getItem('notion_api_key');
+  
+  /**
+   * Exécute une requête à l'API Notion
+   */
+  const executeRequest = useCallback(async <T>(
+    requestFn: () => Promise<T>,
+    options: RequestOptions = {}
   ): Promise<T | null> => {
+    const { errorMessage = 'Erreur lors de la requête', onSuccess, onError } = options;
+    
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      console.log(`Exécution d'une requête Notion: ${method} ${endpoint}`);
+      // Conserver le mode actuel
+      const wasDemoMode = operationMode.isDemoMode;
       
-      // Exécuter la requête via le service centralisé
-      const result = await notionCentralService.request<T>({
-        endpoint,
-        method: method as any,
-        body,
-        token,
-        showErrorToast: false
-      });
+      // Si nous sommes en mode démo mais qu'il s'agit d'une requête de test,
+      // forçons temporairement le mode réel
+      if (wasDemoMode && options.errorMessage?.includes('connexion')) {
+        operationMode.temporarilyForceReal();
+      }
       
-      setData(result);
+      const result = await requestFn();
       
       if (onSuccess) {
         onSuccess(result);
       }
       
-      return result;
-    } catch (error) {
-      // Gérer l'erreur
-      const formattedError = error instanceof Error ? error : new Error(String(error));
-      setError(formattedError);
+      // Signaler l'opération réussie
+      operationMode.handleSuccessfulOperation();
       
-      console.error(`Erreur dans la requête Notion ${method} ${endpoint}:`, formattedError);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
       
       if (onError) {
-        onError(formattedError);
+        onError(error);
       } else {
-        // Afficher une notification d'erreur par défaut
-        toast.error('Erreur lors de la requête Notion', {
-          description: formattedError.message
+        toast.error(errorMessage, {
+          description: error.message
         });
       }
+      
+      // Signaler l'erreur à operationMode
+      operationMode.handleConnectionError(error, errorMessage);
       
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [onSuccess, onError]);
-
+  }, []);
+  
   return {
-    data,
     isLoading,
     error,
-    execute,
-    setData,
+    isAuthenticated,
+    executeRequest
   };
-};
-
-export default useNotionRequest;
+}
