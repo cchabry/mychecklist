@@ -4,7 +4,8 @@
  */
 
 import { NotionClient } from './notionClient';
-import { ConnectionStatus, NotionConfig, NotionResponse, ConnectionTestResult } from './types';
+import { NotionConfig, NotionResponse, ConnectionTestResult } from './types';
+import { Project } from '@/types/domain';
 import demoData from './mockData';
 
 /**
@@ -100,7 +101,7 @@ class NotionService {
   /**
    * Récupère tous les projets
    */
-  async getProjects(): Promise<NotionResponse> {
+  async getProjects(): Promise<NotionResponse<Project[]>> {
     if (this.isMockMode()) {
       // En mode démo, retourner des données simulées
       return {
@@ -117,8 +118,6 @@ class NotionService {
         }
       };
     }
-    
-    const config = this.getConfig();
     
     try {
       // Simuler une requête à l'API dans cette version
@@ -142,7 +141,7 @@ class NotionService {
   /**
    * Récupère un projet par son ID
    */
-  async getProjectById(id: string): Promise<NotionResponse> {
+  async getProjectById(id: string): Promise<NotionResponse<Project>> {
     if (this.isMockMode()) {
       // En mode démo, rechercher dans les données simulées
       const project = demoData.projects.find(p => p.id === id);
@@ -202,13 +201,13 @@ class NotionService {
   /**
    * Crée un nouveau projet
    */
-  async createProject(data: any): Promise<NotionResponse> {
+  async createProject(data: any): Promise<NotionResponse<Project>> {
     if (this.isMockMode()) {
       // En mode démo, simuler la création d'un projet
-      const newProject = {
+      const newProject: Project = {
         id: `proj_${Date.now()}`,
         name: data.name,
-        url: data.url,
+        url: data.url || '',
         description: data.description || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -237,10 +236,10 @@ class NotionService {
     try {
       // Simuler une requête à l'API dans cette version
       // Pour l'instant, simulons un nouvel enregistrement
-      const newProject = {
+      const newProject: Project = {
         id: `proj_${Date.now()}`,
         name: data.name,
-        url: data.url,
+        url: data.url || '',
         description: data.description || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -265,7 +264,7 @@ class NotionService {
   /**
    * Met à jour un projet existant
    */
-  async updateProject(project: any): Promise<NotionResponse> {
+  async updateProject(project: Project): Promise<NotionResponse<Project>> {
     if (this.isMockMode()) {
       // En mode démo, rechercher et mettre à jour le projet
       const index = demoData.projects.findIndex(p => p.id === project.id);
@@ -326,7 +325,7 @@ class NotionService {
   /**
    * Supprime un projet
    */
-  async deleteProject(id: string): Promise<NotionResponse> {
+  async deleteProject(id: string): Promise<NotionResponse<{id: string}>> {
     if (this.isMockMode()) {
       // En mode démo, rechercher et supprimer le projet
       const index = demoData.projects.findIndex(p => p.id === id);

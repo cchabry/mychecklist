@@ -77,7 +77,7 @@ const mockData: MockData = {
       profil: ['Développeur', 'Contributeur'],
       phase: ['Développement', 'Contribution'],
       effort: 1,
-      priority: 'critique'
+      priority: 5
     },
     {
       id: 'item_2',
@@ -89,7 +89,7 @@ const mockData: MockData = {
       profil: ['UI Designer', 'Développeur'],
       phase: ['Conception', 'Développement'],
       effort: 2,
-      priority: 'importante'
+      priority: 4
     },
     {
       id: 'item_3',
@@ -101,7 +101,7 @@ const mockData: MockData = {
       profil: ['Développeur', 'UI Designer'],
       phase: ['Développement', 'Intégration'],
       effort: 1,
-      priority: 'moyenne'
+      priority: 3
     },
     {
       id: 'item_4',
@@ -113,7 +113,7 @@ const mockData: MockData = {
       profil: ['Développeur', 'Contributeur'],
       phase: ['Développement', 'Contribution'],
       effort: 1,
-      priority: 'importante'
+      priority: 4
     },
     {
       id: 'item_5',
@@ -125,7 +125,7 @@ const mockData: MockData = {
       profil: ['UI Designer', 'Développeur'],
       phase: ['Conception', 'Développement'],
       effort: 3,
-      priority: 'critique'
+      priority: 5
     }
   ]
 };

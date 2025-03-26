@@ -59,18 +59,21 @@ const ProjectEditPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Provide the complete project object as expected by the API
-      await notionApi.updateProject({
-        id: projectId,
-        name: formData.name,
-        url: formData.url,
-        description: formData.description,
-        createdAt: project?.createdAt || '',
-        updatedAt: new Date().toISOString()
-      });
-      
-      toast.success('Projet mis à jour avec succès');
-      navigate(`/projects/${projectId}`);
+      // Create a complete project object from the current project and form data
+      if (project) {
+        const updatedProject = {
+          ...project,
+          name: formData.name,
+          url: formData.url,
+          description: formData.description,
+          updatedAt: new Date().toISOString()
+        };
+        
+        await notionApi.updateProject(updatedProject);
+        
+        toast.success('Projet mis à jour avec succès');
+        navigate(`/projects/${projectId}`);
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du projet:', error);
       toast.error('Erreur lors de la mise à jour du projet');

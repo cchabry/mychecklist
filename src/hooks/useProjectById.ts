@@ -2,41 +2,38 @@
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
 import { notionApi } from '@/services/api';
-import { useLoadingState } from '@/hooks/form';
-import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer un projet par son ID
  */
-export const useProjectById = (projectId: string) => {
+export function useProjectById(projectId: string) {
   const [project, setProject] = useState<Project | null>(null);
-  const { isLoading, error, startLoading, stopLoading, setErrorMessage } = useLoadingState();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   
   useEffect(() => {
-    const fetchProject = async () => {
-      if (!projectId) return;
+    async function fetchProject() {
+      if (!projectId) {
+        setIsLoading(false);
+        return;
+      }
       
-      startLoading();
+      setIsLoading(true);
+      setError(null);
+      
       try {
         const data = await notionApi.getProjectById(projectId);
         setProject(data);
-      } catch (error) {
-        console.error(`Erreur lors de la récupération du projet #${projectId}:`, error);
-        setErrorMessage(`Impossible de récupérer le projet #${projectId}`);
-        toast.error('Erreur de chargement', {
-          description: `Impossible de récupérer le projet #${projectId}`
-        });
+      } catch (err) {
+        console.error('Erreur lors du chargement du projet:', err);
+        setError(err instanceof Error ? err : new Error('Erreur inconnue'));
       } finally {
-        stopLoading();
+        setIsLoading(false);
       }
-    };
+    }
     
     fetchProject();
-  }, [projectId, startLoading, stopLoading, setErrorMessage]);
+  }, [projectId]);
   
-  return {
-    project,
-    isLoading,
-    error
-  };
-};
+  return { project, isLoading, error };
+}

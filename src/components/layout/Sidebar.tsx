@@ -1,100 +1,41 @@
 
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, FolderKanban, ClipboardCheck, BarChart2, Settings } from 'lucide-react';
-import NotionConnectionStatus from './NotionConnectionStatus';
+import { Link } from "react-router-dom";
+import NotionConnectionStatus from "./NotionConnectionStatus";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 /**
- * Sidebar de l'application
+ * Composant de barre latérale de l'application
  */
-const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
-  if (!isOpen) return null;
-  
+const Sidebar = ({ isOpen }: SidebarProps) => {
   return (
-    <div className="h-full w-64 border-r bg-white p-4 flex flex-col">
-      <div className="flex flex-col flex-1">
+    <aside 
+      className={`border-r bg-white overflow-y-auto transition-all duration-300 ${
+        isOpen ? "w-64" : "w-0"
+      }`}
+    >
+      <div className="p-4">
         <NotionConnectionStatus />
         
-        <nav className="space-y-1">
-          <NavLink
-            to="/"
-            className={({ isActive }) => 
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium 
-              ${isActive 
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`
-            }
-            end
+        <nav className="mt-6 space-y-1">
+          <Link 
+            to="/" 
+            className="flex items-center px-3 py-2 text-gray-800 rounded-md hover:bg-gray-100"
           >
-            <Home className="h-4 w-4" />
-            <span>Tableau de bord</span>
-          </NavLink>
+            Tableau de bord
+          </Link>
           
-          <NavLink
-            to="/projects"
-            className={({ isActive }) => 
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium 
-              ${isActive 
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`
-            }
+          <Link 
+            to="/projects/new" 
+            className="flex items-center px-3 py-2 text-gray-800 rounded-md hover:bg-gray-100"
           >
-            <FolderKanban className="h-4 w-4" />
-            <span>Projets</span>
-          </NavLink>
-          
-          <NavLink
-            to="/checklists"
-            className={({ isActive }) => 
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium 
-              ${isActive 
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`
-            }
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            <span>Checklists</span>
-          </NavLink>
-          
-          <NavLink
-            to="/reports"
-            className={({ isActive }) => 
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium 
-              ${isActive 
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`
-            }
-          >
-            <BarChart2 className="h-4 w-4" />
-            <span>Rapports</span>
-          </NavLink>
+            Nouveau projet
+          </Link>
         </nav>
       </div>
-      
-      <div className="border-t pt-4 mt-4">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => 
-            `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium 
-            ${isActive 
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`
-          }
-        >
-          <Settings className="h-4 w-4" />
-          <span>Paramètres</span>
-        </NavLink>
-      </div>
-    </div>
+    </aside>
   );
 };
 

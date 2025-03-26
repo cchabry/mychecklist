@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionService } from '@/services/notion/notionService';
-import { ConnectionStatus, ConnectionTestResult } from '@/services/notion/types';
+import { ConnectionStatus, NotionConfig } from '@/services/notion/types';
 import { toast } from 'sonner';
 
 /**
@@ -32,9 +32,9 @@ export function useNotionService() {
   /**
    * Configure le service Notion
    */
-  const setNotionConfig = useCallback((apiKey: string, projectsDbId: string, checklistsDbId?: string) => {
+  const setNotionConfig = useCallback((config: NotionConfig) => {
     try {
-      notionService.configure(apiKey, projectsDbId, checklistsDbId);
+      notionService.configure(config);
       setIsConfigured(true);
       setConnectionStatus(ConnectionStatus.Connected);
       toast.success('Configuration Notion sauvegardée');
@@ -50,7 +50,7 @@ export function useNotionService() {
   /**
    * Teste la connexion à l'API Notion
    */
-  const testConnection = useCallback(async (): Promise<ConnectionTestResult> => {
+  const testConnection = useCallback(async () => {
     setIsLoading(true);
     setLastError(null);
     

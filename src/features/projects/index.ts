@@ -50,14 +50,14 @@ export async function createProject(data: { name: string; url?: string; descript
 /**
  * Met à jour un projet existant
  */
-export async function updateProject(id: string, data: { name?: string; url?: string; description?: string }): Promise<Project> {
-  const response = await notionService.updateProject(id, data);
+export async function updateProject(project: Project): Promise<Project> {
+  const response = await notionService.updateProject(project);
   
   if (response.success && response.data) {
     return response.data;
   }
   
-  throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
+  throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${project.id}`);
 }
 
 /**
