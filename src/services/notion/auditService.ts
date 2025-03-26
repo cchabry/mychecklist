@@ -142,7 +142,7 @@ class AuditService {
   /**
    * Supprime un audit
    */
-  async deleteAudit(id: string): Promise<NotionResponse<boolean>> {
+  async deleteAudit(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {

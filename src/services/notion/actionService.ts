@@ -247,7 +247,7 @@ class ActionService {
   /**
    * Supprime un suivi de progrès
    */
-  async deleteActionProgress(id: string): Promise<NotionResponse<boolean>> {
+  async deleteActionProgress(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {

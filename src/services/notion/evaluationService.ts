@@ -157,7 +157,7 @@ class EvaluationService {
   /**
    * Supprime une évaluation
    */
-  async deleteEvaluation(id: string): Promise<NotionResponse<boolean>> {
+  async deleteEvaluation(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {

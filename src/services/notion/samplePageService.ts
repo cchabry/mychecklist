@@ -127,7 +127,7 @@ class SamplePageService {
   /**
    * Supprime une page d'échantillon
    */
-  async deleteSamplePage(id: string): Promise<NotionResponse<boolean>> {
+  async deleteSamplePage(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {

@@ -127,7 +127,7 @@ class ExigenceService {
   /**
    * Supprime une exigence
    */
-  async deleteExigence(id: string): Promise<NotionResponse<boolean>> {
+  async deleteExigence(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {

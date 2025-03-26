@@ -4,7 +4,7 @@
  */
 
 import { notionClient } from './notionClient';
-import { NotionResponse, NotionConfig } from './types';
+import { NotionResponse } from './types';
 import { ChecklistItem } from '@/types/domain';
 
 /**
