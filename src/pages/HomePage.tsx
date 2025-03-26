@@ -1,102 +1,87 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import HomeIndex from './HomeIndex';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ClipboardList, Settings, FileText } from 'lucide-react';
-import Header from '@/components/shared/Header';
+import { Download, Settings, Activity } from 'lucide-react';
+import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { operationMode } from '@/services/operationMode';
+import { toast } from 'sonner';
+import OperationModeControl from '@/components/OperationModeControl';
+import { OperationModeSettingsButton } from '@/components/OperationModeSettings';
+import { Link } from 'react-router-dom';
 
 const HomePage = () => {
+  const [showExporter, setShowExporter] = useState(false);
+  const [showModeControl, setShowModeControl] = useState(false);
+  
+  const handleDiagnosticComplete = (success: boolean) => {
+    if (success) {
+      // Si le diagnostic réussit et on était en mode démo, proposer de désactiver
+      if (operationMode.isDemoMode) {
+        toast.success('Diagnostic réussi', {
+          description: 'Notion fonctionne correctement. Voulez-vous désactiver le mode démonstration ?',
+          action: {
+            label: 'Désactiver',
+            onClick: () => {
+              operationMode.enableRealMode();
+              window.location.reload();
+            }
+          }
+        });
+      } else {
+        toast.success('Diagnostic réussi', {
+          description: 'La connexion à Notion fonctionne correctement.'
+        });
+      }
+    }
+  };
+  
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <>
+      <div className="fixed bottom-4 right-4 z-50 flex gap-2">
+        <OperationModeSettingsButton label="Mode opérationnel" className="shadow-lg" />
+        
+        <Button
+          variant="outline"
+          className="shadow-lg"
+          asChild
+        >
+          <Link to="/config">
+            <Activity size={16} className="mr-2" />
+            Configuration
+          </Link>
+        </Button>
+        
+        <NotionDiagnosticReport 
+          buttonLabel="Diagnostic Notion"
+          buttonClassName="shadow-lg"
+          onDiagnosticComplete={handleDiagnosticComplete}
+        />
+        
+        <Button 
+          onClick={() => setShowExporter(true)}
+          className="rounded-full shadow-lg flex items-center gap-2"
+        >
+          <Download size={16} />
+          <span>Exporter CSV</span>
+        </Button>
+      </div>
       
-      <main className="flex-1">
-        <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
-          <section className="mb-12">
-            <h1 className="text-4xl font-bold tracking-tight mb-4">Audit Web</h1>
-            <p className="text-xl text-muted-foreground max-w-3xl">
-              Plateforme d'audit d'accessibilité pour évaluer et améliorer la conformité de vos sites web
-            </p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Button asChild className="gap-2">
-                <Link to="/projects">
-                  Voir les projets
-                  <ArrowRight size={16} />
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="gap-2">
-                <Link to="/project/new">
-                  Créer un projet
-                </Link>
-              </Button>
-            </div>
-          </section>
-          
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <ClipboardList className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle>Gérer les projets</CardTitle>
-                <CardDescription>
-                  Organisez vos sites et applications à auditer
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">
-                  Créez des projets pour chaque site web à auditer, définissez les échantillons de pages et les exigences.
-                </p>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/projects">
-                    Accéder aux projets
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <FileText className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle>Réaliser des audits</CardTitle>
-                <CardDescription>
-                  Évaluez vos sites selon les critères d'accessibilité
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">
-                  Évaluez chaque page de l'échantillon selon les exigences définies et créez des actions correctives.
-                </p>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/diagnostics">
-                    Voir les diagnostics
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <Settings className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle>Configuration</CardTitle>
-                <CardDescription>
-                  Personnalisez l'application selon vos besoins
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">
-                  Configurez l'intégration avec Notion, gérez le référentiel de bonnes pratiques et les paramètres.
-                </p>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/settings">
-                    Accéder aux paramètres
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </section>
-        </div>
-      </main>
-    </div>
+      <Dialog open={showExporter} onOpenChange={setShowExporter}>
+        <DialogContent className="max-w-3xl">
+          <NotionCSVExporter onClose={() => setShowExporter(false)} />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showModeControl} onOpenChange={setShowModeControl}>
+        <DialogContent>
+          <OperationModeControl onToggle={() => setShowModeControl(false)} />
+        </DialogContent>
+      </Dialog>
+      
+      <HomeIndex />
+    </>
   );
 };
 

@@ -1,111 +1,28 @@
 
 /**
- * Service gérant le mode d'opération (réel ou démo)
+ * Point d'entrée principal pour le système operationMode
+ * Exporte le service et les hooks associés
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+// Exporter le service
+export { operationMode } from './operationModeService';
 
-type OperationMode = 'real' | 'demo' | 'auto';
+// Exporter le hook principal
+export { useOperationMode } from './hooks/useOperationMode';
 
-interface OperationModeState {
-  // État
-  mode: OperationMode;
-  lastModeChange: string | null;
-  changeReason: string | null;
-  
-  // Propriétés calculées
-  isDemoMode: boolean;
-  isRealMode: boolean;
-  isAutoMode: boolean;
-  
-  // Actions
-  enableDemoMode: (reason?: string) => void;
-  enableRealMode: (reason?: string) => void;
-  enableAutoMode: (reason?: string) => void;
-  toggleMode: () => void;
-}
+// Exporter les types
+export type { 
+  OperationModeSettings, 
+  SwitchReason,
+  IOperationModeService,
+  OperationModeHook 
+} from './types';
 
-// Store Zustand avec persistance
-export const useOperationModeStore = create<OperationModeState>()(
-  persist(
-    (set, get) => ({
-      // État initial
-      mode: 'auto',
-      lastModeChange: null,
-      changeReason: null,
-      
-      // Getters calculés
-      get isDemoMode() {
-        return get().mode === 'demo';
-      },
-      get isRealMode() {
-        return get().mode === 'real';
-      },
-      get isAutoMode() {
-        return get().mode === 'auto';
-      },
-      
-      // Actions
-      enableDemoMode: (reason = 'Manuel') => set({
-        mode: 'demo',
-        lastModeChange: new Date().toISOString(),
-        changeReason: reason
-      }),
-      
-      enableRealMode: (reason = 'Manuel') => set({
-        mode: 'real',
-        lastModeChange: new Date().toISOString(),
-        changeReason: reason
-      }),
-      
-      enableAutoMode: (reason = 'Manuel') => set({
-        mode: 'auto',
-        lastModeChange: new Date().toISOString(),
-        changeReason: reason
-      }),
-      
-      toggleMode: () => {
-        const currentMode = get().mode;
-        if (currentMode === 'demo') {
-          get().enableRealMode('Toggle');
-        } else {
-          get().enableDemoMode('Toggle');
-        }
-      }
-    }),
-    {
-      name: 'operation-mode', // Nom pour le stockage local
-    }
-  )
-);
+// Exporter l'énumération OperationMode directement pour simplifier l'usage
+export { OperationMode } from './types';
 
-// Export d'un singleton pour un accès simplifié
-export const operationMode = {
-  get mode() {
-    return useOperationModeStore.getState().mode;
-  },
-  get isDemoMode() {
-    return useOperationModeStore.getState().isDemoMode;
-  },
-  get isRealMode() {
-    return useOperationModeStore.getState().isRealMode;
-  },
-  get isAutoMode() {
-    return useOperationModeStore.getState().isAutoMode;
-  },
-  enableDemoMode(reason?: string) {
-    useOperationModeStore.getState().enableDemoMode(reason);
-  },
-  enableRealMode(reason?: string) {
-    useOperationModeStore.getState().enableRealMode(reason);
-  },
-  enableAutoMode(reason?: string) {
-    useOperationModeStore.getState().enableAutoMode(reason);
-  },
-  toggleMode() {
-    useOperationModeStore.getState().toggleMode();
-  }
-};
+// Exporter les utilitaires
+export { operationModeUtils } from './utils';
 
-export default operationMode;
+// Exporter les constantes pour les personnes qui en ont besoin
+export { DEFAULT_SETTINGS } from './constants';
