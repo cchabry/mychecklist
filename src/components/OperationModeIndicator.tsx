@@ -1,14 +1,13 @@
 
 import { AlertTriangle, Database } from 'lucide-react';
 import { useOperationMode } from '@/hooks/useOperationMode';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
+} from "@/components/ui/tooltip";
 
 /**
  * Composant qui affiche un indicateur du mode opérationnel actuel
@@ -18,7 +17,7 @@ import {
  * En mode réel, un petit indicateur discret est affiché.
  */
 export function OperationModeIndicator() {
-  const { mode, isDemoMode, enableRealMode, enableDemoMode, state } = useOperationMode();
+  const { isDemoMode, enableRealMode, enableDemoMode, state } = useOperationMode();
   
   const toggleMode = () => {
     if (isDemoMode) {
@@ -33,7 +32,7 @@ export function OperationModeIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button 
-            variant={isDemoMode ? "warning" : "ghost"}
+            variant={isDemoMode ? "destructive" : "ghost"}
             size="sm"
             className={`flex items-center gap-1 ${isDemoMode ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-transparent'}`}
             onClick={toggleMode}
