@@ -1,18 +1,22 @@
 
 /**
- * Types pour l'API Notion
+ * Types pour le service Notion
  */
 
 export enum ConnectionStatus {
   Connected = 'connected',
   Disconnected = 'disconnected',
-  Error = 'error',
-  Loading = 'loading'
+  Error = 'error'
 }
 
-/**
- * Structure des erreurs Notion
- */
+export interface NotionConfig {
+  apiKey?: string;
+  projectsDbId?: string;
+  checklistsDbId?: string;
+  mockMode?: boolean;
+  debug?: boolean;
+}
+
 export interface NotionError {
   message: string;
   code?: string;
@@ -20,45 +24,17 @@ export interface NotionError {
   details?: any;
 }
 
-/**
- * Structure des réponses de l'API Notion
- */
 export interface NotionResponse<T = any> {
   success: boolean;
   data?: T;
   error?: NotionError;
 }
 
-/**
- * Informations sur un utilisateur Notion
- */
-export interface NotionUser {
-  id: string;
-  name?: string;
-  avatarUrl?: string;
-  email?: string;
-  type?: 'person' | 'bot';
-}
-
-/**
- * Configuration du client Notion
- */
-export interface NotionConfig {
-  apiKey?: string;
-  projectsDbId?: string; 
-  checklistsDbId?: string;
-  mockMode?: boolean;
-  debug?: boolean;
-}
-
-/**
- * Résultat du test de connexion Notion
- */
 export interface ConnectionTestResult {
   success: boolean;
   user?: string;
   workspaceName?: string;
-  projectsDbName?: string; 
+  projectsDbName?: string;
   checklistsDbName?: string;
   error?: string;
   details?: any;

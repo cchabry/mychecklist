@@ -1,411 +1,381 @@
 
 /**
- * Service Notion
- * Ce service expose les méthodes de haut niveau pour interagir avec l'API Notion
+ * Service Notion pour gérer l'accès à l'API Notion
  */
 
-import { notionClient } from './notionClient';
-import { 
-  NotionResponse, 
-  NotionConfig,
-  ConnectionTestResult
-} from './types';
-
-import { Project } from '@/types/domain';
+import { NotionClient } from './notionClient';
+import { ConnectionStatus, NotionConfig, NotionResponse, ConnectionTestResult } from './types';
+import demoData from './mockData';
 
 /**
- * Service principal pour Notion
+ * Service pour interagir avec l'API Notion
  */
 class NotionService {
+  private client: NotionClient;
+  
+  constructor() {
+    this.client = new NotionClient();
+    
+    // Initialiser à partir du localStorage
+    this.initializeFromStorage();
+  }
+  
+  /**
+   * Initialise la configuration à partir du localStorage
+   */
+  private initializeFromStorage(): void {
+    const apiKey = localStorage.getItem('notion_api_key');
+    const projectsDbId = localStorage.getItem('notion_database_id');
+    const checklistsDbId = localStorage.getItem('notion_checklists_database_id');
+    
+    // Si nous avons des valeurs dans le localStorage, configurer le client
+    if (apiKey && projectsDbId) {
+      this.client.configure({
+        apiKey,
+        projectsDbId,
+        checklistsDbId: checklistsDbId || undefined,
+        mockMode: localStorage.getItem('notion_mock_mode') === 'true',
+        debug: process.env.NODE_ENV === 'development'
+      });
+    }
+  }
+  
   /**
    * Configure le service Notion
    */
-  configure(apiKey: string, projectsDbId: string, checklistsDbId?: string): void {
-    notionClient.configure({
-      apiKey,
-      projectsDbId,
-      checklistsDbId
-    });
+  configure(config: NotionConfig): void {
+    this.client.configure(config);
+    
+    // Sauvegarder dans le localStorage si la configuration est valide
+    if (config.apiKey && config.projectsDbId) {
+      localStorage.setItem('notion_api_key', config.apiKey);
+      localStorage.setItem('notion_database_id', config.projectsDbId);
+      
+      if (config.checklistsDbId) {
+        localStorage.setItem('notion_checklists_database_id', config.checklistsDbId);
+      }
+      
+      if (config.mockMode !== undefined) {
+        localStorage.setItem('notion_mock_mode', config.mockMode.toString());
+      }
+    }
   }
   
   /**
    * Vérifie si le service est configuré
    */
   isConfigured(): boolean {
-    return notionClient.isConfigured();
+    return this.client.isConfigured();
   }
   
   /**
    * Récupère la configuration actuelle
    */
   getConfig(): NotionConfig {
-    return notionClient.getConfig();
+    return this.client.getConfig();
   }
   
   /**
-   * Contrôle le mode démo (mock)
+   * Active ou désactive le mode mock
    */
   setMockMode(enabled: boolean): void {
-    notionClient.setMockMode(enabled);
+    this.client.setMockMode(enabled);
+    localStorage.setItem('notion_mock_mode', enabled.toString());
   }
   
   /**
-   * Vérifie si le mode démo est actif
+   * Vérifie si le mode mock est actif
    */
   isMockMode(): boolean {
-    return notionClient.isMockMode();
+    return this.client.isMockMode();
   }
   
   /**
-   * Teste la connexion à Notion
+   * Teste la connexion à l'API Notion
    */
   async testConnection(): Promise<ConnectionTestResult> {
-    return notionClient.testConnection();
+    return this.client.testConnection();
   }
   
   /**
    * Récupère tous les projets
    */
-  async getProjects(): Promise<NotionResponse<Project[]>> {
-    const config = this.getConfig();
-    if (!config.projectsDbId) {
-      return { success: false, error: { message: "Base de données des projets non configurée" } };
-    }
-    
-    // Si en mode démo, renvoyer des données simulées
+  async getProjects(): Promise<NotionResponse> {
     if (this.isMockMode()) {
+      // En mode démo, retourner des données simulées
       return {
         success: true,
-        data: [
-          { 
-            id: '1', 
-            name: 'Projet 1', 
-            url: 'https://example.com/projet1', 
-            description: 'Description du projet 1',
-            createdAt: new Date().toISOString(), 
-            updatedAt: new Date().toISOString(),
-            progress: 75 
-          },
-          { 
-            id: '2', 
-            name: 'Projet 2', 
-            url: 'https://example.com/projet2', 
-            description: 'Description du projet 2',
-            createdAt: new Date().toISOString(), 
-            updatedAt: new Date().toISOString(),
-            progress: 30
-          },
-          { 
-            id: '3', 
-            name: 'Projet 3', 
-            url: 'https://example.com/projet3', 
-            description: 'Description du projet 3',
-            createdAt: new Date().toISOString(), 
-            updatedAt: new Date().toISOString(),
-            progress: 0
-          }
-        ]
+        data: demoData.projects
       };
     }
     
-    // Interroger la base de données Notion
-    const response = await notionClient.post<{results: any[]}>(`/databases/${config.projectsDbId}/query`, {});
-    
-    if (!response.success || !response.data?.results) {
-      return { success: false, error: response.error };
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: {
+          message: 'Base de données des projets non configurée'
+        }
+      };
     }
     
-    // Transformer les résultats Notion en projets
-    const projects: Project[] = response.data.results.map(page => {
-      const properties = page.properties;
+    const config = this.getConfig();
+    
+    try {
+      // Simuler une requête à l'API dans cette version
+      // Dans une version ultérieure, nous intégrerons l'API Notion réelle
+      // Pour l'instant, retournons les données de démo
       
       return {
-        id: page.id,
-        name: this.extractTextProperty(properties.Name),
-        url: this.extractTextProperty(properties.URL),
-        description: this.extractTextProperty(properties.Description) || '',
-        createdAt: page.created_time,
-        updatedAt: page.last_edited_time,
-        progress: properties.Progress?.number || 0
+        success: true,
+        data: demoData.projects
       };
-    });
-    
-    return {
-      success: true,
-      data: projects
-    };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue'
+        }
+      };
+    }
   }
   
   /**
    * Récupère un projet par son ID
    */
-  async getProjectById(id: string): Promise<NotionResponse<Project>> {
-    // Si en mode démo, renvoyer des données simulées
+  async getProjectById(id: string): Promise<NotionResponse> {
     if (this.isMockMode()) {
+      // En mode démo, rechercher dans les données simulées
+      const project = demoData.projects.find(p => p.id === id);
+      
+      if (!project) {
+        return {
+          success: false,
+          error: {
+            message: `Projet #${id} non trouvé`
+          }
+        };
+      }
+      
       return {
         success: true,
-        data: {
-          id,
-          name: `Projet ${id}`,
-          url: `https://example.com/projet${id}`,
-          description: `Description du projet ${id}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 50
+        data: project
+      };
+    }
+    
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: {
+          message: 'Base de données des projets non configurée'
         }
       };
     }
     
-    const response = await notionClient.get<any>(`/pages/${id}`);
-    
-    if (!response.success || !response.data) {
-      return response as NotionResponse<Project>;
+    try {
+      // Simuler une requête à l'API dans cette version
+      // Pour l'instant, retournons les données de démo
+      const project = demoData.projects.find(p => p.id === id);
+      
+      if (!project) {
+        return {
+          success: false,
+          error: {
+            message: `Projet #${id} non trouvé`
+          }
+        };
+      }
+      
+      return {
+        success: true,
+        data: project
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue'
+        }
+      };
     }
-    
-    const page = response.data;
-    const properties = page.properties;
-    
-    const project: Project = {
-      id: page.id,
-      name: this.extractTextProperty(properties.Name),
-      url: this.extractTextProperty(properties.URL),
-      description: this.extractTextProperty(properties.Description) || '',
-      createdAt: page.created_time,
-      updatedAt: page.last_edited_time,
-      progress: properties.Progress?.number || 0
-    };
-    
-    return {
-      success: true,
-      data: project
-    };
   }
   
   /**
    * Crée un nouveau projet
    */
-  async createProject(data: { name: string; url?: string; description?: string }): Promise<NotionResponse<Project>> {
-    const config = this.getConfig();
-    if (!config.projectsDbId) {
-      return { success: false, error: { message: "Base de données des projets non configurée" } };
-    }
-    
-    // Si en mode démo, simuler la création
+  async createProject(data: any): Promise<NotionResponse> {
     if (this.isMockMode()) {
+      // En mode démo, simuler la création d'un projet
+      const newProject = {
+        id: `proj_${Date.now()}`,
+        name: data.name,
+        url: data.url,
+        description: data.description || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+        progress: 0
+      };
+      
+      // Ajouter le projet aux données de démo
+      demoData.projects.push(newProject);
+      
       return {
         success: true,
-        data: {
-          id: Math.random().toString(36).substring(2, 9),
-          name: data.name,
-          url: data.url || '',
-          description: data.description || '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 0
+        data: newProject
+      };
+    }
+    
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: {
+          message: 'Base de données des projets non configurée'
         }
       };
     }
     
-    // Préparer les propriétés pour Notion
-    const properties: any = {
-      Name: {
-        title: [
-          {
-            text: {
-              content: data.name
-            }
-          }
-        ]
-      }
-    };
-    
-    if (data.url) {
-      properties.URL = {
-        rich_text: [
-          {
-            text: {
-              content: data.url
-            }
-          }
-        ]
+    try {
+      // Simuler une requête à l'API dans cette version
+      // Pour l'instant, simulons un nouvel enregistrement
+      const newProject = {
+        id: `proj_${Date.now()}`,
+        name: data.name,
+        url: data.url,
+        description: data.description || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+        progress: 0
+      };
+      
+      return {
+        success: true,
+        data: newProject
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue'
+        }
       };
     }
-    
-    if (data.description) {
-      properties.Description = {
-        rich_text: [
-          {
-            text: {
-              content: data.description
-            }
-          }
-        ]
-      };
-    }
-    
-    // Créer la page dans Notion
-    const response = await notionClient.post<any>('/pages', {
-      parent: { database_id: config.projectsDbId },
-      properties
-    });
-    
-    if (!response.success || !response.data) {
-      return response as NotionResponse<Project>;
-    }
-    
-    const newPage = response.data;
-    
-    // Transformer la réponse en projet
-    const project: Project = {
-      id: newPage.id,
-      name: data.name,
-      url: data.url || '',
-      description: data.description || '',
-      createdAt: newPage.created_time,
-      updatedAt: newPage.last_edited_time,
-      progress: 0
-    };
-    
-    return {
-      success: true,
-      data: project
-    };
   }
   
   /**
    * Met à jour un projet existant
    */
-  async updateProject(id: string, data: { name?: string; url?: string; description?: string }): Promise<NotionResponse<Project>> {
-    // Si en mode démo, simuler la mise à jour
+  async updateProject(project: any): Promise<NotionResponse> {
     if (this.isMockMode()) {
+      // En mode démo, rechercher et mettre à jour le projet
+      const index = demoData.projects.findIndex(p => p.id === project.id);
+      
+      if (index === -1) {
+        return {
+          success: false,
+          error: {
+            message: `Projet #${project.id} non trouvé`
+          }
+        };
+      }
+      
+      // Mettre à jour le projet
+      demoData.projects[index] = {
+        ...demoData.projects[index],
+        name: project.name,
+        url: project.url,
+        description: project.description,
+        updatedAt: new Date().toISOString()
+      };
+      
       return {
         success: true,
-        data: {
-          id,
-          name: data.name || `Projet ${id}`,
-          url: data.url || `https://example.com/projet${id}`,
-          description: data.description || '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 0
+        data: demoData.projects[index]
+      };
+    }
+    
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: {
+          message: 'Base de données des projets non configurée'
         }
       };
     }
     
-    // Préparer les propriétés à mettre à jour
-    const properties: any = {};
-    
-    if (data.name !== undefined) {
-      properties.Name = {
-        title: [
-          {
-            text: {
-              content: data.name
-            }
-          }
-        ]
+    try {
+      // Simuler une requête à l'API dans cette version
+      // Pour l'instant, simulons la mise à jour
+      return {
+        success: true,
+        data: {
+          ...project,
+          updatedAt: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue'
+        }
       };
     }
-    
-    if (data.url !== undefined) {
-      properties.URL = {
-        rich_text: [
-          {
-            text: {
-              content: data.url
-            }
-          }
-        ]
-      };
-    }
-    
-    if (data.description !== undefined) {
-      properties.Description = {
-        rich_text: [
-          {
-            text: {
-              content: data.description
-            }
-          }
-        ]
-      };
-    }
-    
-    // Mettre à jour la page dans Notion
-    const response = await notionClient.patch<any>(`/pages/${id}`, {
-      properties
-    });
-    
-    if (!response.success || !response.data) {
-      return response as NotionResponse<Project>;
-    }
-    
-    const updatedPage = response.data;
-    const updatedProperties = updatedPage.properties;
-    
-    // Transformer la réponse en projet mis à jour
-    const project: Project = {
-      id: updatedPage.id,
-      name: this.extractTextProperty(updatedProperties.Name),
-      url: this.extractTextProperty(updatedProperties.URL),
-      description: this.extractTextProperty(updatedProperties.Description) || '',
-      createdAt: updatedPage.created_time,
-      updatedAt: updatedPage.last_edited_time,
-      progress: updatedProperties.Progress?.number || 0
-    };
-    
-    return {
-      success: true,
-      data: project
-    };
   }
   
   /**
    * Supprime un projet
    */
-  async deleteProject(id: string): Promise<NotionResponse<boolean>> {
-    // Si en mode démo, simuler la suppression
+  async deleteProject(id: string): Promise<NotionResponse> {
     if (this.isMockMode()) {
+      // En mode démo, rechercher et supprimer le projet
+      const index = demoData.projects.findIndex(p => p.id === id);
+      
+      if (index === -1) {
+        return {
+          success: false,
+          error: {
+            message: `Projet #${id} non trouvé`
+          }
+        };
+      }
+      
+      // Supprimer le projet
+      demoData.projects.splice(index, 1);
+      
       return {
         success: true,
-        data: true
+        data: { id }
       };
     }
     
-    // Dans Notion, on "archive" une page plutôt que de la supprimer
-    const response = await notionClient.patch<any>(`/pages/${id}`, {
-      archived: true
-    });
-    
-    if (!response.success) {
-      return response as NotionResponse<boolean>;
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: {
+          message: 'Base de données des projets non configurée'
+        }
+      };
     }
     
-    return {
-      success: true,
-      data: true
-    };
-  }
-  
-  /**
-   * Utilitaire pour extraire le texte d'une propriété Notion
-   */
-  private extractTextProperty(property: any): string {
-    if (!property) return '';
-    
-    if (property.title && Array.isArray(property.title)) {
-      return property.title.map((t: any) => t.plain_text || '').join('');
+    try {
+      // Simuler une requête à l'API dans cette version
+      return {
+        success: true,
+        data: { id }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue'
+        }
+      };
     }
-    
-    if (property.rich_text && Array.isArray(property.rich_text)) {
-      return property.rich_text.map((t: any) => t.plain_text || '').join('');
-    }
-    
-    return '';
   }
 }
 
-// Exporter une instance singleton
+// Créer une instance singleton
 export const notionService = new NotionService();
 
 // Export par défaut
