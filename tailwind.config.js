@@ -51,6 +51,26 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Ajout des couleurs personnalisées
+        tmw: {
+          teal: '#4A968C',
+          coral: '#E87A69',
+          lightblue: '#93ACE3',
+          gray: '#F0F2F5',
+          darkgray: '#333333',
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        error: {
+          DEFAULT: "hsl(var(--error))",
+          foreground: "hsl(var(--error-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -66,10 +86,46 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' }
+        },
+        'fade-out': {
+          from: { opacity: '1' },
+          to: { opacity: '0' }
+        },
+        'slide-in': {
+          from: { transform: 'translateY(20px)', opacity: '0' },
+          to: { transform: 'translateY(0)', opacity: '1' }
+        },
+        'scale-in': {
+          from: { transform: 'scale(0.95)', opacity: '0' },
+          to: { transform: 'scale(1)', opacity: '1' }
+        },
+        'progress': {
+          from: { width: '0%' },
+          to: { width: 'var(--progress-width)' }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        'fade-in': 'fade-in 0.3s ease-out',
+        'fade-out': 'fade-out 0.3s ease-out',
+        'slide-in': 'slide-in 0.4s ease-out',
+        'scale-in': 'scale-in 0.3s ease-out',
+        'progress': 'progress 0.5s ease-out forwards'
+      },
+      transitionTimingFunction: {
+        'apple': 'cubic-bezier(0.25, 1, 0.5, 1)'
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+      },
+      boxShadow: {
+        'app': '0 4px 12px -2px rgba(0,0,0,0.2)',
+        'card': '0 2px 8px -1px rgba(0,0,0,0.12)',
       },
     },
   },
