@@ -20,9 +20,9 @@ import { notionService } from './notionService';
 import { checklistService } from './checklistService';
 import { exigenceService } from './exigenceService';
 import { samplePageService } from './samplePageService';
-import { auditService } from './auditService';
+import { auditService } from './audit';
 import { evaluationService } from './evaluationService';
-import { actionService } from './actionService';
+import { actionService, progressService } from './action';
 import { notionClient } from './notionClient';
 
 /**
@@ -297,69 +297,69 @@ class NotionApiImplementation implements NotionAPI {
     return true;
   }
   
-  // Méthodes pour les suivis de progrès
+  // Méthodes pour les progrès d'actions
   async getActionProgress(actionId: string): Promise<ActionProgress[]> {
-    const response = await actionService.getActionProgress(actionId);
+    const response = await progressService.getProgressByActionId(actionId);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la récupération des suivis de progrès");
+      throw new Error(response.error?.message || "Erreur lors de la récupération des progrès d'action");
     }
     return response.data || [];
   }
   
   async getActionProgressById(id: string): Promise<ActionProgress> {
-    const response = await actionService.getActionProgressById(id);
+    const response = await progressService.getProgressById(id);
     if (!response.success) {
-      throw new Error(response.error?.message || `Suivi de progrès #${id} non trouvé`);
+      throw new Error(response.error?.message || `Progrès d'action #${id} non trouvé`);
     }
     return response.data as ActionProgress;
   }
   
   async createActionProgress(progress: Omit<ActionProgress, 'id'>): Promise<ActionProgress> {
-    const response = await actionService.createActionProgress(progress);
+    const response = await progressService.createProgress(progress);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la création du suivi de progrès");
+      throw new Error(response.error?.message || "Erreur lors de la création du progrès d'action");
     }
     return response.data as ActionProgress;
   }
   
   async updateActionProgress(progress: ActionProgress): Promise<ActionProgress> {
-    const response = await actionService.updateActionProgress(progress);
+    const response = await progressService.updateProgress(progress);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la mise à jour du suivi de progrès");
+      throw new Error(response.error?.message || "Erreur lors de la mise à jour du progrès d'action");
     }
     return response.data as ActionProgress;
   }
   
   async deleteActionProgress(id: string): Promise<boolean> {
-    const response = await actionService.deleteActionProgress(id);
+    const response = await progressService.deleteProgress(id);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la suppression du suivi de progrès");
+      throw new Error(response.error?.message || "Erreur lors de la suppression du progrès d'action");
     }
     return true;
   }
   
-  // Méthode de test de connexion
+  // Test de connexion à l'API Notion
   async testConnection(): Promise<NotionTestResponse> {
-    const response = await notionClient.testConnection();
-    
-    if (!response.success) {
-      throw new Error(response.error || "Erreur lors du test de connexion");
+    try {
+      const response = await notionClient.testConnection();
+      
+      if (response.success) {
+        return {
+          user: response.user || 'Utilisateur inconnu',
+          workspace: undefined,
+          timestamp: Date.now()
+        };
+      } else {
+        throw new Error(response.error || 'Erreur lors du test de connexion');
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Erreur lors du test de connexion');
     }
-    
-    return {
-      user: { 
-        id: "user-id", 
-        name: response.user || "Utilisateur Notion", 
-        type: "person" 
-      },
-      workspace: response.workspaceName || "Workspace Notion",
-      timestamp: Date.now()
-    };
   }
 }
 
-// Exporter une instance singleton
+// Créer et exporter une instance unique de l'API
 export const notionApi = new NotionApiImplementation();
 
-// Export par défaut
+// Exporter l'implémentation pour une utilisation externe
 export default notionApi;
