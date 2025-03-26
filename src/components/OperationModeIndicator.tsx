@@ -3,6 +3,10 @@ import { AlertTriangle } from 'lucide-react';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { Badge } from './ui/badge';
 
+/**
+ * Composant qui affiche un indicateur du mode opérationnel (démo)
+ * Visible uniquement en mode démo
+ */
 export function OperationModeIndicator() {
   const { isDemoMode, state } = useOperationMode();
   

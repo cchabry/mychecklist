@@ -1,5 +1,5 @@
 
-import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operationMode';
+import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 
 /**
  * Service de gestion du mode opérationnel (réel vs démo)

@@ -11,3 +11,6 @@ export * from './api';
 
 // Types d'énumérations
 export * from './enums';
+
+// Types du mode opérationnel
+export * from './operation';

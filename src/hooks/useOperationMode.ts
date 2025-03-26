@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { UseOperationMode } from '@/types/operationMode';
+import { UseOperationMode } from '@/types/operation/operationMode';
 import { operationModeService } from '@/services/operationMode/operationModeService';
 
 /**

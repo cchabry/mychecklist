@@ -5,6 +5,9 @@
 
 export type OperationModeType = 'real' | 'demo';
 
+/**
+ * État du mode opérationnel
+ */
 export interface OperationModeState {
   mode: OperationModeType;
   reason?: string;
@@ -12,6 +15,9 @@ export interface OperationModeState {
   source: 'user' | 'system' | 'auto';
 }
 
+/**
+ * Service de gestion du mode opérationnel
+ */
 export interface OperationModeService {
   // État actuel
   getMode(): OperationModeType;
@@ -30,6 +36,9 @@ export interface OperationModeService {
   subscribe(listener: (state: OperationModeState) => void): () => void;
 }
 
+/**
+ * Hook pour utiliser le mode opérationnel
+ */
 export interface UseOperationMode {
   // État
   mode: OperationModeType;
