@@ -14,7 +14,7 @@ export function OperationModeIndicator() {
   
   return (
     <Badge 
-      variant="warning" 
+      variant="secondary" 
       className="flex items-center gap-1 bg-yellow-500 hover:bg-yellow-600"
     >
       <AlertTriangle className="h-3 w-3" />

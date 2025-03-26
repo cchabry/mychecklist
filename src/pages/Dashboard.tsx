@@ -5,7 +5,8 @@ import { Plus, Search } from 'lucide-react';
 import { Input } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
-import { ProjectCard, type Project } from '@/components/data-display/ProjectCard';
+import { ProjectCard } from '@/components/data-display/ProjectCard';
+import { Project } from '@/types/domain';
 
 /**
  * Page d'accueil affichant les projets et permettant d'en créer de nouveaux

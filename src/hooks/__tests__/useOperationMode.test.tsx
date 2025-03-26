@@ -13,9 +13,9 @@ describe('useOperationMode hook', () => {
   it('devrait retourner l\'état initial correctement', () => {
     const { result } = renderHook(() => useOperationMode());
     
-    expect(result.current.mode).toBe('real');
-    expect(result.current.isRealMode).toBe(true);
-    expect(result.current.isDemoMode).toBe(false);
+    expect(result.current.mode).toBe('demo');
+    expect(result.current.isRealMode).toBe(false);
+    expect(result.current.isDemoMode).toBe(true);
   });
 
   it('devrait refléter les changements de mode', () => {

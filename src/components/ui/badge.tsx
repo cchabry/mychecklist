@@ -4,7 +4,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "success";
+  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
 }
 
 function Badge(
@@ -16,6 +16,7 @@ function Badge(
     destructive: "bg-destructive text-destructive-foreground",
     outline: "text-foreground border border-input",
     success: "bg-green-500 text-white",
+    warning: "bg-yellow-500 text-white",
   }
 
   return (
