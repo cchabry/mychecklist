@@ -7,11 +7,6 @@ import { notionClient } from './notionClient';
 import { NotionResponse } from './types';
 import { ChecklistItem } from '@/types/domain';
 
-interface NotionPage {
-  id: string;
-  properties: Record<string, any>;
-}
-
 /**
  * Service de gestion des items de checklist
  */
@@ -38,14 +33,14 @@ class ChecklistService {
     }
     
     // Interroger la base de données Notion
-    const response = await notionClient.post<{results: NotionPage[]}>(`/databases/${config.checklistsDbId}/query`, {});
+    const response = await notionClient.post<{results: any[]}>(`/databases/${config.checklistsDbId}/query`, {});
     
     if (!response.success || !response.data?.results) {
       return { success: false, error: response.error };
     }
     
     // Transformer les résultats Notion en items de checklist
-    const items: ChecklistItem[] = response.data.results.map((page: NotionPage) => {
+    const items: ChecklistItem[] = response.data.results.map(page => {
       const properties = page.properties;
       
       return {
@@ -91,7 +86,7 @@ class ChecklistService {
     }
     
     // Récupérer les détails de la page depuis Notion
-    const response = await notionClient.get<NotionPage>(`/pages/${id}`);
+    const response = await notionClient.get<any>(`/pages/${id}`);
     
     if (!response.success || !response.data) {
       return response as NotionResponse<ChecklistItem>;

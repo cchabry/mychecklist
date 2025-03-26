@@ -1,44 +1,65 @@
 
 /**
- * Types pour les services Notion
+ * Types pour l'API Notion
  */
-
-import { Project } from '@/types/domain';
-
-export interface NotionConfig {
-  apiKey?: string;
-  projectsDbId?: string;
-  checklistsDbId?: string;
-  mockMode?: boolean;
-}
 
 export enum ConnectionStatus {
   Connected = 'connected',
   Disconnected = 'disconnected',
-  Error = 'error'
+  Error = 'error',
+  Loading = 'loading'
 }
 
+/**
+ * Structure des erreurs Notion
+ */
+export interface NotionError {
+  message: string;
+  code?: string;
+  status?: number;
+  details?: any;
+}
+
+/**
+ * Structure des réponses de l'API Notion
+ */
+export interface NotionResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: NotionError;
+}
+
+/**
+ * Informations sur un utilisateur Notion
+ */
+export interface NotionUser {
+  id: string;
+  name?: string;
+  avatarUrl?: string;
+  email?: string;
+  type?: 'person' | 'bot';
+}
+
+/**
+ * Configuration du client Notion
+ */
+export interface NotionConfig {
+  apiKey?: string;
+  projectsDbId?: string; 
+  checklistsDbId?: string;
+  mockMode?: boolean;
+  debug?: boolean;
+}
+
+/**
+ * Résultat du test de connexion Notion
+ */
 export interface ConnectionTestResult {
   success: boolean;
   user?: string;
   workspaceName?: string;
-  projectsDbName?: string;
+  projectsDbName?: string; 
   checklistsDbName?: string;
   error?: string;
+  details?: any;
 }
-
-// Adding NotionResponse type for use across services
-export interface NotionResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    message: string;
-    code?: string;
-    details?: any;
-  };
-}
-
-// Project response types
-export interface ProjectsResponse extends NotionResponse<Project[]> {}
-export interface ProjectResponse extends NotionResponse<Project> {}
-export interface DeleteResponse extends NotionResponse<boolean> {}

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
-import { notionApi } from '@/services/api';
+import { getProjects } from '@/features/projects';
 import { useLoadingState } from '@/hooks/form';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ export const useProjects = () => {
     const fetchProjects = async () => {
       startLoading();
       try {
-        const data = await notionApi.getProjects();
+        const data = await getProjects();
         setProjects(data);
       } catch (error) {
         console.error('Erreur lors de la récupération des projets:', error);
@@ -32,7 +32,7 @@ export const useProjects = () => {
     };
     
     fetchProjects();
-  }, [startLoading, stopLoading, setErrorMessage]);
+  }, []);
   
   return {
     projects,

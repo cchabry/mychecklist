@@ -9,7 +9,7 @@ export interface Audit {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  progress?: number;
+  progress: number;
   version?: string;
   itemsCount?: number;
 }

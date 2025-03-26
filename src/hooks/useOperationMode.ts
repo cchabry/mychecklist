@@ -1,39 +1,70 @@
 
-import { useState, useEffect } from 'react';
-import { notionService } from '@/services/notion/notionService';
+import { useState } from 'react';
+import { OperationModeType, OperationModeState } from '@/types/operation';
 
 /**
- * Hook pour gérer le mode de fonctionnement (démo ou réel)
+ * Hook pour déterminer le mode d'opération de l'application
  */
 export const useOperationMode = () => {
-  const [isDemoMode, setIsDemoMode] = useState(false);
-  
-  useEffect(() => {
-    // Vérifier le mode actuel
-    const isMockMode = notionService.isMockMode();
-    setIsDemoMode(isMockMode);
-  }, []);
-  
+  const [mode, setMode] = useState<OperationModeType>('demo');
+  const [state, setState] = useState<OperationModeState>({
+    mode: 'demo',
+    timestamp: Date.now(),
+    source: 'system'
+  });
+
+  // Pour l'instant, on est toujours en mode démo
+  const isDemoMode = mode === 'demo';
+  const isRealMode = mode === 'real';
+
+  // Fonctions pour changer le mode
   const enableDemoMode = (reason?: string) => {
-    notionService.setMockMode(true);
-    setIsDemoMode(true);
+    setMode('demo');
+    setState({
+      mode: 'demo',
+      reason,
+      timestamp: Date.now(),
+      source: 'user'
+    });
   };
-  
-  const enableRealMode = () => {
-    notionService.setMockMode(false);
-    setIsDemoMode(false);
+
+  const enableRealMode = (reason?: string) => {
+    setMode('real');
+    setState({
+      mode: 'real',
+      reason,
+      timestamp: Date.now(),
+      source: 'user'
+    });
   };
-  
-  // Pour compatibilité avec les tests existants
+
+  const reset = () => {
+    setMode('demo');
+    setState({
+      mode: 'demo',
+      timestamp: Date.now(),
+      source: 'system'
+    });
+  };
+
+  // Pour compatibilité avec l'ancienne API
+  const setDemoMode = () => enableDemoMode();
+  const setRealMode = () => enableRealMode();
+  const toggleMode = () => (isDemoMode ? enableRealMode() : enableDemoMode());
+
   return {
+    mode,
+    state,
     isDemoMode,
+    isRealMode,
     enableDemoMode,
     enableRealMode,
-    // Propriétés pour la compatibilité avec les tests
-    mode: isDemoMode ? 'demo' : 'real',
-    isRealMode: !isDemoMode,
-    state: {
-      isDemoMode
-    }
+    reset,
+    // Anciennes méthodes pour compatibilité
+    setDemoMode,
+    setRealMode,
+    toggleMode
   };
 };
+
+export default useOperationMode;

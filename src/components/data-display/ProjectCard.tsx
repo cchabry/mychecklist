@@ -1,64 +1,90 @@
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Edit, Trash } from 'lucide-react';
+import { Calendar, FilePlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import { useProjectAudits } from '@/hooks/useProjectAudits';
 import { Project } from '@/types/domain';
+import { AuditCard } from './AuditCard';
 
 interface ProjectCardProps {
   project: Project;
+  className?: string;
 }
 
-export const ProjectCard = ({ project }: ProjectCardProps) => {
+/**
+ * Carte d'affichage d'un projet avec ses audits
+ */
+export const ProjectCard = ({ project, className }: ProjectCardProps) => {
+  const { id, name, createdAt } = project;
+  
+  const { audits, isLoading, error } = useProjectAudits(id);
+  
+  // Formatage de la date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric', 
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+  
   return (
-    <Card className="bg-white/90 hover:shadow-md transition-shadow">
+    <Card className={cn("hover:shadow-md transition-shadow bg-tertiary/30", className)}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl flex items-center justify-between">
-          <span>{project.name}</span>
-          <span className="text-xs bg-blue-100 text-blue-800 py-1 px-2 rounded-full">{project.progress}%</span>
-        </CardTitle>
-        {project.url && (
-          <CardDescription className="flex items-center gap-1 truncate">
-            <ExternalLink size={14} />
-            <a href={project.url} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">
-              {project.url}
-            </a>
-          </CardDescription>
-        )}
+        <div className="flex justify-between items-start">
+          <h3 className="text-lg font-bold">
+            <Link to={`/projects/${id}`} className="hover:text-primary transition-colors">
+              {name}
+            </Link>
+          </h3>
+        </div>
       </CardHeader>
+      
       <CardContent>
-        <div className="mb-4">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full"
-              style={{ width: `${project.progress}%` }}
-            ></div>
+        {isLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-24 bg-gray-200 rounded"></div>
+            <div className="h-24 bg-gray-200 rounded"></div>
           </div>
-        </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500 bg-red-50 rounded border border-red-200">
+            Impossible de charger les audits
+          </div>
+        ) : audits.length > 0 ? (
+          <div className="space-y-3 mt-3">
+            {audits.map(audit => (
+              <AuditCard key={audit.id} audit={audit} projectId={id} />
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 text-center text-muted-foreground bg-white/60 rounded border border-gray-100">
+            Aucun audit pour ce projet
+          </div>
+        )}
         
-        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-          <div className="flex flex-col">
-            <span className="text-muted-foreground">Créé le</span>
-            <span>{new Date(project.createdAt).toLocaleDateString()}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-muted-foreground">Mis à jour</span>
-            <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-between gap-2 pt-0">
-        <Button variant="outline" size="sm" asChild className="flex-1">
-          <Link to={`/projects/${project.id}`}>
-            <Edit size={14} className="mr-1" />
-            Détails
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-3"
+          asChild
+        >
+          <Link to={`/projects/${id}/audits/new`}>
+            <FilePlus size={16} className="mr-2" />
+            Nouvel audit
           </Link>
         </Button>
-        <Button variant="outline" size="sm" className="flex-1">
-          <Trash size={14} className="mr-1" />
-          Supprimer
-        </Button>
+      </CardContent>
+      
+      <CardFooter className="pt-2 text-xs text-muted-foreground border-t">
+        <span className="flex items-center gap-1">
+          <Calendar size={12} />
+          Créé le {formatDate(createdAt)}
+        </span>
       </CardFooter>
     </Card>
   );
 };
+
+export default ProjectCard;

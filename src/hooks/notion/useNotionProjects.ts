@@ -108,12 +108,12 @@ export function useNotionProjects() {
   /**
    * Met à jour un projet
    */
-  const updateProject = useCallback(async (project: Project) => {
+  const updateProject = useCallback(async (id: string, data: { name?: string; url?: string }) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await notionService.updateProject(project);
+      const response = await notionService.updateProject(id, data);
       
       if (response.success && response.data) {
         toast.success('Projet mis à jour', {
@@ -121,7 +121,7 @@ export function useNotionProjects() {
         });
         
         // Mettre à jour le projet courant si c'est celui qui est modifié
-        if (currentProject && currentProject.id === project.id) {
+        if (currentProject && currentProject.id === id) {
           setCurrentProject(response.data);
         }
         
@@ -130,13 +130,13 @@ export function useNotionProjects() {
         
         return response.data;
       } else {
-        throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${project.id}`);
+        throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
       toast.error('Erreur de mise à jour', {
-        description: `Impossible de mettre à jour le projet #${project.id}`
+        description: `Impossible de mettre à jour le projet #${id}`
       });
       return null;
     } finally {

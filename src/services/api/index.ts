@@ -1,18 +1,10 @@
 
 /**
- * Point d'entrée pour tous les services API
+ * Point d'entrée principal pour les services API
  */
 
-import { notionApiImpl } from '../notion/notionApiImpl';
+// Exporter l'API Notion
+export { notionApi } from '../notion/notionApiImpl';
 
-/**
- * API Notion
- */
-export const notionApi = notionApiImpl;
-
-/**
- * Exporter tous les services API
- */
-export default {
-  notionApi
-};
+// Exporter les types d'API
+export * from '@/types/api';

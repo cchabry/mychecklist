@@ -11,18 +11,13 @@ export * from './checklist';
 // Importer les énumérations depuis le fichier central
 import { 
   ImportanceLevel,
-  ComplianceLevel,
-  PriorityLevel,
-  StatusType
+  ComplianceLevel as ComplianceStatus,
+  PriorityLevel as ActionPriority,
+  StatusType as ActionStatus
 } from '../enums';
 
 // Re-exporter avec des alias pour maintenir la compatibilité
-export { 
-  ImportanceLevel, 
-  ComplianceLevel, 
-  PriorityLevel as ActionPriority, 
-  StatusType as ActionStatus 
-};
+export { ImportanceLevel, ComplianceStatus, ActionPriority, ActionStatus };
 
 /**
  * Exigence de projet
@@ -55,7 +50,7 @@ export interface Evaluation {
   auditId: string;
   pageId: string;
   exigenceId: string;
-  score: ComplianceLevel;
+  score: ComplianceStatus;
   comment?: string;
   attachments?: string[];
   createdAt: string;
@@ -68,14 +63,12 @@ export interface Evaluation {
 export interface CorrectiveAction {
   id: string;
   evaluationId: string;
-  targetScore: ComplianceLevel;
-  priority: PriorityLevel;
+  targetScore: ComplianceStatus;
+  priority: ActionPriority;
   dueDate: string;
   responsible: string;
   comment?: string;
-  status: StatusType;
-  createdAt: string;
-  updatedAt: string;
+  status: ActionStatus;
 }
 
 /**
@@ -87,6 +80,6 @@ export interface ActionProgress {
   date: string;
   responsible: string;
   comment?: string;
-  score: ComplianceLevel;
-  status: StatusType;
+  score: ComplianceStatus;
+  status: ActionStatus;
 }

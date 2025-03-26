@@ -1,39 +1,47 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
-import { notionApi } from '@/services/api';
+import { getProjectById } from '@/features/projects';
+import { useLoadingState } from '@/hooks/form';
+import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer un projet par son ID
  */
-export function useProjectById(projectId: string) {
+export const useProjectById = (projectId: string) => {
   const [project, setProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { isLoading, error, startLoading, stopLoading, setErrorMessage } = useLoadingState();
   
   useEffect(() => {
-    async function fetchProject() {
-      if (!projectId) {
-        setIsLoading(false);
-        return;
-      }
+    const fetchProject = async () => {
+      if (!projectId) return;
       
-      setIsLoading(true);
-      setError(null);
-      
+      startLoading();
       try {
-        const data = await notionApi.getProjectById(projectId);
-        setProject(data);
-      } catch (err) {
-        console.error('Erreur lors du chargement du projet:', err);
-        setError(err instanceof Error ? err : new Error('Erreur inconnue'));
+        const data = await getProjectById(projectId);
+        setProject(data || null);
+        if (!data) {
+          toast.error('Projet non trouvé', {
+            description: `Le projet avec l'ID ${projectId} n'existe pas.`
+          });
+        }
+      } catch (error) {
+        console.error(`Erreur lors de la récupération du projet #${projectId}:`, error);
+        setErrorMessage(`Impossible de récupérer le projet #${projectId}`);
+        toast.error('Erreur de chargement', {
+          description: `Impossible de récupérer le projet #${projectId}`
+        });
       } finally {
-        setIsLoading(false);
+        stopLoading();
       }
-    }
+    };
     
     fetchProject();
   }, [projectId]);
   
-  return { project, isLoading, error };
-}
+  return {
+    project,
+    isLoading,
+    error
+  };
+};

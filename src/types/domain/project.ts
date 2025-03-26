@@ -2,8 +2,6 @@
 /**
  * Type représentant un projet
  */
-export type ProjectStatus = 'active' | 'completed' | 'pending' | 'archived';
-
 export interface Project {
   id: string;
   name: string;
@@ -11,9 +9,7 @@ export interface Project {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  status?: ProjectStatus;
+  status?: 'active' | 'completed' | 'pending' | 'archived';
   lastAuditDate?: string;
   progress?: number;
-  pagesCount?: number;
-  itemsCount?: number;
 }
