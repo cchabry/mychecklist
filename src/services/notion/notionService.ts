@@ -1,4 +1,3 @@
-
 /**
  * Service Notion
  * Ce service expose les méthodes de haut niveau pour interagir avec l'API Notion
@@ -77,9 +76,33 @@ class NotionService {
       return {
         success: true,
         data: [
-          { id: '1', name: 'Projet 1', url: 'https://example.com/projet1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: '2', name: 'Projet 2', url: 'https://example.com/projet2', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: '3', name: 'Projet 3', url: 'https://example.com/projet3', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+          { 
+            id: '1', 
+            name: 'Projet 1', 
+            url: 'https://example.com/projet1', 
+            description: 'Description du projet 1',
+            createdAt: new Date().toISOString(), 
+            updatedAt: new Date().toISOString(),
+            progress: 75 
+          },
+          { 
+            id: '2', 
+            name: 'Projet 2', 
+            url: 'https://example.com/projet2', 
+            description: 'Description du projet 2',
+            createdAt: new Date().toISOString(), 
+            updatedAt: new Date().toISOString(),
+            progress: 30
+          },
+          { 
+            id: '3', 
+            name: 'Projet 3', 
+            url: 'https://example.com/projet3', 
+            description: 'Description du projet 3',
+            createdAt: new Date().toISOString(), 
+            updatedAt: new Date().toISOString(),
+            progress: 0
+          }
         ]
       };
     }
@@ -99,15 +122,17 @@ class NotionService {
         id: page.id,
         name: this.extractTextProperty(properties.Name),
         url: this.extractTextProperty(properties.URL),
+        description: this.extractTextProperty(properties.Description),
         createdAt: page.created_time,
-        updatedAt: page.last_edited_time
+        updatedAt: page.last_edited_time,
+        progress: properties.Progress?.number || 0
       };
     });
     
     return {
       success: true,
       data: projects
-    };
+    } as NotionResponse<Project[]>;
   }
   
   /**
@@ -122,8 +147,10 @@ class NotionService {
           id,
           name: `Projet ${id}`,
           url: `https://example.com/projet${id}`,
+          description: `Description du projet ${id}`,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          progress: 50
         }
       };
     }
@@ -141,8 +168,10 @@ class NotionService {
       id: page.id,
       name: this.extractTextProperty(properties.Name),
       url: this.extractTextProperty(properties.URL),
+      description: this.extractTextProperty(properties.Description),
       createdAt: page.created_time,
-      updatedAt: page.last_edited_time
+      updatedAt: page.last_edited_time,
+      progress: properties.Progress?.number || 0
     };
     
     return {
@@ -170,7 +199,8 @@ class NotionService {
           url: data.url || '',
           description: data.description || '',
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          progress: 0
         }
       };
     }
@@ -231,7 +261,8 @@ class NotionService {
       url: data.url || '',
       description: data.description || '',
       createdAt: newPage.created_time,
-      updatedAt: newPage.last_edited_time
+      updatedAt: newPage.last_edited_time,
+      progress: 0
     };
     
     return {
@@ -254,7 +285,8 @@ class NotionService {
           url: data.url || `https://example.com/projet${id}`,
           description: data.description || '',
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          progress: 0
         }
       };
     }
@@ -317,7 +349,8 @@ class NotionService {
       url: this.extractTextProperty(updatedProperties.URL),
       description: this.extractTextProperty(updatedProperties.Description),
       createdAt: updatedPage.created_time,
-      updatedAt: updatedPage.last_edited_time
+      updatedAt: updatedPage.last_edited_time,
+      progress: updatedProperties.Progress?.number || 0
     };
     
     return {

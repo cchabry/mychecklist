@@ -33,7 +33,8 @@ export const useProjectAudits = (projectId: string) => {
             name: 'Audit initial',
             createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            progress: 75
+            progress: 75,
+            itemsCount: 20
           },
           {
             id: `audit-${projectId}-2`,
@@ -41,7 +42,8 @@ export const useProjectAudits = (projectId: string) => {
             name: 'Audit de conformité',
             createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date().toISOString(),
-            progress: 30
+            progress: 30,
+            itemsCount: 15
           }
         ];
         

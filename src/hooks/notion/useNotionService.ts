@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionService } from '@/services/notion/notionService';
-import { ConnectionStatus, ConnectionTestResult, NotionConfig } from '@/services/notion/types';
+import { ConnectionStatus, ConnectionTestResult } from '@/services/notion/types';
 import { toast } from 'sonner';
 
 /**
