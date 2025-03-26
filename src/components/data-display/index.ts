@@ -3,4 +3,6 @@
  * Composants d'affichage de données
  */
 
-// Les composants d'affichage de données seront ajoutés ici à mesure qu'ils sont créés
+// Export des composants d'affichage de données
+export { ProjectCard } from './ProjectCard';
+
