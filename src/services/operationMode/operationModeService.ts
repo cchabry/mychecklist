@@ -2,7 +2,21 @@
 import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 
 /**
+ * Valeur par défaut du mode opérationnel
+ * En environnement de production: 'real'
+ * En environnement de développement: 'demo'
+ */
+const DEFAULT_MODE: OperationModeType = 
+  process.env.NODE_ENV === 'production' ? 'real' : 'demo';
+
+/**
  * Service de gestion du mode opérationnel (réel vs démo)
+ * 
+ * Ce service permet de contrôler si l'application utilise:
+ * - L'API Notion réelle (mode 'real')
+ * - Des données simulées (mode 'demo')
+ * 
+ * Il maintient l'état global du mode et notifie les abonnés des changements.
  */
 class OperationModeServiceImpl implements OperationModeService {
   private state: OperationModeState;
@@ -14,10 +28,12 @@ class OperationModeServiceImpl implements OperationModeService {
     const savedState = this.getSavedState();
     
     this.state = savedState || {
-      mode: 'real',
+      mode: DEFAULT_MODE,
       timestamp: Date.now(),
       source: 'system'
     };
+    
+    console.log(`[OperationMode] Initialisation en mode: ${this.state.mode}`);
   }
   
   private getSavedState(): OperationModeState | null {
@@ -44,10 +60,31 @@ class OperationModeServiceImpl implements OperationModeService {
     this.state = { ...this.state, ...newState, timestamp: Date.now() };
     this.saveState();
     this.notifyListeners();
+    
+    // Synchroniser avec Notion client si nécessaire
+    this.syncWithNotionClient();
   }
   
   private notifyListeners(): void {
     this.listeners.forEach(listener => listener(this.state));
+  }
+  
+  /**
+   * Synchronise le mode opérationnel avec le client Notion
+   * Cette méthode est utilisée pour s'assurer que le client Notion
+   * utilise le même mode que le service de mode opérationnel
+   */
+  private syncWithNotionClient(): void {
+    // Import dynamique pour éviter les dépendances cycliques
+    import('@/services/notion/notionClient').then(({ notionClient }) => {
+      if (this.isDemoMode()) {
+        notionClient.setMockMode(true);
+      } else {
+        notionClient.setMockMode(false);
+      }
+    }).catch(err => {
+      console.error('Erreur lors de la synchronisation avec le client Notion:', err);
+    });
   }
   
   // Méthodes publiques
@@ -62,6 +99,7 @@ class OperationModeServiceImpl implements OperationModeService {
   enableRealMode(reason?: string): void {
     if (this.state.mode === 'real') return;
     
+    console.log(`[OperationMode] Activation du mode réel${reason ? ` (${reason})` : ''}`);
     this.updateState({
       mode: 'real',
       reason,
@@ -72,6 +110,7 @@ class OperationModeServiceImpl implements OperationModeService {
   enableDemoMode(reason?: string): void {
     if (this.state.mode === 'demo') return;
     
+    console.log(`[OperationMode] Activation du mode démo${reason ? ` (${reason})` : ''}`);
     this.updateState({
       mode: 'demo',
       reason,
@@ -80,8 +119,9 @@ class OperationModeServiceImpl implements OperationModeService {
   }
   
   reset(): void {
+    console.log(`[OperationMode] Réinitialisation au mode par défaut: ${DEFAULT_MODE}`);
     this.updateState({
-      mode: 'real',
+      mode: DEFAULT_MODE,
       reason: 'Réinitialisation du mode',
       source: 'system'
     });
