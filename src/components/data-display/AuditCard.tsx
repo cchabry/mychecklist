@@ -92,12 +92,9 @@ export const AuditCard = ({ audit, projectId, className }: AuditCardProps) => {
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs">Progression</span>
-            <span className="text-xs">{evaluatedCount} / {complianceStats.total}</span>
+            <span className="text-xs">{evaluatedCount} / {complianceStats.total} exigences évaluées</span>
           </div>
           <Progress value={progress} className="h-2" />
-          <p className="text-xs mt-1 text-muted-foreground">
-            {evaluatedCount} / {complianceStats.total} exigences évaluées
-          </p>
         </div>
         
         <div className="grid grid-cols-3 gap-2">
