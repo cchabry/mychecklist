@@ -1,75 +1,80 @@
 
 /**
- * Service de cache pour stocker temporairement des données
+ * Service de cache pour l'application
  */
 
-interface CacheItem<T> {
-  value: T;
-  expiry: number;
+export interface CacheOptions {
+  ttl?: number;
+  prefix?: string;
 }
 
+export interface CacheEntry<T> {
+  value: T;
+  expires: number;
+}
+
+/**
+ * Service de gestion du cache de l'application
+ */
 class CacheService {
-  private cache: Map<string, CacheItem<any>> = new Map();
-  
-  /**
-   * Stocke une valeur dans le cache avec une durée de vie
-   */
-  set<T>(key: string, value: T, ttl: number = 5 * 60 * 1000): void {
-    const expiry = Date.now() + ttl;
-    this.cache.set(key, { value, expiry });
-  }
-  
+  private storage: Map<string, CacheEntry<any>> = new Map();
+  private defaultTTL: number = 5 * 60 * 1000; // 5 minutes par défaut
+
   /**
    * Récupère une valeur du cache
    */
-  get<T>(key: string): T | null {
-    const item = this.cache.get(key);
-    
-    // Si l'item n'existe pas dans le cache
-    if (!item) {
-      return null;
+  get<T>(key: string): T | undefined {
+    const entry = this.storage.get(key);
+    if (!entry) return undefined;
+
+    // Vérifier si l'entrée est expirée
+    if (entry.expires < Date.now()) {
+      this.storage.delete(key);
+      return undefined;
     }
-    
-    // Si l'item a expiré
-    if (Date.now() > item.expiry) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return item.value as T;
+
+    return entry.value;
   }
-  
+
   /**
-   * Supprime une valeur du cache
+   * Enregistre une valeur dans le cache
    */
-  remove(key: string): void {
-    this.cache.delete(key);
+  set<T>(key: string, value: T, options?: CacheOptions): void {
+    const ttl = options?.ttl || this.defaultTTL;
+    const expires = Date.now() + ttl;
+
+    this.storage.set(key, {
+      value,
+      expires
+    });
   }
-  
+
   /**
-   * Vide complètement le cache
+   * Supprime une entrée du cache
+   */
+  delete(key: string): boolean {
+    return this.storage.delete(key);
+  }
+
+  /**
+   * Vide le cache
    */
   clear(): void {
-    this.cache.clear();
+    this.storage.clear();
   }
-  
+
   /**
-   * Vérifie si une valeur existe dans le cache et n'a pas expiré
+   * Récupère une valeur du cache ou définit celle-ci si elle n'existe pas
    */
-  has(key: string): boolean {
-    const item = this.cache.get(key);
-    
-    if (!item) {
-      return false;
-    }
-    
-    // Si l'item a expiré
-    if (Date.now() > item.expiry) {
-      this.cache.delete(key);
-      return false;
-    }
-    
-    return true;
+  getOrSet<T>(key: string, getValue: () => T | Promise<T>, options?: CacheOptions): Promise<T> {
+    const cached = this.get<T>(key);
+    if (cached !== undefined) return Promise.resolve(cached);
+
+    return Promise.resolve(getValue())
+      .then(value => {
+        this.set(key, value, options);
+        return value;
+      });
   }
 }
 

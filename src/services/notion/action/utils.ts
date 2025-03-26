@@ -3,32 +3,38 @@
  * Utilitaires pour les actions correctives
  */
 
-import { CorrectiveAction, ActionProgress, ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
+import { CorrectiveAction, ActionProgress, ComplianceLevel, ActionPriority, ActionStatus } from '@/types/domain';
 
 /**
  * Génère des actions correctives fictives pour le mode démo
  */
 export function generateMockActions(evaluationId: string): CorrectiveAction[] {
+  const now = new Date().toISOString();
+  
   return [
     {
       id: 'action-1',
       evaluationId,
-      targetScore: ComplianceStatus.Compliant,
+      targetScore: ComplianceLevel.Compliant,
       priority: ActionPriority.High,
       dueDate: getFutureDateString(7), // dans 1 semaine
       responsible: 'John Doe',
       comment: "Ajouter des attributs alt à toutes les images",
-      status: ActionStatus.InProgress
+      status: ActionStatus.InProgress,
+      createdAt: now,
+      updatedAt: now
     },
     {
       id: 'action-2',
       evaluationId,
-      targetScore: ComplianceStatus.Compliant,
+      targetScore: ComplianceLevel.Compliant,
       priority: ActionPriority.Medium,
       dueDate: getFutureDateString(14), // dans 2 semaines
       responsible: 'Jane Smith',
       comment: "Optimiser les images pour le web",
-      status: ActionStatus.Todo
+      status: ActionStatus.Todo,
+      createdAt: now,
+      updatedAt: now
     }
   ];
 }
@@ -50,7 +56,7 @@ export function generateMockActionProgress(actionId: string): ActionProgress[] {
       date: lastWeek.toISOString(),
       responsible: 'John Doe',
       comment: "Début des corrections",
-      score: ComplianceStatus.PartiallyCompliant,
+      score: ComplianceLevel.PartiallyCompliant,
       status: ActionStatus.InProgress
     },
     {
@@ -59,7 +65,7 @@ export function generateMockActionProgress(actionId: string): ActionProgress[] {
       date: yesterday.toISOString(),
       responsible: 'John Doe',
       comment: "50% des images corrigées",
-      score: ComplianceStatus.PartiallyCompliant,
+      score: ComplianceLevel.PartiallyCompliant,
       status: ActionStatus.InProgress
     }
   ];

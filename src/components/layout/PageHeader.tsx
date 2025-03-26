@@ -3,14 +3,6 @@ import { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-interface ActionProps {
-  label: string;
-  href?: string;
-  onClick?: () => void;
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-  icon?: ReactNode;
-}
-
 interface PageHeaderProps {
   title: string;
   description?: string;

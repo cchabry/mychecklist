@@ -1,73 +1,81 @@
 
 import { useState, useEffect } from 'react';
+import { notionService } from '@/services/notion/notionService';
+import { useLoadingState } from '@/hooks/form';
 import { Audit } from '@/types/domain';
-import { useOperationMode } from '@/hooks/useOperationMode';
-import { toast } from 'sonner';
 
 /**
- * Hook pour récupérer les audits liés à un projet
+ * Hook pour récupérer les audits d'un projet
  */
-export const useProjectAudits = (projectId: string) => {
+export function useProjectAudits(projectId?: string) {
   const [audits, setAudits] = useState<Audit[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { isDemoMode } = useOperationMode ? useOperationMode() : { isDemoMode: true };
+  const { isLoading, error, startLoading, stopLoading, setErrorMessage } = useLoadingState();
   
   useEffect(() => {
-    if (!projectId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!projectId) return;
     
     const fetchAudits = async () => {
-      setIsLoading(true);
-      setError(null);
+      startLoading();
       
       try {
-        // On simulera des données d'audit pour le moment
-        // À remplacer par un appel API réel dans les prochains sprints
-        const mockAudits: Audit[] = [
-          {
-            id: `audit-${projectId}-1`,
-            projectId: projectId,
-            name: 'Audit initial',
-            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            progress: 75,
-            itemsCount: 15
-          },
-          {
-            id: `audit-${projectId}-2`,
-            projectId: projectId,
-            name: 'Audit de conformité',
-            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            updatedAt: new Date().toISOString(),
-            progress: 30,
-            itemsCount: 15
-          }
-        ];
+        const response = await notionService.getAudits(projectId);
         
-        // On attendra un peu pour simuler le chargement
-        setTimeout(() => {
-          setAudits(mockAudits);
-          setIsLoading(false);
-        }, 800);
-      } catch (err) {
-        console.error(`Erreur lors de la récupération des audits pour le projet ${projectId}:`, err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        
-        // Ne pas afficher de toast en mode démo
-        if (!isDemoMode) {
-          toast.error('Erreur lors du chargement des audits', {
-            description: 'Impossible de récupérer les audits'
-          });
+        if (response.success && response.data) {
+          // Trions les audits par date de mise à jour (du plus récent au plus ancien)
+          const sortedAudits = [...response.data].sort(
+            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          );
+          
+          setAudits(sortedAudits);
+        } else {
+          setErrorMessage(response.error?.message || 'Erreur lors du chargement des audits');
         }
-        setIsLoading(false);
+      } catch (error) {
+        console.error('Erreur lors du chargement des audits:', error);
+        setErrorMessage('Erreur lors du chargement des audits');
+      } finally {
+        stopLoading();
       }
     };
     
     fetchAudits();
-  }, [projectId, isDemoMode]);
+  }, [projectId, startLoading, stopLoading, setErrorMessage]);
   
-  return { audits, isLoading, error };
-};
+  // Fonction pour créer un nouvel audit
+  const createAudit = async (name: string, description?: string) => {
+    if (!projectId) return null;
+    
+    startLoading();
+    
+    try {
+      const response = await notionService.createAudit({
+        projectId,
+        name,
+        description,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
+      if (response.success && response.data) {
+        setAudits(prev => [response.data, ...prev]);
+        return response.data;
+      } else {
+        setErrorMessage(response.error?.message || 'Erreur lors de la création de l\'audit');
+        return null;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'audit:', error);
+      setErrorMessage('Erreur lors de la création de l\'audit');
+      return null;
+    } finally {
+      stopLoading();
+    }
+  };
+  
+  return {
+    audits,
+    isLoading,
+    error,
+    createAudit
+  };
+}

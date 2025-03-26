@@ -12,3 +12,6 @@ export interface ApiResponse<T = any> {
     details?: any;
   };
 }
+
+// Alias pour compatibilité
+export type NotionResponse<T = any> = ApiResponse<T>;

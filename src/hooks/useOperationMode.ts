@@ -14,7 +14,7 @@ export const useOperationMode = () => {
     setIsDemoMode(isMockMode);
   }, []);
   
-  const enableDemoMode = () => {
+  const enableDemoMode = (reason?: string) => {
     notionService.setMockMode(true);
     setIsDemoMode(true);
   };
@@ -24,9 +24,16 @@ export const useOperationMode = () => {
     setIsDemoMode(false);
   };
   
+  // Pour compatibilité avec les tests existants
   return {
     isDemoMode,
     enableDemoMode,
-    enableRealMode
+    enableRealMode,
+    // Propriétés pour la compatibilité avec les tests
+    mode: isDemoMode ? 'demo' : 'real',
+    isRealMode: !isDemoMode,
+    state: {
+      isDemoMode
+    }
   };
 };

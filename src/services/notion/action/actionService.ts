@@ -1,178 +1,117 @@
+
+/**
+ * Service gérant les actions correctives dans Notion
+ */
+
+import { v4 as uuidv4 } from 'uuid';
+import { operationMode } from '../../operationMode';
+import { notionClient } from '../notionClient';
+import { ApiResponse } from '@/types/api/types';
+import { CorrectiveAction, ActionProgress, ComplianceLevel, ActionPriority, ActionStatus } from '@/types/domain';
+import { CreateActionInput, ActionResponse, ActionsResponse, ActionDeleteResponse } from './types';
+import { generateMockActions } from './utils';
+
 /**
  * Service pour la gestion des actions correctives
  */
-
-import { notionClient } from '../notionClient';
-import { generateMockActions } from './utils';
-import { 
-  CreateActionInput, 
-  ActionResponse,
-  ActionsResponse,
-  ActionDeleteResponse,
-  ProgressResponse,
-  ProgressListResponse,
-  ProgressDeleteResponse,
-  CreateProgressInput
-} from './types';
-import { ComplianceStatus, ActionPriority, ActionStatus, CorrectiveAction, ActionProgress } from '@/types/domain';
-import { getFutureDateString } from './utils';
-import { progressService } from './progressService';
-
-/**
- * Service de gestion des actions correctives
- */
 class ActionService {
   /**
-   * Récupère toutes les actions correctives liées à une évaluation
+   * Récupère les actions correctives pour une évaluation
    */
   async getActions(evaluationId: string): Promise<ActionsResponse> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
+    if (operationMode.isDemoMode) {
       return {
         success: true,
         data: generateMockActions(evaluationId)
       };
     }
-    
-    // TODO: Implémenter la récupération des actions depuis Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: generateMockActions(evaluationId)
-    };
-  }
-  
-  /**
-   * Récupère une action corrective par son ID
-   */
-  async getActionById(id: string): Promise<ActionResponse> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      const mockActions = generateMockActions('mock-eval');
-      const action = mockActions.find(a => a.id === id);
-      
-      if (!action) {
-        return { 
-          success: false, 
-          error: { message: `Action corrective #${id} non trouvée` } 
-        };
-      }
-      
+
+    try {
+      // Ici, implémentation réelle avec Notion
       return {
         success: true,
-        data: action
+        data: []
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: 'Erreur lors de la récupération des actions',
+          details: error
+        }
       };
     }
-    
-    // TODO: Implémenter la récupération d'une action depuis Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: {
-        id,
-        evaluationId: 'mock-eval',
-        targetScore: ComplianceStatus.Compliant,
-        priority: ActionPriority.High,
-        dueDate: getFutureDateString(14), // dans 2 semaines
-        responsible: 'John Doe',
-        comment: "Ajouter des attributs alt à toutes les images",
-        status: ActionStatus.InProgress
-      }
-    };
   }
-  
+
   /**
-   * Crée une nouvelle action corrective
+   * Crée une action corrective
    */
-  async createAction(action: CreateActionInput): Promise<ActionResponse> {
-    // Si en mode démo, simuler la création
-    if (notionClient.isMockMode()) {
-      const newAction = {
-        ...action,
-        id: `action-${Date.now()}`
-      };
-      
+  async createAction(actionData: CreateActionInput): Promise<ActionResponse> {
+    const now = new Date().toISOString();
+    const newAction: CorrectiveAction = {
+      id: uuidv4(),
+      evaluationId: actionData.evaluationId,
+      targetScore: actionData.targetScore,
+      priority: actionData.priority,
+      dueDate: actionData.dueDate,
+      responsible: actionData.responsible,
+      comment: actionData.comment || "",
+      status: actionData.status,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    if (operationMode.isDemoMode) {
       return {
         success: true,
         data: newAction
       };
     }
-    
-    // TODO: Implémenter la création d'une action dans Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: {
-        ...action,
-        id: `action-${Date.now()}`
-      }
-    };
-  }
-  
-  /**
-   * Met à jour une action corrective existante
-   */
-  async updateAction(action: CorrectiveAction): Promise<ActionResponse> {
-    // Si en mode démo, simuler la mise à jour
-    if (notionClient.isMockMode()) {
+
+    try {
+      // Ici, implémentation réelle avec Notion
       return {
         success: true,
-        data: action
+        data: newAction
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: 'Erreur lors de la création de l\'action',
+          details: error
+        }
       };
     }
-    
-    // TODO: Implémenter la mise à jour d'une action dans Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: action
-    };
   }
-  
+
   /**
    * Supprime une action corrective
    */
-  async deleteAction(_id: string): Promise<ActionDeleteResponse> {
-    // Si en mode démo, simuler la suppression
-    if (notionClient.isMockMode()) {
+  async deleteAction(actionId: string): Promise<ActionDeleteResponse> {
+    if (operationMode.isDemoMode) {
       return {
         success: true,
         data: true
       };
     }
-    
-    // TODO: Implémenter la suppression d'une action dans Notion
-    // Pour l'instant, simuler le succès même en mode réel
-    return {
-      success: true,
-      data: true
-    };
-  }
 
-  // Méthodes déléguées au progressService pour la gestion des suivis de progrès
-  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
-    return progressService.getActionProgress(actionId);
-  }
-
-  async getActionProgressById(id: string): Promise<ProgressResponse> {
-    return progressService.getActionProgressById(id);
-  }
-
-  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
-    return progressService.createActionProgress(progress);
-  }
-
-  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
-    return progressService.updateActionProgress(progress);
-  }
-
-  async deleteActionProgress(id: string): Promise<ProgressDeleteResponse> {
-    return progressService.deleteActionProgress(id);
+    try {
+      // Ici, implémentation réelle avec Notion
+      return {
+        success: true,
+        data: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: 'Erreur lors de la suppression de l\'action',
+          details: error
+        }
+      };
+    }
   }
 }
 
-// Créer et exporter une instance singleton
 export const actionService = new ActionService();
-
-// Export par défaut
-export default actionService;

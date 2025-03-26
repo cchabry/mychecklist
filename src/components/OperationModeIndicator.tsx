@@ -1,27 +1,19 @@
 
-import { AlertTriangle } from 'lucide-react';
 import { useOperationMode } from '@/hooks/useOperationMode';
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
 
 /**
- * Composant qui affiche un indicateur du mode opérationnel (démo)
- * Visible uniquement en mode démo
+ * Indicateur du mode d'opération courant (démo ou réel)
  */
 export function OperationModeIndicator() {
-  const { isDemoMode, state } = useOperationMode();
-  
-  if (!isDemoMode) return null;
+  const { isDemoMode } = useOperationMode();
   
   return (
     <Badge 
-      variant="secondary" 
-      className="flex items-center gap-1 bg-yellow-500 hover:bg-yellow-600"
+      variant={isDemoMode ? "destructive" : "outline"}
+      className="ml-auto"
     >
-      <AlertTriangle className="h-3 w-3" />
-      <span>Mode démonstration</span>
-      {state.reason && (
-        <span className="text-xs opacity-90">({state.reason})</span>
-      )}
+      {isDemoMode ? 'Mode Démo' : 'Mode Réel'}
     </Badge>
   );
 }

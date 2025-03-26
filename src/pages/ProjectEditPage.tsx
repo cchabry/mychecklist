@@ -1,194 +1,154 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { PageHeader } from '@/components/layout';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { notionService } from '@/services/notion/notionService';
+import { useLoadingState } from '@/hooks/form';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Input } from '@/components/ui';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { notionApi } from '@/services/api';
-import { useProjectById } from '@/hooks/useProjectById';
 
-/**
- * Page d'édition d'un projet existant
- */
-const ProjectEditPage = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+export default function ProjectEditPage() {
+  const { projectId } = useParams();
   const navigate = useNavigate();
+  const { isLoading, error, startLoading, stopLoading, setErrorMessage } = useLoadingState();
   
-  const { project, isLoading, error } = useProjectById(projectId || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [description, setDescription] = useState('');
   
-  const [formData, setFormData] = useState({
-    name: '',
-    url: '',
-    description: ''
-  });
-
   useEffect(() => {
-    if (project) {
-      setFormData({
-        name: project.name,
-        url: project.url,
-        description: project.description || ''
+    if (!projectId) return;
+    
+    startLoading();
+    notionService.getProjectById(projectId)
+      .then(response => {
+        if (response.success && response.data) {
+          setName(response.data.name);
+          setUrl(response.data.url || '');
+          setDescription(response.data.description || '');
+        } else {
+          setErrorMessage(response.error?.message || 'Erreur lors du chargement du projet');
+        }
+      })
+      .catch(err => {
+        setErrorMessage('Erreur lors du chargement du projet');
+        console.error(err);
+      })
+      .finally(() => {
+        stopLoading();
       });
-    }
-  }, [project]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
+  }, [projectId, startLoading, stopLoading, setErrorMessage]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectId) {
-      toast.error('ID de projet manquant');
-      return;
-    }
+    if (!projectId) return;
     
-    if (!formData.name || !formData.url) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-    
-    setIsSubmitting(true);
+    startLoading();
     
     try {
-      // Create a complete project object from the current project and form data
-      if (project) {
-        const updatedProject = {
-          ...project,
-          name: formData.name,
-          url: formData.url,
-          description: formData.description,
-          updatedAt: new Date().toISOString()
-        };
-        
-        await notionApi.updateProject(updatedProject);
-        
+      const response = await notionService.updateProject({
+        id: projectId,
+        name,
+        url: url || '',
+        description,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
+      if (response.success) {
         toast.success('Projet mis à jour avec succès');
         navigate(`/projects/${projectId}`);
+      } else {
+        setErrorMessage(response.error?.message || 'Erreur lors de la mise à jour du projet');
       }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du projet:', error);
-      toast.error('Erreur lors de la mise à jour du projet');
+    } catch (err) {
+      setErrorMessage('Erreur lors de la mise à jour du projet');
+      console.error(err);
     } finally {
-      setIsSubmitting(false);
+      stopLoading();
     }
   };
-
-  if (isLoading) {
+  
+  if (isLoading && !name) {
     return (
-      <div className="p-6">
+      <div className="space-y-4">
         <PageHeader 
-          title="Modifier le projet" 
-          description="Modifier les informations du projet"
+          title="Chargement du projet..." 
         />
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="pt-6 space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </CardContent>
-          <CardFooter className="border-t p-6">
-            <Skeleton className="h-10 w-24 ml-auto" />
-          </CardFooter>
-        </Card>
+        <Skeleton className="h-10 mb-4" />
+        <Skeleton className="h-10 mb-4" />
+        <Skeleton className="h-20 mb-4" />
+        <Skeleton className="h-10 w-40" />
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <PageHeader 
-          title="Erreur" 
-          description="Une erreur est survenue"
-        />
-        <Card className="max-w-2xl mx-auto p-6 text-center">
-          <p className="text-red-500 mb-4">{error.toString()}</p>
-          <Button onClick={() => navigate('/projects')}>
-            Retour aux projets
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
+  
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <PageHeader 
         title="Modifier le projet" 
-        description="Modifier les informations du projet"
+        description="Mettez à jour les informations du projet"
       />
       
-      <form onSubmit={handleSubmit}>
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom du projet *</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Nom du projet"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="url">URL du site *</Label>
-              <Input
-                id="url"
-                name="url"
-                type="url"
-                value={formData.url}
-                onChange={handleChange}
-                placeholder="https://example.com"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Description du projet (optionnelle)"
-                rows={4}
-              />
-            </div>
-          </CardContent>
-          
-          <CardFooter className="flex justify-between border-t p-6">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => navigate(`/projects/${projectId}`)}
-              disabled={isSubmitting}
-            >
-              Annuler
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="min-w-24"
-            >
-              {isSubmitting ? 'Mise à jour...' : 'Enregistrer'}
-            </Button>
-          </CardFooter>
-        </Card>
+      {error && (
+        <div className="text-red-500 mb-4">{error}</div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <label htmlFor="name" className="block font-medium text-sm">
+            Nom du projet
+          </label>
+          <Input
+            id="name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="url" className="block font-medium text-sm">
+            URL du site
+          </label>
+          <Input
+            id="url"
+            type="url"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            placeholder="https://example.com"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="description" className="block font-medium text-sm">
+            Description
+          </label>
+          <textarea
+            id="description"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            rows={4}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex space-x-3">
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Mise à jour en cours...' : 'Mettre à jour le projet'}
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate(`/projects/${projectId}`)}
+          >
+            Annuler
+          </Button>
+        </div>
       </form>
     </div>
   );
-};
-
-export default ProjectEditPage;
+}

@@ -1,281 +1,336 @@
 
-import { NotionConfig, ConnectionTestResult, NotionResponse, ProjectsResponse, ProjectResponse, DeleteResponse } from './types';
-import { Project } from '@/types/domain';
+import { v4 as uuidv4 } from 'uuid';
+import { Project, Audit } from '@/types/domain';
+import { NotionResponse, NotionConfig, ConnectionTestResult } from './types';
+import { mockProjects, mockResponseForProjectId } from './mockData';
 
 /**
- * Service principal pour l'intégration avec Notion
+ * Service principal de Notion pour l'application
  */
 class NotionService {
-  private config: NotionConfig = {};
-  private mockMode = false;
-
-  /**
-   * Vérifie si le service est configuré
-   */
-  isConfigured(): boolean {
-    // Vérifier la configuration stockée dans localStorage
-    const apiKey = localStorage.getItem('notion_api_key');
-    const projectsDbId = localStorage.getItem('notion_database_id');
-    
-    return Boolean(apiKey && projectsDbId);
+  private apiKey: string | null = null;
+  private mockMode: boolean = false;
+  
+  constructor() {
+    this.mockMode = localStorage.getItem('notion_mock_mode') === 'true';
   }
-
+  
   /**
-   * Configure le service avec les paramètres fournis
+   * Définit la clé API Notion
    */
-  configure(config: NotionConfig): void {
-    this.config = { ...config };
-    
-    // Stocker la configuration dans localStorage si les valeurs sont définies
-    if (config.apiKey) {
-      localStorage.setItem('notion_api_key', config.apiKey);
-    }
-    
-    if (config.projectsDbId) {
-      localStorage.setItem('notion_database_id', config.projectsDbId);
-    }
-    
-    if (config.checklistsDbId) {
-      localStorage.setItem('notion_checklists_database_id', config.checklistsDbId);
-    }
-    
-    if (config.mockMode !== undefined) {
-      this.mockMode = config.mockMode;
-    }
+  setApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+    localStorage.setItem('notion_api_key', apiKey);
   }
-
+  
   /**
-   * Récupère la configuration actuelle
+   * Récupère la clé API Notion
    */
-  getConfig(): NotionConfig {
-    return {
-      apiKey: localStorage.getItem('notion_api_key') || '',
-      projectsDbId: localStorage.getItem('notion_database_id') || '',
-      checklistsDbId: localStorage.getItem('notion_checklists_database_id') || '',
-      mockMode: this.mockMode
-    };
+  getApiKey(): string | null {
+    if (!this.apiKey) {
+      this.apiKey = localStorage.getItem('notion_api_key');
+    }
+    return this.apiKey;
   }
-
+  
   /**
-   * Active ou désactive le mode mock
+   * Définit le mode mock
    */
   setMockMode(enabled: boolean): void {
     this.mockMode = enabled;
-    localStorage.setItem('notion_mock_mode', enabled ? 'true' : 'false');
+    localStorage.setItem('notion_mock_mode', enabled.toString());
   }
-
+  
   /**
-   * Vérifie si le mode mock est actif
+   * Vérifie si le mode mock est activé
    */
   isMockMode(): boolean {
-    return this.mockMode || localStorage.getItem('notion_mock_mode') === 'true';
+    return this.mockMode;
   }
-
+  
   /**
    * Teste la connexion à l'API Notion
    */
   async testConnection(): Promise<ConnectionTestResult> {
-    if (this.isMockMode()) {
-      console.log('Test de connexion en mode démo');
+    if (this.mockMode) {
       return {
         success: true,
-        user: 'Utilisateur démo',
-        workspaceName: 'Espace de travail démo',
-        projectsDbName: 'Projets (démo)',
-        checklistsDbName: 'Checklists (démo)'
+        user: 'Utilisateur Demo',
+        workspaceName: 'Espace de travail Demo',
+        projectsDbName: 'Projets',
+        checklistsDbName: 'Checklist'
       };
     }
-
-    const apiKey = localStorage.getItem('notion_api_key');
     
-    if (!apiKey) {
+    if (!this.apiKey) {
       return {
         success: false,
         error: 'Clé API manquante'
       };
     }
-
-    try {
-      console.log('Test de connexion à l\'API Notion avec la clé:', apiKey.substring(0, 5) + '...');
-      
-      // Simulation d'une requête à l'API Notion
-      // Dans une application réelle, vous feriez un appel à l'API Notion ici
-      const mockResponse = await new Promise<{name: string}>((resolve) => {
-        setTimeout(() => {
-          resolve({ name: 'Utilisateur test' });
-        }, 1000);
-      });
-      
-      console.log('Connexion à l\'API Notion réussie');
-      
-      return {
-        success: true,
-        user: mockResponse.name,
-        workspaceName: 'Espace de travail',
-        projectsDbName: 'Base de données des projets',
-        checklistsDbName: localStorage.getItem('notion_checklists_database_id') ? 'Base de données des checklists' : undefined
-      };
-    } catch (error) {
-      console.error('Erreur lors du test de connexion:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erreur de connexion à l\'API Notion'
-      };
-    }
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
+    return {
+      success: true,
+      user: 'Utilisateur Notion',
+      workspaceName: 'Mon espace de travail'
+    };
   }
-
+  
   /**
    * Récupère tous les projets
    */
-  async getProjects(): Promise<ProjectsResponse> {
-    if (this.isMockMode()) {
-      // Retourner des données de démo en mode mock
+  async getProjects(): Promise<NotionResponse<Project[]>> {
+    if (this.mockMode) {
       return {
         success: true,
-        data: [
-          {
-            id: 'proj_001',
-            name: 'Site e-commerce (démo)',
-            url: 'https://example.com',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            progress: 75
-          },
-          {
-            id: 'proj_002',
-            name: 'Portail intranet (démo)',
-            url: 'https://intranet.example.com',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            progress: 30
-          },
-          {
-            id: 'proj_003',
-            name: 'Application mobile (démo)',
-            url: 'https://app.example.com',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            progress: 50
-          }
-        ]
+        data: mockProjects
       };
     }
-
-    // Ici, nous devrions faire un appel réel à l'API Notion
-    // Pour l'instant, on simule la réponse
+    
+    if (!this.apiKey) {
+      return {
+        success: false,
+        error: {
+          message: 'API key not set'
+        }
+      };
+    }
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
     return {
       success: true,
       data: []
     };
   }
-
+  
   /**
    * Récupère un projet par son ID
    */
-  async getProjectById(id: string): Promise<ProjectResponse> {
-    if (this.isMockMode()) {
-      // Retourner des données de démo en mode mock
+  async getProjectById(id: string): Promise<NotionResponse<Project>> {
+    if (this.mockMode) {
+      return mockResponseForProjectId(id);
+    }
+    
+    if (!this.apiKey) {
       return {
-        success: true,
-        data: {
-          id,
-          name: `Projet ${id} (démo)`,
-          url: 'https://example.com',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 50
+        success: false,
+        error: {
+          message: 'API key not set'
         }
       };
     }
-
-    // Ici, nous devrions faire un appel réel à l'API Notion
-    // Pour l'instant, on simule la réponse
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
     return {
       success: false,
       error: {
-        message: 'Projet non trouvé'
+        message: 'Project not found'
       }
     };
   }
-
+  
   /**
    * Crée un nouveau projet
    */
-  async createProject(data: Partial<Project>): Promise<ProjectResponse> {
-    if (this.isMockMode()) {
-      // Simuler la création en mode mock
+  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<NotionResponse<Project>> {
+    const newProject: Project = {
+      id: uuidv4(),
+      name: project.name,
+      url: project.url,
+      description: project.description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: 0,
+      pagesCount: 0,
+      itemsCount: 0
+    };
+    
+    if (this.mockMode) {
+      mockProjects.push(newProject);
       return {
         success: true,
-        data: {
-          id: `proj_${Date.now()}`,
-          name: data.name || 'Nouveau projet',
-          url: data.url || '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          progress: 0
+        data: newProject
+      };
+    }
+    
+    if (!this.apiKey) {
+      return {
+        success: false,
+        error: {
+          message: 'API key not set'
         }
       };
     }
-
-    // Ici, nous devrions faire un appel réel à l'API Notion
-    // Pour l'instant, on simule la réponse
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
     return {
       success: true,
-      data: {
-        id: `proj_${Date.now()}`,
-        name: data.name || 'Nouveau projet',
-        url: data.url || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        progress: 0
-      }
+      data: newProject
     };
   }
-
+  
   /**
    * Met à jour un projet existant
    */
-  async updateProject(project: Project): Promise<ProjectResponse> {
-    if (this.isMockMode()) {
-      // Simuler la mise à jour en mode mock
+  async updateProject(project: Project): Promise<NotionResponse<Project>> {
+    const updatedProject: Project = {
+      ...project,
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (this.mockMode) {
+      const index = mockProjects.findIndex(p => p.id === project.id);
+      if (index !== -1) {
+        mockProjects[index] = updatedProject;
+        return {
+          success: true,
+          data: updatedProject
+        };
+      }
       return {
-        success: true,
-        data: {
-          ...project,
-          updatedAt: new Date().toISOString()
+        success: false,
+        error: {
+          message: 'Project not found'
         }
       };
     }
-
-    // Ici, nous devrions faire un appel réel à l'API Notion
-    // Pour l'instant, on simule la réponse
+    
+    if (!this.apiKey) {
+      return {
+        success: false,
+        error: {
+          message: 'API key not set'
+        }
+      };
+    }
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
     return {
       success: true,
-      data: {
-        ...project,
-        updatedAt: new Date().toISOString()
-      }
+      data: updatedProject
     };
   }
-
+  
   /**
    * Supprime un projet
    */
-  async deleteProject(id: string): Promise<DeleteResponse> {
-    if (this.isMockMode()) {
-      // Simuler la suppression en mode mock
+  async deleteProject(id: string): Promise<NotionResponse<boolean>> {
+    if (this.mockMode) {
+      const index = mockProjects.findIndex(p => p.id === id);
+      if (index !== -1) {
+        mockProjects.splice(index, 1);
+        return {
+          success: true,
+          data: true
+        };
+      }
       return {
-        success: true,
-        data: true
+        success: false,
+        error: {
+          message: 'Project not found'
+        }
       };
     }
-
-    // Ici, nous devrions faire un appel réel à l'API Notion
-    // Pour l'instant, on simule la réponse
+    
+    if (!this.apiKey) {
+      return {
+        success: false,
+        error: {
+          message: 'API key not set'
+        }
+      };
+    }
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
     return {
       success: true,
       data: true
+    };
+  }
+  
+  /**
+   * Récupère les audits d'un projet
+   */
+  async getAudits(projectId: string): Promise<NotionResponse<Audit[]>> {
+    if (this.mockMode) {
+      // Mock data pour les audits
+      const mockAudits: Audit[] = [
+        {
+          id: `audit-${projectId}-1`,
+          projectId,
+          name: 'Audit initial',
+          description: 'Premier audit du projet',
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+          progress: 68,
+          itemsCount: 25
+        },
+        {
+          id: `audit-${projectId}-2`,
+          projectId,
+          name: 'Audit de suivi',
+          description: 'Audit de suivi après corrections',
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          progress: 85,
+          itemsCount: 25
+        }
+      ];
+      
+      return {
+        success: true,
+        data: mockAudits
+      };
+    }
+    
+    if (!this.apiKey) {
+      return {
+        success: false,
+        error: {
+          message: 'API key not set'
+        }
+      };
+    }
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
+    return {
+      success: true,
+      data: []
+    };
+  }
+  
+  /**
+   * Crée un nouvel audit
+   */
+  async createAudit(audit: Omit<Audit, 'id'>): Promise<NotionResponse<Audit>> {
+    const newAudit: Audit = {
+      id: uuidv4(),
+      ...audit,
+      progress: 0,
+      itemsCount: 0
+    };
+    
+    if (this.mockMode) {
+      return {
+        success: true,
+        data: newAudit
+      };
+    }
+    
+    if (!this.apiKey) {
+      return {
+        success: false,
+        error: {
+          message: 'API key not set'
+        }
+      };
+    }
+    
+    // Ici, nous ferions un vrai appel à l'API Notion
+    return {
+      success: true,
+      data: newAudit
     };
   }
 }

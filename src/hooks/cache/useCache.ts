@@ -1,59 +1,66 @@
 
-/**
- * Hook pour utiliser le service de cache
- */
-
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cacheService, CacheOptions } from '@/services/cache/cacheService';
 
 /**
  * Hook pour utiliser le service de cache
  */
-export function useCache() {
-  /**
-   * Stocke une valeur dans le cache
-   */
-  const set = useCallback(<T>(key: string, value: T, options?: CacheOptions | number): void => {
+export function useCache<T>(key: string, initialValue?: T, options?: CacheOptions) {
+  const [data, setData] = useState<T | undefined>(() => {
+    // Tenter de récupérer la valeur du cache au démarrage
+    const cached = cacheService.get<T>(key);
+    return cached !== undefined ? cached : initialValue;
+  });
+
+  // Charger les données du cache
+  useEffect(() => {
+    const cached = cacheService.get<T>(key);
+    if (cached !== undefined) {
+      setData(cached);
+    }
+  }, [key]);
+
+  // Mettre à jour les données dans le cache
+  const updateCache = useCallback((value: T) => {
+    setData(value);
     cacheService.set(key, value, options);
-  }, []);
-  
-  /**
-   * Récupère une valeur du cache
-   */
-  const get = useCallback(<T>(key: string): T | undefined => {
-    return cacheService.get<T>(key);
-  }, []);
-  
-  /**
-   * Supprime une entrée du cache
-   */
-  const remove = useCallback((key: string): boolean => {
-    return cacheService.delete(key);
-  }, []);
-  
-  /**
-   * Vérifie si une clé existe dans le cache
-   */
-  const has = useCallback((key: string): boolean => {
-    return cacheService.has(key);
-  }, []);
-  
-  /**
-   * Vide tout le cache
-   */
-  const clear = useCallback((): void => {
-    cacheService.clear();
-  }, []);
-  
-  /**
-   * Récupère ou définit une valeur dans le cache
-   */
-  const getOrSet = useCallback(
-    async <T>(key: string, callback: () => Promise<T>, options?: CacheOptions): Promise<T> => {
-      return cacheService.getOrSet(key, callback, options);
-    },
-    []
-  );
-  
-  return { set, get, remove, has, clear, getOrSet };
+  }, [key, options]);
+
+  // Supprimer les données du cache
+  const clearCache = useCallback(() => {
+    setData(undefined);
+    cacheService.delete(key);
+  }, [key]);
+
+  // Rafraîchir avec une nouvelle valeur
+  const refreshWith = useCallback(async (getValue: () => Promise<T>) => {
+    try {
+      const newValue = await getValue();
+      updateCache(newValue);
+      return newValue;
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement du cache', error);
+      return data;
+    }
+  }, [data, updateCache]);
+
+  // Charger ou définir
+  const getOrSet = useCallback(async (getValue: () => Promise<T>) => {
+    try {
+      const result = await cacheService.getOrSet(key, getValue, options);
+      setData(result);
+      return result;
+    } catch (error) {
+      console.error('Erreur lors de l\'opération getOrSet', error);
+      return data;
+    }
+  }, [key, data, options]);
+
+  return {
+    data,
+    updateCache,
+    clearCache,
+    refreshWith,
+    getOrSet
+  };
 }
