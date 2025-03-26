@@ -1,5 +1,6 @@
 
 import '@testing-library/jest-dom';
+import { beforeAll } from 'vitest';
 
 // Configuration globale pour les tests
 beforeAll(() => {
