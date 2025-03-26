@@ -20,4 +20,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Utiliser nos nouveaux fichiers tsconfig
+  root: ".",
+  configFile: "./vite.config.ts",
+  optimizeDeps: {
+    include: []
+  }
 });
