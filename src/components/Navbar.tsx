@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { ClipboardList, Home, Settings, FileText, LayoutList } from 'lucide-react';
+import { Home, Settings, ClipboardList } from 'lucide-react';
 
 /**
  * Composant de navigation principale
@@ -12,8 +12,6 @@ const Navbar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/', icon: Home },
     { name: 'Projets', path: '/projects', icon: ClipboardList },
-    { name: 'Checklist', path: '/checklist', icon: FileText },
-    { name: 'Audits', path: '/audits', icon: LayoutList },
     { name: 'Configuration', path: '/config', icon: Settings },
   ];
   

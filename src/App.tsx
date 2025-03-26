@@ -1,12 +1,15 @@
 
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { MainLayout } from '@/components/layout';
+import { MainLayout, ProjectLayout } from '@/components/layout';
 import Dashboard from '@/pages/Dashboard';
 import ProjectsPage from '@/pages/ProjectsPage';
-import ChecklistPage from '@/pages/ChecklistPage';
-import AuditsPage from '@/pages/AuditsPage';
+import ProjectDetailsPage from '@/pages/ProjectDetailsPage';
+import ProjectExigencesPage from '@/pages/ProjectExigencesPage';
+import ProjectAuditsPage from '@/pages/ProjectAuditsPage';
+import ProjectActionsPage from '@/pages/ProjectActionsPage';
 import ConfigPage from '@/pages/ConfigPage';
+import ChecklistPage from '@/pages/ChecklistPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 /**
@@ -19,23 +22,26 @@ function App() {
       <Routes>
         {/* Layout principal */}
         <Route element={<MainLayout />}>
-          {/* Routes du dashboard */}
+          {/* Dashboard (liste des projets) */}
           <Route path="/" element={<Dashboard />} />
           
           {/* Routes des projets */}
           <Route path="/projects" element={<ProjectsPage />} />
           
-          {/* Routes de la checklist */}
-          <Route path="/checklist" element={<ChecklistPage />} />
-          
-          {/* Routes des audits */}
-          <Route path="/audits" element={<AuditsPage />} />
-          
-          {/* Routes de configuration */}
+          {/* Configuration */}
           <Route path="/config" element={<ConfigPage />} />
+          <Route path="/config/checklist" element={<ChecklistPage />} />
           
           {/* Route 404 */}
           <Route path="*" element={<NotFoundPage />} />
+        </Route>
+        
+        {/* Layout de projet */}
+        <Route path="/projects/:projectId" element={<ProjectLayout />}>
+          <Route index element={<ProjectDetailsPage />} />
+          <Route path="exigences" element={<ProjectExigencesPage />} />
+          <Route path="audits" element={<ProjectAuditsPage />} />
+          <Route path="actions" element={<ProjectActionsPage />} />
         </Route>
       </Routes>
       

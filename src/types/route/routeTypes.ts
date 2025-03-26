@@ -25,13 +25,18 @@ export interface RouteWithChildren extends Route {
 export type AppRouteKey = 
   | 'dashboard'
   | 'projects'
-  | 'projectDetails'
+  | 'project'
+  | 'projectExigences'
+  | 'projectAudits'
+  | 'projectActions'
   | 'projectCreate'
   | 'projectEdit'
-  | 'samplePages'
-  | 'exigences'
-  | 'checklist'
-  | 'audit'
-  | 'auditNew'
-  | 'actions'
-  | 'config';
+  | 'config'
+  | 'configChecklist';
+
+/**
+ * Structure des routes de l'application
+ */
+export interface AppRoutes {
+  [key: string]: Route | RouteWithChildren;
+}
