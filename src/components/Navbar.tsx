@@ -1,18 +1,24 @@
 
-import { Link, useLocation } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { ClipboardList, Home, Settings, FileText, LayoutList } from 'lucide-react';
 
+/**
+ * Composant de navigation principale
+ */
 const Navbar = () => {
-  const location = useLocation()
+  const location = useLocation();
   
   const navItems = [
-    { name: 'Dashboard', path: '/' },
-    { name: 'Projets', path: '/projects' },
-    { name: 'Checklist', path: '/checklist' },
-  ]
+    { name: 'Dashboard', path: '/', icon: Home },
+    { name: 'Projets', path: '/projects', icon: ClipboardList },
+    { name: 'Checklist', path: '/checklist', icon: FileText },
+    { name: 'Audits', path: '/audits', icon: LayoutList },
+    { name: 'Configuration', path: '/config', icon: Settings },
+  ];
   
   return (
-    <header className="bg-white border-b">
+    <header className="bg-white border-b sticky top-0 z-10">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
@@ -22,26 +28,27 @@ const Navbar = () => {
             </Link>
           </div>
           
-          <nav className="flex items-center space-x-4">
+          <nav className="flex items-center space-x-2">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  "px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2",
                   location.pathname === item.path
                     ? "bg-primary/10 text-primary"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 )}
               >
-                {item.name}
+                <item.icon className="h-4 w-4" />
+                <span className="hidden md:inline">{item.name}</span>
               </Link>
             ))}
           </nav>
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

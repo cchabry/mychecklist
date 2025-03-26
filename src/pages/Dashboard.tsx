@@ -1,99 +1,62 @@
+import { PageHeader } from '@/components/layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ClipboardList, FileText, LayoutList } from 'lucide-react';
 
-import { ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { useProjects } from '@/hooks/useProjects'
-import { ProjectCard } from '@/components/data-display/ProjectCard'
-
+/**
+ * Page d'accueil / Dashboard
+ */
 const Dashboard = () => {
-  const { projects, isLoading } = useProjects();
-  
-  // Afficher seulement les 3 projets les plus récents
-  const recentProjects = projects
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 3);
-  
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-muted-foreground mt-2">
-          Bienvenue dans votre application d'audit de sites web
-        </p>
-      </header>
+    <div>
+      <PageHeader 
+        title="Tableau de bord" 
+        description="Vue d'ensemble de vos projets et audits"
+      />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle>Projets</CardTitle>
-            <CardDescription>Gérez vos projets d'audit</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Projets</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p>Créez, modifiez et suivez vos projets d'audit et leurs résultats</p>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Projets en cours
+            </p>
           </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to="/projects" className="w-full">
-                Voir les projets
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
         </Card>
         
         <Card>
-          <CardHeader>
-            <CardTitle>Checklist</CardTitle>
-            <CardDescription>Référentiel de bonnes pratiques</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Audits</CardTitle>
+            <LayoutList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p>Consultez et gérez les items de votre référentiel de bonnes pratiques</p>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Audits réalisés
+            </p>
           </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to="/checklist" className="w-full">
-                Voir la checklist
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Items Checklist</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Critères d'évaluation
+            </p>
+          </CardContent>
         </Card>
       </div>
       
-      {recentProjects.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold tracking-tight">Projets récents</h2>
-          
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? (
-              // Placeholders de chargement
-              Array.from({ length: 3 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className="h-[250px] bg-gray-100 rounded-lg animate-pulse"
-                />
-              ))
-            ) : (
-              // Liste des projets récents
-              recentProjects.map(project => (
-                <ProjectCard key={project.id} project={project} />
-              ))
-            )}
-          </div>
-          
-          <div className="flex justify-center mt-4">
-            <Button variant="outline" asChild>
-              <Link to="/projects">
-                Voir tous les projets
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Autres sections viendront dans les prochains sprints */}
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

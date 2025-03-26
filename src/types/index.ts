@@ -14,3 +14,6 @@ export * from './enums';
 
 // Types du mode opérationnel
 export * from './operation';
+
+// Types de routage
+export * from './route';
