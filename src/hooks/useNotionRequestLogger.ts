@@ -2,7 +2,6 @@
 import { useEffect } from 'react';
 import { notionRequestLogger } from '@/services/notion/requestLogger';
 import { notionApi } from '@/lib/notionProxy';
-import { NotionRequestOptions } from '@/services/notion/types';
 
 /**
  * Hook qui intercepte les requêtes Notion pour les journaliser
@@ -12,17 +11,20 @@ export const useNotionRequestLogger = () => {
     // Sauvegarde de la fonction originale
     const originalRequest = notionApi.request;
     
-    // Fonction d'interception adaptée à la nouvelle interface
-    const interceptedRequest = async <T = any>(options: NotionRequestOptions): Promise<T> => {
-      const { endpoint, method = 'GET', body, token } = options;
-      
+    // Fonction d'interception
+    const interceptedRequest = async (
+      endpoint: string,
+      method: string = 'GET',
+      body?: any,
+      token?: string
+    ) => {
       // Enregistrer le début de la requête
       const requestId = notionRequestLogger.logRequest(endpoint, method);
       const startTime = performance.now();
       
       try {
         // Exécuter la requête originale
-        const response = await originalRequest<T>(options);
+        const response = await originalRequest(endpoint, method, body, token);
         
         // Calculer le temps de réponse
         const responseTime = Math.round(performance.now() - startTime);

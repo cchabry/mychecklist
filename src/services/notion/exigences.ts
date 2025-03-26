@@ -1,112 +1,158 @@
 
 import { notionApi } from '@/lib/notionProxy';
-import { ExigenceData, CreateExigenceParams, UpdateExigenceParams } from './types/exigences';
-import { NotionRequestOptions } from './types';
+import { Exigence, ImportanceLevel } from '@/lib/types';
+import { cacheService } from '../cache';
+
+// Clé de cache pour les exigences par projet
+const getCacheKey = (projectId: string) => `exigences_${projectId}`;
 
 /**
- * Récupère toutes les exigences pour un projet spécifique
- * @param projectId Identifiant du projet
- * @returns Liste des exigences
+ * Service pour gérer les exigences des projets dans Notion
  */
-export async function getExigencesForProject(projectId: string): Promise<ExigenceData[]> {
-  try {
-    // Adaptation pour utiliser la nouvelle interface
-    const options: NotionRequestOptions = {
-      endpoint: `/projects/${projectId}/exigences`,
-      method: 'GET'
-    };
+const exigencesService = {
+  /**
+   * Récupère toutes les exigences pour un projet
+   * @param projectId ID du projet
+   * @param forceRefresh Forcer le rafraîchissement du cache
+   */
+  async getExigencesByProject(projectId: string, forceRefresh = false): Promise<Exigence[]> {
+    const cacheKey = getCacheKey(projectId);
     
-    const response = await notionApi.request<ExigenceData[]>(options);
-    return response;
-  } catch (error) {
-    console.error('Erreur lors de la récupération des exigences:', error);
-    throw error;
+    // Vérifier le cache si on ne force pas le rafraîchissement
+    if (!forceRefresh) {
+      const cachedData = cacheService.get<Exigence[]>(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
+    }
+    
+    try {
+      // Appeler l'API Notion via le proxy
+      const response = await notionApi.request(`/exigences/${projectId}`);
+      
+      if (response) {
+        // Mettre en cache les résultats
+        cacheService.set(cacheKey, response);
+        
+        return response;
+      } else {
+        console.error('Erreur lors de la récupération des exigences');
+        throw new Error('Erreur lors de la récupération des exigences');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des exigences:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Sauvegarde une exigence (création ou mise à jour)
+   * @param exigence Exigence à sauvegarder
+   */
+  async saveExigence(exigence: Exigence): Promise<Exigence> {
+    try {
+      // Si c'est une nouvelle exigence, créer. Sinon, mettre à jour.
+      if (exigence.id === 'new' || !exigence.id) {
+        return this.createExigence(exigence);
+      } else {
+        return this.updateExigence(exigence.id, exigence);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'exigence:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Crée une nouvelle exigence
+   * @param exigence Données de l'exigence
+   */
+  async createExigence(exigence: Exigence): Promise<Exigence> {
+    try {
+      const response = await notionApi.request('/exigences', 'POST', {
+        projectId: exigence.projectId,
+        itemId: exigence.itemId,
+        importance: exigence.importance,
+        comment: exigence.comment || ''
+      });
+      
+      if (response) {
+        // Invalider le cache pour ce projet
+        cacheService.remove(getCacheKey(exigence.projectId));
+        
+        return response;
+      } else {
+        console.error('Erreur lors de la création de l\'exigence');
+        throw new Error('Erreur lors de la création de l\'exigence');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'exigence:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Met à jour une exigence existante
+   * @param exigenceId ID de l'exigence
+   * @param data Données à mettre à jour
+   */
+  async updateExigence(exigenceId: string, data: Partial<Exigence>): Promise<Exigence> {
+    try {
+      const response = await notionApi.request(`/exigences/${exigenceId}`, 'PUT', {
+        importance: data.importance,
+        comment: data.comment || ''
+      });
+      
+      if (response) {
+        // Invalider le cache pour ce projet
+        if (data.projectId) {
+          cacheService.remove(getCacheKey(data.projectId));
+        }
+        
+        return response;
+      } else {
+        console.error('Erreur lors de la mise à jour de l\'exigence');
+        throw new Error('Erreur lors de la mise à jour de l\'exigence');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'exigence:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Supprime une exigence
+   * @param exigenceId ID de l'exigence
+   * @param projectId ID du projet
+   */
+  async deleteExigence(exigenceId: string, projectId: string): Promise<boolean> {
+    try {
+      const response = await notionApi.request(`/exigences/${exigenceId}`, 'DELETE');
+      
+      if (response) {
+        // Invalider le cache pour ce projet
+        cacheService.remove(getCacheKey(projectId));
+        
+        return true;
+      } else {
+        console.error('Erreur lors de la suppression de l\'exigence');
+        throw new Error('Erreur lors de la suppression de l\'exigence');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'exigence:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Vide le cache
+   */
+  clearCache(): void {
+    // On ne peut pas supprimer toutes les exigences en une seule fois
+    // car les clés sont basées sur les projets.
+    // Il faudrait connaître tous les projectId pour lesquels on a mis en cache des exigences.
+    console.log('Cache des exigences vidé pour tous les projets (à implémenter)');
   }
-}
+};
 
-/**
- * Récupère une exigence spécifique par son ID
- * @param exigenceId Identifiant de l'exigence
- * @returns Données de l'exigence
- */
-export async function getExigence(exigenceId: string): Promise<ExigenceData> {
-  try {
-    // Adaptation pour utiliser la nouvelle interface
-    const options: NotionRequestOptions = {
-      endpoint: `/exigences/${exigenceId}`,
-      method: 'GET'
-    };
-    
-    const response = await notionApi.request<ExigenceData>(options);
-    return response;
-  } catch (error) {
-    console.error('Erreur lors de la récupération de l\'exigence:', error);
-    throw error;
-  }
-}
-
-/**
- * Crée une nouvelle exigence pour un projet
- * @param params Paramètres de création de l'exigence
- * @returns Données de l'exigence créée
- */
-export async function createExigence(params: CreateExigenceParams): Promise<ExigenceData> {
-  try {
-    // Adaptation pour utiliser la nouvelle interface
-    const options: NotionRequestOptions = {
-      endpoint: '/exigences',
-      method: 'POST',
-      body: params
-    };
-    
-    const response = await notionApi.request<ExigenceData>(options);
-    return response;
-  } catch (error) {
-    console.error('Erreur lors de la création de l\'exigence:', error);
-    throw error;
-  }
-}
-
-/**
- * Met à jour une exigence existante
- * @param exigenceId Identifiant de l'exigence à mettre à jour
- * @param params Paramètres de mise à jour
- * @returns Données de l'exigence mise à jour
- */
-export async function updateExigence(exigenceId: string, params: UpdateExigenceParams): Promise<ExigenceData> {
-  try {
-    // Adaptation pour utiliser la nouvelle interface
-    const options: NotionRequestOptions = {
-      endpoint: `/exigences/${exigenceId}`,
-      method: 'PATCH',
-      body: params
-    };
-    
-    const response = await notionApi.request<ExigenceData>(options);
-    return response;
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour de l\'exigence:', error);
-    throw error;
-  }
-}
-
-/**
- * Supprime une exigence
- * @param exigenceId Identifiant de l'exigence à supprimer
- * @returns Statut de la suppression
- */
-export async function deleteExigence(exigenceId: string): Promise<{ success: boolean }> {
-  try {
-    // Adaptation pour utiliser la nouvelle interface
-    const options: NotionRequestOptions = {
-      endpoint: `/exigences/${exigenceId}`,
-      method: 'DELETE'
-    };
-    
-    const response = await notionApi.request<{ success: boolean }>(options);
-    return response;
-  } catch (error) {
-    console.error('Erreur lors de la suppression de l\'exigence:', error);
-    throw error;
-  }
-}
+export { exigencesService };

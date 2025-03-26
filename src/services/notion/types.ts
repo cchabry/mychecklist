@@ -33,14 +33,3 @@ export interface NotionTestResponse {
   workspace?: string;
   timestamp: number;
 }
-
-// Ajout d'une interface pour les requêtes Notion
-export interface NotionRequestOptions {
-  endpoint: string;
-  method?: string;
-  body?: any;
-  token?: string;
-}
-
-// Ajout des exports de compatibilité pour le système migré
-export * from './types/unified';
