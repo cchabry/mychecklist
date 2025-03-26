@@ -6,7 +6,6 @@
 
 import { notionClient } from './notionClient';
 import { 
-  ConnectionStatus, 
   NotionResponse, 
   NotionConfig,
   ConnectionTestResult
@@ -86,10 +85,10 @@ class NotionService {
     }
     
     // Interroger la base de données Notion
-    const response = await notionClient.post<{results: any[]}>(`/databases/${config.projectsDbId}/query`);
+    const response = await notionClient.post<{results: any[]}>(`/databases/${config.projectsDbId}/query`, {});
     
     if (!response.success || !response.data?.results) {
-      return response as NotionResponse<Project[]>;
+      return { success: false, error: response.error };
     }
     
     // Transformer les résultats Notion en projets
@@ -155,7 +154,7 @@ class NotionService {
   /**
    * Crée un nouveau projet
    */
-  async createProject(data: { name: string; url?: string }): Promise<NotionResponse<Project>> {
+  async createProject(data: { name: string; url?: string; description?: string }): Promise<NotionResponse<Project>> {
     const config = this.getConfig();
     if (!config.projectsDbId) {
       return { success: false, error: { message: "Base de données des projets non configurée" } };
@@ -169,6 +168,7 @@ class NotionService {
           id: Math.random().toString(36).substring(2, 9),
           name: data.name,
           url: data.url || '',
+          description: data.description || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
@@ -200,6 +200,18 @@ class NotionService {
       };
     }
     
+    if (data.description) {
+      properties.Description = {
+        rich_text: [
+          {
+            text: {
+              content: data.description
+            }
+          }
+        ]
+      };
+    }
+    
     // Créer la page dans Notion
     const response = await notionClient.post<any>('/pages', {
       parent: { database_id: config.projectsDbId },
@@ -217,6 +229,7 @@ class NotionService {
       id: newPage.id,
       name: data.name,
       url: data.url || '',
+      description: data.description || '',
       createdAt: newPage.created_time,
       updatedAt: newPage.last_edited_time
     };
@@ -230,7 +243,7 @@ class NotionService {
   /**
    * Met à jour un projet existant
    */
-  async updateProject(id: string, data: { name?: string; url?: string }): Promise<NotionResponse<Project>> {
+  async updateProject(id: string, data: { name?: string; url?: string; description?: string }): Promise<NotionResponse<Project>> {
     // Si en mode démo, simuler la mise à jour
     if (this.isMockMode()) {
       return {
@@ -239,6 +252,7 @@ class NotionService {
           id,
           name: data.name || `Projet ${id}`,
           url: data.url || `https://example.com/projet${id}`,
+          description: data.description || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
@@ -272,6 +286,18 @@ class NotionService {
       };
     }
     
+    if (data.description !== undefined) {
+      properties.Description = {
+        rich_text: [
+          {
+            text: {
+              content: data.description
+            }
+          }
+        ]
+      };
+    }
+    
     // Mettre à jour la page dans Notion
     const response = await notionClient.patch<any>(`/pages/${id}`, {
       properties
@@ -289,6 +315,7 @@ class NotionService {
       id: updatedPage.id,
       name: this.extractTextProperty(updatedProperties.Name),
       url: this.extractTextProperty(updatedProperties.URL),
+      description: this.extractTextProperty(updatedProperties.Description),
       createdAt: updatedPage.created_time,
       updatedAt: updatedPage.last_edited_time
     };

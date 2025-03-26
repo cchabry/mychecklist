@@ -37,7 +37,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
 /**
  * Crée un nouveau projet
  */
-export async function createProject(data: { name: string; url?: string }): Promise<Project> {
+export async function createProject(data: { name: string; url?: string; description?: string }): Promise<Project> {
   const response = await notionService.createProject(data);
   
   if (response.success && response.data) {
@@ -50,7 +50,7 @@ export async function createProject(data: { name: string; url?: string }): Promi
 /**
  * Met à jour un projet existant
  */
-export async function updateProject(id: string, data: { name?: string; url?: string }): Promise<Project> {
+export async function updateProject(id: string, data: { name?: string; url?: string; description?: string }): Promise<Project> {
   const response = await notionService.updateProject(id, data);
   
   if (response.success && response.data) {
