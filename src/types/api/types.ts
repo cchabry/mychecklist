@@ -1,60 +1,48 @@
 
 /**
- * Types pour l'API Notion
+ * Types pour l'API et les opérations de requête
  */
 
-import {
-  Project,
-  ChecklistItem,
-  Exigence,
-  SamplePage,
-  Audit,
-  Evaluation,
-  CorrectiveAction,
-  ActionProgress
-} from '../domain';
+import { Project, Audit, ChecklistItem, Exigence, SamplePage, Evaluation, CorrectiveAction, ActionProgress } from '../domain/models';
 
 /**
- * Résultat d'une opération API Notion
+ * Options pour les requêtes API
  */
-export interface NotionAPIResponse<T = any> {
+export interface ApiRequestOptions {
+  headers?: Record<string, string>;
+  params?: Record<string, string>;
+  body?: any;
+  signal?: AbortSignal;
+  cache?: RequestCache;
+}
+
+/**
+ * Résultat d'une opération API
+ */
+export interface ApiResult<T> {
   success: boolean;
   data?: T;
   error?: {
     message: string;
     code?: string;
-    status?: number;
-    details?: any;
+    details?: unknown;
   };
 }
 
 /**
- * Statut de connexion Notion
+ * Options communes pour les hooks d'API
  */
-export enum ConnectionStatus {
-  Connected = 'connected',
-  Disconnected = 'disconnected',
-  Error = 'error',
-  Loading = 'loading'
-}
-
-/**
- * Utilisateur Notion
- */
-export interface NotionUser {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  type: string;
-}
-
-/**
- * Réponse de test de connexion Notion
- */
-export interface NotionTestResponse {
-  user?: NotionUser;
-  workspace?: string;
-  timestamp: number;
+export interface QueryOptions<TData = any> {
+  enabled?: boolean;
+  cacheTime?: number;
+  staleTime?: number;
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+  retry?: boolean | number;
+  retryDelay?: number;
+  onSuccess?: (data: TData) => void;
+  onError?: (error: Error) => void;
+  onSettled?: (data: TData | undefined, error: Error | null) => void;
 }
 
 /**
@@ -113,9 +101,6 @@ export interface NotionAPI {
   createActionProgress(progress: Omit<ActionProgress, 'id'>): Promise<ActionProgress>;
   updateActionProgress(progress: ActionProgress): Promise<ActionProgress>;
   deleteActionProgress(id: string): Promise<boolean>;
-  
-  // Test de connexion
-  testConnection(): Promise<NotionTestResponse>;
 }
 
 /**
