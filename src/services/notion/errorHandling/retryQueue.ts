@@ -1,290 +1,310 @@
 
 /**
- * Service de file d'attente pour les opérations à réessayer
+ * Service de file d'attente pour réessayer les opérations qui ont échoué
  */
 
-import { RetryOperationOptions, RetryQueueStats } from '../types/unified';
-import { v4 as uuidv4 } from 'uuid';
+import { 
+  QueuedOperation, 
+  RetryQueueStats, 
+  RetryOperationOptions 
+} from '../types/unified';
+import { toast } from 'sonner';
 
-// Types internes
-interface QueuedOperation {
-  id: string;
-  operation: () => Promise<any>;
-  context: string | Record<string, any>;
-  options: RetryOperationOptions;
-  addedAt: number;
-  attempts: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  result?: any;
-  error?: Error;
-}
-
-// État de la file d'attente
-const queue: QueuedOperation[] = [];
-let isProcessing = false;
-let lastProcessedAt: number | null = null;
-const subscribers: Array<(stats: RetryQueueStats) => void> = [];
-
-// Statistiques
-let stats: RetryQueueStats = {
-  totalOperations: 0,
-  pendingOperations: 0,
-  completedOperations: 0,
-  failedOperations: 0,
-  lastProcessedAt: null,
-  isProcessing: false
-};
-
-/**
- * Met à jour les statistiques et notifie les abonnés
- */
-const updateStats = () => {
-  stats = {
-    totalOperations: queue.length,
-    pendingOperations: queue.filter(op => op.status === 'pending').length,
-    completedOperations: queue.filter(op => op.status === 'completed').length,
-    failedOperations: queue.filter(op => op.status === 'failed').length,
-    lastProcessedAt,
-    isProcessing
-  };
+class RetryQueue {
+  private queue: QueuedOperation[] = [];
+  private isProcessing: boolean = false;
+  private isPausedState: boolean = false;
+  private processingTimerId: number | null = null;
+  private readonly DEFAULT_MAX_ATTEMPTS = 3;
+  private readonly DEFAULT_RETRY_DELAY = 5000; // 5 secondes
   
-  // Notifier les abonnés
-  subscribers.forEach(callback => {
-    try {
-      callback({ ...stats });
-    } catch (e) {
-      console.error('Erreur lors de la notification d\'un abonné:', e);
-    }
-  });
-};
-
-/**
- * Service de file d'attente pour les opérations à réessayer
- */
-export const notionRetryQueue = {
+  constructor() {
+    // Récupérer la file d'attente sauvegardée
+    this.loadFromStorage();
+  }
+  
+  /**
+   * Obtient les statistiques de la file d'attente
+   */
+  public getStats(): RetryQueueStats {
+    const pendingCount = this.queue.filter(op => op.status === 'pending').length;
+    const successCount = this.queue.filter(op => op.status === 'success').length;
+    const failedCount = this.queue.filter(op => op.status === 'failed').length;
+    
+    return {
+      pendingOperations: pendingCount,
+      completedOperations: successCount,
+      failedOperations: failedCount,
+      isProcessing: this.isProcessing,
+      isPaused: this.isPausedState,
+      totalOperations: this.queue.length
+    };
+  }
+  
   /**
    * Ajoute une opération à la file d'attente
    */
-  enqueue(
+  public addOperation(
     operation: () => Promise<any>,
-    context: string | Record<string, any> = {},
+    context: string = 'Opération',
+    maxAttempts: number = this.DEFAULT_MAX_ATTEMPTS,
     options: RetryOperationOptions = {}
   ): string {
-    const id = uuidv4();
+    const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
-    // Créer une entrée dans la file d'attente
-    queue.push({
-      id,
+    const queuedOperation: QueuedOperation = {
+      id: operationId,
       operation,
       context,
-      options: {
-        maxRetries: 3,
-        retryDelay: 1000,
-        maxDelay: 30000,
-        backoff: 2,
-        ...options
-      },
-      addedAt: Date.now(),
       attempts: 0,
+      maxAttempts: options.maxAttempts || maxAttempts,
+      lastAttempt: 0,
       status: 'pending'
+    };
+    
+    this.queue.push(queuedOperation);
+    this.saveToStorage();
+    
+    // Notification toast
+    toast.info('Opération ajoutée à la file d\'attente', {
+      description: context,
+      id: `queue-add-${operationId}`,
+      duration: 3000
     });
     
-    // Mettre à jour les statistiques
-    updateStats();
+    // Si l'auto-processing est actif et file non en pause, lancer le traitement
+    if (!this.isPausedState) {
+      this.scheduleProcessing();
+    }
     
-    return id;
-  },
+    return operationId;
+  }
   
   /**
-   * Annule une opération en attente
+   * Traite toute la file d'attente
    */
-  cancel(operationId: string): boolean {
-    const index = queue.findIndex(op => op.id === operationId && op.status === 'pending');
+  public async processQueue(): Promise<void> {
+    // Si déjà en cours de traitement ou en pause, ne rien faire
+    if (this.isProcessing || this.isPausedState) {
+      return;
+    }
     
-    if (index === -1) return false;
-    
-    // Supprimer l'opération de la file d'attente
-    queue.splice(index, 1);
-    
-    // Mettre à jour les statistiques
-    updateStats();
-    
-    return true;
-  },
-  
-  /**
-   * Traite toutes les opérations en attente
-   */
-  async processQueue(): Promise<void> {
-    if (isProcessing) return;
-    
-    isProcessing = true;
-    updateStats();
+    // Marquer comme en cours de traitement
+    this.isProcessing = true;
     
     try {
-      // Filtrer les opérations en attente
-      const pendingOperations = queue.filter(op => op.status === 'pending');
+      const pendingOperations = this.queue.filter(op => op.status === 'pending');
       
-      // Traiter les opérations séquentiellement
-      for (const op of pendingOperations) {
-        if (op.status !== 'pending') continue;
-        
-        op.status = 'processing';
-        op.attempts++;
-        
-        try {
-          // Exécuter l'opération
-          const result = await op.operation();
-          
-          // Marquer comme réussie
-          op.status = 'completed';
-          op.result = result;
-          
-          // Appeler le callback de succès
-          if (op.options.onSuccess) {
-            try {
-              op.options.onSuccess(result);
-            } catch (e) {
-              console.error('Erreur dans le callback de succès:', e);
-            }
-          }
-          
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          
-          // Vérifier s'il reste des tentatives
-          if (op.attempts < (op.options.maxRetries || 3)) {
-            // Remettre en attente
-            op.status = 'pending';
-          } else {
-            // Marquer comme échouée
-            op.status = 'failed';
-            op.error = err;
-            
-            // Appeler le callback d'échec
-            if (op.options.onFailure) {
-              try {
-                op.options.onFailure(err);
-              } catch (e) {
-                console.error('Erreur dans le callback d\'échec:', e);
-              }
-            }
-          }
+      if (pendingOperations.length === 0) {
+        return;
+      }
+      
+      for (const operation of pendingOperations) {
+        if (this.isPausedState) {
+          break; // Arrêter le traitement si mis en pause
         }
         
-        // Mettre à jour les statistiques après chaque opération
-        updateStats();
+        await this.processOperation(operation.id);
       }
     } finally {
-      isProcessing = false;
-      lastProcessedAt = Date.now();
-      updateStats();
+      this.isProcessing = false;
+      this.saveToStorage();
     }
-  },
+  }
   
   /**
-   * Traite immédiatement une opération spécifique
+   * Traite une opération spécifique
    */
-  async processNow(operationId: string): Promise<any> {
-    const operation = queue.find(op => op.id === operationId);
+  public async processOperation(operationId: string): Promise<boolean> {
+    const opIndex = this.queue.findIndex(op => op.id === operationId);
     
-    if (!operation) {
-      throw new Error(`Opération ${operationId} non trouvée`);
+    if (opIndex === -1) {
+      console.warn(`Opération non trouvée: ${operationId}`);
+      return false;
     }
     
+    const operation = this.queue[opIndex];
+    
+    // Si déjà traitée avec succès ou échec définitif
     if (operation.status !== 'pending') {
-      throw new Error(`Opération ${operationId} non en attente (${operation.status})`);
+      return operation.status === 'success';
     }
     
-    operation.status = 'processing';
+    // Incrémenter le compteur de tentatives et mettre à jour le statut
     operation.attempts++;
-    updateStats();
+    operation.lastAttempt = Date.now();
+    operation.status = 'processing';
+    this.saveToStorage();
     
     try {
-      // Exécuter l'opération
       const result = await operation.operation();
       
-      // Marquer comme réussie
-      operation.status = 'completed';
-      operation.result = result;
+      // Succès
+      operation.status = 'success';
+      this.saveToStorage();
       
-      // Appeler le callback de succès
-      if (operation.options.onSuccess) {
-        try {
-          operation.options.onSuccess(result);
-        } catch (e) {
-          console.error('Erreur dans le callback de succès:', e);
-        }
-      }
+      toast.success('Opération réussie', {
+        description: operation.context,
+        id: `queue-success-${operationId}`,
+        duration: 3000
+      });
       
-      updateStats();
-      return result;
+      return true;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      // Erreur
+      operation.error = error instanceof Error ? error : new Error(String(error));
       
-      // Vérifier s'il reste des tentatives
-      if (operation.attempts < (operation.options.maxRetries || 3)) {
-        // Remettre en attente
+      // Déterminer si une nouvelle tentative est possible
+      if (operation.attempts < operation.maxAttempts) {
         operation.status = 'pending';
-      } else {
-        // Marquer comme échouée
-        operation.status = 'failed';
-        operation.error = err;
         
-        // Appeler le callback d'échec
-        if (operation.options.onFailure) {
-          try {
-            operation.options.onFailure(err);
-          } catch (e) {
-            console.error('Erreur dans le callback d\'échec:', e);
-          }
-        }
+        toast.warning('Échec temporaire', {
+          description: `${operation.context} - Nouvel essai plus tard`,
+          id: `queue-retry-${operationId}`,
+          duration: 3000
+        });
+      } else {
+        operation.status = 'failed';
+        
+        toast.error('Échec définitif', {
+          description: `${operation.context} - Maximum de tentatives atteint`,
+          id: `queue-fail-${operationId}`,
+          duration: 5000
+        });
       }
       
-      updateStats();
-      throw err;
+      this.saveToStorage();
+      return false;
     }
-  },
+  }
   
   /**
    * Vide la file d'attente
    */
-  clearQueue(): void {
-    // Garder uniquement les opérations terminées ou en cours
-    const nonPendingOperations = queue.filter(op => 
-      op.status === 'completed' || 
-      op.status === 'failed' || 
-      (op.status === 'processing' && isProcessing)
-    );
+  public clearQueue(): void {
+    this.queue = [];
+    this.isProcessing = false;
+    this.saveToStorage();
     
-    queue.length = 0;
-    queue.push(...nonPendingOperations);
-    
-    updateStats();
-  },
-  
-  /**
-   * Récupère les statistiques de la file d'attente
-   */
-  getStats(): RetryQueueStats {
-    return { ...stats };
-  },
-  
-  /**
-   * S'abonne aux changements de statistiques
-   */
-  subscribe(callback: (stats: RetryQueueStats) => void): () => void {
-    subscribers.push(callback);
-    
-    // Envoyer les statistiques initiales
-    callback({ ...stats });
-    
-    // Retourner une fonction pour se désabonner
-    return () => {
-      const index = subscribers.indexOf(callback);
-      if (index !== -1) {
-        subscribers.splice(index, 1);
-      }
-    };
+    toast.info('File d\'attente vidée', {
+      duration: 2000
+    });
   }
-};
+  
+  /**
+   * Met en pause le traitement automatique
+   */
+  public pause(): void {
+    this.isPausedState = true;
+    
+    if (this.processingTimerId !== null) {
+      window.clearTimeout(this.processingTimerId);
+      this.processingTimerId = null;
+    }
+    
+    toast.info('Traitement de la file d\'attente en pause', {
+      duration: 2000
+    });
+  }
+  
+  /**
+   * Reprend le traitement automatique
+   */
+  public resume(): void {
+    this.isPausedState = false;
+    this.scheduleProcessing();
+    
+    toast.info('Traitement de la file d\'attente repris', {
+      duration: 2000
+    });
+  }
+  
+  /**
+   * Vérifie si le traitement est en pause
+   */
+  public isPaused(): boolean {
+    return this.isPausedState;
+  }
+  
+  /**
+   * Obtient les opérations de la file d'attente
+   */
+  public getQueuedOperations(): QueuedOperation[] {
+    return [...this.queue];
+  }
+  
+  /**
+   * Récupère une opération par son ID
+   */
+  public getOperation(id: string): QueuedOperation | undefined {
+    return this.queue.find(op => op.id === id);
+  }
+  
+  /**
+   * Planifie le traitement automatique
+   */
+  private scheduleProcessing(delay: number = this.DEFAULT_RETRY_DELAY): void {
+    if (this.processingTimerId !== null) {
+      window.clearTimeout(this.processingTimerId);
+    }
+    
+    this.processingTimerId = window.setTimeout(() => {
+      this.processQueue();
+    }, delay);
+  }
+  
+  /**
+   * Sauvegarde la file d'attente dans le stockage local
+   */
+  private saveToStorage(): void {
+    try {
+      // On ne sauvegarde que les informations nécessaires, pas les fonctions
+      const serializable = this.queue.map(op => ({
+        id: op.id,
+        context: op.context,
+        attempts: op.attempts,
+        maxAttempts: op.maxAttempts,
+        lastAttempt: op.lastAttempt,
+        status: op.status,
+        error: op.error ? {
+          message: op.error.message,
+          stack: op.error.stack
+        } : undefined
+      }));
+      
+      localStorage.setItem('notion_retry_queue', JSON.stringify(serializable));
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde de la file d\'attente:', e);
+    }
+  }
+  
+  /**
+   * Charge la file d'attente depuis le stockage local
+   */
+  private loadFromStorage(): void {
+    try {
+      const saved = localStorage.getItem('notion_retry_queue');
+      
+      if (!saved) {
+        return;
+      }
+      
+      const parsed = JSON.parse(saved);
+      
+      // Les opérations sauvegardées ne contiennent pas les fonctions,
+      // donc on ne peut pas les restaurer complètement
+      this.queue = [];
+      
+      // On peut notifier l'utilisateur des opérations non restaurées
+      if (parsed.length > 0) {
+        console.log(`${parsed.length} opération(s) non restaurée(s) depuis le stockage`);
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement de la file d\'attente:', e);
+    }
+  }
+}
+
+// Créer et exporter l'instance
+export const notionRetryQueue = new RetryQueue();
+export default notionRetryQueue;

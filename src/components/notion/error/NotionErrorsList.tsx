@@ -3,14 +3,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, ChevronRight, KeyRound, ServerCrash, Database } from 'lucide-react';
 import { useNotionErrorService } from '@/services/notion/errorHandling';
-import { NotionError, NotionErrorType } from '@/services/notion/errorHandling/types';
+import { NotionError, NotionErrorType } from '@/services/notion/types/unified';
 
 interface NotionErrorsListProps {
   maxItems?: number;
   onRetryAll?: () => void;
   onShowDetails?: (error: NotionError) => void;
   compact?: boolean;
-  title?: string; // Ajout de la propriété title
+  title?: string;
 }
 
 const NotionErrorsList: React.FC<NotionErrorsListProps> = ({

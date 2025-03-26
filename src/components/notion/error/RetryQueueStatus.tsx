@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle } from 'lucide-react';
 import { useRetryQueue } from '@/services/notion/errorHandling';
 import { Button } from '@/components/ui/button';
 

@@ -1,145 +1,148 @@
 
-import { NotionErrorType } from './types';
-
 /**
  * Utilitaires pour la gestion des erreurs Notion
  */
-export const notionErrorUtils = {
+import { NotionError, NotionErrorType, NotionErrorSeverity } from '../types/unified';
+
+export const errorUtils = {
   /**
-   * Détecte le type d'erreur en fonction du message
+   * Normalise une erreur quelconque en Error standard
    */
-  detectErrorType(error: string | Error): NotionErrorType {
-    const message = typeof error === 'string' 
-      ? error.toLowerCase() 
-      : error.message.toLowerCase();
-    
-    if (message.includes('unauthorized') || message.includes('auth') || message.includes('token') || message.includes('key') || message.includes('401')) {
-      return NotionErrorType.AUTH;
+  normalizeError(error: unknown): Error {
+    if (error instanceof Error) {
+      return error;
     }
     
-    if (message.includes('permission') || message.includes('access') || message.includes('forbidden') || message.includes('403')) {
-      return NotionErrorType.PERMISSION;
+    if (typeof error === 'string') {
+      return new Error(error);
     }
     
-    if (message.includes('rate limit') || message.includes('too many') || message.includes('429')) {
-      return NotionErrorType.RATE_LIMIT;
-    }
-    
-    if (message.includes('network') || message.includes('connection') || message.includes('fetch') || message.includes('cors')) {
-      return NotionErrorType.NETWORK;
-    }
-    
-    if (message.includes('timeout') || message.includes('timed out')) {
-      return NotionErrorType.TIMEOUT;
-    }
-    
-    if (message.includes('database') || message.includes('db') || message.includes('not found') || message.includes('404')) {
-      return NotionErrorType.DATABASE;
-    }
-    
-    if (message.includes('api') || message.includes('notion api')) {
-      return NotionErrorType.API;
-    }
-    
-    return NotionErrorType.UNKNOWN;
+    return new Error(String(error || 'Erreur inconnue'));
   },
   
   /**
-   * Détermine si une erreur est réessayable
+   * Extrait le message d'erreur d'un objet quelconque
    */
-  isRetryableError(error: string | Error): boolean {
-    const errorType = this.detectErrorType(error);
-    
-    // Les erreurs réseau, de timeout et de limite de taux sont généralement réessayables
-    return [
-      NotionErrorType.NETWORK,
-      NotionErrorType.TIMEOUT,
-      NotionErrorType.RATE_LIMIT
-    ].includes(errorType);
-  },
-  
-  /**
-   * Calcule le délai avant de réessayer en fonction du nombre de tentatives
-   */
-  calculateRetryDelay(attempt: number, baseDelay: number = 1000, useExponentialBackoff: boolean = true): number {
-    if (!useExponentialBackoff) {
-      return baseDelay;
+  extractErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
     }
     
-    // Backoff exponentiel avec une certaine randomisation
-    const exponentialDelay = Math.min(
-      30000, // 30 secondes max
-      baseDelay * Math.pow(2, attempt - 1)
-    );
+    if (typeof error === 'string') {
+      return error;
+    }
     
-    // Ajouter une randomisation (jitter) pour éviter que toutes les requêtes
-    // ne soient réessayées exactement en même temps
-    return exponentialDelay + Math.floor(Math.random() * 1000);
+    if (error && typeof error === 'object') {
+      if ('message' in error && typeof error.message === 'string') {
+        return error.message;
+      }
+      
+      if ('error' in error && typeof error.error === 'string') {
+        return error.error;
+      }
+    }
+    
+    return String(error || 'Erreur inconnue');
   },
   
   /**
-   * Formate un message d'erreur de façon plus conviviale pour l'utilisateur
+   * Génère un message d'erreur spécifique au contexte
    */
-  formatUserFriendlyMessage(error: string | Error, context?: string): string {
-    const message = typeof error === 'string' ? error : error.message;
-    const errorType = this.detectErrorType(error);
-    
-    let userMessage = '';
-    
-    switch (errorType) {
-      case NotionErrorType.AUTH:
-        userMessage = "Problème d'authentification avec Notion. Veuillez vérifier vos identifiants.";
-        break;
+  contextualErrorMessage(error: Error, context: string): string {
+    // Formater le message en fonction du contexte
+    switch (context.toLowerCase()) {
+      case 'auth':
+      case 'authentication':
+        return `Erreur d'authentification: ${error.message}`;
         
-      case NotionErrorType.PERMISSION:
-        userMessage = "Vous n'avez pas les permissions nécessaires pour accéder à cette ressource Notion.";
-        break;
+      case 'database':
+      case 'db':
+        return `Erreur de base de données: ${error.message}`;
         
-      case NotionErrorType.RATE_LIMIT:
-        userMessage = "Notion a temporairement limité les requêtes. Veuillez réessayer dans quelques minutes.";
-        break;
+      case 'api':
+      case 'request':
+        return `Erreur d'API: ${error.message}`;
         
-      case NotionErrorType.NETWORK:
-        userMessage = "Problème de connexion au serveur Notion. Vérifiez votre connexion Internet.";
-        break;
-        
-      case NotionErrorType.TIMEOUT:
-        userMessage = "La requête vers Notion a pris trop de temps. Veuillez réessayer.";
-        break;
-        
-      case NotionErrorType.DATABASE:
-        userMessage = "Problème avec la base de données Notion. Vérifiez que l'ID est correct et que vous avez les accès.";
-        break;
-        
-      case NotionErrorType.API:
-        userMessage = "Erreur de l'API Notion. Vérifiez la validité de votre requête.";
-        break;
+      case 'network':
+      case 'connection':
+        return `Erreur réseau: ${error.message}`;
         
       default:
-        userMessage = `Erreur Notion: ${message}`;
+        // Si le contexte n'est pas reconnu, utiliser simplement le message d'erreur
+        return error.message;
+    }
+  },
+  
+  /**
+   * Détermine si une erreur est critique
+   */
+  isCriticalError(error: Error | NotionError): boolean {
+    // Si c'est une NotionError, utiliser sa sévérité
+    if ('severity' in error) {
+      return error.severity === NotionErrorSeverity.CRITICAL;
     }
     
-    return context ? `${userMessage} (${context})` : userMessage;
+    // Sinon, analyser le message
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('auth') || message.includes('token') || message.includes('401')) {
+      return true;
+    }
+    
+    if (message.includes('permission') || message.includes('access') || message.includes('403')) {
+      return true;
+    }
+    
+    if (message.includes('critical') || message.includes('fatal')) {
+      return true;
+    }
+    
+    return false;
   },
   
   /**
-   * Vérifie si une erreur est liée à la configuration
+   * Détermine si une erreur est transitoire (peut être résoutelle-même plus tard)
    */
-  isConfigurationError(error: string | Error): boolean {
-    const errorType = this.detectErrorType(error);
-    return [
-      NotionErrorType.AUTH,
-      NotionErrorType.PERMISSION,
-      NotionErrorType.DATABASE
-    ].includes(errorType);
-  },
-  
-  /**
-   * Crée une nouvelle instance d'erreur Notion
-   */
-  createError(message: string, options = {}) {
-    // Déléguer à notionErrorService
-    const { notionErrorService } = require('./errorService');
-    return notionErrorService.createError(message, options);
+  isTransientError(error: Error | NotionError): boolean {
+    // Si c'est une NotionError, utiliser son type et retryable
+    if ('type' in error && 'retryable' in error) {
+      if (error.retryable) {
+        return true;
+      }
+      
+      return [
+        NotionErrorType.NETWORK,
+        NotionErrorType.TIMEOUT,
+        NotionErrorType.RATE_LIMIT,
+        NotionErrorType.SERVER
+      ].includes(error.type);
+    }
+    
+    // Sinon, analyser le message
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('network') || message.includes('connection') || 
+        message.includes('internet') || message.includes('offline')) {
+      return true;
+    }
+    
+    if (message.includes('timeout') || message.includes('timed out') || 
+        message.includes('délai')) {
+      return true;
+    }
+    
+    if (message.includes('rate limit') || message.includes('too many') || 
+        message.includes('429')) {
+      return true;
+    }
+    
+    if (message.includes('server') || message.includes('503') || 
+        message.includes('502') || message.includes('500')) {
+      return true;
+    }
+    
+    return false;
   }
 };
+
+export default errorUtils;

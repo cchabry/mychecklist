@@ -1,94 +1,134 @@
 
 /**
- * Types unifiés pour les services Notion et les erreurs
+ * Types unifiés pour le système d'erreurs Notion
  */
 
-// Types pour les erreurs Notion
+// Types d'erreurs Notion
 export enum NotionErrorType {
-  AUTH = "AUTH",
-  API = "API",
-  RATE_LIMIT = "RATE_LIMIT",
-  DATABASE = "DATABASE", 
-  PERMISSION = "PERMISSION",
-  TIMEOUT = "TIMEOUT",
-  NETWORK = "NETWORK",
-  INTERNAL = "INTERNAL",
-  UNKNOWN = "UNKNOWN",
-  // Types additionnels pour compatibilité
-  CORS = "CORS",
-  PROXY = "PROXY",
-  CONFIG = "CONFIG",
-  SERVER = "SERVER",
-  VALIDATION = "VALIDATION",
-  NOT_FOUND = "NOT_FOUND"
+  UNKNOWN = 'unknown',
+  NETWORK = 'network',
+  TIMEOUT = 'timeout',
+  AUTH = 'auth',
+  PERMISSION = 'permission',
+  NOT_FOUND = 'not_found',
+  VALIDATION = 'validation',
+  RATE_LIMIT = 'rate_limit',
+  SERVER = 'server',
+  API = 'api',
+  DATABASE = 'database',
+  CORS = 'cors',
+  PROXY = 'proxy',
+  CONFIG = 'config'
 }
 
+// Niveaux de sévérité des erreurs
 export enum NotionErrorSeverity {
-  INFO = "INFO",
-  WARNING = "WARNING",
-  ERROR = "ERROR",
-  CRITICAL = "CRITICAL"
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical'
 }
 
-// Interface pour les erreurs Notion
+// Interface d'erreur Notion unifiée
 export interface NotionError {
-  id: string;
-  message: string;
-  type: NotionErrorType;
-  timestamp: number;
+  id: string;               // Identifiant unique de l'erreur
+  message: string;          // Message d'erreur
+  type: NotionErrorType;    // Type d'erreur
+  timestamp: number;        // Horodatage de l'erreur
+  severity: NotionErrorSeverity; // Sévérité
+  retryable: boolean;       // Si l'opération peut être réessayée
+  
+  // Propriétés optionnelles
+  operation?: string;       // Opération en cours lors de l'erreur
+  context?: string | Record<string, any>; // Contexte supplémentaire
+  original?: Error;         // Erreur originale
+  stack?: string;           // Stacktrace
+}
+
+// Options pour créer une erreur
+export interface NotionErrorOptions {
+  severity?: NotionErrorSeverity;
+  retryable?: boolean;
   context?: string | Record<string, any>;
   operation?: string;
-  severity: NotionErrorSeverity;
-  retryable: boolean;
-  original?: Error;
-  // Propriétés additionnelles pour compatibilité
+  cause?: Error;
   stack?: string;
-  cause?: any;
+  recoveryActions?: Array<{
+    label: string;
+    action: () => void;
+  }>;
   recoverable?: boolean;
-  details?: any;
+  name?: string;
+  details?: string;
+  type?: NotionErrorType;
 }
 
-// Types pour le système de file d'attente de réessai
-export interface RetryOperationOptions {
-  maxAttempts?: number;
-  retryDelay?: number;
-  onSuccess?: (result: any) => void;
-  onFailure?: (error: Error) => void;
-  skipRetryIf?: (error: Error) => boolean;
+// Interface pour les statistiques d'erreurs
+export interface ErrorCounterStats {
+  total: number;
+  byType: Partial<Record<NotionErrorType, number>>;
+  byEndpoint: Record<string, number>;
+  byHour: Record<string, number>; 
+  byMinute: Record<string, number>;
 }
 
+// Configuration des seuils d'alerte
+export interface AlertThresholdConfig {
+  totalErrorsPerHour?: number;
+  totalErrorsPerMinute?: number;
+  apiErrorsPerHour?: number;
+  networkErrorsPerMinute?: number;
+  authErrorsPerHour?: number;
+}
+
+// Options pour le compteur d'erreurs
+export interface ErrorCounterOptions {
+  maxStorageTime?: number;
+  cleanupInterval?: number;
+}
+
+// Types pour la file d'attente de réessai
 export interface QueuedOperation {
   id: string;
   operation: () => Promise<any>;
-  context: string | Record<string, any>;
+  context: string;
   attempts: number;
   maxAttempts: number;
-  lastError?: Error;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  lastAttempt: number;
+  error?: Error;
+  status: 'pending' | 'processing' | 'success' | 'failed';
 }
 
 export interface RetryQueueStats {
-  pendingCount: number;
-  failedCount: number;
-  successCount: number;
-  totalProcessed: number;
+  pendingOperations: number;
+  completedOperations: number;
+  failedOperations: number;
+  isProcessing: boolean;
   isPaused: boolean;
-  queuedOperations: QueuedOperation[];
+  totalOperations: number;
 }
 
-// Types pour le système de journalisation
+export interface RetryOperationOptions {
+  priority?: number;
+  maxAttempts?: number;
+  delayBetweenAttempts?: number;
+}
+
+// Types pour le logger structuré
 export enum LogLevel {
-  DEBUG = "DEBUG",
-  INFO = "INFO",
-  WARN = "WARN",
-  ERROR = "ERROR"
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+  FATAL = 'fatal'
 }
 
 export interface StructuredLogMessage {
   level: LogLevel;
   message: string;
-  context?: Record<string, any>;
   timestamp: number;
+  source?: string;
+  data?: any;
 }
 
 export interface StructuredLog extends StructuredLogMessage {
@@ -97,79 +137,23 @@ export interface StructuredLog extends StructuredLogMessage {
 
 export interface StructuredLoggerOptions {
   minLevel?: LogLevel;
-  maxLogSize?: number;
-  persistLogs?: boolean;
+  maxLogs?: number;
+  persistent?: boolean;
 }
 
 export interface StructuredLogger {
-  log(level: LogLevel, message: string, context?: Record<string, any>): void;
-  debug(message: string, context?: Record<string, any>): void;
-  info(message: string, context?: Record<string, any>): void;
-  warn(message: string, context?: Record<string, any>): void;
-  error(message: string, context?: Record<string, any>): void;
-  getLogs(): StructuredLog[];
-  clear(): void;
-}
-
-// Types pour le système de comptage d'erreurs
-export interface ErrorCounterStats {
-  totalErrors: number;
-  byType: { type: NotionErrorType; count: number }[];
-  byEndpoint: { endpoint: string; count: number }[];
-  lastError?: NotionError;
-}
-
-export interface AlertThresholdConfig {
-  errorCountThreshold?: number;
-  timeWindowMs?: number;
-  byType?: Record<NotionErrorType, number>;
-}
-
-// Types pour les options d'erreurs Notion
-export interface NotionErrorOptions {
-  severity?: NotionErrorSeverity;
-  retryable?: boolean;
-  context?: string | Record<string, any>;
-  operation?: string;
-}
-
-// Interface pour les abonnés d'erreur
-export interface ErrorSubscriber {
-  id: string;
-  callback: (error: NotionError) => void;
-}
-
-// Types pour les réponses de l'API Notion
-export interface NotionApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    message: string;
-    code?: string;
-    details?: any;
-  };
-}
-
-// Types pour les bases de données Notion
-export interface NotionDatabase {
-  id: string;
-  properties: Record<string, any>;
-  title?: Array<{plain_text?: string}>;
-  url?: string;
-  name?: string;
-}
-
-// Types pour les résultats de recherche Notion
-export interface NotionSearchResults {
-  results: any[];
-  has_more: boolean;
-  next_cursor: string | null;
-}
-
-// Types pour les utilisateurs Notion
-export interface NotionUser {
-  id: string;
-  name: string;
-  type?: string;
-  avatar_url?: string;
+  log: (level: LogLevel, message: string, data?: any) => void;
+  debug: (message: string, data?: any) => void;
+  info: (message: string, data?: any) => void;
+  warn: (message: string, data?: any) => void;
+  error: (message: string, data?: any, context?: Record<string, any>) => void;
+  fatal?: (message: string, data?: any) => void;
+  trace: (message: string, data?: any) => void;
+  getRecentLogs: () => StructuredLog[];
+  subscribe: (callback: (logs: StructuredLog[]) => void) => () => void;
+  getMinLevel: () => LogLevel;
+  setMinLevel: (level: LogLevel) => void;
+  exportLogs: () => string;
+  configure?: (options: Partial<StructuredLoggerOptions>) => void;
+  clear?: () => void;
 }

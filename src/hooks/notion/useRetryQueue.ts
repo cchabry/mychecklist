@@ -1,19 +1,32 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { notionRetryQueue } from '@/services/notion/errorHandling';
-import { RetryQueueStats } from '@/services/notion/types/unified';
+import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
+import { RetryQueueStats, RetryOperationOptions } from '@/services/notion/types/unified';
 
 /**
  * Hook pour utiliser la file d'attente des opérations en échec
  */
 export function useRetryQueue() {
-  const [stats, setStats] = useState<RetryQueueStats>(notionRetryQueue.getStats());
+  const [stats, setStats] = useState<RetryQueueStats>({
+    pendingOperations: 0,
+    completedOperations: 0,
+    failedOperations: 0,
+    isProcessing: false,
+    isPaused: false,
+    totalOperations: 0
+  });
 
   // Mettre à jour les stats régulièrement
   useEffect(() => {
-    const interval = setInterval(() => {
+    const updateStats = () => {
       setStats(notionRetryQueue.getStats());
-    }, 3000);
+    };
+    
+    // Mettre à jour immédiatement
+    updateStats();
+    
+    // Puis toutes les 3 secondes
+    const interval = setInterval(updateStats, 3000);
     
     return () => clearInterval(interval);
   }, []);
@@ -22,9 +35,10 @@ export function useRetryQueue() {
   const addOperation = useCallback((
     operation: () => Promise<any>,
     errorContext: string,
-    maxAttempts: number = 3
+    maxAttempts: number = 3,
+    options: RetryOperationOptions = {}
   ) => {
-    return notionRetryQueue.addOperation(operation, errorContext, maxAttempts);
+    return notionRetryQueue.addOperation(operation, errorContext, maxAttempts, options);
   }, []);
 
   // Traiter la file d'attente
@@ -39,7 +53,7 @@ export function useRetryQueue() {
     setStats(notionRetryQueue.getStats());
   }, []);
 
-  // Méthodes additionnelles pour la compatibilité avec les composants existants
+  // Méthodes additionnelles
   const pauseQueue = useCallback(() => {
     notionRetryQueue.pause();
     setStats(notionRetryQueue.getStats());
@@ -55,8 +69,8 @@ export function useRetryQueue() {
     setStats(notionRetryQueue.getStats());
   }, []);
 
-  const isPaused = notionRetryQueue.isPaused();
   const queuedOperations = notionRetryQueue.getQueuedOperations();
+  const isPaused = notionRetryQueue.isPaused();
 
   return {
     stats,

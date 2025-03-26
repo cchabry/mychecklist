@@ -2,9 +2,13 @@
 // Exporter les services et les hooks
 import { notionErrorService } from './notionErrorService';
 import { notionRetryQueue } from './retryQueue';
-import { useNotionErrorService } from '@/hooks/notion/useNotionErrorService';
-import { useRetryQueue } from '@/hooks/notion/useRetryQueue';
-import { NotionError, NotionErrorType, NotionErrorSeverity } from '../types/unified';
+import useNotionErrorService from '@/hooks/notion/useNotionErrorService';
+import useRetryQueue from '@/hooks/notion/useRetryQueue';
+import { 
+  NotionError, 
+  NotionErrorType, 
+  NotionErrorSeverity 
+} from '../types/unified';
 import { autoRetryHandler } from './autoRetry';
 import { errorUtils } from './utils';
 
@@ -21,7 +25,7 @@ export {
   errorUtils
 };
 
-// Fonction utilitaire pour créer une erreur Notion compatible avec les deux systèmes
+// Fonction utilitaire pour créer une erreur Notion compatible
 export const createNotionError = (
   message: string,
   type: NotionErrorType,
