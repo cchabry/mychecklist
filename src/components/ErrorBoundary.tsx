@@ -3,7 +3,7 @@
  * Composant pour capturer les erreurs React et les afficher proprement
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorDisplay } from './ui/error-display';
 import { AppError, ErrorType } from '@/types/error';
 import { Button } from './ui/button';
@@ -41,8 +41,9 @@ export class ErrorBoundary extends Component<Props, State> {
       error: {
         type: ErrorType.UNKNOWN,
         message: error.message || 'Une erreur est survenue',
+        name: 'AppError:UNKNOWN',
         technicalMessage: error.stack
-      }
+      } as AppError
     };
   }
 

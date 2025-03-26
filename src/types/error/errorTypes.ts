@@ -24,7 +24,13 @@ export enum ErrorType {
   
   // Erreurs de configuration
   CONFIG = 'config',
-  NOT_CONFIGURED = 'not_configured'
+  NOT_CONFIGURED = 'not_configured',
+  
+  // Types spécifiques pour l'affichage
+  AUTH = 'auth',
+  NOTION = 'notion',
+  SERVER = 'server',
+  UNKNOWN = 'unknown'
 }
 
 /**
@@ -37,6 +43,7 @@ export interface AppError extends Error {
   details?: any;
   timestamp?: number;
   context?: string;
+  technicalMessage?: string; // Message technique pour les développeurs
 }
 
 /**
@@ -57,6 +64,7 @@ export function createAppError(
   if (options.status) error.status = options.status;
   if (options.details) error.details = options.details;
   if (options.context) error.context = options.context;
+  if (options.technicalMessage) error.technicalMessage = options.technicalMessage;
   
   return error;
 }

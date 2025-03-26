@@ -1,54 +1,56 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { AppError, ErrorType, isAppError } from '@/types/error';
+import { AppError, ErrorType, isAppError, createAppError } from '@/types/error';
 
 /**
  * Options pour le gestionnaire d'erreurs
  */
 export interface ErrorHandlerOptions {
-  toastErrors?: boolean;
-  logErrors?: boolean;
+  showToast?: boolean;
+  toastTitle?: string;
+  logToConsole?: boolean;
   onError?: (error: AppError) => void;
 }
 
 /**
  * Hook pour gérer les erreurs de manière standardisée
  */
-export function useErrorHandler(options: ErrorHandlerOptions = {}) {
-  const { 
-    toastErrors = true, 
-    logErrors = true,
-    onError 
-  } = options;
-  
+export function useErrorHandler() {
   const [lastError, setLastError] = useState<AppError | null>(null);
   const [isError, setIsError] = useState(false);
   
   /**
    * Gère une erreur
    */
-  const handleError = useCallback((error: unknown) => {
+  const handleError = useCallback((error: unknown, options: ErrorHandlerOptions = {}) => {
+    const { 
+      showToast = true, 
+      toastTitle, 
+      logToConsole = true,
+      onError 
+    } = options;
+    
     // Convertir l'erreur en AppError
     const appError = isAppError(error) 
       ? error 
       : (error instanceof Error
-        ? { ...error, type: ErrorType.UNEXPECTED } as AppError
-        : new Error(String(error)) as AppError);
+        ? createAppError(error.message, ErrorType.UNEXPECTED, { technicalMessage: error.stack })
+        : createAppError(String(error), ErrorType.UNEXPECTED));
     
     // Mettre à jour l'état
     setLastError(appError);
     setIsError(true);
     
     // Logger l'erreur si demandé
-    if (logErrors) {
+    if (logToConsole) {
       console.error('[App Error]', appError);
     }
     
     // Afficher une toast si demandé
-    if (toastErrors) {
+    if (showToast) {
       toast.error(appError.message, {
-        description: appError.context || appError.type
+        description: toastTitle || appError.context || appError.type
       });
     }
     
@@ -58,7 +60,7 @@ export function useErrorHandler(options: ErrorHandlerOptions = {}) {
     }
     
     return appError;
-  }, [toastErrors, logErrors, onError]);
+  }, []);
   
   /**
    * Réinitialise l'état d'erreur

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
 import { getProjects } from '@/features/projects';
@@ -11,7 +12,7 @@ import { useErrorHandler } from '@/hooks/error';
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const { isLoading, startLoading, stopLoading } = useLoadingState();
-  const { handleError, error, clearError } = useErrorHandler();
+  const { handleError, clearError, lastError } = useErrorHandler();
   const { isDemoMode } = useOperationMode();
   
   useEffect(() => {
@@ -39,7 +40,7 @@ export const useProjects = () => {
   return {
     projects,
     isLoading,
-    error,
+    error: lastError,
     isDemoMode
   };
 };

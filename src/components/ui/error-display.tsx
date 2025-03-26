@@ -3,9 +3,8 @@
  * Composant pour afficher les erreurs de manière standardisée
  */
 
-import React from 'react';
 import { XCircle, AlertTriangle, Info } from 'lucide-react';
-import { AppError, ErrorType } from '@/types/error';
+import { AppError, ErrorType, isAppError } from '@/types/error';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
@@ -37,8 +36,16 @@ export function ErrorDisplay({
   
   // Convertir l'erreur en AppError si c'est une chaîne
   const appError: AppError = typeof error === 'string' 
-    ? { type: ErrorType.UNKNOWN, message: error }
-    : error;
+    ? { 
+        type: ErrorType.UNKNOWN, 
+        message: error,
+        name: 'AppError:UNKNOWN'
+      } as AppError
+    : (isAppError(error) ? error : { 
+        type: ErrorType.UNEXPECTED, 
+        message: String(error),
+        name: 'AppError:UNEXPECTED'
+      } as AppError);
   
   // Déterminer l'icône et les classes en fonction du type d'erreur
   let Icon;
@@ -57,6 +64,7 @@ export function ErrorDisplay({
     case ErrorType.NETWORK:
     case ErrorType.NOTION:
     case ErrorType.SERVER:
+    case ErrorType.NOTION_API:
       Icon = XCircle;
       bgColorClass = 'bg-red-50';
       borderColorClass = 'border-red-300';
