@@ -1,6 +1,6 @@
 
 /**
- * Types de base pour l'API
+ * Types de base pour les API
  */
 
 export interface ApiResponse<T = any> {
@@ -11,25 +11,4 @@ export interface ApiResponse<T = any> {
     code?: string;
     details?: any;
   };
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  offset?: number;
-}
-
-export interface FilterParams {
-  [key: string]: any;
-}
-
-export interface SortParams {
-  field: string;
-  direction: 'asc' | 'desc';
-}
-
-export interface QueryParams {
-  pagination?: PaginationParams;
-  filters?: FilterParams;
-  sort?: SortParams;
 }

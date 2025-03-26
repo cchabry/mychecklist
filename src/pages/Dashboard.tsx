@@ -2,12 +2,12 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
-import { Input } from '@/components/ui';
-import { Button } from '@/components/ui';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout';
 import { ProjectCard } from '@/components/data-display/ProjectCard';
 import { useProjects } from '@/hooks/useProjects';
-import { Skeleton } from '@/components/ui';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Page d'accueil affichant les projets et permettant d'en créer de nouveaux
@@ -29,29 +29,26 @@ const Dashboard = () => {
       <PageHeader 
         title="Tableau de bord" 
         description={isDemoMode ? "Mode démonstration - Données fictives" : "Gérez vos projets d'audit"}
-        actions={[
-          {
-            label: '',
-            variant: 'outline',
-            icon: (
-              <div className="relative w-56">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Rechercher un projet..."
-                  className="pl-8 bg-white/80"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            )
-          },
-          {
-            label: 'Nouveau projet',
-            icon: <Plus className="mr-2 h-4 w-4" />,
-            href: '/projects/new'
-          }
-        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="relative w-56">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Rechercher un projet..."
+                className="pl-8 bg-white/80"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button asChild>
+              <Link to="/projects/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau projet
+              </Link>
+            </Button>
+          </div>
+        }
       />
       
       {isLoading ? (

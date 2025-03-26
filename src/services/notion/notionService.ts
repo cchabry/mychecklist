@@ -1,5 +1,6 @@
 
-import { NotionConfig, ConnectionTestResult } from './types';
+import { NotionConfig, ConnectionTestResult, NotionResponse, ProjectsResponse, ProjectResponse, DeleteResponse } from './types';
+import { Project } from '@/types/domain';
 
 /**
  * Service principal pour l'intégration avec Notion
@@ -122,6 +123,160 @@ class NotionService {
         error: error instanceof Error ? error.message : 'Erreur de connexion à l\'API Notion'
       };
     }
+  }
+
+  /**
+   * Récupère tous les projets
+   */
+  async getProjects(): Promise<ProjectsResponse> {
+    if (this.isMockMode()) {
+      // Retourner des données de démo en mode mock
+      return {
+        success: true,
+        data: [
+          {
+            id: 'proj_001',
+            name: 'Site e-commerce (démo)',
+            url: 'https://example.com',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 75
+          },
+          {
+            id: 'proj_002',
+            name: 'Portail intranet (démo)',
+            url: 'https://intranet.example.com',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 30
+          },
+          {
+            id: 'proj_003',
+            name: 'Application mobile (démo)',
+            url: 'https://app.example.com',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 50
+          }
+        ]
+      };
+    }
+
+    // Ici, nous devrions faire un appel réel à l'API Notion
+    // Pour l'instant, on simule la réponse
+    return {
+      success: true,
+      data: []
+    };
+  }
+
+  /**
+   * Récupère un projet par son ID
+   */
+  async getProjectById(id: string): Promise<ProjectResponse> {
+    if (this.isMockMode()) {
+      // Retourner des données de démo en mode mock
+      return {
+        success: true,
+        data: {
+          id,
+          name: `Projet ${id} (démo)`,
+          url: 'https://example.com',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          progress: 50
+        }
+      };
+    }
+
+    // Ici, nous devrions faire un appel réel à l'API Notion
+    // Pour l'instant, on simule la réponse
+    return {
+      success: false,
+      error: {
+        message: 'Projet non trouvé'
+      }
+    };
+  }
+
+  /**
+   * Crée un nouveau projet
+   */
+  async createProject(data: Partial<Project>): Promise<ProjectResponse> {
+    if (this.isMockMode()) {
+      // Simuler la création en mode mock
+      return {
+        success: true,
+        data: {
+          id: `proj_${Date.now()}`,
+          name: data.name || 'Nouveau projet',
+          url: data.url || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          progress: 0
+        }
+      };
+    }
+
+    // Ici, nous devrions faire un appel réel à l'API Notion
+    // Pour l'instant, on simule la réponse
+    return {
+      success: true,
+      data: {
+        id: `proj_${Date.now()}`,
+        name: data.name || 'Nouveau projet',
+        url: data.url || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        progress: 0
+      }
+    };
+  }
+
+  /**
+   * Met à jour un projet existant
+   */
+  async updateProject(project: Project): Promise<ProjectResponse> {
+    if (this.isMockMode()) {
+      // Simuler la mise à jour en mode mock
+      return {
+        success: true,
+        data: {
+          ...project,
+          updatedAt: new Date().toISOString()
+        }
+      };
+    }
+
+    // Ici, nous devrions faire un appel réel à l'API Notion
+    // Pour l'instant, on simule la réponse
+    return {
+      success: true,
+      data: {
+        ...project,
+        updatedAt: new Date().toISOString()
+      }
+    };
+  }
+
+  /**
+   * Supprime un projet
+   */
+  async deleteProject(id: string): Promise<DeleteResponse> {
+    if (this.isMockMode()) {
+      // Simuler la suppression en mode mock
+      return {
+        success: true,
+        data: true
+      };
+    }
+
+    // Ici, nous devrions faire un appel réel à l'API Notion
+    // Pour l'instant, on simule la réponse
+    return {
+      success: true,
+      data: true
+    };
   }
 }
 

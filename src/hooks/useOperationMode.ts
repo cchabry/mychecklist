@@ -1,70 +1,32 @@
 
-import { useState } from 'react';
-import { OperationModeType, OperationModeState } from '@/types/operation';
+import { useState, useEffect } from 'react';
+import { notionService } from '@/services/notion/notionService';
 
 /**
- * Hook pour déterminer le mode d'opération de l'application
+ * Hook pour gérer le mode de fonctionnement (démo ou réel)
  */
 export const useOperationMode = () => {
-  const [mode, setMode] = useState<OperationModeType>('demo');
-  const [state, setState] = useState<OperationModeState>({
-    mode: 'demo',
-    timestamp: Date.now(),
-    source: 'system'
-  });
-
-  // Pour l'instant, on est toujours en mode démo
-  const isDemoMode = mode === 'demo';
-  const isRealMode = mode === 'real';
-
-  // Fonctions pour changer le mode
-  const enableDemoMode = (reason?: string) => {
-    setMode('demo');
-    setState({
-      mode: 'demo',
-      reason,
-      timestamp: Date.now(),
-      source: 'user'
-    });
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  
+  useEffect(() => {
+    // Vérifier le mode actuel
+    const isMockMode = notionService.isMockMode();
+    setIsDemoMode(isMockMode);
+  }, []);
+  
+  const enableDemoMode = () => {
+    notionService.setMockMode(true);
+    setIsDemoMode(true);
   };
-
-  const enableRealMode = (reason?: string) => {
-    setMode('real');
-    setState({
-      mode: 'real',
-      reason,
-      timestamp: Date.now(),
-      source: 'user'
-    });
+  
+  const enableRealMode = () => {
+    notionService.setMockMode(false);
+    setIsDemoMode(false);
   };
-
-  const reset = () => {
-    setMode('demo');
-    setState({
-      mode: 'demo',
-      timestamp: Date.now(),
-      source: 'system'
-    });
-  };
-
-  // Pour compatibilité avec l'ancienne API
-  const setDemoMode = () => enableDemoMode();
-  const setRealMode = () => enableRealMode();
-  const toggleMode = () => (isDemoMode ? enableRealMode() : enableDemoMode());
-
+  
   return {
-    mode,
-    state,
     isDemoMode,
-    isRealMode,
     enableDemoMode,
-    enableRealMode,
-    reset,
-    // Anciennes méthodes pour compatibilité
-    setDemoMode,
-    setRealMode,
-    toggleMode
+    enableRealMode
   };
 };
-
-export default useOperationMode;

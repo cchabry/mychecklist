@@ -1,37 +1,36 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 /**
- * Hook pour gérer l'état de chargement d'un formulaire ou d'une requête
+ * Hook pour gérer les états de chargement et d'erreur
  */
-export const useLoadingState = (initialLoading = false) => {
-  const [isLoading, setIsLoading] = useState(initialLoading);
+export const useLoadingState = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const startLoading = () => {
+
+  const startLoading = useCallback(() => {
     setIsLoading(true);
     setError(null);
-  };
-  
-  const stopLoading = () => {
+  }, []);
+
+  const stopLoading = useCallback(() => {
     setIsLoading(false);
-  };
-  
-  const setErrorMessage = (message: string) => {
+  }, []);
+
+  const setErrorMessage = useCallback((message: string) => {
     setError(message);
-  };
-  
-  const resetState = () => {
-    setIsLoading(false);
+  }, []);
+
+  const clearError = useCallback(() => {
     setError(null);
-  };
-  
+  }, []);
+
   return {
     isLoading,
     error,
     startLoading,
     stopLoading,
     setErrorMessage,
-    resetState
+    clearError
   };
 };

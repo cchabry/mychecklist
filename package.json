@@ -26,7 +26,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
+    "clsx": "file:latest tailwind-merge@latest class-variance-authority@latest @radix-ui/react-slot@latest",
     "date-fns": "^2.30.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.5",
