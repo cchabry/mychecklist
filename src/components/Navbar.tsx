@@ -22,11 +22,10 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             <Link to="/" className="font-bold text-xl flex items-center gap-2">
               <img 
-                src="/lovable-uploads/97b7e9bb-d235-4de7-a612-8232dad44703.png" 
-                alt="Think My Web Logo" 
-                className="h-8 w-auto" 
+                src="/lovable-uploads/78a29717-eb52-4496-9704-7d02bfec1df7.png" 
+                alt="myChecklist Logo" 
+                className="h-10 w-auto" 
               />
-              <span className="text-primary">Audit Checklist</span>
             </Link>
           </div>
           
