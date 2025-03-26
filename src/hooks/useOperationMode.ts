@@ -15,7 +15,11 @@ const operationMode = {
   reset: () => {},
   isDemoMode: () => false,
   isRealMode: () => true,
-  subscribe: (listener: (state: OperationModeState) => void) => () => {}
+  subscribe: (listener: (state: OperationModeState) => void) => {
+    // This is a stub, so we're not actually using the listener yet
+    // When implemented, this will call the listener when the state changes
+    return () => {}; // Return unsubscribe function
+  }
 };
 
 /**
