@@ -4,10 +4,10 @@
  * Utilise EXCLUSIVEMENT le service centralisé pour toutes les requêtes
  */
 
-import { notionApiService } from '@/services/notion/notionApiService';
+import { notionCentralService } from '@/services/notion/notionCentralService';
 
-// Re-exporter le service API comme point d'entrée principal
-export const notionApi = notionApiService;
+// Re-exporter le service centralisé comme API principale
+export const notionApi = notionCentralService;
 
 // Exporter par défaut
 export default notionApi;
