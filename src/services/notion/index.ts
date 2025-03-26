@@ -12,7 +12,7 @@ export { exigenceService } from './exigenceService';
 export { samplePageService } from './samplePageService';
 export { auditService } from './auditService';
 export { evaluationService } from './evaluationService';
-export { actionService } from './actionService';
+export { actionService, progressService } from './action';
 
 // Exporter le client HTTP de base
 export { notionClient } from './notionClient';
