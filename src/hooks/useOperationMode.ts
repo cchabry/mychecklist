@@ -1,39 +1,15 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { UseOperationMode } from '@/types/operation/operationMode';
-import { operationModeService } from '@/services/operationMode/operationModeService';
+import { useState, useEffect } from 'react';
 
 /**
- * Hook pour utiliser le service de mode opérationnel
+ * Hook pour gérer le mode d'opération (démo ou réel)
  */
-export function useOperationMode(): UseOperationMode {
-  const [state, setState] = useState(operationModeService.getState());
-  
-  useEffect(() => {
-    // S'abonner aux changements d'état
-    const unsubscribe = operationModeService.subscribe(setState);
-    return unsubscribe;
-  }, []);
-  
-  const enableRealMode = useCallback((reason?: string) => {
-    operationModeService.enableRealMode(reason);
-  }, []);
-  
-  const enableDemoMode = useCallback((reason?: string) => {
-    operationModeService.enableDemoMode(reason);
-  }, []);
-  
-  const reset = useCallback(() => {
-    operationModeService.reset();
-  }, []);
+export const useOperationMode = () => {
+  // Pour l'instant, on considère que nous sommes toujours en mode démo
+  // Sera implémenté dans les prochains sprints
+  const [isDemoMode] = useState(true);
   
   return {
-    mode: state.mode,
-    state,
-    isDemoMode: state.mode === 'demo',
-    isRealMode: state.mode === 'real',
-    enableRealMode,
-    enableDemoMode,
-    reset
+    isDemoMode
   };
-}
+};
