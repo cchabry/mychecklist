@@ -55,7 +55,7 @@ const ProjectCreatePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-tertiary/20 p-6">
+    <div className="p-6">
       <PageHeader 
         title="Créer un nouveau projet" 
         description="Créez un nouveau projet pour démarrer un audit"

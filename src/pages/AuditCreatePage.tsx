@@ -43,7 +43,7 @@ const AuditCreatePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-tertiary/20 p-6">
+    <div className="p-6">
       <PageHeader 
         title="Créer un nouvel audit" 
         description="Démarrer un nouvel audit pour ce projet"

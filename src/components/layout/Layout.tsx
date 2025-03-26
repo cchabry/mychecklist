@@ -13,7 +13,7 @@ const MainLayout = () => {
       <div className="fixed top-16 right-4 z-50">
         <OperationModeIndicator />
       </div>
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 bg-tertiary/20">
         <Outlet />
       </main>
     </div>
