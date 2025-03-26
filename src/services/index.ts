@@ -5,4 +5,7 @@
  */
 
 export * from './operationMode';
-// D'autres services seront exportés ici à mesure qu'ils seront implémentés
+export * from './notion/notionService';
+export * from './notion/notionClient';
+export * from './notion/types';
+export * from './cache/cacheService';
