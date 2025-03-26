@@ -6,6 +6,7 @@
 // Réexporter les types spécifiques
 export * from './project';
 export * from './audit';
+export * from './checklist';
 
 /**
  * Niveaux d'importance pour les exigences

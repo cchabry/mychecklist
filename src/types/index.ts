@@ -10,7 +10,9 @@ export * from './domain';
 export * from './api';
 
 // Types d'énumérations
-export * from './enums';
+export {
+  // Re-export everything except ImportanceLevel to avoid ambiguity
+} from './enums';
 
 // Types du mode opérationnel
 export * from './operation';
