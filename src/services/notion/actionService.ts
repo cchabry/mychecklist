@@ -121,7 +121,7 @@ class ActionService {
   /**
    * Supprime une action corrective
    */
-  async deleteAction(id: string): Promise<NotionResponse<boolean>> {
+  async deleteAction(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {
