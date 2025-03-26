@@ -15,7 +15,7 @@ const operationMode = {
   reset: () => {},
   isDemoMode: () => false,
   isRealMode: () => true,
-  subscribe: (callback: any) => () => {}
+  subscribe: (listener: (state: OperationModeState) => void) => () => {}
 };
 
 /**
