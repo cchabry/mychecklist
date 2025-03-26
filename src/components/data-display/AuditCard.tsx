@@ -17,7 +17,7 @@ interface AuditCardProps {
  * Carte d'affichage d'un audit avec ses informations et métriques
  */
 export const AuditCard = ({ audit, projectId, className }: AuditCardProps) => {
-  const { id, name, updatedAt, progress } = audit;
+  const { id, name, updatedAt, progress, itemsCount = 15 } = audit;
   
   // Simulation de données pour l'interface
   // Dans une version réelle, ces données viendraient d'un état ou d'un service
@@ -25,7 +25,7 @@ export const AuditCard = ({ audit, projectId, className }: AuditCardProps) => {
     compliant: 8,
     partiallyCompliant: 3,
     nonCompliant: 4,
-    total: 15
+    total: itemsCount || 15
   };
   
   const actionCount = 6;
@@ -70,6 +70,9 @@ export const AuditCard = ({ audit, projectId, className }: AuditCardProps) => {
     });
   };
 
+  // Calculer le nombre d'exigences évaluées
+  const evaluatedCount = Math.round(progress * complianceStats.total / 100);
+
   return (
     <Card className={cn("bg-white/60 hover:bg-white/80 transition-colors border-gray-200", className)}>
       <CardHeader className="pb-2">
@@ -89,11 +92,11 @@ export const AuditCard = ({ audit, projectId, className }: AuditCardProps) => {
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs">Progression</span>
-            <span className="text-xs">{progress}%</span>
+            <span className="text-xs">{evaluatedCount} / {complianceStats.total}</span>
           </div>
           <Progress value={progress} className="h-2" />
           <p className="text-xs mt-1 text-muted-foreground">
-            {Math.round(progress * complianceStats.total / 100)} / {complianceStats.total} exigences évaluées
+            {evaluatedCount} / {complianceStats.total} exigences évaluées
           </p>
         </div>
         
