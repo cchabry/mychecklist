@@ -58,20 +58,25 @@ const Dashboard = () => {
             label: 'Nouveau projet',
             icon: <Plus className="mr-2 h-4 w-4" />,
             href: '/projects/new'
+          },
+          {
+            label: '',
+            variant: 'outline',
+            icon: (
+              <div className="relative w-56">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher un projet..."
+                  className="pl-8 bg-white/80"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            )
           }
         ]}
       />
-      
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Rechercher un projet..."
-          className="pl-8 bg-white/80"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
       
       {filteredProjects.length === 0 ? (
         <div className="text-center py-12 border rounded-md bg-white/90">

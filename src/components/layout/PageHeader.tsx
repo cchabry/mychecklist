@@ -34,26 +34,30 @@ const PageHeader = ({
       </div>
       
       {actions.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+        <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
           {actions.map((action, index) => (
-            <Button
-              key={index}
-              variant={action.variant || 'default'}
-              onClick={action.onClick}
-              asChild={!!action.href}
-            >
-              {action.href ? (
-                <a href={action.href}>
-                  {action.icon}
-                  {action.label}
-                </a>
-              ) : (
-                <>
-                  {action.icon}
-                  {action.label}
-                </>
-              )}
-            </Button>
+            action.label ? (
+              <Button
+                key={index}
+                variant={action.variant || 'default'}
+                onClick={action.onClick}
+                asChild={!!action.href}
+              >
+                {action.href ? (
+                  <a href={action.href}>
+                    {action.icon}
+                    {action.label}
+                  </a>
+                ) : (
+                  <>
+                    {action.icon}
+                    {action.label}
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div key={index}>{action.icon}</div>
+            )
           ))}
         </div>
       )}
