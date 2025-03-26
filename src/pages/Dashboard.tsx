@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
@@ -49,7 +48,7 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-tertiary/20 p-6">
+    <div className="p-6">
       <PageHeader 
         title="Tableau de bord" 
         description="Gérez vos projets d'audit"

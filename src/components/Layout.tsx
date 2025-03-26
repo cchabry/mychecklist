@@ -6,12 +6,12 @@ import { OperationModeIndicator } from './OperationModeIndicator';
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-tertiary/20">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="fixed top-16 right-4 z-50">
         <OperationModeIndicator />
       </div>
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 bg-tertiary/20">
         <Outlet />
       </main>
       <Toaster position="top-right" richColors />
