@@ -1,6 +1,9 @@
 
 /**
  * Service pour la gestion des pages d'échantillon via Notion
+ * 
+ * Ce service fournit des méthodes pour interagir avec les pages d'échantillon
+ * stockées dans la base de données Notion, avec prise en charge du mode démonstration.
  */
 
 import { notionClient } from './notionClient';
@@ -13,6 +16,9 @@ import { SamplePage } from '@/types/domain';
 class SamplePageService {
   /**
    * Récupère toutes les pages d'échantillon d'un projet
+   * 
+   * @param projectId - Identifiant du projet
+   * @returns Réponse contenant la liste des pages d'échantillon ou une erreur
    */
   async getSamplePages(projectId: string): Promise<NotionResponse<SamplePage[]>> {
     const config = notionClient.getConfig();
@@ -42,6 +48,9 @@ class SamplePageService {
   
   /**
    * Récupère une page d'échantillon par son ID
+   * 
+   * @param id - Identifiant unique de la page
+   * @returns Réponse contenant la page d'échantillon ou une erreur
    */
   async getSamplePageById(id: string): Promise<NotionResponse<SamplePage>> {
     // Si en mode démo, renvoyer des données simulées
@@ -78,6 +87,9 @@ class SamplePageService {
   
   /**
    * Crée une nouvelle page d'échantillon
+   * 
+   * @param page - Données de la page à créer
+   * @returns Réponse contenant la page créée ou une erreur
    */
   async createSamplePage(page: Omit<SamplePage, 'id'>): Promise<NotionResponse<SamplePage>> {
     // Si en mode démo, simuler la création
@@ -106,6 +118,9 @@ class SamplePageService {
   
   /**
    * Met à jour une page d'échantillon existante
+   * 
+   * @param page - Données complètes de la page à mettre à jour
+   * @returns Réponse contenant la page mise à jour ou une erreur
    */
   async updateSamplePage(page: SamplePage): Promise<NotionResponse<SamplePage>> {
     // Si en mode démo, simuler la mise à jour
@@ -126,6 +141,9 @@ class SamplePageService {
   
   /**
    * Supprime une page d'échantillon
+   * 
+   * @param id - Identifiant de la page à supprimer
+   * @returns Réponse indiquant le succès ou l'échec de l'opération
    */
   async deleteSamplePage(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression
@@ -146,6 +164,10 @@ class SamplePageService {
   
   /**
    * Génère des pages d'échantillon fictives pour le mode démo
+   * 
+   * @param projectId - Identifiant du projet
+   * @returns Tableau de pages d'échantillon
+   * @private
    */
   private getMockSamplePages(projectId: string): SamplePage[] {
     return [

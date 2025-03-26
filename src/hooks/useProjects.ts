@@ -7,7 +7,32 @@ import { useOperationMode } from '@/hooks/useOperationMode';
 import { useErrorHandler } from '@/hooks/error';
 
 /**
- * Hook pour récupérer la liste des projets
+ * Hook personnalisé pour récupérer et gérer la liste des projets
+ * 
+ * Ce hook encapsule la logique de chargement des projets depuis l'API Notion,
+ * gère l'état de chargement et les erreurs potentielles.
+ * 
+ * @returns Un objet contenant:
+ *   - projects: La liste des projets récupérés
+ *   - isLoading: L'état de chargement (true pendant le chargement)
+ *   - error: Erreur potentielle survenue lors du chargement
+ *   - isDemoMode: Indique si l'application est en mode démonstration
+ * 
+ * @example
+ * ```tsx
+ * const { projects, isLoading, error } = useProjects();
+ * 
+ * if (isLoading) return <Loader />;
+ * if (error) return <ErrorDisplay error={error} />;
+ * 
+ * return (
+ *   <div>
+ *     {projects.map(project => (
+ *       <ProjectCard key={project.id} project={project} />
+ *     ))}
+ *   </div>
+ * );
+ * ```
  */
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -16,6 +41,9 @@ export const useProjects = () => {
   const { isDemoMode } = useOperationMode();
   
   useEffect(() => {
+    /**
+     * Fonction asynchrone pour récupérer les projets
+     */
     const fetchProjects = async () => {
       clearError();
       startLoading();

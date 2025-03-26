@@ -1,13 +1,20 @@
 
 /**
  * Fonctionnalités liées aux projets
+ * 
+ * Ce module fournit des fonctions pour interagir avec les projets
+ * via le service Notion, en gérant les conversions de données et
+ * les erreurs.
  */
 
 import { notionService } from '@/services/notion/notionService';
 import { Project } from '@/types/domain';
 
 /**
- * Récupère tous les projets
+ * Récupère tous les projets depuis l'API Notion
+ * 
+ * @returns Promise résolvant vers un tableau de projets
+ * @throws Error si la récupération échoue
  */
 export async function getProjects(): Promise<Project[]> {
   const response = await notionService.getProjects();
@@ -21,7 +28,11 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 /**
- * Récupère un projet par son ID
+ * Récupère un projet par son identifiant
+ * 
+ * @param id - Identifiant unique du projet
+ * @returns Promise résolvant vers le projet ou null si non trouvé
+ * @throws Error si la récupération échoue
  */
 export async function getProjectById(id: string): Promise<Project | null> {
   const response = await notionService.getProjectById(id);
@@ -36,6 +47,10 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
 /**
  * Crée un nouveau projet
+ * 
+ * @param data - Données du projet à créer
+ * @returns Promise résolvant vers le projet créé
+ * @throws Error si la création échoue
  */
 export async function createProject(data: { name: string; url?: string; description?: string }): Promise<Project> {
   const response = await notionService.createProject(data);
@@ -49,6 +64,11 @@ export async function createProject(data: { name: string; url?: string; descript
 
 /**
  * Met à jour un projet existant
+ * 
+ * @param id - Identifiant unique du projet
+ * @param data - Données à mettre à jour
+ * @returns Promise résolvant vers le projet mis à jour
+ * @throws Error si la mise à jour échoue
  */
 export async function updateProject(id: string, data: { name?: string; url?: string; description?: string }): Promise<Project> {
   const response = await notionService.updateProject(id, data);
@@ -62,6 +82,10 @@ export async function updateProject(id: string, data: { name?: string; url?: str
 
 /**
  * Supprime un projet
+ * 
+ * @param id - Identifiant unique du projet à supprimer
+ * @returns Promise résolvant vers true si la suppression a réussi
+ * @throws Error si la suppression échoue
  */
 export async function deleteProject(id: string): Promise<boolean> {
   const response = await notionService.deleteProject(id);
