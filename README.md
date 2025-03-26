@@ -59,3 +59,10 @@ Si le déploiement échoue, vérifiez ces points courants:
 - Les fonctions serverless Vercel ont une limite de 10 secondes d'exécution dans le plan gratuit (étendue à 30s dans notre configuration).
 - Si vous rencontrez des problèmes, vérifiez les logs dans le dashboard Vercel.
 - Le déploiement de ce projet utilise des `rewrites` au lieu de `routes` pour assurer la compatibilité avec les nouvelles versions de Vercel.
+
+<!-- 
+Ce projet permet de réaliser des audits de sites web en vérifiant leur conformité 
+par rapport à une checklist de bonnes pratiques. Chaque projet possède son propre 
+échantillon de pages et ses propres exigences. Les audits génèrent des évaluations 
+et des actions correctives qui peuvent être suivies dans un plan d'action.
+-->
