@@ -1,57 +1,17 @@
 
-import { useState } from 'react';
-import { OperationModeType, OperationModeState } from '@/types/operation/operationMode';
-
 /**
- * Hook pour gérer le mode d'opération (démo ou réel)
+ * Hook pour déterminer le mode d'opération de l'application
+ * En attendant l'implémentation complète, il retourne toujours le mode démo activé
  */
 export const useOperationMode = () => {
-  // État simple pour l'instant, sera enrichi dans les prochains sprints
-  const [mode, setMode] = useState<OperationModeType>('real');
-  
-  // État détaillé du mode opérationnel
-  const [state, setState] = useState<OperationModeState>({
-    mode: 'real',
-    timestamp: Date.now(),
-    source: 'system'
-  });
-  
-  // Fonctions pour changer le mode
-  const enableRealMode = (reason?: string) => {
-    setMode('real');
-    setState({
-      mode: 'real',
-      reason,
-      timestamp: Date.now(),
-      source: 'user'
-    });
-  };
-  
-  const enableDemoMode = (reason?: string) => {
-    setMode('demo');
-    setState({
-      mode: 'demo',
-      reason,
-      timestamp: Date.now(),
-      source: 'user'
-    });
-  };
-  
-  const reset = () => {
-    enableRealMode();
-  };
-  
-  // Valeurs calculées
-  const isDemoMode = mode === 'demo';
-  const isRealMode = mode === 'real';
-  
+  // Pour l'instant, on est toujours en mode démo
   return {
-    mode,
-    state,
-    isDemoMode,
-    isRealMode,
-    enableRealMode,
-    enableDemoMode,
-    reset
+    isDemoMode: true,
+    isRealMode: false,
+    setDemoMode: () => {},
+    setRealMode: () => {},
+    toggleMode: () => {}
   };
 };
+
+export default useOperationMode;

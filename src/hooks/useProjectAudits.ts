@@ -11,7 +11,7 @@ export const useProjectAudits = (projectId: string) => {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { isDemoMode } = useOperationMode();
+  const { isDemoMode } = useOperationMode ? useOperationMode() : { isDemoMode: true };
   
   useEffect(() => {
     if (!projectId) {
@@ -34,7 +34,7 @@ export const useProjectAudits = (projectId: string) => {
             createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
             updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
             progress: 75,
-            itemsCount: 20
+            itemsCount: 15
           },
           {
             id: `audit-${projectId}-2`,

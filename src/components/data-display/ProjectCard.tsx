@@ -1,20 +1,12 @@
 
-import { ClipboardList, Calendar, Users, ExternalLink } from 'lucide-react';
+import { ClipboardList, Calendar, Users, ExternalLink, FilePlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
-
-export interface Project {
-  id: string;
-  name: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-  progress: number;
-  status?: 'active' | 'completed' | 'pending' | 'archived';
-  lastAuditDate?: string;
-}
+import { useProjectAudits } from '@/hooks/useProjectAudits';
+import { Project } from '@/types/domain';
+import { AuditCard } from './AuditCard';
 
 interface ProjectCardProps {
   project: Project;
@@ -22,28 +14,24 @@ interface ProjectCardProps {
 }
 
 /**
- * Carte d'affichage d'un projet avec ses informations principales
+ * Carte d'affichage d'un projet avec ses audits
  */
 export const ProjectCard = ({ project, className }: ProjectCardProps) => {
-  const { id, name, url, status, progress, lastAuditDate } = project;
+  const { id, name, url, createdAt } = project;
   
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500 text-white';
-      case 'completed':
-        return 'bg-blue-500 text-white';
-      case 'pending':
-        return 'bg-yellow-500 text-white';
-      case 'archived':
-        return 'bg-gray-500 text-white';
-      default:
-        return 'bg-slate-200 text-slate-700';
-    }
+  const { audits, isLoading, error } = useProjectAudits(id);
+  
+  // Formatage de la date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric', 
+      month: 'short',
+      day: 'numeric'
+    });
   };
   
   return (
-    <Card className={cn("hover:shadow-md transition-shadow", className)}>
+    <Card className={cn("hover:shadow-md transition-shadow bg-tertiary/30", className)}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <h3 className="text-lg font-medium">
@@ -51,11 +39,6 @@ export const ProjectCard = ({ project, className }: ProjectCardProps) => {
               {name}
             </Link>
           </h3>
-          {status && (
-            <Badge className={getStatusColor(status)}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-          )}
         </div>
         <p className="text-sm text-muted-foreground flex items-center gap-1">
           <ExternalLink size={14} />
@@ -71,38 +54,56 @@ export const ProjectCard = ({ project, className }: ProjectCardProps) => {
       </CardHeader>
       
       <CardContent>
-        <div className="h-2 bg-gray-200 rounded-full mb-4">
-          <div 
-            className="h-2 bg-primary rounded-full" 
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="flex justify-between items-center mb-2 text-sm">
           <div className="flex items-center gap-1 text-muted-foreground">
             <ClipboardList size={14} />
-            <span>Exigences: 12</span>
+            <span>12 exigences</span>
           </div>
           <div className="flex items-center gap-1 text-muted-foreground">
             <Users size={14} />
-            <span>Pages: 5</span>
+            <span>5 pages</span>
           </div>
         </div>
+        
+        {isLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-24 bg-gray-200 rounded"></div>
+            <div className="h-24 bg-gray-200 rounded"></div>
+          </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500 bg-red-50 rounded border border-red-200">
+            Impossible de charger les audits
+          </div>
+        ) : audits.length > 0 ? (
+          <div className="space-y-3 mt-3">
+            {audits.map(audit => (
+              <AuditCard key={audit.id} audit={audit} projectId={id} />
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 text-center text-muted-foreground bg-white/60 rounded border border-gray-100">
+            Aucun audit pour ce projet
+          </div>
+        )}
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-3"
+          asChild
+        >
+          <Link to={`/projects/${id}/audits/new`}>
+            <FilePlus size={16} className="mr-2" />
+            Nouvel audit
+          </Link>
+        </Button>
       </CardContent>
       
-      <CardFooter className="pt-0 text-xs text-muted-foreground border-t mt-2 pt-2">
-        <div className="flex justify-between w-full">
-          <span className="flex items-center gap-1">
-            <Calendar size={12} />
-            {lastAuditDate ? `Dernier audit: ${lastAuditDate}` : 'Aucun audit'}
-          </span>
-          <Link 
-            to={`/projects/${id}`}
-            className="text-primary hover:underline"
-          >
-            Voir détails
-          </Link>
-        </div>
+      <CardFooter className="pt-2 text-xs text-muted-foreground border-t">
+        <span className="flex items-center gap-1">
+          <Calendar size={12} />
+          Créé le {formatDate(createdAt)}
+        </span>
       </CardFooter>
     </Card>
   );

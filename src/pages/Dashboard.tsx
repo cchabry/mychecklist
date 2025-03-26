@@ -19,7 +19,6 @@ const Dashboard = () => {
       url: 'www.example.com',
       createdAt: '2023-01-01',
       updatedAt: '2023-05-15',
-      progress: 75,
       status: 'active',
       lastAuditDate: '2023-04-20'
     },
@@ -29,7 +28,6 @@ const Dashboard = () => {
       url: 'app.example.org',
       createdAt: '2023-02-10',
       updatedAt: '2023-04-05',
-      progress: 30,
       status: 'pending'
     },
     {
@@ -38,7 +36,6 @@ const Dashboard = () => {
       url: 'shop.example.net',
       createdAt: '2022-11-15',
       updatedAt: '2023-03-20',
-      progress: 100,
       status: 'completed',
       lastAuditDate: '2023-03-10'
     }
@@ -51,7 +48,7 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-tertiary/20 min-h-screen p-6">
       <PageHeader 
         title="Tableau de bord" 
         description="Gérez vos projets d'audit"
@@ -69,14 +66,14 @@ const Dashboard = () => {
         <Input
           type="text"
           placeholder="Rechercher un projet..."
-          className="pl-8"
+          className="pl-8 bg-white/80"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
       
       {filteredProjects.length === 0 ? (
-        <div className="text-center py-12 border rounded-md bg-white">
+        <div className="text-center py-12 border rounded-md bg-white/90">
           <h3 className="text-lg font-medium">Aucun projet trouvé</h3>
           <p className="text-muted-foreground mt-1">
             {search ? 'Modifiez votre recherche ou ' : ''}créez un nouveau projet pour commencer
