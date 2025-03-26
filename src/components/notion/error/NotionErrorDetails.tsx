@@ -1,103 +1,38 @@
 
-import React, { useState, useCallback } from 'react';
-import { 
-  AlertCircle, 
-  XCircle, 
-  RefreshCw,
-  ServerCrash,
-  FileWarning,
-  Database,
-  ChevronDown,
-  ChevronRight
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { NotionError, NotionErrorType, NotionErrorOptions } from '@/services/notion/types/unified';
-import { useRetryQueue } from '@/services/notion/errorHandling';
-import { notionErrorService } from '@/services/notion/errorHandling/errorService';
+import { Button } from '@/components/ui/button';
+import { NotionError } from '@/services/notion/types/unified';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import useRetryQueue from '@/hooks/notion/useRetryQueue';
 
 interface NotionErrorDetailsProps {
-  error?: string | Error | NotionError;
+  error: NotionError;
   context?: string | Record<string, any>;
   isOpen: boolean;
   onClose: () => void;
-  onRetry?: () => void;
-  actions?: Array<{
-    label: string;
-    onClick: () => void;
-    variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-  }>;
+  onRetry?: () => Promise<void>;
 }
 
-const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({ 
-  error, 
-  context, 
-  isOpen, 
+const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
+  error,
+  context,
+  isOpen,
   onClose,
   onRetry,
-  actions = []
 }) => {
-  const { enqueue } = useRetryQueue();
-  const [showDetails, setShowDetails] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
-  
-  if (!error) return null;
-  
-  // Normaliser l'erreur en objet NotionError si nécessaire
-  const normalizeError = useCallback((): NotionError => {
-    if (typeof error === 'string') {
-      return notionErrorService.createError(error, {
-        context: context as string | Record<string, any>,
-        retryable: false,
-        recoverable: false
-      });
-    } else if (error instanceof Error) {
-      const options: NotionErrorOptions = {
-        context: context as string | Record<string, any>,
-        cause: error,
-        stack: error.stack,
-        retryable: false,
-        recoverable: false
-      };
-      return notionErrorService.createError(error.message, options);
-    } else if (typeof error === 'object' && 'type' in error) {
-      // C'est déjà une NotionError
-      return error as NotionError;
-    }
-    
-    // Cas par défaut
-    return notionErrorService.createError(String(error), {
-      context: context as string | Record<string, any>,
-      retryable: false,
-      recoverable: false
-    });
-  }, [error, context]);
-  
-  const errorObj = normalizeError();
-  const errorMessage = errorObj.message || 'Erreur inconnue';
-  
-  const getErrorIcon = (type?: NotionErrorType) => {
-    switch (type) {
-      case NotionErrorType.API:
-        return <ServerCrash className="h-5 w-5 text-red-500" />;
-      case NotionErrorType.CORS:
-        return <FileWarning className="h-5 w-5 text-amber-500" />;
-      case NotionErrorType.DATABASE:
-        return <Database className="h-5 w-5 text-amber-500" />;
-      default:
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-    }
-  };
-  
+  const { addOperation } = useRetryQueue();
+  const [activeTab, setActiveTab] = React.useState('details');
+  const [isRetrying, setIsRetrying] = React.useState(false);
+
+  // Créer une requête de nouvelle tentative avec l'opération fournie
   const handleRetry = async () => {
     if (!onRetry) return;
     
@@ -105,123 +40,148 @@ const NotionErrorDetails: React.FC<NotionErrorDetailsProps> = ({
     try {
       await onRetry();
       onClose();
-    } catch (err) {
-      console.error('Retry failed:', err);
+    } catch (error) {
+      console.error('Erreur lors de la nouvelle tentative:', error);
     } finally {
       setIsRetrying(false);
     }
   };
-
-  // Formater le contexte pour l'affichage
-  const formatContext = useCallback((): React.ReactNode => {
-    // Prioriser le contexte passé directement en prop
-    const contextToFormat = context || errorObj.context;
-    
-    if (!contextToFormat) return null;
-    
-    if (typeof contextToFormat === 'string') {
-      return contextToFormat;
-    }
-    
-    try {
-      return JSON.stringify(contextToFormat, null, 2);
-    } catch (e) {
-      return '[Contexte non affichable]';
-    }
-  }, [context, errorObj.context]);
   
-  const renderActions = () => {
-    if (!actions || actions.length === 0) return null;
+  // Mettre l'opération dans la file d'attente
+  const handleAddToQueue = () => {
+    if (!onRetry) return;
     
-    return actions.map((actionItem, index) => (
-      <Button
-        key={index}
-        variant={actionItem.variant || 'outline'}
-        size="sm"
-        onClick={actionItem.onClick}
-      >
-        {actionItem.label}
-      </Button>
-    ));
+    addOperation(
+      onRetry, 
+      error.context?.toString() || 'Opération depuis les détails d\'erreur'
+    );
+    
+    onClose();
   };
-  
+
+  // Formatter l'objet de contexte pour l'affichage
+  const formatContext = (ctx: any): React.ReactNode => {
+    if (!ctx) return <span className="text-muted-foreground">Aucun contexte</span>;
+    
+    // Si c'est une chaîne de caractères
+    if (typeof ctx === 'string') {
+      return <span>{ctx}</span>;
+    }
+    
+    // Si c'est un objet
+    try {
+      return (
+        <pre className="bg-slate-100 dark:bg-slate-900 p-4 rounded-md overflow-x-auto text-xs">
+          {JSON.stringify(ctx, null, 2)}
+        </pre>
+      );
+    } catch (e) {
+      return <span className="text-muted-foreground">Contexte non affichable</span>;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {getErrorIcon(errorObj.type)}
-            <span>Erreur d'interaction avec Notion</span>
-          </DialogTitle>
-          <DialogDescription>
-            {errorMessage}
-          </DialogDescription>
+          <DialogTitle>Détails de l'erreur Notion</DialogTitle>
         </DialogHeader>
         
-        {formatContext() && (
-          <div className="py-2">
-            <p className="text-sm text-muted-foreground">Contexte: {formatContext()}</p>
-          </div>
-        )}
-        
-        <Separator />
-        
-        <div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-0 h-auto flex items-center text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
-            {showDetails ? 'Masquer les détails' : 'Afficher les détails techniques'}
-          </Button>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <TabsList>
+            <TabsTrigger value="details">Informations</TabsTrigger>
+            <TabsTrigger value="stack">Stack Trace</TabsTrigger>
+            <TabsTrigger value="context">Contexte</TabsTrigger>
+          </TabsList>
           
-          {showDetails && (
-            <div className="mt-2 text-xs">
-              {errorObj.stack && (
-                <div className="mt-2">
-                  <p className="font-medium mb-1">Stack trace:</p>
-                  <pre className="overflow-auto p-2 bg-gray-50 border rounded text-[10px] max-h-40">
-                    {errorObj.stack}
-                  </pre>
+          <ScrollArea className="flex-1 mt-4">
+            <TabsContent value="details" className="space-y-4 min-h-[300px]">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Message</h3>
+                  <p className="text-sm">{error.message}</p>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-        
-        <DialogFooter className="flex sm:justify-between gap-2">
-          <div className="flex gap-2">
-            {renderActions()}
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Type</h3>
+                  <p className="text-sm">{error.type}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Sévérité</h3>
+                  <p className="text-sm">{error.severity}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">ID</h3>
+                  <p className="text-sm font-mono">{error.id}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Timestamp</h3>
+                  <p className="text-sm">{new Date(error.timestamp).toLocaleString()}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Réessai possible</h3>
+                  <p className="text-sm">{error.retryable ? 'Oui' : 'Non'}</p>
+                </div>
+                {error.operation && (
+                  <div className="col-span-2">
+                    <h3 className="text-sm font-semibold mb-1">Opération</h3>
+                    <p className="text-sm">{error.operation}</p>
+                  </div>
+                )}
+                {error.details && (
+                  <div className="col-span-2">
+                    <h3 className="text-sm font-semibold mb-1">Détails supplémentaires</h3>
+                    <pre className="bg-slate-100 dark:bg-slate-900 p-4 rounded-md overflow-x-auto text-xs">
+                      {typeof error.details === 'string' 
+                        ? error.details 
+                        : JSON.stringify(error.details, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
             
-            {onRetry && (
+            <TabsContent value="stack" className="min-h-[300px]">
+              {error.stack ? (
+                <pre className="bg-slate-100 dark:bg-slate-900 p-4 rounded-md overflow-x-auto text-xs whitespace-pre-wrap">
+                  {error.stack}
+                </pre>
+              ) : (
+                <p className="text-muted-foreground">
+                  Aucune stack trace disponible pour cette erreur.
+                </p>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="context" className="min-h-[300px]">
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Contexte de l'erreur</h3>
+                {formatContext(error.context)}
+              </div>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
+        
+        <DialogFooter className="gap-2 sm:gap-0">
+          {onRetry && (
+            <>
               <Button
                 variant="outline"
-                size="sm"
-                onClick={handleRetry}
+                onClick={handleAddToQueue}
                 disabled={isRetrying}
               >
-                {isRetrying ? (
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Réessayer
+                Ajouter à la file d'attente
               </Button>
-            )}
-          </div>
-          
-          <DialogClose asChild>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={onClose}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Fermer
-            </Button>
-          </DialogClose>
+              <Button
+                onClick={handleRetry}
+                disabled={isRetrying || !error.retryable}
+              >
+                {isRetrying ? 'Nouvelle tentative...' : 'Réessayer maintenant'}
+              </Button>
+            </>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            Fermer
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

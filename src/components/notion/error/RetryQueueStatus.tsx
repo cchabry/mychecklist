@@ -1,168 +1,172 @@
 
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PlayCircle, PauseCircle, XCircle, Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRetryQueue } from '@/services/notion/errorHandling';
-import { Activity, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Progress } from '@/components/ui/progress';
+import useRetryQueue from '@/hooks/notion/useRetryQueue';
 
 interface RetryQueueStatusProps {
-  showDetails?: boolean;
-  showControls?: boolean;
   className?: string;
+  showDetails?: boolean;
+  onRetry?: () => void;
 }
 
 const RetryQueueStatus: React.FC<RetryQueueStatusProps> = ({
+  className,
   showDetails = false,
-  showControls = true,
-  className = ''
+  onRetry
 }) => {
-  const { stats, isProcessing, processQueue, clearQueue } = useRetryQueue();
+  const { 
+    stats, 
+    isProcessing, 
+    isPaused,
+    processNow,
+    pauseQueue,
+    resumeQueue,
+    clearQueue
+  } = useRetryQueue();
   
-  // Déterminer le statut global
-  const hasPending = stats.pending > 0;
-  const hasProcessing = stats.processing > 0;
-  
-  // Déterminer le style de la badge
-  let badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'outline';
-  let badgeText = 'File inactive';
-  let badgeIcon = <Activity className="h-3 w-3 mr-1" />;
-  
-  if (isProcessing || hasProcessing) {
-    badgeVariant = 'default';
-    badgeText = 'Traitement en cours';
-    badgeIcon = <RefreshCw className="h-3 w-3 mr-1 animate-spin" />;
-  } else if (hasPending) {
-    badgeVariant = 'secondary';
-    badgeText = `${stats.pending} en attente`;
-    badgeIcon = <Activity className="h-3 w-3 mr-1" />;
-  } else if (stats.failed > 0) {
-    badgeVariant = 'destructive';
-    badgeText = `${stats.failed} échec${stats.failed > 1 ? 's' : ''}`;
-    badgeIcon = <XCircle className="h-3 w-3 mr-1" />;
-  } else if (stats.success > 0) {
-    badgeVariant = 'outline';
-    badgeText = `${stats.success} réussie${stats.success > 1 ? 's' : ''}`;
-    badgeIcon = <CheckCircle2 className="h-3 w-3 mr-1" />;
+  // S'il n'y a aucune opération, ne rien afficher
+  if (stats.total === 0) {
+    return showDetails ? (
+      <Card className={className}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center justify-between">
+            <span>File d'attente des réessais</span>
+            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
+              Vide
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground pb-3">
+          Aucune opération en attente.
+        </CardContent>
+      </Card>
+    ) : null;
   }
   
-  // Si pas de détails et pas d'opérations, ne rien afficher
-  if (!showDetails && stats.total === 0) {
-    return null;
-  }
+  // Calculer le taux de réussite en pourcentage
+  const successRatePercent = stats.total > 0 
+    ? Math.round((stats.success / stats.total) * 100) 
+    : 0;
   
-  // Version simple avec juste la badge
-  if (!showDetails) {
-    return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Badge variant={badgeVariant} className={`cursor-pointer ${className}`}>
-            {badgeIcon} {badgeText}
-          </Badge>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Opérations en file d'attente</h4>
-            <p className="text-xs text-muted-foreground">
-              {stats.total === 0 
-                ? 'Aucune opération en file d\'attente' 
-                : `${stats.total} opération${stats.total > 1 ? 's' : ''} au total`}
-            </p>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-secondary/20 p-2 rounded">
-                <span className="font-medium">En attente:</span> {stats.pending}
-              </div>
-              <div className="bg-primary/20 p-2 rounded">
-                <span className="font-medium">En cours:</span> {stats.processing}
-              </div>
-              <div className="bg-green-100 p-2 rounded">
-                <span className="font-medium">Réussies:</span> {stats.success}
-              </div>
-              <div className="bg-red-100 p-2 rounded">
-                <span className="font-medium">Échouées:</span> {stats.failed}
-              </div>
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium flex items-center justify-between">
+          <span>File d'attente des réessais</span>
+          {stats.pending > 0 && (
+            <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
+              {stats.pending} en attente
+            </Badge>
+          )}
+          {stats.pending === 0 && stats.failed > 0 && (
+            <Badge variant="outline" className="ml-2 bg-red-50 text-red-700 border-red-200">
+              {stats.failed} échec{stats.failed > 1 ? 's' : ''}
+            </Badge>
+          )}
+          {stats.pending === 0 && stats.failed === 0 && (
+            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
+              Complété
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 pb-3">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <Clock className="h-3 w-3 mr-1 text-amber-500" />
+              <span>{stats.pending} en attente</span>
             </div>
+            <div className="flex items-center">
+              <RefreshCw className="h-3 w-3 mr-1 text-blue-500" />
+              <span>{stats.processing} en cours</span>
+            </div>
+            <div className="flex items-center">
+              <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+              <span>{stats.success} réussis</span>
+            </div>
+            <div className="flex items-center">
+              <XCircle className="h-3 w-3 mr-1 text-red-500" />
+              <span>{stats.failed} échoués</span>
+            </div>
+          </div>
+          <div>
+            <Badge variant="outline">
+              {successRatePercent}% de réussite
+            </Badge>
+          </div>
+        </div>
+        
+        {showDetails && (
+          <Progress 
+            value={successRatePercent} 
+            className="h-2" 
+          />
+        )}
+        
+        {showDetails && (stats.pending > 0 || stats.processing > 0) && (
+          <div className="flex justify-end space-x-2 mt-2">
+            {isProcessing ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => pauseQueue()}
+              >
+                <PauseCircle className="h-3.5 w-3.5 mr-1" />
+                Pause
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => resumeQueue()}
+              >
+                <PlayCircle className="h-3.5 w-3.5 mr-1" />
+                Reprendre
+              </Button>
+            )}
             
-            {showControls && stats.total > 0 && (
-              <div className="flex justify-end gap-2 mt-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={clearQueue} 
-                  disabled={isProcessing}
-                >
-                  Effacer la file
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={processQueue} 
-                  disabled={isProcessing || stats.pending === 0}
-                >
-                  {isProcessing ? 'Traitement...' : 'Traiter'}
-                </Button>
-              </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => processNow()}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Traiter maintenant
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => clearQueue()}
+            >
+              <XCircle className="h-3.5 w-3.5 mr-1" />
+              Vider
+            </Button>
+            
+            {onRetry && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={onRetry}
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                Réessayer tout
+              </Button>
             )}
           </div>
-        </PopoverContent>
-      </Popover>
-    );
-  }
-  
-  // Version détaillée
-  return (
-    <div className={`border rounded-md p-4 ${className}`}>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">File de réessais Notion</h3>
-        <Badge variant={badgeVariant}>
-          {badgeIcon} {badgeText}
-        </Badge>
-      </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <div className="bg-secondary/20 p-3 rounded">
-          <div className="text-sm font-medium">En attente</div>
-          <div className="text-2xl">{stats.pending}</div>
-        </div>
-        <div className="bg-primary/20 p-3 rounded">
-          <div className="text-sm font-medium">En cours</div>
-          <div className="text-2xl">{stats.processing}</div>
-        </div>
-        <div className="bg-green-100 p-3 rounded">
-          <div className="text-sm font-medium">Réussies</div>
-          <div className="text-2xl">{stats.success}</div>
-        </div>
-        <div className="bg-red-100 p-3 rounded">
-          <div className="text-sm font-medium">Échouées</div>
-          <div className="text-2xl">{stats.failed}</div>
-        </div>
-      </div>
-      
-      {stats.lastError && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-          <div className="text-sm font-medium text-red-800">Dernière erreur</div>
-          <div className="text-xs text-red-700 mt-1">{stats.lastError.message}</div>
-        </div>
-      )}
-      
-      {showControls && (
-        <div className="flex justify-end gap-2">
-          <Button 
-            variant="outline" 
-            onClick={clearQueue} 
-            disabled={isProcessing || stats.total === 0}
-          >
-            Effacer la file
-          </Button>
-          <Button 
-            onClick={processQueue} 
-            disabled={isProcessing || stats.pending === 0}
-          >
-            {isProcessing ? 'Traitement en cours...' : 'Traiter la file'}
-          </Button>
-        </div>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

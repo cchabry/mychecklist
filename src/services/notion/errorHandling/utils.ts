@@ -2,7 +2,7 @@
 /**
  * Utilitaires pour la gestion des erreurs
  */
-import type { NotionError, NotionErrorType } from '../types/unified';
+import { NotionError, NotionErrorType } from '../types/unified';
 import { notionErrorService } from './notionErrorService';
 
 export const errorUtils = {

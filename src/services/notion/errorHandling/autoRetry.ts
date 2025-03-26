@@ -5,7 +5,7 @@
 
 import { notionErrorService } from './notionErrorService';
 import { notionRetryQueue } from './retryQueue';
-import type { NotionErrorType, NotionError } from '../types/unified';
+import { NotionError, NotionErrorType } from '../types/unified';
 import { toast } from 'sonner';
 
 /**

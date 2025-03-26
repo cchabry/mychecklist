@@ -7,12 +7,12 @@
 import { notionErrorService } from './notionErrorService';
 import { notionRetryQueue } from './retryQueue';
 
-// Importer les hooks (avec export type pour éviter les erreurs TS1205)
+// Importer les hooks
 import useNotionErrorService from '@/hooks/notion/useNotionErrorService';
 import useRetryQueue from '@/hooks/notion/useRetryQueue';
 
 // Importer les types depuis le fichier unifié
-import type { 
+import { 
   NotionError, 
   NotionErrorType, 
   NotionErrorSeverity,
@@ -33,7 +33,7 @@ export {
   errorUtils
 };
 
-// Exporter les types (avec export type pour éviter les erreurs TS1205)
+// Exporter les types
 export type { 
   NotionError, 
   NotionErrorType, 

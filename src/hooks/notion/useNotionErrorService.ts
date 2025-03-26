@@ -1,12 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { notionErrorService } from '@/services/notion/errorHandling/notionErrorService';
-import type { 
-  NotionError, 
-  NotionErrorType, 
-  NotionErrorSeverity, 
-  NotionErrorOptions 
-} from '@/services/notion/types/unified';
+import { NotionError, NotionErrorType, NotionErrorSeverity, NotionErrorOptions } from '@/services/notion/types/unified';
 
 /**
  * Hook pour utiliser le service de gestion des erreurs Notion
@@ -20,6 +15,9 @@ export function useNotionErrorService() {
       // Mettre à jour la liste d'erreurs
       setErrors(updatedErrors);
     });
+
+    // Initialiser avec les erreurs actuelles
+    setErrors(notionErrorService.getRecentErrors());
 
     return unsubscribe;
   }, []);
@@ -56,7 +54,7 @@ export function useNotionErrorService() {
     error: Error | string, 
     type: NotionErrorType = NotionErrorType.UNKNOWN, 
     options: Partial<NotionErrorOptions> = {}
-  ) => {
+  ): NotionError => {
     return notionErrorService.createError(error, type, options);
   };
 
