@@ -299,7 +299,7 @@ class NotionApiImplementation implements NotionAPI {
   
   // Méthodes pour les progrès d'actions
   async getActionProgress(actionId: string): Promise<ActionProgress[]> {
-    const response = await progressService.getProgressByActionId(actionId);
+    const response = await progressService.getActionProgress(actionId);
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la récupération des progrès d'action");
     }
@@ -307,7 +307,7 @@ class NotionApiImplementation implements NotionAPI {
   }
   
   async getActionProgressById(id: string): Promise<ActionProgress> {
-    const response = await progressService.getProgressById(id);
+    const response = await progressService.getActionProgressById(id);
     if (!response.success) {
       throw new Error(response.error?.message || `Progrès d'action #${id} non trouvé`);
     }
@@ -315,7 +315,7 @@ class NotionApiImplementation implements NotionAPI {
   }
   
   async createActionProgress(progress: Omit<ActionProgress, 'id'>): Promise<ActionProgress> {
-    const response = await progressService.createProgress(progress);
+    const response = await progressService.createActionProgress(progress);
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la création du progrès d'action");
     }
@@ -323,7 +323,7 @@ class NotionApiImplementation implements NotionAPI {
   }
   
   async updateActionProgress(progress: ActionProgress): Promise<ActionProgress> {
-    const response = await progressService.updateProgress(progress);
+    const response = await progressService.updateActionProgress(progress);
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la mise à jour du progrès d'action");
     }
@@ -331,7 +331,7 @@ class NotionApiImplementation implements NotionAPI {
   }
   
   async deleteActionProgress(id: string): Promise<boolean> {
-    const response = await progressService.deleteProgress(id);
+    const response = await progressService.deleteActionProgress(id);
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la suppression du progrès d'action");
     }
@@ -345,8 +345,8 @@ class NotionApiImplementation implements NotionAPI {
       
       if (response.success) {
         return {
-          user: response.user || 'Utilisateur inconnu',
-          workspace: undefined,
+          user: response.user,
+          workspace: response.workspaceName,
           timestamp: Date.now()
         };
       } else {
