@@ -3,7 +3,7 @@
  * Utilitaires pour l'utilisation des tokens de design
  */
 
-import { COLORS, TYPOGRAPHY, SPACING, BORDERS, SHADOWS, TRANSITIONS, ANIMATIONS } from '@/constants/designTokens';
+import { COLORS, TYPOGRAPHY, SPACING, BORDERS, SHADOWS, TRANSITIONS } from '@/constants/designTokens';
 
 /**
  * Obtient une couleur à partir des tokens de design
