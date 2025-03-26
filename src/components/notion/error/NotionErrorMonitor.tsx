@@ -1,78 +1,113 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { NotionErrorsList } from '@/components/notion/error';
-import { RetryQueueStatus } from '@/components/notion/error';
-import { useNotionErrorService, useRetryQueue } from '@/services/notion/errorHandling';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Activity } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { NotionErrorsList, RetryQueueStatus } from '.';
+import { useNotionErrorService, useRetryQueue } from '@/services/notion/errorHandling';
+import { NotionErrorSeverity } from '@/services/notion/types/unified';
 
 interface NotionErrorMonitorProps {
-  title?: string;
-  maxErrors?: number;
-  showRetryQueue?: boolean;
-  compact?: boolean;
+  showButton?: boolean;
+  buttonVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  buttonLabel?: string;
+  buttonClassName?: string;
+  showBadge?: boolean;
 }
 
 const NotionErrorMonitor: React.FC<NotionErrorMonitorProps> = ({
-  title = "Moniteur d'erreurs Notion",
-  maxErrors = 3,
-  showRetryQueue = true,
-  compact = false
+  showButton = true,
+  buttonVariant = 'outline',
+  buttonLabel = 'Moniteur d\'erreurs',
+  buttonClassName = '',
+  showBadge = true
 }) => {
+  const [open, setOpen] = useState(false);
   const { errors } = useNotionErrorService();
-  const { stats, processQueue } = useRetryQueue();
+  const { stats } = useRetryQueue();
   
-  const hasErrors = errors.length > 0;
-  const hasQueuedOperations = stats.pendingOperations > 0;
+  // Vérifier s'il y a des erreurs actives
+  const hasCriticalErrors = errors.some(err => err.severity === NotionErrorSeverity.CRITICAL);
+  const hasErrors = errors.some(err => err.severity === NotionErrorSeverity.ERROR);
+  const hasWarnings = errors.some(err => err.severity === NotionErrorSeverity.WARNING);
+  const hasPendingRetries = stats.pending > 0;
   
-  // Pour un affichage compact
-  if (compact) {
-    if (!hasErrors && !hasQueuedOperations) return null;
-    
-    return (
-      <div className="bg-white p-3 rounded-md border shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium">{title}</h3>
-          
-          {hasErrors && (
-            <Badge variant="destructive" className="ml-2">
-              {errors.length} erreur{errors.length > 1 ? 's' : ''}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="space-y-3">
-          {hasErrors && (
-            <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
-              {errors.length} erreur{errors.length > 1 ? 's' : ''} détectée{errors.length > 1 ? 's' : ''}
-            </div>
-          )}
-          
-          {showRetryQueue && hasQueuedOperations && (
-            <RetryQueueStatus compact={true} />
-          )}
-        </div>
-      </div>
-    );
+  // Déterminer le style du bouton
+  let displayVariant = buttonVariant;
+  if (hasCriticalErrors) {
+    displayVariant = 'destructive';
+  } else if (hasErrors) {
+    displayVariant = 'destructive';
+  } else if (hasWarnings || hasPendingRetries) {
+    displayVariant = 'secondary';
   }
   
-  // Affichage standard
+  // Si aucune erreur ou avertissement et pas de button demandé, ne rien afficher
+  if (!showButton && !hasErrors && !hasWarnings && !hasPendingRetries) {
+    return null;
+  }
+  
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          
-          {showRetryQueue && hasQueuedOperations && (
-            <RetryQueueStatus />
-          )}
-        </div>
-      </CardHeader>
+    <>
+      {showButton && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant={displayVariant} className={buttonClassName}>
+              {hasCriticalErrors || hasErrors ? (
+                <AlertCircle className="h-4 w-4 mr-1" />
+              ) : hasPendingRetries ? (
+                <Activity className="h-4 w-4 mr-1" />
+              ) : null}
+              {buttonLabel}
+              {showBadge && (errors.length > 0 || stats.pending > 0) && (
+                <Badge variant="outline" className="ml-2 bg-primary/10">
+                  {errors.length + stats.pending}
+                </Badge>
+              )}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Moniteur des erreurs Notion</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6 mt-2">
+              <RetryQueueStatus showDetails className="max-w-none" />
+              <NotionErrorsList showHeader={false} className="max-w-none" maxHeight="400px" />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       
-      <CardContent>
-        <NotionErrorsList maxItems={maxErrors} onRetryAll={processQueue} />
-      </CardContent>
-    </Card>
+      {!showButton && (hasErrors || hasWarnings || hasPendingRetries) && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Badge 
+              variant={hasCriticalErrors || hasErrors ? "destructive" : "secondary"}
+              className="cursor-pointer"
+            >
+              {hasCriticalErrors || hasErrors ? (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              ) : (
+                <Activity className="h-3 w-3 mr-1" />
+              )}
+              {errors.length + stats.pending} problème{errors.length + stats.pending > 1 ? 's' : ''}
+            </Badge>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Moniteur des erreurs Notion</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6 mt-2">
+              <RetryQueueStatus showDetails className="max-w-none" />
+              <NotionErrorsList showHeader={false} className="max-w-none" maxHeight="400px" />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 };
 

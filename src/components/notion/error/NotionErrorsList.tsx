@@ -1,131 +1,184 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, ChevronRight, KeyRound, ServerCrash, Database } from 'lucide-react';
+import { 
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter
+} from '@/components/ui/card';
 import { useNotionErrorService } from '@/services/notion/errorHandling';
-import { NotionError, NotionErrorType } from '@/services/notion/types/unified';
+import { NotionError, NotionErrorSeverity } from '@/services/notion/types/unified';
+import { format } from 'date-fns';
+import { AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface NotionErrorsListProps {
-  maxItems?: number;
-  onRetryAll?: () => void;
-  onShowDetails?: (error: NotionError) => void;
-  compact?: boolean;
-  title?: string;
+  limit?: number;
+  showClearButton?: boolean;
+  showHeader?: boolean;
+  maxHeight?: string;
+  className?: string;
 }
 
 const NotionErrorsList: React.FC<NotionErrorsListProps> = ({
-  maxItems = 5,
-  onRetryAll,
-  onShowDetails,
-  compact = false,
-  title
+  limit = 10,
+  showClearButton = true,
+  showHeader = true,
+  maxHeight = '400px',
+  className = ''
 }) => {
-  const { errors, clearErrors } = useNotionErrorService();
+  const { errors, clearErrors, getUserFriendlyMessage } = useNotionErrorService();
   
-  if (errors.length === 0) {
-    return (
-      <div className="text-center py-4 text-sm text-muted-foreground">
-        Aucune erreur récente
-      </div>
-    );
-  }
+  // Filtrer et limiter les erreurs
+  const displayErrors = errors.slice(0, limit);
   
-  const getErrorIcon = (error: NotionError) => {
-    switch(error.type) {
-      case NotionErrorType.AUTH:
-        return <KeyRound className="h-4 w-4 text-amber-500" />;
-        
-      case NotionErrorType.API:
-      case NotionErrorType.RATE_LIMIT:
-        return <ServerCrash className="h-4 w-4 text-red-500" />;
-        
-      case NotionErrorType.DATABASE:
-      case NotionErrorType.PERMISSION:
-        return <Database className="h-4 w-4 text-amber-500" />;
-        
+  // Déterminer la sévérité globale
+  const hasCriticalErrors = errors.some(err => err.severity === NotionErrorSeverity.CRITICAL);
+  const hasErrors = errors.some(err => err.severity === NotionErrorSeverity.ERROR);
+  const hasWarnings = errors.some(err => err.severity === NotionErrorSeverity.WARNING);
+  
+  // Obtenir l'icône correspondant à la sévérité
+  const getSeverityIcon = (severity: NotionErrorSeverity) => {
+    switch (severity) {
+      case NotionErrorSeverity.CRITICAL:
+      case NotionErrorSeverity.ERROR:
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
+      case NotionErrorSeverity.WARNING:
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <Info className="h-4 w-4 text-muted-foreground" />;
     }
   };
   
-  const errorItems = errors.slice(0, maxItems).map((error) => (
-    <div 
-      key={error.id} 
-      className="p-3 border rounded-md bg-slate-50 hover:bg-slate-100 transition-colors"
-    >
-      <div className="flex items-start gap-2">
-        <div className="mt-1">
-          {getErrorIcon(error)}
-        </div>
-        
-        <div className="flex-grow">
-          <div className="font-medium text-sm">{error.message}</div>
-          {error.context && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {typeof error.context === 'string' 
-                ? error.context 
-                : JSON.stringify(error.context)}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground mt-1">
-            {new Date(error.timestamp).toLocaleString()}
-          </p>
-        </div>
-        
-        {onShowDetails && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => onShowDetails(error)}
-            className="p-1 h-auto"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  ));
+  // Obtenir la classe de couleur correspondant à la sévérité
+  const getSeverityClass = (severity: NotionErrorSeverity) => {
+    switch (severity) {
+      case NotionErrorSeverity.CRITICAL:
+        return 'bg-red-50 border-red-200 text-red-800';
+      case NotionErrorSeverity.ERROR:
+        return 'bg-rose-50 border-rose-200 text-rose-800';
+      case NotionErrorSeverity.WARNING:
+        return 'bg-amber-50 border-amber-200 text-amber-800';
+      case NotionErrorSeverity.INFO:
+        return 'bg-blue-50 border-blue-200 text-blue-800';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-800';
+    }
+  };
   
-  if (compact) {
+  // Si pas d'erreurs
+  if (errors.length === 0) {
     return (
-      <div className="space-y-2">
-        {title && <h4 className="text-sm font-medium mb-2">{title}</h4>}
-        {errorItems}
-      </div>
+      <Card className={className}>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle>Journal d'erreurs Notion</CardTitle>
+            <CardDescription>Aucune erreur à afficher</CardDescription>
+          </CardHeader>
+        )}
+        <CardContent>
+          <div className="text-sm text-muted-foreground text-center py-8">
+            Tous les systèmes fonctionnent normalement
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   
   return (
-    <div className="space-y-4">
-      {title && <h3 className="text-base font-medium">{title}</h3>}
+    <Card className={className}>
+      {showHeader && (
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Journal d'erreurs Notion</CardTitle>
+              <CardDescription>
+                {errors.length} {errors.length > 1 ? 'erreurs' : 'erreur'} récente{errors.length > 1 ? 's' : ''}
+              </CardDescription>
+            </div>
+            {hasCriticalErrors && (
+              <Badge variant="destructive">Erreur critique</Badge>
+            )}
+            {!hasCriticalErrors && hasErrors && (
+              <Badge variant="destructive">Erreur</Badge>
+            )}
+            {!hasCriticalErrors && !hasErrors && hasWarnings && (
+              <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-200">
+                Avertissement
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+      )}
       
-      <div className="space-y-2">
-        {errorItems}
-      </div>
+      <CardContent className={`p-0 overflow-y-auto ${maxHeight ? `max-h-[${maxHeight}]` : ''}`}>
+        <Accordion type="multiple" className="w-full">
+          {displayErrors.map((error, index) => (
+            <AccordionItem value={error.id} key={error.id} className="border-b">
+              <AccordionTrigger className={`px-4 py-2 hover:no-underline ${getSeverityClass(error.severity)}`}>
+                <div className="flex items-center gap-2 text-sm">
+                  {getSeverityIcon(error.severity)}
+                  <span className="font-medium">{error.message}</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="px-4 py-2 text-sm space-y-2">
+                  <p>
+                    <span className="font-semibold">Message: </span>
+                    {getUserFriendlyMessage(error)}
+                  </p>
+                  
+                  <p>
+                    <span className="font-semibold">Date: </span>
+                    {format(new Date(error.timestamp), 'dd/MM/yyyy HH:mm:ss')}
+                  </p>
+                  
+                  {error.operation && (
+                    <p>
+                      <span className="font-semibold">Opération: </span>
+                      {error.operation}
+                    </p>
+                  )}
+                  
+                  {error.context && (
+                    <p>
+                      <span className="font-semibold">Contexte: </span>
+                      {typeof error.context === 'string' 
+                        ? error.context 
+                        : JSON.stringify(error.context, null, 2)}
+                    </p>
+                  )}
+                  
+                  {error.retryable && (
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                      Peut être réessayée
+                    </Badge>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </CardContent>
       
-      {errors.length > 0 && (
-        <div className="flex justify-between">
+      {showClearButton && errors.length > 0 && (
+        <CardFooter className="px-4 py-3 border-t">
           <Button 
             variant="outline" 
             size="sm" 
+            className="ml-auto" 
             onClick={clearErrors}
           >
-            Effacer toutes les erreurs
+            <X className="h-4 w-4 mr-1" />
+            Effacer les erreurs
           </Button>
-          
-          {onRetryAll && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRetryAll}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer toutes
-            </Button>
-          )}
-        </div>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 };
 

@@ -1,148 +1,105 @@
 
+import { NotionError, NotionErrorType } from '../types/unified';
+import { notionErrorService } from './notionErrorService';
+
 /**
  * Utilitaires pour la gestion des erreurs Notion
  */
-import { NotionError, NotionErrorType, NotionErrorSeverity } from '../types/unified';
-
 export const errorUtils = {
   /**
-   * Normalise une erreur quelconque en Error standard
+   * Extrait le message utilisateur d'une erreur
    */
-  normalizeError(error: unknown): Error {
-    if (error instanceof Error) {
-      return error;
-    }
-    
-    if (typeof error === 'string') {
-      return new Error(error);
-    }
-    
-    return new Error(String(error || 'Erreur inconnue'));
-  },
-  
-  /**
-   * Extrait le message d'erreur d'un objet quelconque
-   */
-  extractErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    
+  getUserFriendlyMessage(error: Error | NotionError | string): string {
     if (typeof error === 'string') {
       return error;
     }
     
-    if (error && typeof error === 'object') {
-      if ('message' in error && typeof error.message === 'string') {
-        return error.message;
-      }
-      
-      if ('error' in error && typeof error.error === 'string') {
-        return error.error;
-      }
+    // Si c'est une NotionError
+    if ('type' in error && 'severity' in error) {
+      return notionErrorService.createUserFriendlyMessage(error);
     }
     
-    return String(error || 'Erreur inconnue');
+    // Erreur standard
+    return error.message;
   },
   
   /**
-   * Génère un message d'erreur spécifique au contexte
+   * Détermine si une erreur est réessayable
    */
-  contextualErrorMessage(error: Error, context: string): string {
-    // Formater le message en fonction du contexte
-    switch (context.toLowerCase()) {
-      case 'auth':
-      case 'authentication':
-        return `Erreur d'authentification: ${error.message}`;
-        
-      case 'database':
-      case 'db':
-        return `Erreur de base de données: ${error.message}`;
-        
-      case 'api':
-      case 'request':
-        return `Erreur d'API: ${error.message}`;
-        
-      case 'network':
-      case 'connection':
-        return `Erreur réseau: ${error.message}`;
-        
-      default:
-        // Si le contexte n'est pas reconnu, utiliser simplement le message d'erreur
-        return error.message;
-    }
-  },
-  
-  /**
-   * Détermine si une erreur est critique
-   */
-  isCriticalError(error: Error | NotionError): boolean {
-    // Si c'est une NotionError, utiliser sa sévérité
-    if ('severity' in error) {
-      return error.severity === NotionErrorSeverity.CRITICAL;
+  isRetryableError(error: Error | NotionError | string): boolean {
+    // Si c'est une NotionError
+    if (typeof error === 'object' && 'retryable' in error) {
+      return error.retryable;
     }
     
-    // Sinon, analyser le message
-    const message = error.message.toLowerCase();
+    // Pour les erreurs standard, examiner le message
+    const message = typeof error === 'string' ? error : error.message;
+    const lowercaseMsg = message.toLowerCase();
     
-    if (message.includes('auth') || message.includes('token') || message.includes('401')) {
+    // Erreurs de réseau généralement réessayables
+    if (
+      lowercaseMsg.includes('network') ||
+      lowercaseMsg.includes('connection') ||
+      lowercaseMsg.includes('timeout') ||
+      lowercaseMsg.includes('failed to fetch') ||
+      lowercaseMsg.includes('rate limit') ||
+      lowercaseMsg.includes('too many requests')
+    ) {
       return true;
     }
     
-    if (message.includes('permission') || message.includes('access') || message.includes('403')) {
-      return true;
-    }
-    
-    if (message.includes('critical') || message.includes('fatal')) {
-      return true;
+    // Erreurs d'authentification non réessayables
+    if (
+      lowercaseMsg.includes('unauthorized') ||
+      lowercaseMsg.includes('authentication') ||
+      lowercaseMsg.includes('permission')
+    ) {
+      return false;
     }
     
     return false;
   },
   
   /**
-   * Détermine si une erreur est transitoire (peut être résoutelle-même plus tard)
+   * Convertit une erreur standard en NotionError
    */
-  isTransientError(error: Error | NotionError): boolean {
-    // Si c'est une NotionError, utiliser son type et retryable
-    if ('type' in error && 'retryable' in error) {
-      if (error.retryable) {
-        return true;
-      }
-      
+  toNotionError(error: Error | string, context?: string): NotionError {
+    if (typeof error === 'string') {
+      return notionErrorService.createError(error, NotionErrorType.UNKNOWN, { context });
+    }
+    
+    const errorType = notionErrorService.identifyErrorType(error);
+    return notionErrorService.createError(error, errorType, { context });
+  },
+  
+  /**
+   * Détermine si l'erreur nécessite un changement de mode opérationnel
+   */
+  requiresOperationModeChange(error: Error | NotionError | string): boolean {
+    // Si c'est une NotionError
+    if (typeof error === 'object' && 'type' in error) {
+      // Les erreurs graves qui nécessitent un changement de mode
       return [
-        NotionErrorType.NETWORK,
-        NotionErrorType.TIMEOUT,
-        NotionErrorType.RATE_LIMIT,
-        NotionErrorType.SERVER
+        NotionErrorType.AUTH,
+        NotionErrorType.PERMISSION,
+        NotionErrorType.DATABASE,
+        NotionErrorType.CORS
       ].includes(error.type);
     }
     
-    // Sinon, analyser le message
-    const message = error.message.toLowerCase();
+    // Pour les erreurs standard, examiner le message
+    const message = typeof error === 'string' ? error : error.message;
+    const lowercaseMsg = message.toLowerCase();
     
-    if (message.includes('network') || message.includes('connection') || 
-        message.includes('internet') || message.includes('offline')) {
-      return true;
-    }
-    
-    if (message.includes('timeout') || message.includes('timed out') || 
-        message.includes('délai')) {
-      return true;
-    }
-    
-    if (message.includes('rate limit') || message.includes('too many') || 
-        message.includes('429')) {
-      return true;
-    }
-    
-    if (message.includes('server') || message.includes('503') || 
-        message.includes('502') || message.includes('500')) {
-      return true;
-    }
-    
-    return false;
+    return (
+      lowercaseMsg.includes('unauthorized') ||
+      lowercaseMsg.includes('not found') ||
+      lowercaseMsg.includes('permission') ||
+      lowercaseMsg.includes('cors') ||
+      lowercaseMsg.includes('cross-origin')
+    );
   }
 };
 
+// Export par défaut
 export default errorUtils;

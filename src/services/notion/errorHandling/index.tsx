@@ -7,7 +7,8 @@ import useRetryQueue from '@/hooks/notion/useRetryQueue';
 import { 
   NotionError, 
   NotionErrorType, 
-  NotionErrorSeverity 
+  NotionErrorSeverity,
+  NotionErrorOptions
 } from '../types/unified';
 import { autoRetryHandler } from './autoRetry';
 import { errorUtils } from './utils';
@@ -21,6 +22,7 @@ export {
   NotionError, 
   NotionErrorType, 
   NotionErrorSeverity,
+  NotionErrorOptions,
   autoRetryHandler,
   errorUtils
 };
@@ -28,32 +30,22 @@ export {
 // Fonction utilitaire pour créer une erreur Notion compatible
 export const createNotionError = (
   message: string,
-  type: NotionErrorType,
-  options: {
-    severity?: NotionErrorSeverity,
-    retryable?: boolean,
-    context?: string | Record<string, any>,
-    operation?: string,
-    originalError?: Error
-  } = {}
+  type: NotionErrorType = NotionErrorType.UNKNOWN,
+  options: Partial<NotionErrorOptions> = {}
 ): NotionError => {
   const { 
     severity = NotionErrorSeverity.ERROR,
     retryable = false,
     context,
     operation,
-    originalError
+    ...restOptions
   } = options;
 
-  return {
-    id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    message,
-    type,
-    timestamp: Date.now(),
-    context,
-    operation,
+  return notionErrorService.createError(message, type, {
     severity,
     retryable,
-    original: originalError
-  };
+    context,
+    operation,
+    ...restOptions
+  });
 };

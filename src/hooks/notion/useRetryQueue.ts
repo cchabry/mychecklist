@@ -1,88 +1,104 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
-import { RetryQueueStats, RetryOperationOptions } from '@/services/notion/types/unified';
+import { RetryOperation, RetryQueueStats, RetryOperationOptions } from '@/services/notion/types/unified';
 
 /**
- * Hook pour utiliser la file d'attente des opérations en échec
+ * Hook pour utiliser la file d'attente des réessais
  */
 export function useRetryQueue() {
-  const [stats, setStats] = useState<RetryQueueStats>({
-    pendingOperations: 0,
-    completedOperations: 0,
-    failedOperations: 0,
-    isProcessing: false,
-    isPaused: false,
-    totalOperations: 0
-  });
+  const [operations, setOperations] = useState<RetryOperation[]>([]);
+  const [stats, setStats] = useState<RetryQueueStats>(notionRetryQueue.getStats());
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Mettre à jour les stats régulièrement
+  // Rafraîchir les données
+  const refreshData = useCallback(() => {
+    setOperations(notionRetryQueue.getOperations());
+    setStats(notionRetryQueue.getStats());
+  }, []);
+
+  // Surveiller les opérations à intervalles réguliers
   useEffect(() => {
-    const updateStats = () => {
-      setStats(notionRetryQueue.getStats());
+    // Initial load
+    refreshData();
+
+    // Set up an interval to refresh the queue data
+    const intervalId = setInterval(refreshData, 2000);
+
+    return () => {
+      clearInterval(intervalId);
     };
-    
-    // Mettre à jour immédiatement
-    updateStats();
-    
-    // Puis toutes les 3 secondes
-    const interval = setInterval(updateStats, 3000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  }, [refreshData]);
 
-  // Ajouter une opération à la file d'attente
-  const addOperation = useCallback((
-    operation: () => Promise<any>,
-    errorContext: string,
-    maxAttempts: number = 3,
-    options: RetryOperationOptions = {}
-  ) => {
-    return notionRetryQueue.addOperation(operation, errorContext, maxAttempts, options);
-  }, []);
+  /**
+   * Ajouter une opération à la file d'attente
+   */
+  const addOperation = useCallback(
+    (operation: () => Promise<any>, context: string, options?: RetryOperationOptions) => {
+      const id = notionRetryQueue.addOperation(operation, context, options);
+      refreshData();
+      return id;
+    },
+    [refreshData]
+  );
 
-  // Traiter la file d'attente
+  /**
+   * Traiter la file d'attente
+   */
   const processQueue = useCallback(async () => {
-    await notionRetryQueue.processQueue();
-    setStats(notionRetryQueue.getStats());
-  }, []);
+    setIsProcessing(true);
+    try {
+      await notionRetryQueue.processQueue();
+    } finally {
+      setIsProcessing(false);
+      refreshData();
+    }
+  }, [refreshData]);
 
-  // Effacer la file d'attente
+  /**
+   * Réessayer une opération spécifique
+   */
+  const retryOperation = useCallback(
+    async (id: string) => {
+      const success = await notionRetryQueue.retryOperation(id);
+      refreshData();
+      return success;
+    },
+    [refreshData]
+  );
+
+  /**
+   * Supprimer une opération de la file d'attente
+   */
+  const removeOperation = useCallback(
+    (id: string) => {
+      const result = notionRetryQueue.removeOperation(id);
+      refreshData();
+      return result;
+    },
+    [refreshData]
+  );
+
+  /**
+   * Vider la file d'attente
+   */
   const clearQueue = useCallback(() => {
-    notionRetryQueue.clearQueue();
-    setStats(notionRetryQueue.getStats());
-  }, []);
-
-  // Méthodes additionnelles
-  const pauseQueue = useCallback(() => {
-    notionRetryQueue.pause();
-    setStats(notionRetryQueue.getStats());
-  }, []);
-
-  const resumeQueue = useCallback(() => {
-    notionRetryQueue.resume();
-    setStats(notionRetryQueue.getStats());
-  }, []);
-
-  const processNow = useCallback((operationId: string) => {
-    notionRetryQueue.processOperation(operationId);
-    setStats(notionRetryQueue.getStats());
-  }, []);
-
-  const queuedOperations = notionRetryQueue.getQueuedOperations();
-  const isPaused = notionRetryQueue.isPaused();
+    notionRetryQueue.clearOperations();
+    refreshData();
+  }, [refreshData]);
 
   return {
+    operations,
     stats,
+    isProcessing,
     addOperation,
     processQueue,
+    retryOperation,
+    removeOperation,
     clearQueue,
-    pauseQueue,
-    resumeQueue,
-    isPaused,
-    processNow,
-    queuedOperations
+    refreshData
   };
 }
 
+// Export par défaut
 export default useRetryQueue;
