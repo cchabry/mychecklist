@@ -1,111 +1,111 @@
-import React from 'react';
+
+import { ClipboardList, Calendar, Users, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, FilePlus, MoreHorizontal } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Project } from '@/types/domain';
-import { formatDate } from '@/utils/date';
-import { useProjectAudits } from '@/hooks/useProjectAudits';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+export interface Project {
+  id: string;
+  name: string;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+  progress: number;
+  status?: 'active' | 'completed' | 'pending' | 'archived';
+  lastAuditDate?: string;
+}
 
 interface ProjectCardProps {
   project: Project;
+  className?: string;
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
-  const { audits, isLoading: isLoadingAudits, error: auditsError } = useProjectAudits(project.id);
-
+/**
+ * Carte d'affichage d'un projet avec ses informations principales
+ */
+export const ProjectCard = ({ project, className }: ProjectCardProps) => {
+  const { id, name, url, status, progress, lastAuditDate } = project;
+  
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-500 text-white';
+      case 'completed':
+        return 'bg-blue-500 text-white';
+      case 'pending':
+        return 'bg-yellow-500 text-white';
+      case 'archived':
+        return 'bg-gray-500 text-white';
+      default:
+        return 'bg-slate-200 text-slate-700';
+    }
+  };
+  
   return (
-    <Card className="h-full flex flex-col relative">
-      <Link 
-        to={`/projects/${project.id}`} 
-        className="absolute top-4 right-4 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-        title="Voir les détails du projet"
-      >
-        <MoreHorizontal size={18} />
-      </Link>
-      
-      <CardHeader>
-        <CardTitle className="text-xl">{project.name}</CardTitle>
-        <CardDescription className="flex items-center gap-1">
+    <Card className={cn("hover:shadow-md transition-shadow", className)}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <h3 className="text-lg font-medium">
+            <Link to={`/projects/${id}`} className="hover:text-primary transition-colors">
+              {name}
+            </Link>
+          </h3>
+          {status && (
+            <Badge className={getStatusColor(status)}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground flex items-center gap-1">
           <ExternalLink size={14} />
           <a 
-            href={project.url} 
+            href={url.startsWith('http') ? url : `https://${url}`} 
             target="_blank" 
-            rel="noopener noreferrer" 
-            className="hover:underline truncate"
+            rel="noopener noreferrer"
+            className="hover:underline truncate max-w-xs"
           >
-            {project.url}
+            {url}
           </a>
-        </CardDescription>
+        </p>
       </CardHeader>
-      <CardContent className="flex-grow space-y-4">
-        {project.description && (
-          <p className="text-sm text-muted-foreground mb-2">{project.description}</p>
-        )}
-
-        {/* Section d'affichage des audits */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Audits</h3>
-          
-          {isLoadingAudits ? (
-            <div className="space-y-3">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : auditsError ? (
-            <div className="bg-red-50 p-3 rounded-md border border-red-200 text-sm text-red-600">
-              Erreur lors du chargement des audits
-            </div>
-          ) : audits.length > 0 ? (
-            <div className="space-y-3">
-              {audits.map((audit) => (
-                <Link 
-                  key={audit.id} 
-                  to={`/projects/${project.id}/audits/${audit.id}`}
-                  className="block"
-                >
-                  <div className="bg-gray-50 p-3 rounded-md border text-sm transition-colors hover:bg-gray-100 cursor-pointer">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">{audit.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(audit.updatedAt)}
-                      </span>
-                    </div>
-                    
-                    {audit.progress !== undefined && (
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span>Progression</span>
-                          <span>{audit.progress}%</span>
-                        </div>
-                        <Progress value={audit.progress} className="h-2" />
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-gray-50 p-3 rounded-md border text-center text-sm text-muted-foreground">
-              Aucun audit pour ce projet
-            </div>
-          )}
-          
-          <Button variant="outline" size="sm" asChild className="w-full">
-            <Link to={`/projects/${project.id}/audits/new`} className="flex items-center justify-center">
-              <FilePlus className="h-4 w-4 mr-2" />
-              Nouvel audit
-            </Link>
-          </Button>
+      
+      <CardContent>
+        <div className="h-2 bg-gray-200 rounded-full mb-4">
+          <div 
+            className="h-2 bg-primary rounded-full" 
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <ClipboardList size={14} />
+            <span>Exigences: 12</span>
+          </div>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Users size={14} />
+            <span>Pages: 5</span>
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="border-t pt-4 flex justify-between">
-        <span className="text-xs text-muted-foreground">
-          Mis à jour le {formatDate(project.updatedAt)}
-        </span>
+      
+      <CardFooter className="pt-0 text-xs text-muted-foreground border-t mt-2 pt-2">
+        <div className="flex justify-between w-full">
+          <span className="flex items-center gap-1">
+            <Calendar size={12} />
+            {lastAuditDate ? `Dernier audit: ${lastAuditDate}` : 'Aucun audit'}
+          </span>
+          <Link 
+            to={`/projects/${id}`}
+            className="text-primary hover:underline"
+          >
+            Voir détails
+          </Link>
+        </div>
       </CardFooter>
     </Card>
   );
 };
+
+export default ProjectCard;

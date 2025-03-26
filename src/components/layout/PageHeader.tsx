@@ -1,29 +1,62 @@
 
-import React from 'react';
+import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils';
+
+export interface PageHeaderAction {
+  label: string;
+  icon?: React.ReactNode;
+  onClick?: () => void;
+  href?: string;
+  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link';
+}
 
 interface PageHeaderProps {
   title: string;
   description?: string;
-  actions?: React.ReactNode;
+  actions?: PageHeaderAction[];
+  className?: string;
 }
 
 /**
- * En-tête de page standardisé avec titre, description et actions
+ * En-tête standardisé pour les pages avec actions optionnelles
  */
-const PageHeader: React.FC<PageHeaderProps> = ({
-  title,
+const PageHeader = ({ 
+  title, 
   description,
-  actions
-}) => {
+  actions = [],
+  className 
+}: PageHeaderProps) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+    <div className={cn("flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4", className)}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {description && (
-          <p className="text-muted-foreground mt-1">{description}</p>
-        )}
+        <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
+        {description && <p className="text-muted-foreground mt-1">{description}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      
+      {actions.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+          {actions.map((action, index) => (
+            <Button
+              key={index}
+              variant={action.variant || 'default'}
+              onClick={action.onClick}
+              asChild={!!action.href}
+            >
+              {action.href ? (
+                <a href={action.href}>
+                  {action.icon}
+                  {action.label}
+                </a>
+              ) : (
+                <>
+                  {action.icon}
+                  {action.label}
+                </>
+              )}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
