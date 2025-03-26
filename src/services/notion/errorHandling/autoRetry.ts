@@ -1,7 +1,7 @@
 
 import { notionErrorService } from './notionErrorService';
 import { notionRetryQueue } from './retryQueue';
-import { NotionErrorType, NotionError } from '../types/unified';
+import { NotionErrorType, NotionError } from '../types/errorTypes';
 import { toast } from 'sonner';
 
 /**
@@ -85,5 +85,5 @@ export const autoRetryHandler = {
   }
 };
 
-// Export par défaut pour compatibilité
+// Export par défaut
 export default autoRetryHandler;

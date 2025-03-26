@@ -1,3 +1,3 @@
 
-// Réexporter les types depuis le fichier unified.ts pour éviter les doublons
-export * from '../types/unified';
+// Réexporter les types depuis le fichier errorTypes.ts pour éviter les doublons
+export * from '../types/errorTypes';

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
-import { RetryOperation, RetryQueueStats, RetryOperationOptions } from '@/services/notion/types/unified';
+import { RetryOperation, RetryQueueStats, RetryOperationOptions } from '@/services/notion/types/errorTypes';
 
 /**
  * Hook pour utiliser la file d'attente des réessais

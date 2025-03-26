@@ -10,7 +10,7 @@ import {
   NotionErrorSeverity, 
   NotionErrorOptions,
   ErrorSubscriber
-} from '../types/unified';
+} from '../types/errorTypes';
 
 // Stockage local des erreurs récentes
 let recentErrors: NotionError[] = [];
@@ -42,7 +42,7 @@ export const notionErrorService = {
     const error: NotionError = {
       id: uuidv4(),
       message,
-      type: type || options.type || NotionErrorType.UNKNOWN,
+      type,
       severity: options.severity || NotionErrorSeverity.ERROR,
       timestamp: Date.now(),
       retryable: options.retryable ?? false,
@@ -71,42 +71,7 @@ export const notionErrorService = {
   },
   
   /**
-   * Ajoute une erreur à l'historique et notifie les abonnés
-   */
-  reportError(
-    error: Error | string,
-    context: string = '',
-    options: NotionErrorOptions = {}
-  ): NotionError {
-    // Créer l'objet d'erreur normalisé
-    const errorType = this.identifyErrorType(error);
-    const notionError = this.createError(error, errorType, {
-      ...options,
-      context: context || options.context
-    });
-    
-    // Ajouter l'erreur à l'historique
-    recentErrors.unshift(notionError);
-    
-    // Limiter la taille de l'historique
-    if (recentErrors.length > MAX_ERROR_HISTORY) {
-      recentErrors = recentErrors.slice(0, MAX_ERROR_HISTORY);
-    }
-    
-    // Notifier les abonnés
-    subscribers.forEach(sub => {
-      try {
-        sub.callback([...recentErrors]);
-      } catch (e) {
-        console.error('Erreur lors de la notification d\'un abonné:', e);
-      }
-    });
-    
-    return notionError;
-  },
-  
-  /**
-   * Identifie le type d'erreur
+   * Identifie le type d'erreur en fonction du message
    */
   identifyErrorType(error: Error | string): NotionErrorType {
     const message = typeof error === 'string' 
@@ -160,6 +125,41 @@ export const notionErrorService = {
     
     // Type inconnu par défaut
     return NotionErrorType.UNKNOWN;
+  },
+  
+  /**
+   * Ajoute une erreur à l'historique et notifie les abonnés
+   */
+  reportError(
+    error: Error | string,
+    context: string = '',
+    options: NotionErrorOptions = {}
+  ): NotionError {
+    // Créer l'objet d'erreur normalisé
+    const errorType = this.identifyErrorType(error);
+    const notionError = this.createError(error, errorType, {
+      ...options,
+      context: context || options.context
+    });
+    
+    // Ajouter l'erreur à l'historique
+    recentErrors.unshift(notionError);
+    
+    // Limiter la taille de l'historique
+    if (recentErrors.length > MAX_ERROR_HISTORY) {
+      recentErrors = recentErrors.slice(0, MAX_ERROR_HISTORY);
+    }
+    
+    // Notifier les abonnés
+    subscribers.forEach(sub => {
+      try {
+        sub.callback([...recentErrors]);
+      } catch (e) {
+        console.error('Erreur lors de la notification d\'un abonné:', e);
+      }
+    });
+    
+    return notionError;
   },
   
   /**
@@ -239,5 +239,4 @@ export const notionErrorService = {
   }
 };
 
-// Export par défaut pour la compatibilité
 export default notionErrorService;

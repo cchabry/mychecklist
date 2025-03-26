@@ -1,5 +1,5 @@
 
-import { NotionError, NotionErrorType } from '../types/unified';
+import { NotionError, NotionErrorType } from '../types/errorTypes';
 import { notionErrorService } from './notionErrorService';
 
 /**

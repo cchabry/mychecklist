@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { notionErrorService } from '@/services/notion/errorHandling/notionErrorService';
-import { NotionError, NotionErrorSeverity, NotionErrorType, NotionErrorOptions } from '@/services/notion/types/unified';
+import { NotionError, NotionErrorType, NotionErrorSeverity, NotionErrorOptions } from '@/services/notion/types/errorTypes';
 
 /**
  * Hook pour utiliser le service de gestion des erreurs Notion
