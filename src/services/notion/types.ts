@@ -1,6 +1,8 @@
 
 /**
  * Types communs pour les services Notion
+ * Utilisés dans toute l'application pour assurer la cohérence des données
+ * Date dernière mise à jour: 26/03/2025
  */
 
 export interface NotionAPIResponse<T = any> {
