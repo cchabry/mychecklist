@@ -10,7 +10,7 @@ export { notionService } from './notionService';
 export { checklistService } from './checklistService';
 export { exigenceService } from './exigenceService';
 export { samplePageService } from './samplePageService';
-export { auditService } from './auditService';
+export { auditService } from './audit';
 export { evaluationService } from './evaluationService';
 export { actionService, progressService } from './action';
 
@@ -19,3 +19,4 @@ export { notionClient } from './notionClient';
 
 // Exporter les types
 export * from './types';
+
