@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Utilitaire pour exécuter les tests de type
