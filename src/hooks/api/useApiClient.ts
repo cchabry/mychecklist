@@ -1,94 +1,42 @@
 
-import { useCallback } from 'react';
-import { toast } from 'sonner';
-import { NotionAPI, ApiResult } from '@/types/api/notionApi';
-import { useOperationMode } from '../useOperationMode';
+import { useState } from 'react';
 
 /**
- * Hook pour accéder au client API avec gestion du mode opérationnel
+ * Hook générique pour les appels API
+ * À adapter selon les besoins spécifiques du projet
  */
-export function useApiClient(): {
-  client: NotionAPI | null;
-  isLoading: boolean;
-  error: Error | null;
-} {
-  const { isDemoMode } = useOperationMode();
-  
-  // Ici, nous devrions initialiser le client API réel ou le client de démonstration
-  // Pour l'instant, nous retournons simplement null
-  
-  return {
-    client: null,
-    isLoading: false,
-    error: null
-  };
-}
+export function useApiClient<T = any>() {
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-/**
- * Hook pour utiliser une opération API avec gestion des erreurs et du mode opérationnel
- */
-export function useApiOperation<T, P extends any[]>(
-  operation: (...args: P) => Promise<ApiResult<T>>,
-  options?: {
-    onSuccess?: (data: T) => void;
-    onError?: (error: Error) => void;
-    successMessage?: string;
-    errorMessage?: string;
-  }
-): [
-  (...args: P) => Promise<T | null>,
-  { isLoading: boolean; error: Error | null }
-] {
-  const executeOperation = useCallback(async (...args: P) => {
+  const fetchData = async (url: string, options?: RequestInit): Promise<T> => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const result = await operation(...args);
+      const response = await fetch(url, options);
       
-      if (result.success && result.data) {
-        if (options?.successMessage) {
-          toast.success(options.successMessage);
-        }
-        
-        if (options?.onSuccess) {
-          options.onSuccess(result.data);
-        }
-        
-        return result.data;
-      } else {
-        const error = new Error(
-          result.error?.message || 'Une erreur est survenue'
-        );
-        
-        if (options?.errorMessage) {
-          toast.error(options.errorMessage, {
-            description: result.error?.message
-          });
-        }
-        
-        if (options?.onError) {
-          options.onError(error);
-        }
-        
-        return null;
-      }
-    } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      
-      if (options?.errorMessage) {
-        toast.error(options.errorMessage, {
-          description: errorObj.message
-        });
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} - ${response.statusText}`);
       }
       
-      if (options?.onError) {
-        options.onError(errorObj);
-      }
-      
-      return null;
+      const result = await response.json();
+      setData(result);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  }, [operation, options]);
-  
-  return [
-    executeOperation,
-    { isLoading: false, error: null }
-  ];
+  };
+
+  return {
+    data,
+    isLoading,
+    error,
+    fetchData
+  };
 }

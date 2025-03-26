@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { Badge } from './ui/badge';

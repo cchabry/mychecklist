@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { OperationModeType, OperationModeState, UseOperationMode } from '@/types/operationMode';
 
-// Stub pour le service operationMode (à implémenter plus tard)
+// Stub for the service operationMode (to be implemented later)
 const operationMode = {
   getMode: () => 'real' as OperationModeType,
   getState: () => ({
@@ -15,7 +15,7 @@ const operationMode = {
   reset: () => {},
   isDemoMode: () => false,
   isRealMode: () => true,
-  subscribe: (listener: any) => () => {}
+  subscribe: (callback: any) => () => {}
 };
 
 /**
@@ -30,12 +30,12 @@ export function useOperationMode(): UseOperationMode {
     return unsubscribe;
   }, []);
   
-  const enableRealMode = useCallback((reason?: string) => {
-    operationMode.enableRealMode(reason);
+  const enableRealMode = useCallback(() => {
+    operationMode.enableRealMode();
   }, []);
   
-  const enableDemoMode = useCallback((reason?: string) => {
-    operationMode.enableDemoMode(reason);
+  const enableDemoMode = useCallback(() => {
+    operationMode.enableDemoMode();
   }, []);
   
   const reset = useCallback(() => {
