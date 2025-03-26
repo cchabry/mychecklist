@@ -1,68 +1,40 @@
 
 /**
- * Énumérations et types constants pour l'application d'audit
+ * Énumérations pour l'application
  */
 
 // Niveaux d'importance pour les exigences
-export enum ImportanceLevel {
-  NA = 'N/A',
-  MINEUR = 'mineur',
-  MOYEN = 'moyen',
-  IMPORTANT = 'important',
-  MAJEUR = 'majeur'
-}
+export type ImportanceLevel = 'N/A' | 'mineur' | 'moyen' | 'important' | 'majeur';
 
-// Statuts de conformité pour les évaluations
-export enum ComplianceStatus {
-  CONFORME = 'conforme',
-  PARTIEL = 'partiel',
-  NON_CONFORME = 'non_conforme',
-  NON_APPLICABLE = 'non_applicable'
-}
+// Niveaux de conformité pour les évaluations
+export type ComplianceLevel = 'Conforme' | 'Partiellement conforme' | 'Non conforme' | 'Non Applicable';
 
 // Priorités pour les actions correctives
-export enum ActionPriority {
-  FAIBLE = 'faible',
-  MOYENNE = 'moyenne',
-  HAUTE = 'haute',
-  CRITIQUE = 'critique'
-}
+export type PriorityLevel = 'faible' | 'moyenne' | 'haute' | 'critique';
 
-// Statuts pour les actions correctives
-export enum ActionStatus {
-  A_FAIRE = 'a_faire',
-  EN_COURS = 'en_cours',
-  TERMINEE = 'terminee'
-}
+// Statuts pour les actions et progrès
+export type StatusType = 'à faire' | 'en cours' | 'terminée';
 
-// Types de profil utilisateur
+// Profils utilisateurs
 export enum UserProfile {
-  PRODUCT_OWNER = 'Product Owner',
-  UX_DESIGNER = 'UX designer',
-  UI_DESIGNER = 'UI designer',
-  DEVELOPPEUR = 'Développeur',
-  CONTRIBUTEUR = 'Contributeur'
+  ProductOwner = 'Product Owner',
+  UXDesigner = 'UX designer',
+  UIDesigner = 'UI designer',
+  Developer = 'Développeur',
+  Contributor = 'Contributeur'
 }
 
 // Phases de projet
 export enum ProjectPhase {
-  CONCEPTION = 'Conception',
-  DESIGN = 'Design',
-  DEVELOPPEMENT = 'Développement',
-  TESTS = 'Tests',
-  PRODUCTION = 'Production'
+  Design = 'Design',
+  Development = 'Développement',
+  Testing = 'Tests',
+  Production = 'Production'
 }
 
-// Valeurs pour le calcul des scores
-export const COMPLIANCE_VALUES: Record<ComplianceStatus, number> = {
-  [ComplianceStatus.CONFORME]: 1,
-  [ComplianceStatus.PARTIEL]: 0.5,
-  [ComplianceStatus.NON_CONFORME]: 0,
-  [ComplianceStatus.NON_APPLICABLE]: 0
-};
-
-// Type pour les références aux référentiels externes
-export interface ReferenceType {
-  code: string;
-  name: string;
+// Types de référence
+export enum ReferenceType {
+  RGAA = 'RGAA',
+  RGESN = 'RGESN',
+  OPQUAST = 'OPQUAST'
 }
