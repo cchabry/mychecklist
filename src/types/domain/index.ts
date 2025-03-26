@@ -3,32 +3,9 @@
  * Types du domaine de l'application
  */
 
-/**
- * Projet
- */
-export interface Project {
-  id: string;
-  name: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * Item de checklist
- */
-export interface ChecklistItem {
-  id: string;
-  consigne: string;
-  description: string;
-  category: string;
-  subcategory: string;
-  reference?: string[];
-  profil?: string[];
-  phase?: string[];
-  effort?: string;
-  priority?: string;
-}
+// Réexporter les types spécifiques
+export * from './project';
+export * from './audit';
 
 /**
  * Niveaux d'importance pour les exigences
@@ -62,17 +39,6 @@ export interface SamplePage {
   title: string;
   description?: string;
   order: number;
-}
-
-/**
- * Audit de projet
- */
-export interface Audit {
-  id: string;
-  projectId: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 /**
