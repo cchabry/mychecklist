@@ -9,7 +9,7 @@ export interface Audit {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  progress?: number;
+  progress: number; // Changed from optional to required
   version?: string;
   itemsCount?: number;
 }

@@ -123,7 +123,7 @@ class NotionService {
         id: page.id,
         name: this.extractTextProperty(properties.Name),
         url: this.extractTextProperty(properties.URL),
-        description: this.extractTextProperty(properties.Description),
+        description: this.extractTextProperty(properties.Description) || '',
         createdAt: page.created_time,
         updatedAt: page.last_edited_time,
         progress: properties.Progress?.number || 0
@@ -133,7 +133,7 @@ class NotionService {
     return {
       success: true,
       data: projects
-    } as NotionResponse<Project[]>;
+    };
   }
   
   /**
@@ -169,7 +169,7 @@ class NotionService {
       id: page.id,
       name: this.extractTextProperty(properties.Name),
       url: this.extractTextProperty(properties.URL),
-      description: this.extractTextProperty(properties.Description),
+      description: this.extractTextProperty(properties.Description) || '',
       createdAt: page.created_time,
       updatedAt: page.last_edited_time,
       progress: properties.Progress?.number || 0
@@ -348,7 +348,7 @@ class NotionService {
       id: updatedPage.id,
       name: this.extractTextProperty(updatedProperties.Name),
       url: this.extractTextProperty(updatedProperties.URL),
-      description: this.extractTextProperty(updatedProperties.Description),
+      description: this.extractTextProperty(updatedProperties.Description) || '',
       createdAt: updatedPage.created_time,
       updatedAt: updatedPage.last_edited_time,
       progress: updatedProperties.Progress?.number || 0
