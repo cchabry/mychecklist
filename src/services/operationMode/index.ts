@@ -4,7 +4,5 @@
  * Réexporte toutes les fonctionnalités du service
  */
 
-// Ce fichier sera complété avec l'implémentation réelle du service
-// lors du développement de cette fonctionnalité
-
+export { operationModeService } from './operationModeService';
 export * from '../../hooks/useOperationMode';

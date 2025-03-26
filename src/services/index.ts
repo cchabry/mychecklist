@@ -4,5 +4,5 @@
  * Réexporte tous les services de l'application
  */
 
-// Cet export sera rempli au fur et à mesure
-// que nous implémentons les services
+export * from './operationMode';
+// D'autres services seront exportés ici à mesure qu'ils seront implémentés

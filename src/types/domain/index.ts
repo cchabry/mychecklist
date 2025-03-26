@@ -1,21 +1,9 @@
 
 /**
- * Types principaux du domaine pour l'application d'audit
+ * Types de domaine pour l'application
  */
 
-// Niveaux d'importance pour les exigences
-export type ImportanceLevel = 'N/A' | 'mineur' | 'moyen' | 'important' | 'majeur';
-
-// Statuts de conformité pour les évaluations
-export type ComplianceStatus = 'conforme' | 'partiel' | 'non-conforme' | 'non-applicable';
-
-// Priorités pour les actions correctives
-export type ActionPriority = 'faible' | 'moyenne' | 'haute' | 'critique';
-
-// Statuts pour les actions correctives
-export type ActionStatus = 'à faire' | 'en cours' | 'terminée';
-
-// Projet
+// Projets
 export interface Project {
   id: string;
   name: string;
@@ -26,7 +14,7 @@ export interface Project {
   progress?: number;
 }
 
-// Item de checklist
+// Checklist
 export interface ChecklistItem {
   id: string;
   title: string;
@@ -39,6 +27,9 @@ export interface ChecklistItem {
   effort: string;
   priority: string;
 }
+
+// Niveaux d'importance
+export type ImportanceLevel = 'N/A' | 'mineur' | 'moyen' | 'important' | 'majeur';
 
 // Exigence
 export interface Exigence {
@@ -70,6 +61,9 @@ export interface Audit {
   status: string;
 }
 
+// États de conformité
+export type ComplianceStatus = 'conforme' | 'partiel' | 'non_conforme' | 'non_applicable';
+
 // Évaluation
 export interface Evaluation {
   id: string;
@@ -82,6 +76,12 @@ export interface Evaluation {
   createdAt: string;
   updatedAt: string;
 }
+
+// Priorités d'action
+export type ActionPriority = 'faible' | 'moyenne' | 'haute' | 'critique';
+
+// États d'action
+export type ActionStatus = 'a_faire' | 'en_cours' | 'terminee';
 
 // Action corrective
 export interface CorrectiveAction {

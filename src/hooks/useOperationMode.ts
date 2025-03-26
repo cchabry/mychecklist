@@ -1,49 +1,30 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { OperationModeType, OperationModeState, UseOperationMode } from '@/types/operationMode';
-
-// Stub for the service operationMode (to be implemented later)
-const operationMode = {
-  getMode: () => 'real' as OperationModeType,
-  getState: () => ({
-    mode: 'real' as OperationModeType,
-    timestamp: Date.now(),
-    source: 'system' as const
-  }),
-  enableRealMode: () => {},
-  enableDemoMode: () => {},
-  reset: () => {},
-  isDemoMode: () => false,
-  isRealMode: () => true,
-  subscribe: (_listener: (state: OperationModeState) => void) => {
-    // This is a stub, so we're not actually using the listener yet
-    // When implemented, this will call the listener when the state changes
-    return () => {}; // Return unsubscribe function
-  }
-};
+import { UseOperationMode } from '@/types/operationMode';
+import { operationModeService } from '@/services/operationMode/operationModeService';
 
 /**
  * Hook pour utiliser le service de mode opérationnel
  */
 export function useOperationMode(): UseOperationMode {
-  const [state, setState] = useState<OperationModeState>(operationMode.getState());
+  const [state, setState] = useState(operationModeService.getState());
   
   useEffect(() => {
     // S'abonner aux changements d'état
-    const unsubscribe = operationMode.subscribe(setState);
+    const unsubscribe = operationModeService.subscribe(setState);
     return unsubscribe;
   }, []);
   
-  const enableRealMode = useCallback(() => {
-    operationMode.enableRealMode();
+  const enableRealMode = useCallback((reason?: string) => {
+    operationModeService.enableRealMode(reason);
   }, []);
   
-  const enableDemoMode = useCallback(() => {
-    operationMode.enableDemoMode();
+  const enableDemoMode = useCallback((reason?: string) => {
+    operationModeService.enableDemoMode(reason);
   }, []);
   
   const reset = useCallback(() => {
-    operationMode.reset();
+    operationModeService.reset();
   }, []);
   
   return {
