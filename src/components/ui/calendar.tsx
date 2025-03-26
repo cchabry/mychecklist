@@ -1,6 +1,5 @@
 
 import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { fr } from "date-fns/locale"
 
@@ -53,10 +52,6 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
-      }}
-      components={{
-        // Suppression des props IconLeft et IconRight qui causent les erreurs
-        // Utilisation des props internes de DayPicker pour personnaliser les icônes
       }}
       {...props}
     />
