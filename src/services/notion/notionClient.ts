@@ -104,7 +104,7 @@ export class NotionClient {
   /**
    * Effectue une requête POST à l'API Notion
    */
-  async post<T>(endpoint: string, data: any = {}): Promise<{ success: boolean; data?: T; error?: any }> {
+  async post<T>(endpoint: string, _data: any = {}): Promise<{ success: boolean; data?: T; error?: any }> {
     // Pour l'instant, cette méthode est simplifiée et renvoie une erreur
     // Dans une implémentation réelle, nous ferions une requête à l'API Notion
     if (!this.isConfigured()) {

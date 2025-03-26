@@ -2,7 +2,7 @@
 /**
  * Données fictives pour le mode démo
  */
-import { Project, ProjectStatus } from '@/types/domain';
+import { Project } from '@/types/domain';
 
 /**
  * Projets fictifs
