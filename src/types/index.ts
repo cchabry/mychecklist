@@ -10,8 +10,14 @@ export * from './domain';
 export * from './api';
 
 // Types d'énumérations
+// Export spécifique pour éviter les ambiguïtés
 export {
-  // Re-export everything except ImportanceLevel to avoid ambiguity
+  ComplianceLevel,
+  PriorityLevel,
+  StatusType,
+  UserProfile,
+  ProjectPhase,
+  ReferenceType
 } from './enums';
 
 // Types du mode opérationnel

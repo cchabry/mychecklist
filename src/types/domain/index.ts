@@ -8,16 +8,16 @@ export * from './project';
 export * from './audit';
 export * from './checklist';
 
-/**
- * Niveaux d'importance pour les exigences
- */
-export enum ImportanceLevel {
-  NotApplicable = 'N/A',
-  Minor = 'mineur',
-  Medium = 'moyen',
-  Important = 'important',
-  Major = 'majeur'
-}
+// Importer les énumérations depuis le fichier central
+import { 
+  ImportanceLevel,
+  ComplianceLevel as ComplianceStatus,
+  PriorityLevel as ActionPriority,
+  StatusType as ActionStatus
+} from '../enums';
+
+// Re-exporter avec des alias pour maintenir la compatibilité
+export { ImportanceLevel, ComplianceStatus, ActionPriority, ActionStatus };
 
 /**
  * Exigence de projet
@@ -43,16 +43,6 @@ export interface SamplePage {
 }
 
 /**
- * Niveaux de conformité pour les évaluations
- */
-export enum ComplianceStatus {
-  Compliant = 'Conforme',
-  PartiallyCompliant = 'Partiellement conforme',
-  NonCompliant = 'Non conforme',
-  NotApplicable = 'Non Applicable'
-}
-
-/**
  * Évaluation d'une page pour une exigence
  */
 export interface Evaluation {
@@ -65,25 +55,6 @@ export interface Evaluation {
   attachments?: string[];
   createdAt: string;
   updatedAt: string;
-}
-
-/**
- * Niveaux de priorité pour les actions
- */
-export enum ActionPriority {
-  Low = 'faible',
-  Medium = 'moyenne',
-  High = 'haute',
-  Critical = 'critique'
-}
-
-/**
- * Statuts des actions
- */
-export enum ActionStatus {
-  Todo = 'à faire',
-  InProgress = 'en cours',
-  Done = 'terminée'
 }
 
 /**

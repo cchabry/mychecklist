@@ -3,12 +3,15 @@
  * Types pour les projets
  */
 
+/**
+ * Représente un projet à auditer
+ */
 export interface Project {
   id: string;
   name: string;
-  description: string; // Changed from optional to required
+  description: string;
   url: string;
   createdAt: string;
   updatedAt: string;
-  progress: number; // Changed from optional to required
+  progress: number;
 }

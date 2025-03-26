@@ -3,19 +3,49 @@
  * Énumérations pour l'application
  */
 
-// Niveaux d'importance pour les exigences
-export type ImportanceLevel = 'N/A' | 'mineur' | 'moyen' | 'important' | 'majeur';
+/**
+ * Niveaux d'importance pour les exigences
+ */
+export enum ImportanceLevel {
+  NotApplicable = 'N/A',
+  Minor = 'mineur',
+  Medium = 'moyen',
+  Important = 'important',
+  Major = 'majeur'
+}
 
-// Niveaux de conformité pour les évaluations
-export type ComplianceLevel = 'Conforme' | 'Partiellement conforme' | 'Non conforme' | 'Non Applicable';
+/**
+ * Niveaux de conformité pour les évaluations
+ */
+export enum ComplianceLevel {
+  Compliant = 'Conforme',
+  PartiallyCompliant = 'Partiellement conforme',
+  NonCompliant = 'Non conforme',
+  NotApplicable = 'Non Applicable'
+}
 
-// Priorités pour les actions correctives
-export type PriorityLevel = 'faible' | 'moyenne' | 'haute' | 'critique';
+/**
+ * Priorités pour les actions correctives
+ */
+export enum PriorityLevel {
+  Low = 'faible',
+  Medium = 'moyenne',
+  High = 'haute',
+  Critical = 'critique'
+}
 
-// Statuts pour les actions et progrès
-export type StatusType = 'à faire' | 'en cours' | 'terminée';
+/**
+ * Statuts pour les actions et progrès
+ */
+export enum StatusType {
+  Todo = 'à faire',
+  InProgress = 'en cours',
+  Done = 'terminée'
+}
 
-// Profils utilisateurs
+/**
+ * Profils utilisateurs
+ */
 export enum UserProfile {
   ProductOwner = 'Product Owner',
   UXDesigner = 'UX designer',
@@ -24,7 +54,9 @@ export enum UserProfile {
   Contributor = 'Contributeur'
 }
 
-// Phases de projet
+/**
+ * Phases de projet
+ */
 export enum ProjectPhase {
   Design = 'Design',
   Development = 'Développement',
@@ -32,7 +64,9 @@ export enum ProjectPhase {
   Production = 'Production'
 }
 
-// Types de référence
+/**
+ * Types de référence
+ */
 export enum ReferenceType {
   RGAA = 'RGAA',
   RGESN = 'RGESN',
