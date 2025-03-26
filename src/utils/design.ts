@@ -3,7 +3,7 @@
  * Utilitaires pour l'utilisation des tokens de design
  */
 
-import { COLORS, TYPOGRAPHY, SPACING, BORDERS, SHADOWS, TRANSITIONS } from '@/constants/designTokens';
+import { COLORS, TYPOGRAPHY, SPACING, BORDERS, SHADOWS, TRANSITIONS, ANIMATIONS } from '@/constants/designTokens';
 
 /**
  * Obtient une couleur à partir des tokens de design
@@ -97,4 +97,13 @@ export const getTransition = (
   timing: keyof typeof TRANSITIONS.TIMING = 'EASE'
 ): string => {
   return `${property} ${TRANSITIONS.DURATION[duration]} ${TRANSITIONS.TIMING[timing]}`;
+};
+
+/**
+ * Obtient une animation prédéfinie
+ * @param animation - Nom de l'animation
+ * @returns L'objet d'animation
+ */
+export const getAnimation = (animation: keyof typeof ANIMATIONS.KEYFRAMES) => {
+  return ANIMATIONS.KEYFRAMES[animation];
 };

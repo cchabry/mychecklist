@@ -41,6 +41,11 @@ export type TransitionDurationToken = keyof typeof TRANSITIONS.DURATION;
 export type TransitionTimingToken = keyof typeof TRANSITIONS.TIMING;
 
 /**
+ * Types pour les animations
+ */
+export type AnimationToken = keyof typeof ANIMATIONS.KEYFRAMES;
+
+/**
  * Types pour les points de rupture
  */
 export type BreakpointToken = 'SM' | 'MD' | 'LG' | 'XL' | '2XL';

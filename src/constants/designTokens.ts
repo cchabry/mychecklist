@@ -8,14 +8,16 @@
  * Couleurs principales de l'application
  */
 export const COLORS = {
-  // Couleurs principales
-  TEAL: '#4A968C',
-  CORAL: '#E87A69',
-  LIGHTBLUE: '#93ACE3',
+  // Couleurs principales selon la charte ThinkMyWeb
+  PRIMARY: '#28767D',     // couleur_02: Vert teal principal
+  SECONDARY: '#F26A52',   // couleur_04: Orange/corail 
+  SECONDARY_HOVER: '#d85b47', // couleur_04_hover: Orange/corail hover
+  TERTIARY: '#F9E4D7',    // couleur_03: Beige clair
+  DARK: '#000000',        // couleur_01: Noir
   
   // Niveaux de gris
   GRAY: {
-    LIGHTEST: '#F0F2F5',
+    LIGHTEST: '#F9F9F9',
     LIGHT: '#E5E7EB',
     MEDIUM: '#9CA3AF',
     DARK: '#4B5563',

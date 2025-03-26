@@ -31,6 +31,10 @@ module.exports = {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
         },
+        tertiary: {
+          DEFAULT: "hsl(var(--tertiary))",
+          foreground: "hsl(var(--tertiary-foreground))",
+        },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
@@ -51,12 +55,14 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Ajout des couleurs personnalisées
+        // Ajout des couleurs personnalisées (valeurs directes pour la compatibilité)
         tmw: {
-          teal: '#4A968C',
-          coral: '#E87A69',
-          lightblue: '#93ACE3',
-          gray: '#F0F2F5',
+          teal: '#28767D',
+          coral: '#F26A52',
+          coral_hover: '#d85b47',
+          beige: '#F9E4D7',
+          dark: '#000000',
+          gray: '#F9F9F9',
           darkgray: '#333333',
         },
         success: {

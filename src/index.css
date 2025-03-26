@@ -6,24 +6,27 @@
 @layer base {
   :root {
     --background: 0 0% 98%;
-    --foreground: 210 20% 20%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 20% 20%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 20% 20%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 175 33% 42%;
+    --primary: 178 51% 33%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 210 20% 20%;
+    --secondary: 12 89% 64%;
+    --secondary-foreground: 0 0% 100%;
+
+    --tertiary: 25 77% 91%;
+    --tertiary-foreground: 0 0% 0%;
 
     --muted: 210 20% 96%;
     --muted-foreground: 210 20% 45%;
 
-    --accent: 7 71% 66%;
+    --accent: 12 89% 64%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -31,7 +34,7 @@
 
     --border: 210 20% 92%;
     --input: 210 20% 92%;
-    --ring: 175 33% 42%;
+    --ring: 178 51% 33%;
 
     --radius: 0.5rem;
 
@@ -55,16 +58,19 @@
     --popover: 224 71% 4%;
     --popover-foreground: 220 13% 91%;
 
-    --primary: 175 33% 42%;
+    --primary: 178 51% 33%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 220 13% 91%;
+    --secondary: 12 89% 64%;
+    --secondary-foreground: 0 0% 100%;
+
+    --tertiary: 25 77% 91%;
+    --tertiary-foreground: 0 0% 0%;
 
     --muted: 215 27.9% 16.9%;
     --muted-foreground: 217.9 10.6% 64.9%;
 
-    --accent: 7 71% 66%;
+    --accent: 12 89% 64%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -110,7 +116,7 @@
   }
   
   .animated-border::after {
-    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-tmw-teal transition-all duration-300 ease-apple;
+    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-primary transition-all duration-300 ease-apple;
   }
   
   .animated-border:hover::after {
@@ -130,19 +136,35 @@
   }
 
   .tmw-gradient {
-    @apply bg-gradient-to-r from-tmw-teal to-tmw-coral;
+    @apply bg-gradient-to-r from-primary to-secondary;
   }
   
   .tmw-card {
-    @apply bg-white rounded-xl border border-tmw-teal/20 shadow-sm hover:shadow-md hover:shadow-tmw-teal/10 transition-all duration-300;
+    @apply bg-white rounded-xl border border-primary/20 shadow-sm hover:shadow-md hover:shadow-primary/10 transition-all duration-300;
   }
   
   .tmw-button {
-    @apply bg-tmw-teal text-white hover:bg-tmw-teal/90 rounded-full px-4 py-2 font-medium transition-all duration-300;
+    @apply bg-primary text-white hover:bg-primary/90 rounded-full px-4 py-2 font-medium transition-all duration-300;
   }
   
   .tmw-button-secondary {
-    @apply bg-white text-tmw-teal border border-tmw-teal/30 hover:border-tmw-teal rounded-full px-4 py-2 font-medium transition-all duration-300;
+    @apply bg-secondary text-white hover:bg-secondary/90 rounded-full px-4 py-2 font-medium transition-all duration-300;
+  }
+  
+  .tmw-button-tertiary {
+    @apply bg-white text-primary border border-primary/30 hover:border-primary rounded-full px-4 py-2 font-medium transition-all duration-300;
+  }
+  
+  .tmw-section {
+    @apply py-16;
+  }
+  
+  .tmw-section-colored {
+    @apply bg-primary text-white py-16;
+  }
+  
+  .tmw-section-light {
+    @apply bg-tertiary py-16;
   }
 }
 
