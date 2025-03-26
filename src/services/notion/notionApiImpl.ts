@@ -3,7 +3,7 @@
  * Cet objet fournit une interface unifiée conforme à la définition NotionAPI
  */
 
-import { NotionAPI, NotionTestResponse, NotionUser } from '@/types/api/notionApi';
+import { NotionAPI, NotionTestResponse } from '@/types/api/notionApi';
 import { 
   Project, 
   Audit, 

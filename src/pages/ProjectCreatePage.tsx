@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { createProject } from '@/features/projects';
+import { notionApi } from '@/services/api';
 
 /**
  * Page de création d'un nouveau projet
@@ -38,7 +38,7 @@ const ProjectCreatePage = () => {
     setIsSubmitting(true);
     
     try {
-      const newProject = await createProject({
+      const newProject = await notionApi.createProject({
         name: formData.name,
         url: formData.url,
         description: formData.description

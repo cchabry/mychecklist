@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
-import { getProjectById } from '@/features/projects';
+import { notionApi } from '@/services/api';
 import { useLoadingState } from '@/hooks/form';
 import { toast } from 'sonner';
 
@@ -18,13 +18,8 @@ export const useProjectById = (projectId: string) => {
       
       startLoading();
       try {
-        const data = await getProjectById(projectId);
-        setProject(data || null);
-        if (!data) {
-          toast.error('Projet non trouvé', {
-            description: `Le projet avec l'ID ${projectId} n'existe pas.`
-          });
-        }
+        const data = await notionApi.getProjectById(projectId);
+        setProject(data);
       } catch (error) {
         console.error(`Erreur lors de la récupération du projet #${projectId}:`, error);
         setErrorMessage(`Impossible de récupérer le projet #${projectId}`);
@@ -37,7 +32,7 @@ export const useProjectById = (projectId: string) => {
     };
     
     fetchProject();
-  }, [projectId]);
+  }, [projectId, startLoading, stopLoading, setErrorMessage]);
   
   return {
     project,

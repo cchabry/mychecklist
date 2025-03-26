@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { getProjectById } from '@/features/projects';
+import { notionApi } from '@/services/api';
+import { useProjectById } from '@/hooks/useProjectById';
 
 /**
  * Page d'édition d'un projet existant
@@ -18,9 +19,8 @@ const ProjectEditPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   
-  const [isLoading, setIsLoading] = useState(true);
+  const { project, isLoading, error } = useProjectById(projectId || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -29,30 +29,14 @@ const ProjectEditPage = () => {
   });
 
   useEffect(() => {
-    const fetchProject = async () => {
-      if (!projectId) return;
-      
-      try {
-        const project = await getProjectById(projectId);
-        if (project) {
-          setFormData({
-            name: project.name,
-            url: project.url,
-            description: project.description || ''
-          });
-        } else {
-          setError('Projet non trouvé');
-        }
-      } catch (err) {
-        console.error('Erreur lors du chargement du projet:', err);
-        setError('Impossible de charger les données du projet');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProject();
-  }, [projectId]);
+    if (project) {
+      setFormData({
+        name: project.name,
+        url: project.url,
+        description: project.description || ''
+      });
+    }
+  }, [project]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -62,6 +46,11 @@ const ProjectEditPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!projectId) {
+      toast.error('ID de projet manquant');
+      return;
+    }
+    
     if (!formData.name || !formData.url) {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
@@ -70,9 +59,13 @@ const ProjectEditPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Cette fonctionnalité sera implémentée ultérieurement
-      // Pour l'instant, on simule une mise à jour réussie
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updatedProject = await notionApi.updateProject({
+        ...project,
+        id: projectId,
+        name: formData.name,
+        url: formData.url,
+        description: formData.description
+      });
       
       toast.success('Projet mis à jour avec succès');
       navigate(`/projects/${projectId}`);
@@ -86,7 +79,7 @@ const ProjectEditPage = () => {
 
   if (isLoading) {
     return (
-      <div>
+      <div className="p-6">
         <PageHeader 
           title="Modifier le projet" 
           description="Modifier les informations du projet"
@@ -107,15 +100,15 @@ const ProjectEditPage = () => {
 
   if (error) {
     return (
-      <div>
+      <div className="p-6">
         <PageHeader 
           title="Erreur" 
           description="Une erreur est survenue"
         />
         <Card className="max-w-2xl mx-auto p-6 text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={() => navigate(`/projects/${projectId}`)}>
-            Retour au projet
+          <p className="text-red-500 mb-4">{error.toString()}</p>
+          <Button onClick={() => navigate('/projects')}>
+            Retour aux projets
           </Button>
         </Card>
       </div>
@@ -123,7 +116,7 @@ const ProjectEditPage = () => {
   }
 
   return (
-    <div>
+    <div className="p-6">
       <PageHeader 
         title="Modifier le projet" 
         description="Modifier les informations du projet"
