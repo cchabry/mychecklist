@@ -11,5 +11,5 @@ Cette application permet de réaliser des audits de sites web en vérifiant leur
 - Réalisation d'audits avec évaluation par page
 - Suivi d'actions correctives
 
-<!-- Commentaire pour forcer un nouveau build et vérifier la configuration TypeScript -->
+<!-- Commentaire pour forcer un nouveau build et vérifier la configuration TypeScript modifiée manuellement -->
 
