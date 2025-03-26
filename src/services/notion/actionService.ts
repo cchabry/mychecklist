@@ -4,6 +4,8 @@
  * @deprecated Utilisez plutôt l'import depuis './action/actionService'
  */
 
-export { actionService } from './action/actionService';
-export { progressService } from './action/progressService';
-export default { actionService };
+import { actionService } from './action/actionService';
+import { progressService } from './action/progressService';
+
+export { actionService, progressService };
+export default { actionService, progressService };

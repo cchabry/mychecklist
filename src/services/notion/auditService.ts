@@ -4,6 +4,7 @@
  * @deprecated Utilisez plutôt l'import depuis './audit/auditService'
  */
 
-export { auditService } from './audit/auditService';
-export default { auditService };
+import { auditService } from './audit/auditService';
 
+export { auditService };
+export default { auditService };
