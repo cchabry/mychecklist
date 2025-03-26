@@ -17,7 +17,7 @@ import mockMode from './mock/mode';
 // Importer l'API Proxy
 import { proxyFetch, notionApiRequest } from './proxyFetch';
 
-// Créer et exporter l'API Notion
+// Créer et exporter l'API Notion avec interface compatible avec le nouvel API
 export const notionApi = {
   // Fonction de base pour toutes les requêtes
   request: proxyFetch,
@@ -31,32 +31,39 @@ export const notionApi = {
   // Endpoints pour les pages
   pages,
   
-  // Endpoints pour les projets
+  // Endpoints spécifiques pour projets et autres
   ...projects,
-  
-  // Endpoints pour les checklists
   ...checklist,
-  
-  // Endpoints pour les exigences
   ...exigences,
-  
-  // Endpoints pour les pages d'échantillon
   ...samplePages,
-  
-  // Endpoints pour les audits
   ...audits,
-  
-  // Endpoints pour les évaluations
   ...evaluations,
-  
-  // Endpoints pour les actions correctives
   ...actions,
   
-  // Système de mode mock (pour compatibilité)
+  // Inclure mockMode pour compatibilité avec le code existant
   mockMode,
   
   // Méthode pour récupérer les audits par projet
-  getAuditsByProject: audits.getAuditsByProject
+  getAuditsByProject: audits.getAuditsByProject,
+  
+  // Méthodes pour projets
+  getProject: projects.getProject,
+  getProjects: projects.getProjects,
+  createProject: projects.createProject,
+  updateProject: projects.updateProject,
+  deleteProject: projects.deleteProject,
+  
+  // Méthode pour les pages d'échantillon
+  createSamplePage: samplePages.createSamplePage,
+  
+  // Méthode pour les audits
+  getAudit: audits.getAudit,
+  
+  // Méthodes HTTP standard
+  get: <T = any>(endpoint: string, token?: string) => notionApiRequest<T>(endpoint, 'GET', undefined, token),
+  post: <T = any>(endpoint: string, body?: any, token?: string) => notionApiRequest<T>(endpoint, 'POST', body, token),
+  patch: <T = any>(endpoint: string, body?: any, token?: string) => notionApiRequest<T>(endpoint, 'PATCH', body, token),
+  delete: <T = any>(endpoint: string, token?: string) => notionApiRequest<T>(endpoint, 'DELETE', undefined, token),
 };
 
 // Exporter par défaut
