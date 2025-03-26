@@ -1,82 +1,77 @@
 
-/**
- * Hook standardisé pour gérer les erreurs de l'application
- */
-
 import { useState, useCallback } from 'react';
-import { AppError, ErrorType, ErrorHandlerOptions } from '@/types/error';
-import { createAppError, getErrorMessage } from '@/utils/error';
 import { toast } from 'sonner';
+import { AppError, ErrorType, isAppError } from '@/types/error';
 
 /**
- * Hook pour la gestion standardisée des erreurs
- * 
- * Utilisation:
- * ```tsx
- * const { error, handleError, clearError } = useErrorHandler();
- * 
- * try {
- *   await someOperation();
- * } catch (err) {
- *   handleError(err, { showToast: true });
- * }
- * ```
+ * Options pour le gestionnaire d'erreurs
  */
-export function useErrorHandler() {
-  const [error, setError] = useState<AppError | null>(null);
+export interface ErrorHandlerOptions {
+  toastErrors?: boolean;
+  logErrors?: boolean;
+  onError?: (error: AppError) => void;
+}
+
+/**
+ * Hook pour gérer les erreurs de manière standardisée
+ */
+export function useErrorHandler(options: ErrorHandlerOptions = {}) {
+  const { 
+    toastErrors = true, 
+    logErrors = true,
+    onError 
+  } = options;
+  
+  const [lastError, setLastError] = useState<AppError | null>(null);
+  const [isError, setIsError] = useState(false);
   
   /**
-   * Gère une erreur de manière standardisée
+   * Gère une erreur
    */
-  const handleError = useCallback((
-    catchedError: unknown, 
-    options: ErrorHandlerOptions = {}
-  ) => {
-    const { 
-      showToast = true, 
-      toastTitle,
-      logToConsole = true,
-      logLevel = 'error'
-    } = options;
+  const handleError = useCallback((error: unknown) => {
+    // Convertir l'erreur en AppError
+    const appError = isAppError(error) 
+      ? error 
+      : (error instanceof Error
+        ? { ...error, type: ErrorType.UNEXPECTED } as AppError
+        : new Error(String(error)) as AppError);
     
-    // Normaliser l'erreur
-    const appError = createAppError(catchedError);
+    // Mettre à jour l'état
+    setLastError(appError);
+    setIsError(true);
     
-    // Enregistrer l'erreur dans l'état
-    setError(appError);
+    // Logger l'erreur si demandé
+    if (logErrors) {
+      console.error('[App Error]', appError);
+    }
     
-    // Afficher l'erreur dans un toast si demandé
-    if (showToast) {
-      toast.error(toastTitle || getErrorMessage(appError.type), {
-        description: appError.message
+    // Afficher une toast si demandé
+    if (toastErrors) {
+      toast.error(appError.message, {
+        description: appError.context || appError.type
       });
     }
     
-    // Enregistrer l'erreur dans la console si demandé
-    if (logToConsole) {
-      if (logLevel === 'error') {
-        console.error('Error:', appError);
-      } else if (logLevel === 'warn') {
-        console.warn('Warning:', appError);
-      } else {
-        console.info('Info:', appError);
-      }
+    // Appeler le callback personnalisé si fourni
+    if (onError) {
+      onError(appError);
     }
     
     return appError;
-  }, []);
+  }, [toastErrors, logErrors, onError]);
   
   /**
-   * Efface l'erreur actuelle
+   * Réinitialise l'état d'erreur
    */
   const clearError = useCallback(() => {
-    setError(null);
+    setLastError(null);
+    setIsError(false);
   }, []);
   
   return {
-    error,
     handleError,
     clearError,
-    isError: error !== null
+    lastError,
+    isError
   };
 }

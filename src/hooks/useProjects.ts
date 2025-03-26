@@ -1,11 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
 import { getProjects } from '@/features/projects';
 import { useLoadingState } from '@/hooks/form';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useErrorHandler } from '@/hooks/error';
-import { toast } from 'sonner';
 
 /**
  * Hook pour récupérer la liste des projets

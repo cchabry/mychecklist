@@ -41,60 +41,58 @@ class NotionApiImplementation implements NotionAPI {
     };
   }
 
-  // === Délégation vers les APIs spécifiques ===
-
   // Projets
-  getProjects = projectsApi.getProjects.bind(projectsApi);
-  getProjectById = projectsApi.getProjectById.bind(projectsApi);
-  createProject = projectsApi.createProject.bind(projectsApi);
-  updateProject = projectsApi.updateProject.bind(projectsApi);
-  deleteProject = projectsApi.deleteProject.bind(projectsApi);
+  getProjects = projectsApi.getProjects;
+  getProjectById = projectsApi.getProjectById;
+  createProject = projectsApi.createProject;
+  updateProject = projectsApi.updateProject;
+  deleteProject = projectsApi.deleteProject;
   
   // Audits
-  getAudits = auditsApi.getAudits.bind(auditsApi);
-  getAuditById = auditsApi.getAuditById.bind(auditsApi);
-  createAudit = auditsApi.createAudit.bind(auditsApi);
-  updateAudit = auditsApi.updateAudit.bind(auditsApi);
-  deleteAudit = auditsApi.deleteAudit.bind(auditsApi);
+  getAudits = auditsApi.getAudits;
+  getAuditById = auditsApi.getAuditById;
+  createAudit = auditsApi.createAudit;
+  updateAudit = auditsApi.updateAudit;
+  deleteAudit = auditsApi.deleteAudit;
   
   // Checklist
-  getChecklistItems = checklistsApi.getChecklistItems.bind(checklistsApi);
-  getChecklistItemById = checklistsApi.getChecklistItemById.bind(checklistsApi);
+  getChecklistItems = checklistsApi.getChecklistItems;
+  getChecklistItemById = checklistsApi.getChecklistItemById;
   
   // Exigences
-  getExigences = exigencesApi.getExigences.bind(exigencesApi);
-  getExigenceById = exigencesApi.getExigenceById.bind(exigencesApi);
-  createExigence = exigencesApi.createExigence.bind(exigencesApi);
-  updateExigence = exigencesApi.updateExigence.bind(exigencesApi);
-  deleteExigence = exigencesApi.deleteExigence.bind(exigencesApi);
+  getExigences = exigencesApi.getExigences;
+  getExigenceById = exigencesApi.getExigenceById;
+  createExigence = exigencesApi.createExigence;
+  updateExigence = exigencesApi.updateExigence;
+  deleteExigence = exigencesApi.deleteExigence;
   
   // Pages d'échantillon
-  getSamplePages = samplePagesApi.getSamplePages.bind(samplePagesApi);
-  getSamplePageById = samplePagesApi.getSamplePageById.bind(samplePagesApi);
-  createSamplePage = samplePagesApi.createSamplePage.bind(samplePagesApi);
-  updateSamplePage = samplePagesApi.updateSamplePage.bind(samplePagesApi);
-  deleteSamplePage = samplePagesApi.deleteSamplePage.bind(samplePagesApi);
+  getSamplePages = samplePagesApi.getSamplePages;
+  getSamplePageById = samplePagesApi.getSamplePageById;
+  createSamplePage = samplePagesApi.createSamplePage;
+  updateSamplePage = samplePagesApi.updateSamplePage;
+  deleteSamplePage = samplePagesApi.deleteSamplePage;
   
   // Évaluations
-  getEvaluations = evaluationsApi.getEvaluations.bind(evaluationsApi);
-  getEvaluationById = evaluationsApi.getEvaluationById.bind(evaluationsApi);
-  createEvaluation = evaluationsApi.createEvaluation.bind(evaluationsApi);
-  updateEvaluation = evaluationsApi.updateEvaluation.bind(evaluationsApi);
-  deleteEvaluation = evaluationsApi.deleteEvaluation.bind(evaluationsApi);
+  getEvaluations = evaluationsApi.getEvaluations;
+  getEvaluationById = evaluationsApi.getEvaluationById;
+  createEvaluation = evaluationsApi.createEvaluation;
+  updateEvaluation = evaluationsApi.updateEvaluation;
+  deleteEvaluation = evaluationsApi.deleteEvaluation;
   
   // Actions correctives
-  getActions = actionsApi.getActions.bind(actionsApi);
-  getActionById = actionsApi.getActionById.bind(actionsApi);
-  createAction = actionsApi.createAction.bind(actionsApi);
-  updateAction = actionsApi.updateAction.bind(actionsApi);
-  deleteAction = actionsApi.deleteAction.bind(actionsApi);
+  getActions = actionsApi.getActions;
+  getActionById = actionsApi.getActionById;
+  createAction = actionsApi.createAction;
+  updateAction = actionsApi.updateAction;
+  deleteAction = actionsApi.deleteAction;
   
   // Progrès d'actions
-  getActionProgress = actionsApi.getActionProgress.bind(actionsApi);
-  getActionProgressById = actionsApi.getActionProgressById.bind(actionsApi);
-  createActionProgress = actionsApi.createActionProgress.bind(actionsApi);
-  updateActionProgress = actionsApi.updateActionProgress.bind(actionsApi);
-  deleteActionProgress = actionsApi.deleteActionProgress.bind(actionsApi);
+  getActionProgress = actionsApi.getActionProgress;
+  getActionProgressById = actionsApi.getActionProgressById;
+  createActionProgress = actionsApi.createActionProgress;
+  updateActionProgress = actionsApi.updateActionProgress;
+  deleteActionProgress = actionsApi.deleteActionProgress;
 }
 
 // Exporter une instance singleton

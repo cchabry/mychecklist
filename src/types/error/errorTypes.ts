@@ -1,54 +1,69 @@
 
 /**
- * Types d'erreurs standardisés pour l'application
+ * Types d'erreurs pour l'application
  */
 
-/**
- * Types d'erreurs possibles dans l'application
- */
+// Types d'erreurs possibles dans l'application
 export enum ErrorType {
-  /** Erreur d'authentification ou d'autorisation */
-  AUTH = 'auth',
-  /** Erreur de validation des données */
-  VALIDATION = 'validation',
-  /** Erreur de connexion réseau */
+  // Erreurs de connexion
   NETWORK = 'network',
-  /** Erreur de l'API Notion */
-  NOTION = 'notion',
-  /** Erreur serveur */
-  SERVER = 'server',
-  /** Erreur inconnue ou non catégorisée */
-  UNKNOWN = 'unknown'
+  TIMEOUT = 'timeout',
+  OFFLINE = 'offline',
+  
+  // Erreurs API
+  API = 'api',
+  NOTION_API = 'notion_api',
+  UNAUTHORIZED = 'unauthorized',
+  FORBIDDEN = 'forbidden',
+  NOT_FOUND = 'not_found',
+  
+  // Erreurs d'application
+  VALIDATION = 'validation',
+  STATE = 'state',
+  UNEXPECTED = 'unexpected',
+  
+  // Erreurs de configuration
+  CONFIG = 'config',
+  NOT_CONFIGURED = 'not_configured'
 }
 
 /**
- * Interface pour les erreurs standardisées de l'application
+ * Interface pour les erreurs d'application standardisées
  */
-export interface AppError {
-  /** Type d'erreur */
+export interface AppError extends Error {
   type: ErrorType;
-  /** Message d'erreur */
-  message: string;
-  /** Message d'erreur technique (pour le développement) */
-  technicalMessage?: string;
-  /** Erreur originale */
-  originalError?: unknown;
-  /** Code d'erreur (optionnel) */
   code?: string;
-  /** Données supplémentaires liées à l'erreur */
-  data?: Record<string, unknown>;
+  status?: number;
+  details?: any;
+  timestamp?: number;
+  context?: string;
 }
 
 /**
- * Options pour la gestion des erreurs
+ * Créateur d'erreur d'application
  */
-export interface ErrorHandlerOptions {
-  /** Afficher l'erreur dans un toast */
-  showToast?: boolean;
-  /** Titre du toast */
-  toastTitle?: string;
-  /** Enregistrer l'erreur dans la console */
-  logToConsole?: boolean;
-  /** Niveau de log */
-  logLevel?: 'error' | 'warn' | 'info';
+export function createAppError(
+  message: string,
+  type: ErrorType = ErrorType.UNEXPECTED,
+  options: Partial<Omit<AppError, 'message' | 'type' | 'name'>> = {}
+): AppError {
+  const error = new Error(message) as AppError;
+  error.type = type;
+  error.name = `AppError:${type}`;
+  error.timestamp = Date.now();
+  
+  // Ajouter les options supplémentaires
+  if (options.code) error.code = options.code;
+  if (options.status) error.status = options.status;
+  if (options.details) error.details = options.details;
+  if (options.context) error.context = options.context;
+  
+  return error;
+}
+
+/**
+ * Vérifie si une erreur est une erreur d'application
+ */
+export function isAppError(error: any): error is AppError {
+  return error && typeof error === 'object' && 'type' in error;
 }
