@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCw, Check, XCircle } from 'lucide-react';
@@ -34,7 +35,7 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
         operationMode.enableRealMode();
       }
       
-      const response = await notionApi.users.me();
+      const response = await notionApi.testConnection();
       
       // Test réussi
       setTestStatus('success');

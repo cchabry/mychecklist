@@ -5,6 +5,7 @@ import { Audit, AuditItem } from './types';
 import { ComplianceStatus, COMPLIANCE_VALUES } from '../types';
 import { getNotionClient, notionPropertyExtractors } from './notionClient';
 import { notionApi } from '@/lib/notionProxy';
+import { operationMode } from '@/services/operationMode';
 
 /**
  * Gets the audit for a specific project
@@ -24,16 +25,15 @@ export const getAuditForProject = async (projectId: string): Promise<Audit | nul
             equals: projectId
           }
         }
-      },
-      apiKey
+      }
     );
     
-    console.log('Résultats audit pour le projet:', projectId, response.results.length);
+    console.log('Résultats audit pour le projet:', projectId, response.data?.results?.length);
     
-    if (response.results.length === 0) return null;
+    if (!response.data?.results || response.data.results.length === 0) return null;
     
     // Ensure we have a complete page response
-    const page = response.results[0] as PageObjectResponse;
+    const page = response.data.results[0] as PageObjectResponse;
     
     if (!('properties' in page)) {
       console.error('Invalid page response from Notion');
@@ -112,8 +112,13 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
   try {
     console.log('Sauvegarde de l\'audit:', audit.id);
     
-    // Forcer la restauration du mode réel après cette opération si nécessaire
-    const wasMockForced = notionApi.mockMode.isTemporarilyForcedReal(false);
+    // Stocker l'état du mode démo
+    const wasDemoMode = operationMode.isDemoMode;
+    
+    // Passer temporairement en mode réel
+    if (wasDemoMode) {
+      operationMode.enableRealMode();
+    }
     
     // Créer l'objet de propriétés pour la mise à jour
     const properties = {
@@ -138,8 +143,7 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
     // Update the audit page
     await notionApi.pages.update(
       audit.id,
-      { properties },
-      apiKey
+      { properties }
     );
     
     // Update individual items
@@ -168,8 +172,7 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
       
       await notionApi.pages.update(
         item.id,
-        itemProperties,
-        apiKey
+        itemProperties
       );
       
       // Sauvegarde des actions correctives si présentes
@@ -181,14 +184,20 @@ export const saveAuditToNotion = async (audit: Audit): Promise<boolean> => {
       }
     }
     
-    // Restaurer le mode mock si nécessaire
-    if (wasMockForced) {
-      notionApi.mockMode.restoreAfterForceReal(wasMockForced);
+    // Restaurer le mode démo si nécessaire
+    if (wasDemoMode) {
+      operationMode.enableDemoMode('Retour après sauvegarde d\'audit');
     }
     
     return true;
   } catch (error) {
     console.error('Erreur lors de la sauvegarde de l\'audit:', error);
+    
+    // En cas d'erreur, restaurer le mode démo
+    if (operationMode.isDemoMode === false) {
+      operationMode.enableDemoMode('Erreur lors de la sauvegarde d\'audit');
+    }
+    
     return false;
   }
 };

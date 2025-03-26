@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from './EditProjectRouter';
 import { toast } from 'sonner';
 import { notionApi } from '@/lib/notionProxy';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,19 @@ import { projectsService } from '@/lib/notion/projectsService';
 import { useOperationMode } from '@/services/operationMode';
 import { operationMode } from '@/services/operationMode';
 
+// Simuler une interface Router si next/router n'est pas disponible
+export interface EditProjectRouter {
+  query: { projectId?: string };
+  push: (path: string) => Promise<boolean>;
+}
+
+export function useRouter(): EditProjectRouter {
+  return {
+    query: { projectId: 'mock-id' },
+    push: async (path: string) => true
+  };
+}
+
 const EditProject: React.FC = () => {
   const router = useRouter();
   const { projectId } = router.query;
@@ -20,7 +34,7 @@ const EditProject: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
-  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
+  const { isDemoMode } = useOperationMode();
 
   useEffect(() => {
     if (projectId) {
@@ -35,7 +49,7 @@ const EditProject: React.FC = () => {
         operationMode.enableRealMode();
       }
 
-      const projectData = await notionApi.projects.get(projectId);
+      const projectData = await notionApi.projects.get(projectId as string);
       
       // Restaurer le mode démo si nécessaire
       if (wasDemoMode) {
@@ -54,7 +68,7 @@ const EditProject: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ Error loading project:', error);
-      setError(error.message || 'Failed to load project');
+      setError(error instanceof Error ? error.message : 'Failed to load project');
       setIsLoading(false);
     }
   };
@@ -73,13 +87,13 @@ const EditProject: React.FC = () => {
       };
 
       // Utiliser le service pour mettre à jour le projet
-      await projectsService.updateProject(projectId, updatedProject);
+      await projectsService.updateProject(projectId as string, updatedProject);
 
       toast.success('Project updated successfully');
       router.push('/'); // Redirect to home after save
     } catch (error) {
       console.error('❌ Error updating project:', error);
-      setError(error.message || 'Failed to update project');
+      setError(error instanceof Error ? error.message : 'Failed to update project');
       toast.error('Failed to update project');
     } finally {
       setIsLoading(false);

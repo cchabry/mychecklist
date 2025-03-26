@@ -1,3 +1,4 @@
+
 import { notionApi } from '@/lib/notionProxy';
 import { Project } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/notionProxy/config';
@@ -49,29 +50,46 @@ export async function runDiagnosticTests(options: DiagnosticOptions) {
     if (apiKey) {
       try {
         // Test API Connection
-        await notionApi.users.me(apiKey);
-        results.apiConnectionValid = true;
+        const connectionResult = await notionApi.testConnection(apiKey);
+        results.apiConnectionValid = connectionResult.success;
         
         if (projectsDbId) {
           try {
             // Test Projects DB Connection
-            await notionApi.databases.retrieve(projectsDbId, apiKey);
-            results.projectsDbConnectionValid = true;
+            const dbResponse = await notionApi.databases.retrieve(projectsDbId);
+            results.projectsDbConnectionValid = dbResponse.success;
             
             try {
               // Test Project Creation
-              const testProject: Project = {
+              const testProject = {
                 name: 'Test Project',
                 description: 'This is a test project created by the diagnostic tool.',
                 url: 'https://example.com',
                 status: 'Active',
               };
               
-              const newProject = await notionApi.createProject(testProject);
+              // Créer le projet
+              const newProjectResponse = await notionApi.projects.createProject(testProject);
               
-              if (newProject) {
+              // Vérifier si la création a réussi
+              if (newProjectResponse) {
                 results.projectCreateSuccess = true;
-                options.onProjectCreated(newProject);
+                
+                // Convertir en objet Project pour callback
+                const createdProject: Project = {
+                  id: newProjectResponse.id || '',
+                  name: testProject.name,
+                  description: testProject.description,
+                  url: testProject.url,
+                  status: testProject.status,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  progress: 0,
+                  pagesCount: 0,
+                  itemsCount: 0
+                };
+                
+                options.onProjectCreated(createdProject);
               } else {
                 results.projectCreateSuccess = false;
               }
@@ -100,5 +118,5 @@ export async function runDiagnosticTests(options: DiagnosticOptions) {
 }
 
 export const clearDiagnosticData = () => {
-  localStorage.removeItem(STORAGE_KEYS.DIAGNOSTIC_RESULTS);
+  localStorage.removeItem('notion_diagnostic_results');
 };
