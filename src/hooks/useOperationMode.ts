@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { OperationModeType, OperationModeState } from '@/types/operation';
-import { operationModeService } from '@/services/operationMode/operationModeService';
 
 /**
  * Hook pour déterminer le mode d'opération de l'application
