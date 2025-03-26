@@ -5,7 +5,8 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 
-// Assurons-nous que React est disponible globalement pour les hooks
+// Point d'entrée de l'application
+// Rendu de l'application dans l'élément racine
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
