@@ -1,67 +1,51 @@
 
 import { useState, useEffect } from 'react';
 import { notionErrorService } from '@/services/notion/errorHandling';
-import { NotionError, NotionErrorSeverity } from '@/services/notion/errorHandling/types';
-import { toast } from 'sonner';
+import { NotionError } from '@/services/notion/types/unified';
 
 /**
- * Hook pour accéder au service de gestion des erreurs Notion
+ * Hook pour utiliser le service de gestion des erreurs Notion
  */
 export function useNotionErrorService() {
   const [errors, setErrors] = useState<NotionError[]>([]);
-  
-  // S'abonner aux erreurs
+
+  // Récupérer les erreurs au chargement
   useEffect(() => {
-    const unsubscribe = notionErrorService.subscribe((updatedErrors) => {
-      setErrors(updatedErrors);
-    });
-    
-    // Charger les erreurs initiales
     setErrors(notionErrorService.getRecentErrors());
     
-    return unsubscribe;
+    // Pour un cas réel, il faudrait un mécanisme de mise à jour 
+    // lorsque de nouvelles erreurs sont ajoutées
+    const interval = setInterval(() => {
+      setErrors(notionErrorService.getRecentErrors());
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
-  
-  /**
-   * Signale une erreur au service
-   */
-  const reportError = (error: Error | string, context: string = 'Opération Notion', options: { 
-    showToast?: boolean,
-    severity?: NotionErrorSeverity
-  } = {}) => {
-    const notionError = notionErrorService.reportError(error, context, {
-      severity: options.severity
-    });
-    
-    // Afficher un toast si demandé
-    if (options.showToast !== false) {
-      toast.error(`Erreur: ${context}`, {
-        description: typeof error === 'string' ? error : error.message
-      });
-    }
-    
+
+  // Rapporter une nouvelle erreur
+  const reportError = (error: Error, context?: string) => {
+    const notionError = notionErrorService.reportError(error, context);
+    setErrors(notionErrorService.getRecentErrors());
     return notionError;
   };
-  
-  /**
-   * Efface toutes les erreurs
-   */
+
+  // Effacer toutes les erreurs
   const clearErrors = () => {
     notionErrorService.clearErrors();
+    setErrors([]);
   };
-  
-  /**
-   * Génère un message utilisateur à partir d'une erreur
-   */
-  const getUserFriendlyMessage = (error: NotionError) => {
-    return notionErrorService.createUserFriendlyMessage(error);
+
+  // Obtenir un message convivial pour une erreur
+  const getFriendlyMessage = (error: NotionError) => {
+    return notionErrorService.getFriendlyMessage(error);
   };
-  
+
   return {
     errors,
     reportError,
     clearErrors,
-    getUserFriendlyMessage,
-    service: notionErrorService
+    getFriendlyMessage
   };
 }
+
+export default useNotionErrorService;

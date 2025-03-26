@@ -6,11 +6,32 @@
 
 import { notionApiService } from '@/services/notion/notionApiService';
 import { mockModeAdapter } from './adapters/mockModeAdapter';
+import { NotionApiResponse } from '@/services/notion/types/unified';
+
+/**
+ * Interface typée pour l'API Notion
+ */
+export interface NotionProxyApi {
+  request: (endpoint: string, method?: string, body?: any, token?: string) => Promise<NotionApiResponse<any>>;
+  testConnection: (token?: string) => Promise<{ success: boolean; user?: string; error?: string }>;
+  projects: typeof notionApiService.projects;
+  audits: typeof notionApiService.audits;
+  exigences: typeof notionApiService.exigences;
+  users: typeof notionApiService.users;
+  databases: typeof notionApiService.databases;
+  pages: typeof notionApiService.pages;
+  getProject: typeof notionApiService.getProject;
+  getProjects: typeof notionApiService.getProjects;
+  getAudit: typeof notionApiService.getAudit;
+  getAuditsByProject: typeof notionApiService.getAuditsByProject;
+  createSamplePage: typeof notionApiService.createSamplePage;
+  mockMode: typeof mockModeAdapter;
+}
 
 /**
  * API Notion avec compatibilité mockMode
  */
-export const notionApi = {
+export const notionApi: NotionProxyApi = {
   /**
    * Méthode principale pour faire des requêtes
    */

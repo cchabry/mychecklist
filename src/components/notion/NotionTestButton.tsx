@@ -30,21 +30,29 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
     setTestStatus('idle');
     
     try {
+      // Sauvegarder l'état actuel du mode
       const wasDemoMode = operationMode.isDemoMode;
+      
+      // Forcer le mode réel temporairement
       if (wasDemoMode) {
         operationMode.enableRealMode();
       }
       
+      // Tester la connexion
       const response = await notionApi.testConnection();
       
       // Test réussi
-      setTestStatus('success');
-      toast.success('Connexion à Notion réussie', {
-        description: `Connecté en tant que ${response.data?.user || 'Utilisateur Notion'}`
-      });
-      
-      if (onSuccess) {
-        onSuccess();
+      if (response.success) {
+        setTestStatus('success');
+        toast.success('Connexion à Notion réussie', {
+          description: `Connecté en tant que ${response.user || 'Utilisateur Notion'}`
+        });
+        
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        throw new Error(response.error || 'Erreur de connexion');
       }
     } catch (error) {
       console.error('❌ Notion API connection test failed:', error);

@@ -28,7 +28,7 @@ export interface LegacyMockModeInterface {
  * en se basant sur le nouveau operationMode
  */
 export const mockModeAdapter: LegacyMockModeInterface = {
-  // Variable d'état pour le forçage temporaire
+  // Variables d'état privées
   _tempForcedRealStatus: false,
   
   isActive(): boolean {
