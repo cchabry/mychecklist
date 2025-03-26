@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OperationModeType, OperationModeState } from '@/types/operation';
 import { operationModeService } from '@/services/operationMode/operationModeService';
 

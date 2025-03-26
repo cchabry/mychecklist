@@ -1,5 +1,5 @@
 
-import { ClipboardList, Calendar, Users, ExternalLink, FilePlus } from 'lucide-react';
+import { Calendar, FilePlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui';
 import { Button } from '@/components/ui';
@@ -17,7 +17,7 @@ interface ProjectCardProps {
  * Carte d'affichage d'un projet avec ses audits
  */
 export const ProjectCard = ({ project, className }: ProjectCardProps) => {
-  const { id, name, url, createdAt } = project;
+  const { id, name, createdAt } = project;
   
   const { audits, isLoading, error } = useProjectAudits(id);
   
@@ -34,37 +34,15 @@ export const ProjectCard = ({ project, className }: ProjectCardProps) => {
     <Card className={cn("hover:shadow-md transition-shadow bg-tertiary/30", className)}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <h3 className="text-lg font-medium">
+          <h3 className="text-lg font-bold">
             <Link to={`/projects/${id}`} className="hover:text-primary transition-colors">
               {name}
             </Link>
           </h3>
         </div>
-        <p className="text-sm text-muted-foreground flex items-center gap-1">
-          <ExternalLink size={14} />
-          <a 
-            href={url.startsWith('http') ? url : `https://${url}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="hover:underline truncate max-w-xs"
-          >
-            {url}
-          </a>
-        </p>
       </CardHeader>
       
       <CardContent>
-        <div className="flex justify-between items-center mb-2 text-sm">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <ClipboardList size={14} />
-            <span>12 exigences</span>
-          </div>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Users size={14} />
-            <span>5 pages</span>
-          </div>
-        </div>
-        
         {isLoading ? (
           <div className="space-y-4 animate-pulse">
             <div className="h-24 bg-gray-200 rounded"></div>

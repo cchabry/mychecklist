@@ -49,7 +49,7 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="space-y-6 bg-tertiary/20 min-h-screen p-6">
+    <div className="min-h-screen bg-tertiary p-6">
       <PageHeader 
         title="Tableau de bord" 
         description="Gérez vos projets d'audit"
