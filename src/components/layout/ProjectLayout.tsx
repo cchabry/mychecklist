@@ -1,6 +1,7 @@
 
 import { Outlet, Link, useParams, useLocation } from 'react-router-dom';
 import { OperationModeIndicator } from '../OperationModeIndicator';
+import { Navbar } from '../index';
 import { cn } from '@/lib/utils';
 import { FileText, LayoutList, CheckSquare, ListTodo } from 'lucide-react';
 
@@ -28,6 +29,7 @@ const ProjectLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Navbar />
       <div className="fixed top-16 right-4 z-50">
         <OperationModeIndicator />
       </div>
