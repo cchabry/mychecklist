@@ -4,6 +4,8 @@ import { OperationModeIndicator } from '../OperationModeIndicator';
 import { Navbar } from '../index';
 import { cn } from '@/lib/utils';
 import { FileText, LayoutList, CheckSquare, ListTodo } from 'lucide-react';
+import { useProjectById } from '@/hooks/useProjectById';
+import { Skeleton } from '@/components/ui';
 
 /**
  * Layout spécifique pour les pages de projet
@@ -12,6 +14,7 @@ import { FileText, LayoutList, CheckSquare, ListTodo } from 'lucide-react';
 const ProjectLayout = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
+  const { project, isLoading } = useProjectById(projectId || '');
   
   const navItems = [
     { name: 'Détails', path: `/projects/${projectId}`, icon: FileText, exact: true },
@@ -32,6 +35,17 @@ const ProjectLayout = () => {
       <Navbar />
       <div className="fixed top-16 right-4 z-50">
         <OperationModeIndicator />
+      </div>
+      
+      {/* Sous-header avec le nom du projet */}
+      <div className="bg-primary text-primary-foreground py-4 border-b">
+        <div className="container mx-auto px-4">
+          {isLoading ? (
+            <Skeleton className="h-8 w-72" />
+          ) : (
+            <h1 className="text-2xl font-bold">{project?.name || 'Projet non trouvé'}</h1>
+          )}
+        </div>
       </div>
       
       <div className="bg-gray-50 border-b">
