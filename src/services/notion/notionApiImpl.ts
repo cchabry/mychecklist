@@ -1,10 +1,9 @@
-
 /**
  * Implémentation complète de l'interface NotionAPI
  * Cet objet fournit une interface unifiée conforme à la définition NotionAPI
  */
 
-import { NotionAPI, NotionTestResponse } from '@/types/api/notionApi';
+import { NotionAPI, NotionTestResponse, NotionUser } from '@/types/api/notionApi';
 import { 
   Project, 
   Audit, 
@@ -345,7 +344,11 @@ class NotionApiImplementation implements NotionAPI {
       
       if (response.success) {
         return {
-          user: response.user,
+          user: response.user ? {
+            id: response.user,
+            name: response.user,
+            type: 'person'
+          } : undefined,
           workspace: response.workspaceName,
           timestamp: Date.now()
         };
