@@ -59,9 +59,8 @@ const ProjectEditPage = () => {
     setIsSubmitting(true);
     
     try {
-      const updatedProject = await notionApi.updateProject({
-        ...project,
-        id: projectId,
+      // Only pass the necessary fields to updateProject
+      await notionApi.updateProject(projectId, {
         name: formData.name,
         url: formData.url,
         description: formData.description
