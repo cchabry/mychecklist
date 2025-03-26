@@ -55,11 +55,6 @@ const Dashboard = () => {
         description="Gérez vos projets d'audit"
         actions={[
           {
-            label: 'Nouveau projet',
-            icon: <Plus className="mr-2 h-4 w-4" />,
-            href: '/projects/new'
-          },
-          {
             label: '',
             variant: 'outline',
             icon: (
@@ -74,6 +69,11 @@ const Dashboard = () => {
                 />
               </div>
             )
+          },
+          {
+            label: 'Nouveau projet',
+            icon: <Plus className="mr-2 h-4 w-4" />,
+            href: '/projects/new'
           }
         ]}
       />
