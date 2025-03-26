@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ProjectCard } from '@/components/data-display/ProjectCard';
 import { getProjects } from '@/features/projects';
 import { Project } from '@/types/domain';
-import { Plus } from 'lucide-react';
+import { Plus, FolderOpen } from 'lucide-react';
 
 /**
  * Page d'accueil / Dashboard
@@ -34,6 +34,10 @@ const Dashboard = () => {
 
     fetchProjects();
   }, []);
+
+  // On affiche seulement les 5 premiers projets
+  const displayedProjects = projects.slice(0, 5);
+  const hasMoreProjects = projects.length > 5;
 
   return (
     <div>
@@ -74,9 +78,32 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => (
+          {displayedProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
+          
+          {hasMoreProjects && (
+            <Card className="h-full flex flex-col justify-center items-center p-6 bg-gray-50 border-dashed">
+              <div className="space-y-4 text-center">
+                <h3 className="text-lg font-medium text-gray-700">Plus de projets</h3>
+                <p className="text-sm text-gray-500">Accédez à tous vos projets ou créez-en un nouveau</p>
+                <div className="flex flex-col gap-3 mt-4">
+                  <Button asChild variant="default">
+                    <Link to="/projects" className="flex items-center gap-2 w-full justify-center">
+                      <FolderOpen className="h-4 w-4" />
+                      Tous les projets
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/projects/new" className="flex items-center gap-2 w-full justify-center">
+                      <Plus className="h-4 w-4" />
+                      Nouveau projet
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       )}
     </div>
