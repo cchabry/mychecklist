@@ -6,4 +6,4 @@
 
 export { actionService } from './action/actionService';
 export { progressService } from './action/progressService';
-export default actionService;
+export default { actionService };

@@ -9,9 +9,15 @@ import {
   CreateActionInput, 
   ActionResponse,
   ActionsResponse,
-  ActionDeleteResponse 
+  ActionDeleteResponse,
+  ProgressResponse,
+  ProgressListResponse,
+  ProgressDeleteResponse,
+  CreateProgressInput
 } from './types';
-import { ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
+import { ComplianceStatus, ActionPriority, ActionStatus, CorrectiveAction, ActionProgress } from '@/types/domain';
+import { getFutureDateString } from './utils';
+import { progressService } from './progressService';
 
 /**
  * Service de gestion des actions correctives
@@ -143,11 +149,28 @@ class ActionService {
       data: true
     };
   }
-}
 
-// Import des types nécessaires
-import { CorrectiveAction } from '@/types/domain';
-import { getFutureDateString } from './utils';
+  // Méthodes déléguées au progressService pour la gestion des suivis de progrès
+  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
+    return progressService.getActionProgress(actionId);
+  }
+
+  async getActionProgressById(id: string): Promise<ProgressResponse> {
+    return progressService.getActionProgressById(id);
+  }
+
+  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
+    return progressService.createActionProgress(progress);
+  }
+
+  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
+    return progressService.updateActionProgress(progress);
+  }
+
+  async deleteActionProgress(id: string): Promise<ProgressDeleteResponse> {
+    return progressService.deleteActionProgress(id);
+  }
+}
 
 // Créer et exporter une instance singleton
 export const actionService = new ActionService();

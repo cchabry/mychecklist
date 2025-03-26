@@ -11,6 +11,7 @@ import {
   ProgressListResponse,
   ProgressDeleteResponse
 } from './types';
+import { ComplianceStatus, ActionStatus, ActionProgress } from '@/types/domain';
 
 /**
  * Service de gestion des suivis de progrès
