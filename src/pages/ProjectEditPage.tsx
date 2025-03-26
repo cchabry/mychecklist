@@ -59,11 +59,14 @@ const ProjectEditPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Only pass the necessary fields to updateProject
-      await notionApi.updateProject(projectId, {
+      // Provide the complete project object as expected by the API
+      await notionApi.updateProject({
+        id: projectId,
         name: formData.name,
         url: formData.url,
-        description: formData.description
+        description: formData.description,
+        createdAt: project?.createdAt || '',
+        updatedAt: new Date().toISOString()
       });
       
       toast.success('Projet mis à jour avec succès');
