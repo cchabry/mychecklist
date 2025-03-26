@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ExternalLink, Key, Database } from 'lucide-react';
+import { ExternalLink, Key, Database, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { notionService } from '@/services/notion/notionService';
@@ -17,6 +17,7 @@ import { notionService } from '@/services/notion/notionService';
 const NotionConfigPage = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [config, setConfig] = useState({
     apiKey: localStorage.getItem('notion_api_key') || '',
     projectsDbId: localStorage.getItem('notion_database_id') || '',
@@ -86,7 +87,7 @@ const NotionConfigPage = () => {
       return;
     }
     
-    setIsSubmitting(true);
+    setIsTesting(true);
     
     try {
       // Configurer temporairement le service Notion
@@ -115,7 +116,7 @@ const NotionConfigPage = () => {
         description: error instanceof Error ? error.message : 'Erreur inconnue'
       });
     } finally {
-      setIsSubmitting(false);
+      setIsTesting(false);
     }
   };
   
@@ -229,9 +230,16 @@ const NotionConfigPage = () => {
                   type="button" 
                   variant="outline" 
                   onClick={handleTestConnection}
-                  disabled={isSubmitting}
+                  disabled={isTesting || isSubmitting}
                 >
-                  Tester la connexion
+                  {isTesting ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin mr-2" />
+                      Test en cours...
+                    </>
+                  ) : (
+                    "Tester la connexion"
+                  )}
                 </Button>
                 <Button 
                   type="button" 
@@ -248,7 +256,14 @@ const NotionConfigPage = () => {
                 disabled={isSubmitting}
                 className="w-full sm:w-auto"
               >
-                {isSubmitting ? 'Enregistrement...' : 'Enregistrer la configuration'}
+                {isSubmitting ? (
+                  <>
+                    <Loader className="h-4 w-4 animate-spin mr-2" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  "Enregistrer la configuration"
+                )}
               </Button>
             </CardFooter>
           </Card>

@@ -1,33 +1,16 @@
 
-import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import Header from './Header';
-import Sidebar from './Sidebar';
-import NotionConfigRedirect from './NotionConfigRedirect';
+import { Toaster } from 'sonner';
 
-/**
- * Layout principal de l'application
- */
 const Layout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
-  const toggleSidebar = () => {
-    setIsSidebarOpen(prev => !prev);
-  };
-  
   return (
-    <div className="flex h-screen flex-col">
-      <NotionConfigRedirect />
-      
-      <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
-      
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={isSidebarOpen} />
-        
-        <main className="flex-1 overflow-auto bg-gray-50/90">
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex min-h-screen flex-col">
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 };

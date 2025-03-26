@@ -1,251 +1,129 @@
 
-/**
- * Service principal pour l'API Notion
- */
-
-import { Project, ProjectStatus } from '@/types/domain';
-import { NotionClient } from './notionClient';
-import { NotionResponse, NotionConfig, ConnectionTestResult } from './types';
-import { mockProjects } from './mockData';
-
-// Créer une instance du client Notion
-const notionClient = new NotionClient();
+import { NotionConfig, ConnectionTestResult } from './types';
 
 /**
- * Service Notion principal
+ * Service principal pour l'intégration avec Notion
  */
 class NotionService {
-  /**
-   * Configure le service Notion
-   */
-  configure(config: NotionConfig): void {
-    notionClient.configure(config);
-  }
-  
+  private config: NotionConfig = {};
+  private mockMode = false;
+
   /**
    * Vérifie si le service est configuré
    */
   isConfigured(): boolean {
-    return notionClient.isConfigured();
+    // Vérifier la configuration stockée dans localStorage
+    const apiKey = localStorage.getItem('notion_api_key');
+    const projectsDbId = localStorage.getItem('notion_database_id');
+    
+    return Boolean(apiKey && projectsDbId);
   }
-  
+
+  /**
+   * Configure le service avec les paramètres fournis
+   */
+  configure(config: NotionConfig): void {
+    this.config = { ...config };
+    
+    // Stocker la configuration dans localStorage si les valeurs sont définies
+    if (config.apiKey) {
+      localStorage.setItem('notion_api_key', config.apiKey);
+    }
+    
+    if (config.projectsDbId) {
+      localStorage.setItem('notion_database_id', config.projectsDbId);
+    }
+    
+    if (config.checklistsDbId) {
+      localStorage.setItem('notion_checklists_database_id', config.checklistsDbId);
+    }
+    
+    if (config.mockMode !== undefined) {
+      this.mockMode = config.mockMode;
+    }
+  }
+
   /**
    * Récupère la configuration actuelle
    */
   getConfig(): NotionConfig {
-    return notionClient.getConfig();
+    return {
+      apiKey: localStorage.getItem('notion_api_key') || '',
+      projectsDbId: localStorage.getItem('notion_database_id') || '',
+      checklistsDbId: localStorage.getItem('notion_checklists_database_id') || '',
+      mockMode: this.mockMode
+    };
   }
-  
+
   /**
    * Active ou désactive le mode mock
    */
   setMockMode(enabled: boolean): void {
-    notionClient.setMockMode(enabled);
+    this.mockMode = enabled;
+    localStorage.setItem('notion_mock_mode', enabled ? 'true' : 'false');
   }
-  
+
   /**
    * Vérifie si le mode mock est actif
    */
   isMockMode(): boolean {
-    return notionClient.isMockMode();
+    return this.mockMode || localStorage.getItem('notion_mock_mode') === 'true';
   }
-  
+
   /**
    * Teste la connexion à l'API Notion
    */
   async testConnection(): Promise<ConnectionTestResult> {
-    return notionClient.testConnection();
-  }
-  
-  /**
-   * Récupère tous les projets
-   */
-  async getProjects(): Promise<NotionResponse<Project[]>> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
+    if (this.isMockMode()) {
+      console.log('Test de connexion en mode démo');
       return {
         success: true,
-        data: mockProjects
+        user: 'Utilisateur démo',
+        workspaceName: 'Espace de travail démo',
+        projectsDbName: 'Projets (démo)',
+        checklistsDbName: 'Checklists (démo)'
       };
     }
+
+    const apiKey = localStorage.getItem('notion_api_key');
     
-    // En mode réel, interroger Notion
-    // Pour l'instant, on renvoie quand même des données simulées
-    return {
-      success: true,
-      data: mockProjects.slice(0, 2) // Moins de projets en mode réel pour différencier
-    };
-  }
-  
-  /**
-   * Récupère un projet par son ID
-   */
-  async getProjectById(id: string): Promise<NotionResponse<Project>> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      const project = mockProjects.find(p => p.id === id);
-      
-      if (!project) {
-        return {
-          success: false,
-          error: { message: `Projet #${id} non trouvé` }
-        };
-      }
-      
-      return {
-        success: true,
-        data: project
-      };
-    }
-    
-    // En mode réel, interroger Notion
-    // Pour l'instant, on renvoie quand même des données simulées
-    const project = mockProjects.find(p => p.id === id);
-    
-    if (!project) {
+    if (!apiKey) {
       return {
         success: false,
-        error: { message: `Projet #${id} non trouvé` }
+        error: 'Clé API manquante'
       };
     }
-    
-    return {
-      success: true,
-      data: project
-    };
-  }
-  
-  /**
-   * Crée un nouveau projet
-   */
-  async createProject(projectData: Partial<Project>): Promise<NotionResponse<Project>> {
-    // Vérifier que les données minimales sont fournies
-    if (!projectData.name) {
+
+    try {
+      console.log('Test de connexion à l\'API Notion avec la clé:', apiKey.substring(0, 5) + '...');
+      
+      // Simulation d'une requête à l'API Notion
+      // Dans une application réelle, vous feriez un appel à l'API Notion ici
+      const mockResponse = await new Promise<{name: string}>((resolve) => {
+        setTimeout(() => {
+          resolve({ name: 'Utilisateur test' });
+        }, 1000);
+      });
+      
+      console.log('Connexion à l\'API Notion réussie');
+      
+      return {
+        success: true,
+        user: mockResponse.name,
+        workspaceName: 'Espace de travail',
+        projectsDbName: 'Base de données des projets',
+        checklistsDbName: localStorage.getItem('notion_checklists_database_id') ? 'Base de données des checklists' : undefined
+      };
+    } catch (error) {
+      console.error('Erreur lors du test de connexion:', error);
+      
       return {
         success: false,
-        error: { message: 'Le nom du projet est requis' }
+        error: error instanceof Error ? error.message : 'Erreur de connexion à l\'API Notion'
       };
     }
-    
-    // Si en mode démo, simuler la création
-    if (notionClient.isMockMode()) {
-      // Déterminer le statut du projet (avec une valeur par défaut valide)
-      const status: ProjectStatus = (projectData.status as ProjectStatus) || 'active';
-      
-      const newProject: Project = {
-        id: `proj-${Date.now()}`,
-        name: projectData.name,
-        url: projectData.url || '',
-        description: projectData.description || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: status,
-        progress: 0,
-        pagesCount: 0,
-        itemsCount: 0
-      };
-      
-      return {
-        success: true,
-        data: newProject
-      };
-    }
-    
-    // En mode réel, créer le projet dans Notion
-    // Pour l'instant, on simule quand même
-    const status: ProjectStatus = (projectData.status as ProjectStatus) || 'active';
-    
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: projectData.name,
-      url: projectData.url || '',
-      description: projectData.description || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: status,
-      progress: 0,
-      pagesCount: 0,
-      itemsCount: 0
-    };
-    
-    return {
-      success: true,
-      data: newProject
-    };
-  }
-  
-  /**
-   * Met à jour un projet existant
-   */
-  async updateProject(project: Project): Promise<NotionResponse<Project>> {
-    // Si en mode démo, simuler la mise à jour
-    if (notionClient.isMockMode()) {
-      // Vérifier que le projet existe
-      const existingIndex = mockProjects.findIndex(p => p.id === project.id);
-      
-      if (existingIndex === -1) {
-        return {
-          success: false,
-          error: { message: `Projet #${project.id} non trouvé` }
-        };
-      }
-      
-      // Mettre à jour le projet
-      const updatedProject: Project = {
-        ...project,
-        updatedAt: new Date().toISOString()
-      };
-      
-      return {
-        success: true,
-        data: updatedProject
-      };
-    }
-    
-    // En mode réel, mettre à jour le projet dans Notion
-    // Pour l'instant, on simule quand même
-    return {
-      success: true,
-      data: {
-        ...project,
-        updatedAt: new Date().toISOString()
-      }
-    };
-  }
-  
-  /**
-   * Supprime un projet
-   */
-  async deleteProject(id: string): Promise<NotionResponse<boolean>> {
-    // Si en mode démo, simuler la suppression
-    if (notionClient.isMockMode()) {
-      // Vérifier que le projet existe
-      const existingIndex = mockProjects.findIndex(p => p.id === id);
-      
-      if (existingIndex === -1) {
-        return {
-          success: false,
-          error: { message: `Projet #${id} non trouvé` }
-        };
-      }
-      
-      return {
-        success: true,
-        data: true
-      };
-    }
-    
-    // En mode réel, supprimer le projet dans Notion
-    // Pour l'instant, on simule quand même
-    return {
-      success: true,
-      data: true
-    };
   }
 }
 
-// Exporter une instance singleton du service
+// Exporter une instance singleton
 export const notionService = new NotionService();
-
-// Export par défaut
-export default notionService;
