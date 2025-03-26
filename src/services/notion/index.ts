@@ -19,4 +19,3 @@ export { notionClient } from './notionClient';
 
 // Exporter les types
 export * from './types';
-

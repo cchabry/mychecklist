@@ -1,9 +1,86 @@
+/**
+ * Données fictives pour le mode démo
+ */
+import { 
+  Project, 
+  Audit, 
+  ChecklistItem, 
+  Exigence, 
+  SamplePage, 
+  Evaluation, 
+  CorrectiveAction, 
+  ActionProgress,
+  ComplianceStatus,
+  ActionStatus,
+  ImportanceLevel,
+  ProjectStatus
+} from '@/types/domain';
 
 /**
- * Données de démo pour le mode démo
+ * Projets fictifs
  */
-
-import { Project, ChecklistItem } from '@/types/domain';
+export const mockProjects: Project[] = [
+  {
+    id: 'proj-1',
+    name: 'Site e-commerce',
+    url: 'https://ecommerce-example.com',
+    description: 'Boutique en ligne de produits électroniques',
+    createdAt: '2023-09-01T10:00:00Z',
+    updatedAt: '2023-10-15T14:30:00Z',
+    status: 'active',
+    progress: 65,
+    pagesCount: 8,
+    itemsCount: 42
+  },
+  {
+    id: 'proj-2',
+    name: 'Application mobile',
+    url: 'https://mobile-app-example.com',
+    description: 'Application de suivi de fitness pour smartphones',
+    createdAt: '2023-08-15T08:45:00Z',
+    updatedAt: '2023-10-10T11:20:00Z',
+    status: 'active',
+    progress: 40,
+    pagesCount: 12,
+    itemsCount: 34
+  },
+  {
+    id: 'proj-3',
+    name: 'Site institutionnel',
+    url: 'https://institutional-example.com',
+    description: 'Site web pour une organisation à but non lucratif',
+    createdAt: '2023-07-20T13:15:00Z',
+    updatedAt: '2023-09-28T09:50:00Z',
+    status: 'completed',
+    progress: 100,
+    pagesCount: 6,
+    itemsCount: 28
+  },
+  {
+    id: 'proj-4',
+    name: 'Blog personnel',
+    url: 'https://blog-example.com',
+    description: 'Blog sur la technologie et le développement web',
+    createdAt: '2023-10-01T15:30:00Z',
+    updatedAt: '2023-10-12T17:45:00Z',
+    status: 'pending',
+    progress: 25,
+    pagesCount: 4,
+    itemsCount: 18
+  },
+  {
+    id: 'proj-5',
+    name: 'Plateforme éducative',
+    url: 'https://edu-example.com',
+    description: 'Plateforme d\'apprentissage en ligne pour les écoles',
+    createdAt: '2023-06-10T09:20:00Z',
+    updatedAt: '2023-09-15T10:40:00Z',
+    status: 'archived',
+    progress: 90,
+    pagesCount: 20,
+    itemsCount: 56
+  }
+];
 
 interface MockData {
   projects: Project[];

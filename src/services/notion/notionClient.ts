@@ -82,4 +82,7 @@ export class NotionClient {
   }
 }
 
-export default NotionClient;
+// Exporter une instance singleton pour être utilisée dans toute l'application
+export const notionClient = new NotionClient();
+
+export default notionClient;

@@ -17,7 +17,7 @@ class NotionApiImplementation {
       throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
     }
     
-    return response.data;
+    return response.data || [];
   }
   
   /**
@@ -26,7 +26,7 @@ class NotionApiImplementation {
   async getProjectById(id: string): Promise<Project> {
     const response = await notionService.getProjectById(id);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || `Projet #${id} non trouvé`);
     }
     
@@ -39,7 +39,7 @@ class NotionApiImplementation {
   async createProject(data: Partial<Project>): Promise<Project> {
     const response = await notionService.createProject(data);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'Erreur lors de la création du projet');
     }
     
@@ -52,7 +52,7 @@ class NotionApiImplementation {
   async updateProject(project: Project): Promise<Project> {
     const response = await notionService.updateProject(project);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${project.id}`);
     }
     
