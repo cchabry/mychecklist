@@ -22,9 +22,9 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             <Link to="/" className="font-bold text-xl flex items-center gap-2">
               <img 
-                src="/lovable-uploads/78a29717-eb52-4496-9704-7d02bfec1df7.png" 
+                src="/lovable-uploads/00505fc9-74e2-42a2-8f0d-86f6e00288cf.png" 
                 alt="myChecklist Logo" 
-                className="h-10 w-auto" 
+                className="h-12 w-auto" 
               />
             </Link>
           </div>
