@@ -6,7 +6,7 @@ import { OperationModeIndicator } from './OperationModeIndicator';
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-tertiary/20">
       <Navbar />
       <div className="fixed top-16 right-4 z-50">
         <OperationModeIndicator />
