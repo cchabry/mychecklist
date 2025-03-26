@@ -1,87 +1,33 @@
 
-import React, { useState } from 'react';
-import HomeIndex from './HomeIndex';
-import { Button } from '@/components/ui/button';
-import { Download, Settings, Activity } from 'lucide-react';
-import { NotionCSVExporter, NotionDiagnosticReport } from '@/components/notion';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { operationMode } from '@/services/operationMode';
-import { toast } from 'sonner';
-import OperationModeControl from '@/components/OperationModeControl';
-import { OperationModeSettingsButton } from '@/components/OperationModeSettings';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const HomePage = () => {
-  const [showExporter, setShowExporter] = useState(false);
-  const [showModeControl, setShowModeControl] = useState(false);
-  
-  const handleDiagnosticComplete = (success: boolean) => {
-    if (success) {
-      // Si le diagnostic réussit et on était en mode démo, proposer de désactiver
-      if (operationMode.isDemoMode) {
-        toast.success('Diagnostic réussi', {
-          description: 'Notion fonctionne correctement. Voulez-vous désactiver le mode démonstration ?',
-          action: {
-            label: 'Désactiver',
-            onClick: () => {
-              operationMode.enableRealMode();
-              window.location.reload();
-            }
-          }
-        });
-      } else {
-        toast.success('Diagnostic réussi', {
-          description: 'La connexion à Notion fonctionne correctement.'
-        });
-      }
-    }
-  };
-  
   return (
-    <>
-      <div className="fixed bottom-4 right-4 z-50 flex gap-2">
-        <OperationModeSettingsButton label="Mode opérationnel" className="shadow-lg" />
-        
-        <Button
-          variant="outline"
-          className="shadow-lg"
-          asChild
-        >
-          <Link to="/config">
-            <Activity size={16} className="mr-2" />
-            Configuration
-          </Link>
-        </Button>
-        
-        <NotionDiagnosticReport 
-          buttonLabel="Diagnostic Notion"
-          buttonClassName="shadow-lg"
-          onDiagnosticComplete={handleDiagnosticComplete}
-        />
-        
-        <Button 
-          onClick={() => setShowExporter(true)}
-          className="rounded-full shadow-lg flex items-center gap-2"
-        >
-          <Download size={16} />
-          <span>Exporter CSV</span>
-        </Button>
-      </div>
+    <div className="container max-w-6xl mx-auto py-10 px-4 sm:px-6">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Audit Web</h1>
+        <p className="text-muted-foreground mt-2">
+          Application d'audit d'accessibilité web
+        </p>
+      </header>
       
-      <Dialog open={showExporter} onOpenChange={setShowExporter}>
-        <DialogContent className="max-w-3xl">
-          <NotionCSVExporter onClose={() => setShowExporter(false)} />
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showModeControl} onOpenChange={setShowModeControl}>
-        <DialogContent>
-          <OperationModeControl onToggle={() => setShowModeControl(false)} />
-        </DialogContent>
-      </Dialog>
-      
-      <HomeIndex />
-    </>
+      <Card>
+        <CardHeader>
+          <CardTitle>Nouvelle architecture</CardTitle>
+          <CardDescription>
+            Cette application est en cours de refonte architecturale
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>
+            Bienvenue dans la nouvelle version de l'application. 
+            La structure de base a été mise en place, mais les fonctionnalités 
+            sont encore en cours d'implémentation.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

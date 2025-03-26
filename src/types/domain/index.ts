@@ -1,142 +1,92 @@
 
 /**
- * Types de domaine communs pour toute l'application
- * Basés sur l'architecture définie dans ARCHITECTURE.md
+ * Types de domaine principaux de l'application
  */
 
-// Types d'ID
-export type ID = string;
-export type ProjectID = ID;
-export type AuditID = ID;
-export type ChecklistItemID = ID;
-export type ExigenceID = ID;
-export type SamplePageID = ID;
-export type EvaluationID = ID;
-export type ActionID = ID;
-
-// Énumérations
-export enum ImportanceLevel {
-  NA = 'N/A',
-  Mineur = 'mineur',
-  Moyen = 'moyen',
-  Important = 'important',
-  Majeur = 'majeur'
+// Checklist - Référentiel de bonnes pratiques
+export interface ChecklistItem {
+  id: string;
+  consigne: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  reference: string[];
+  profil: string[];
+  phase: string[];
+  effort: number;
+  priority: number;
 }
 
-export enum ComplianceStatus {
-  NotEvaluated = 'not_evaluated',
-  Compliant = 'compliant',
-  PartiallyCompliant = 'partially_compliant',
-  NonCompliant = 'non_compliant',
-  NotApplicable = 'not_applicable'
-}
-
-export enum ActionPriority {
-  Low = 'low',
-  Medium = 'medium',
-  High = 'high',
-  Critical = 'critical'
-}
-
-export enum ActionStatus {
-  ToDo = 'todo',
-  InProgress = 'in_progress',
-  Done = 'done',
-  Canceled = 'canceled'
-}
-
-// Types des entités principales
+// Projet - Site web à auditer
 export interface Project {
-  id: ProjectID;
+  id: string;
   name: string;
-  description?: string;
   url: string;
   createdAt: string;
   updatedAt: string;
-  progress?: number;
+  progress: number;
 }
 
-export interface ChecklistItem {
-  id: ChecklistItemID;
-  title: string;
-  description: string;
-  category: string;
-  subcategory?: string;
-  reference?: string[];
-  profile?: string[];
-  phase?: string[];
-  effort: string;
-  priority: string;
-  // Champs additionnels utilisés dans l'application existante
-  consigne?: string;
-  criteria?: string;
-  requirementLevel?: string;
-  scope?: string;
-  status?: ComplianceStatus;
-}
-
+// Exigence - Spécification des bonnes pratiques retenues pour un projet
 export interface Exigence {
-  id: ExigenceID;
-  projectId: ProjectID;
-  itemId: ChecklistItemID;
-  importance: ImportanceLevel;
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: 'N/A' | 'mineur' | 'moyen' | 'important' | 'majeur';
   comment?: string;
 }
 
+// Page - Échantillon de pages du projet
 export interface SamplePage {
-  id: SamplePageID;
-  projectId: ProjectID;
+  id: string;
+  projectId: string;
   url: string;
   title: string;
   description?: string;
   order: number;
 }
 
+// Audit - Informations générales d'un audit pour un projet
 export interface Audit {
-  id: AuditID;
-  projectId: ProjectID;
+  id: string;
+  projectId: string;
   name: string;
-  description?: string;
   createdAt: string;
   updatedAt: string;
-  status?: string;
-  score?: number;
-  version?: string;
-  items?: any[]; // Type à préciser selon l'implémentation
 }
 
+// Évaluation - Résultats d'évaluation par page et par exigence
 export interface Evaluation {
-  id: EvaluationID;
-  auditId: AuditID;
-  pageId: SamplePageID;
-  exigenceId: ExigenceID;
-  score: ComplianceStatus;
-  comment: string;
-  attachments: string[];
+  id: string;
+  auditId: string;
+  pageId: string;
+  exigenceId: string;
+  score: 'Conforme' | 'Partiellement conforme' | 'Non conforme' | 'Non Applicable';
+  comment?: string;
+  attachments?: string[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ActionProgress {
-  id: ID;
+// Action corrective - Actions à entreprendre sur une évaluation
+export interface CorrectiveAction {
+  id: string;
+  evaluationId: string;
+  targetScore: 'Conforme' | 'Partiellement conforme';
+  priority: 'faible' | 'moyenne' | 'haute' | 'critique';
+  dueDate: string;
+  responsible: string;
+  comment?: string;
+  status: 'à faire' | 'en cours' | 'terminée';
+}
+
+// Suivi des corrections - Suivi des actions correctives
+export interface Progress {
+  id: string;
+  actionId: string;
   date: string;
   responsible: string;
-  comment: string;
-  score: ComplianceStatus;
-  status: ActionStatus;
-}
-
-export interface CorrectiveAction {
-  id: ActionID;
-  evaluationId: EvaluationID;
-  pageId?: SamplePageID;
-  targetScore: ComplianceStatus;
-  priority: ActionPriority;
-  dueDate?: string;
-  responsible?: string;
-  comment: string;
-  status: ActionStatus;
-  progress?: ActionProgress[];
-  createdAt: string;
-  updatedAt: string;
+  comment?: string;
+  score: 'Conforme' | 'Partiellement conforme' | 'Non conforme';
+  status: 'à faire' | 'en cours' | 'terminée';
 }

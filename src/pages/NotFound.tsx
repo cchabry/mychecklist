@@ -1,41 +1,21 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Home } from 'lucide-react';
 
-const NotFound: React.FC = () => {
-  const navigate = useNavigate();
-
+const NotFoundPage = () => {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 py-6 flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="text-8xl font-extrabold text-muted-foreground">404</div>
-            </div>
-            <CardTitle className="text-2xl font-bold">Page non trouvée</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="mb-4 text-muted-foreground">
-              La page que vous recherchez n'existe pas ou a été déplacée.
-            </p>
-            <Button 
-              onClick={() => navigate('/')}
-              className="px-6"
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Retour à l'accueil
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+      <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
+      <h2 className="text-2xl font-semibold text-gray-700 mb-6">Page non trouvée</h2>
+      <p className="text-gray-500 mb-8 max-w-md">
+        La page que vous recherchez n'existe pas ou a été déplacée.
+      </p>
+      <Button asChild>
+        <Link to="/">Retourner à l'accueil</Link>
+      </Button>
     </div>
   );
 };
 
-export default NotFound;
+export default NotFoundPage;

@@ -1,79 +1,79 @@
 
 /**
- * Types communs pour les services et intégrations avec Notion
+ * Types spécifiques à l'intégration avec Notion
  */
 
-import { ApiError } from '../api';
-
-export enum ConnectionStatus {
-  Connected = 'connected',
-  Disconnected = 'disconnected',
-  Error = 'error',
-  Loading = 'loading'
+// Configuration de l'intégration Notion
+export interface NotionConfig {
+  apiKey: string | null;
+  databaseIds: {
+    projects: string | null;
+    checklists: string | null;
+    exigences: string | null;
+    pages: string | null;
+    audits: string | null;
+    evaluations: string | null;
+    actions: string | null;
+    progress: string | null;
+  };
+  operationMode: 'real' | 'demo' | 'auto';
+  oauth?: {
+    clientId: string;
+    clientSecret?: string;
+    redirectUri: string;
+  };
 }
 
-export interface NotionAPIResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: ApiError;
+// Types d'erreurs Notion
+export enum NotionErrorType {
+  API = 'api',
+  NETWORK = 'network',
+  AUTH = 'auth',
+  RATE_LIMIT = 'rate_limit',
+  CONFIG = 'config',
+  DATABASE = 'database',
+  VALIDATION = 'validation',
+  UNKNOWN = 'unknown'
 }
 
-export interface NotionUser {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  type: string;
+// Niveaux de sévérité des erreurs
+export enum NotionErrorSeverity {
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical'
 }
 
-export interface NotionWorkspace {
-  id: string;
-  name: string;
-  icon?: string;
+// Interface pour les erreurs structurées
+export interface NotionErrorOptions {
+  type: NotionErrorType;
+  severity: NotionErrorSeverity;
+  cause?: Error | unknown;
+  context?: string;
+  retryable?: boolean;
+  statusCode?: number;
 }
 
-export interface NotionTestResponse {
-  user?: NotionUser;
-  workspace?: NotionWorkspace | string;
-  timestamp: number;
+// Interface pour les fonctions de mapping Notion <-> App
+export interface NotionMapper<T, N> {
+  toNotion(data: T): N;
+  fromNotion(data: N): T;
 }
 
-export interface NotionConnectionConfig {
-  token?: string;
-  projectsDbId?: string;
-  checklistsDbId?: string;
-  auditsDbId?: string;
-  exigencesDbId?: string;
-  pagesDbId?: string;
-  evaluationsDbId?: string;
-  actionsDbId?: string;
+// Options pour les requêtes Notion
+export interface NotionRequestOptions {
+  useCache?: boolean;
+  cacheTime?: number;
+  retries?: number;
+  timeout?: number;
 }
 
+// Statut de la connexion Notion
 export interface NotionConnectionStatus {
-  status: ConnectionStatus;
-  lastChecked: number;
-  user?: NotionUser;
-  workspace?: NotionWorkspace | string;
+  connected: boolean;
+  lastChecked: Date | null;
+  apiAvailable: boolean;
+  databasesAvailable: boolean;
   error?: string;
   isMockMode: boolean;
-}
-
-export interface NotionDatabaseInfo {
-  id: string;
-  name: string;
-  url?: string;
-  icon?: string;
-  description?: string;
-  createdTime?: string;
-  lastEditedTime?: string;
-}
-
-export interface NotionRequestLogEntry {
-  id: string;
-  timestamp: number;
-  endpoint: string;
-  method: string;
-  status?: number;
-  success?: boolean;
-  responseTime?: number;
-  error?: string;
 }
