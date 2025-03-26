@@ -8,7 +8,10 @@
     "build:dev": "vite build --mode development",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css}'",
+	"format:check": "prettier --check 'src/**/*.{ts,tsx,js,jsx,json,css}'",
+	"lint:fix": "eslint . --ext ts,tsx --fix"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
