@@ -8,7 +8,14 @@
  */
 
 import { notionService } from '@/services/notion/notionService';
-import { Project } from '@/types/domain';
+import { Project, CreateProjectData, UpdateProjectData } from './types';
+
+// Réexporter les composants, hooks et utilitaires pour faciliter l'accès
+export * from './components';
+export * from './hooks';
+export * from './types';
+export * from './utils';
+export * from './constants';
 
 /**
  * Récupère tous les projets depuis l'API Notion
@@ -52,7 +59,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
  * @returns Promise résolvant vers le projet créé
  * @throws Error si la création échoue
  */
-export async function createProject(data: { name: string; url?: string; description?: string }): Promise<Project> {
+export async function createProject(data: CreateProjectData): Promise<Project> {
   const response = await notionService.createProject(data);
   
   if (response.success && response.data) {
@@ -70,7 +77,7 @@ export async function createProject(data: { name: string; url?: string; descript
  * @returns Promise résolvant vers le projet mis à jour
  * @throws Error si la mise à jour échoue
  */
-export async function updateProject(id: string, data: { name?: string; url?: string; description?: string }): Promise<Project> {
+export async function updateProject(id: string, data: UpdateProjectData): Promise<Project> {
   const response = await notionService.updateProject(id, data);
   
   if (response.success && response.data) {

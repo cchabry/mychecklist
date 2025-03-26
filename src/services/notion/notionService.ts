@@ -6,8 +6,6 @@
 
 import { notionBaseService } from './notionBaseService';
 import { projectService } from './project/projectService';
-import { NotionConfig, ConnectionTestResult } from './types';
-import { Project } from '@/types/domain';
 
 /**
  * Façade unifiant les différents services Notion
