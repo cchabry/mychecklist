@@ -1,0 +1,48 @@
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# Configuration redirects/rewrites
+[[redirects]]
+  from = "/api/notion-proxy"
+  to = "/.netlify/functions/notion-proxy"
+  status = 200
+
+[[redirects]]
+  from = "/api/notion-proxy/*"
+  to = "/.netlify/functions/notion-proxy"
+  status = 200
+
+[[redirects]]
+  from = "/api/ping"
+  to = "/.netlify/functions/ping"
+  status = 200
+
+[[redirects]]
+  from = "/api/netlify-debug"
+  to = "/.netlify/functions/netlify-debug"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Configuration CORS headers
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Notion-Version"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+
+# Configuration de la fonction notion-proxy (environnement)
+[functions.notion-proxy]
+  node_bundler = "esbuild"
+  included_files = []
+  external_node_modules = ["node-fetch"]
+  environment = { DEBUG = "true", CACHE_TTL = "300" }
