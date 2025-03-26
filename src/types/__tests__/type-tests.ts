@@ -1,4 +1,3 @@
-
 /**
  * Ce fichier contient des tests de type pour vérifier que nos interfaces principales
  * sont correctement définies et utilisées.
@@ -26,8 +25,9 @@ import {
 } from '../enums';
 
 // Fonction helper pour tester qu'un type est assignable à un autre
+// Cette fonction n'est jamais réellement appelée, elle sert uniquement à la vérification de type
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function assertType<T, U extends T>() {}
+function assertType<T>(_value?: T) {}
 
 /**
  * Test pour l'interface Project
@@ -45,7 +45,7 @@ export function testProject() {
   };
   
   // Vérification que l'objet est bien de type Project
-  assertType<Project, typeof validProject>();
+  assertType<Project>(validProject);
   
   // Test des propriétés requises (erreur de compilation si manquante)
   // @ts-expect-error: id est requis
@@ -94,8 +94,8 @@ export function testAudit() {
   };
   
   // Vérification que les objets sont bien de type Audit
-  assertType<Audit, typeof validAudit>();
-  assertType<Audit, typeof fullAudit>();
+  assertType<Audit>(validAudit);
+  assertType<Audit>(fullAudit);
   
   // Test des propriétés requises
   // @ts-expect-error: projectId est requis
@@ -129,7 +129,7 @@ export function testChecklistItem() {
   };
   
   // Vérification que l'objet est bien de type ChecklistItem
-  assertType<ChecklistItem, typeof validChecklistItem>();
+  assertType<ChecklistItem>(validChecklistItem);
   
   // Test des tableaux vides (doivent être valides)
   const minimalArrays: ChecklistItem = {
@@ -139,7 +139,7 @@ export function testChecklistItem() {
     phase: []
   };
   
-  assertType<ChecklistItem, typeof minimalArrays>();
+  assertType<ChecklistItem>(minimalArrays);
   
   return { validChecklistItem, minimalArrays };
 }
@@ -163,8 +163,8 @@ export function testExigence() {
   };
   
   // Vérification que les objets sont bien de type Exigence
-  assertType<Exigence, typeof validExigence>();
-  assertType<Exigence, typeof withComment>();
+  assertType<Exigence>(validExigence);
+  assertType<Exigence>(withComment);
   
   // Test des valeurs d'énumération
   const allImportanceLevels: ImportanceLevel[] = [
@@ -181,7 +181,7 @@ export function testExigence() {
       ...validExigence,
       importance: level
     };
-    assertType<Exigence, typeof exigence>();
+    assertType<Exigence>(exigence);
   });
   
   return { validExigence, withComment };
@@ -207,8 +207,8 @@ export function testSamplePage() {
   };
   
   // Vérification que les objets sont bien de type SamplePage
-  assertType<SamplePage, typeof validSamplePage>();
-  assertType<SamplePage, typeof withDescription>();
+  assertType<SamplePage>(validSamplePage);
+  assertType<SamplePage>(withDescription);
   
   return { validSamplePage, withDescription };
 }
@@ -236,8 +236,8 @@ export function testEvaluation() {
   };
   
   // Vérification que les objets sont bien de type Evaluation
-  assertType<Evaluation, typeof validEvaluation>();
-  assertType<Evaluation, typeof fullEvaluation>();
+  assertType<Evaluation>(validEvaluation);
+  assertType<Evaluation>(fullEvaluation);
   
   // Test des valeurs d'énumération
   const allComplianceLevels: ComplianceLevel[] = [
@@ -253,7 +253,7 @@ export function testEvaluation() {
       ...validEvaluation,
       score: level
     };
-    assertType<Evaluation, typeof evaluation>();
+    assertType<Evaluation>(evaluation);
   });
   
   return { validEvaluation, fullEvaluation };
@@ -281,8 +281,8 @@ export function testCorrectiveAction() {
   };
   
   // Vérification que les objets sont bien de type CorrectiveAction
-  assertType<CorrectiveAction, typeof validAction>();
-  assertType<CorrectiveAction, typeof withComment>();
+  assertType<CorrectiveAction>(validAction);
+  assertType<CorrectiveAction>(withComment);
   
   // Test des valeurs d'énumération pour les priorités
   const allPriorityLevels: PriorityLevel[] = [
@@ -307,7 +307,7 @@ export function testCorrectiveAction() {
         priority,
         status
       };
-      assertType<CorrectiveAction, typeof action>();
+      assertType<CorrectiveAction>(action);
     });
   });
   
@@ -335,8 +335,8 @@ export function testActionProgress() {
   };
   
   // Vérification que les objets sont bien de type ActionProgress
-  assertType<ActionProgress, typeof validProgress>();
-  assertType<ActionProgress, typeof withComment>();
+  assertType<ActionProgress>(validProgress);
+  assertType<ActionProgress>(withComment);
   
   return { validProgress, withComment };
 }
@@ -423,14 +423,14 @@ export function testTypeRelations() {
   };
   
   // Vérifier que tous les objets sont correctement typés
-  assertType<Project, typeof project>();
-  assertType<ChecklistItem, typeof checklistItem>();
-  assertType<Exigence, typeof exigence>();
-  assertType<SamplePage, typeof samplePage>();
-  assertType<Audit, typeof audit>();
-  assertType<Evaluation, typeof evaluation>();
-  assertType<CorrectiveAction, typeof action>();
-  assertType<ActionProgress, typeof progress>();
+  assertType<Project>(project);
+  assertType<ChecklistItem>(checklistItem);
+  assertType<Exigence>(exigence);
+  assertType<SamplePage>(samplePage);
+  assertType<Audit>(audit);
+  assertType<Evaluation>(evaluation);
+  assertType<CorrectiveAction>(action);
+  assertType<ActionProgress>(progress);
   
   return {
     project,
@@ -446,7 +446,6 @@ export function testTypeRelations() {
 
 // Tester l'API Notion
 import { 
-  NotionAPI, 
   NotionAPIOptions, 
   NotionAPIResponse, 
   ConnectionStatus 
@@ -497,9 +496,9 @@ export function testNotionAPI() {
   ];
   
   // Ces vérifications vont échouer à la compilation si les types ne sont pas corrects
-  assertType<NotionAPIOptions, typeof validOptions>();
-  assertType<NotionAPIResponse<Project>, typeof successResponse>();
-  assertType<NotionAPIResponse, typeof errorResponse>();
+  assertType<NotionAPIOptions>(validOptions);
+  assertType<NotionAPIResponse<Project>>(successResponse);
+  assertType<NotionAPIResponse>(errorResponse);
   
   return { validOptions, successResponse, errorResponse, statuses };
 }
