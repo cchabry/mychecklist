@@ -43,14 +43,14 @@ const AuditCreatePage = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-tertiary/20 p-6">
       <PageHeader 
         title="Créer un nouvel audit" 
         description="Démarrer un nouvel audit pour ce projet"
       />
       
       <form onSubmit={handleSubmit}>
-        <Card className="max-w-xl mx-auto">
+        <Card className="max-w-xl mx-auto bg-white/90">
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nom de l'audit *</Label>

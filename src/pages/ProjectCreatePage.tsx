@@ -55,14 +55,14 @@ const ProjectCreatePage = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-tertiary/20 p-6">
       <PageHeader 
         title="Créer un nouveau projet" 
         description="Créez un nouveau projet pour démarrer un audit"
       />
       
       <form onSubmit={handleSubmit}>
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-2xl mx-auto bg-white/90">
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nom du projet *</Label>
