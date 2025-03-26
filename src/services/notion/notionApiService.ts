@@ -1,10 +1,10 @@
+
 /**
  * Service central et unifié pour l'API Notion
  * Point d'entrée UNIQUE pour tous les appels à l'API Notion
  */
 import { toast } from 'sonner';
 import { notionCentralService } from './notionCentralService';
-import { mockModeAdapter } from '@/lib/notionProxy/adapters/mockModeAdapter';
 
 // Types pour le service API
 export type NotionApiResponse<T = any> = {
@@ -127,39 +127,6 @@ export const notionApiService = {
      */
     async update(projectId: string, data: any): Promise<NotionApiResponse<any>> {
       return notionApiService.request(`/projects/${projectId}`, 'PATCH', data);
-    },
-    
-    /**
-     * Méthodes de compatibilité
-     */
-    get: async function(id: string): Promise<any> {
-      const response = await notionApiService.projects.getById(id);
-      return response.data || null;
-    },
-    
-    getProject: async function(id: string): Promise<any> {
-      return this.get(id);
-    },
-    
-    getProjects: async function(): Promise<any[]> {
-      const response = await notionApiService.projects.getAll();
-      return response.data || [];
-    },
-    
-    createProject: async function(data: any): Promise<any> {
-      const response = await notionApiService.projects.create(data);
-      return response.data;
-    },
-    
-    updateProject: async function(id: string, data: any): Promise<any> {
-      const response = await notionApiService.projects.update(id, data);
-      return response.data;
-    },
-    
-    deleteProject: async function(id: string): Promise<any> {
-      // Implémentation de la suppression avec l'archivage
-      const response = await notionApiService.request(`/pages/${id}`, 'PATCH', { archived: true });
-      return response.data;
     }
   },
   
@@ -219,18 +186,6 @@ export const notionApiService = {
      */
     async update(auditId: string, data: any): Promise<NotionApiResponse<any>> {
       return notionApiService.request(`/audits/${auditId}`, 'PATCH', data);
-    },
-    
-    /**
-     * Méthodes de compatibilité
-     */
-    getAudit: async function(id: string): Promise<any> {
-      return this.getById(id);
-    },
-    
-    getAuditsByProject: async function(projectId: string): Promise<any[]> {
-      const response = await this.getByProject(projectId);
-      return response.data || [];
     }
   },
   
@@ -271,79 +226,31 @@ export const notionApiService = {
      */
     async query(databaseId: string, params: any): Promise<NotionApiResponse<any>> {
       return notionApiService.request(`/databases/${databaseId}/query`, 'POST', params);
-    },
-    
-    /**
-     * Récupère toutes les bases de données
-     */
-    list: async function(): Promise<any[]> {
-      const response = await notionApiService.request('/databases');
-      return response.data || [];
     }
-  },
-  
-  /**
-   * API Pages pour compatibilité
-   */
-  pages: {
-    create: async function(data: any): Promise<any> {
-      const response = await notionApiService.request('/pages', 'POST', data);
-      return response.data;
-    },
-    
-    update: async function(pageId: string, data: any): Promise<any> {
-      const response = await notionApiService.request(`/pages/${pageId}`, 'PATCH', data);
-      return response.data;
-    },
-    
-    retrieve: async function(pageId: string): Promise<any> {
-      const response = await notionApiService.request(`/pages/${pageId}`);
-      return response.data;
-    }
-  },
-  
-  /**
-   * Méthodes de compatibilité avec l'ancien API
-   */
-  getProject: async function(id: string): Promise<any> {
-    return this.projects.get(id);
-  },
-  
-  getProjects: async function(): Promise<any[]> {
-    return this.projects.getProjects();
-  },
-  
-  getAudit: async function(id: string): Promise<any> {
-    return this.audits.getAudit(id);
-  },
-  
-  getAuditsByProject: async function(projectId: string): Promise<any[]> {
-    return this.audits.getAuditsByProject(projectId);
-  },
-  
-  createSamplePage: async function(data: any): Promise<any> {
-    // Créer une page d'exemple pour les tests
-    return this.pages.create({
-      parent: { page_id: data.projectId },
-      properties: {
-        title: [{ text: { content: data.title || 'Page de test' } }]
-      },
-      content: [
-        {
-          object: 'block',
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [{ type: 'text', text: { content: data.description || 'Description de test' } }]
-          }
-        }
-      ]
-    });
   },
   
   /**
    * ===== COMPATIBILITÉ AVEC L'ANCIEN MODE DÉMO =====
    */
-  mockMode: mockModeAdapter
+  mockMode: {
+    isActive: () => false,
+    enable: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve();
+    },
+    disable: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve();
+    },
+    reset: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve();
+    },
+    forceReset: () => {
+      console.warn('Mode démo déprécié, utiliser operationMode');
+      return Promise.resolve(); 
+    }
+  }
 };
 
 export default notionApiService;

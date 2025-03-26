@@ -1,65 +1,19 @@
 
 /**
- * Point d'entrée unifié pour le système de gestion des erreurs Notion
+ * Point d'entrée pour la gestion des erreurs
  */
 
-// Importer les services
-import { notionErrorService } from './notionErrorService';
-import { notionRetryQueue } from './retryQueue';
+// Exporter les services
+export { notionErrorService } from './errorService';
+export { notionRetryQueue } from './retryQueue';
+export { autoRetryHandler } from './autoRetry';
+export { notionErrorUtils } from './utils';
 
-// Importer les hooks
-import useNotionErrorService from '@/hooks/notion/useNotionErrorService';
-import useRetryQueue from '@/hooks/notion/useRetryQueue';
+// Exporter les hooks
+export { useNotionErrorService } from './useNotionErrorService';
+export { useRetryQueue } from './useRetryQueue';
+export { useAutoRetry } from './useAutoRetry';
 
-// Importer les types depuis le fichier unifié
-import { 
-  NotionError, 
-  NotionErrorType, 
-  NotionErrorSeverity,
-  NotionErrorOptions
-} from '../types/unified';
-
-// Importer les utilitaires
-import { autoRetryHandler } from './autoRetry';
-import { errorUtils } from './utils';
-
-// Exporter tous les éléments publics du système de gestion d'erreurs
-export { 
-  notionErrorService, 
-  notionRetryQueue,
-  useNotionErrorService,
-  useRetryQueue,
-  autoRetryHandler,
-  errorUtils
-};
-
-// Exporter les types
-export type { 
-  NotionError, 
-  NotionErrorType, 
-  NotionErrorSeverity,
-  NotionErrorOptions
-};
-
-// Fonction utilitaire pour créer une erreur Notion compatible
-export const createNotionError = (
-  message: string,
-  type: NotionErrorType = NotionErrorType.UNKNOWN,
-  options: Partial<NotionErrorOptions> = {}
-): NotionError => {
-  const { 
-    severity = NotionErrorSeverity.ERROR,
-    retryable = false,
-    context,
-    operation,
-    ...restOptions
-  } = options;
-
-  return notionErrorService.createError(message, type, {
-    severity,
-    retryable,
-    context,
-    operation,
-    ...restOptions
-  });
-};
+// Exporter les types et utilitaires
+export * from '../types/unified';
+export * from './utils';

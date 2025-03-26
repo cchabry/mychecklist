@@ -1,7 +1,7 @@
-import { operationMode } from '@/services/operationMode';
-import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
+import { notionApi } from '@/lib/notionProxy';
 import { Project, Audit } from '@/lib/types';
+import { operationMode } from '@/services/operationMode';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -19,7 +19,7 @@ interface NotionCreateData {
  * Service centralisé pour l'écriture dans Notion
  * Gère les cas d'erreur, le mode mock, et l'adaptation des propriétés
  */
-export class NotionWriteService {
+export const notionWriteService = {
   /**
    * Vérifie si une opération d'écriture est possible
    */
@@ -29,7 +29,7 @@ export class NotionWriteService {
     const isDemoMode = operationMode.isDemoMode;
     
     return !!apiKey && !!projectsDbId && !isDemoMode;
-  }
+  },
   
   /**
    * Crée un nouveau projet dans Notion
@@ -206,7 +206,7 @@ export class NotionWriteService {
       operationMode.unmarkOperationAsCritical('Création de projet Notion');
       console.log('📝 [DEBUG] Opération démarquée comme critique');
     }
-  }
+  },
   
   /**
    * Crée un nouvel audit dans Notion
@@ -333,7 +333,7 @@ export class NotionWriteService {
       // Restaurer le mode mock si nécessaire
       notionApi.mockMode.restoreAfterForceReal();
     }
-  }
+  },
   
   /**
    * Sauvegarde un audit dans Notion
@@ -411,7 +411,7 @@ export class NotionWriteService {
       // Restaurer le mode mock si nécessaire
       notionApi.mockMode.restoreAfterForceReal();
     }
-  }
+  },
   
   /**
    * Adapte les propriétés du projet à la structure de la base de données Notion
@@ -508,7 +508,7 @@ export class NotionWriteService {
     }
     
     return adaptedProperties;
-  }
+  },
   
   /**
    * Gère les erreurs spécifiques de Notion avec des messages utilisateur adaptés
@@ -588,42 +588,4 @@ export class NotionWriteService {
       });
     }
   }
-
-  async writeToNotion<T>(operation: () => Promise<T>, context: string): Promise<T | null> {
-    const wasDemoMode = operationMode.isDemoMode;
-    
-    try {
-      if (wasDemoMode) {
-        operationMode.enableRealMode();
-      }
-      
-      const result = await operation();
-      return result;
-    } catch (error) {
-      console.error(`❌ Erreur d'écriture Notion (${context}):`, error);
-      
-      // Si on était en mode démo, on y retourne
-      if (wasDemoMode) {
-        operationMode.enableDemoMode('Retour après erreur d\'écriture');
-      }
-      
-      throw error;
-    }
-  }
-
-  async createPage(data: any): Promise<any> {
-    return this.writeToNotion(async () => {
-      const response = await notionApi.pages.create(data);
-      return response;
-    }, 'Création de page');
-  }
-
-  async updatePage(pageId: string, data: any): Promise<any> {
-    return this.writeToNotion(async () => {
-      const response = await notionApi.pages.update(pageId, data);
-      return response;
-    }, 'Mise à jour de page');
-  }
-}
-
-export const notionWriteService = new NotionWriteService();
+};

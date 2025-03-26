@@ -1,96 +1,108 @@
 
 /**
- * Utilitaire pour la gestion automatique des réessais
+ * Service de réessai automatique pour les opérations Notion
  */
 
-import { notionErrorService } from './notionErrorService';
+import { notionErrorUtils } from './utils';
 import { notionRetryQueue } from './retryQueue';
-import { NotionError, NotionErrorType } from '../types/unified';
-import { toast } from 'sonner';
+import { RetryOperationOptions } from '../types/unified';
 
 /**
- * Options pour les opérations avec réessai automatique
- */
-export interface AutoRetryOptions {
-  maxAttempts?: number;
-  retryDelay?: number;
-  retryableErrorTypes?: NotionErrorType[];
-  showToast?: boolean;
-  toastMessage?: string;
-}
-
-/**
- * Handler pour la gestion automatique des réessais pour les opérations Notion
+ * Utilitaire pour réessayer automatiquement les opérations Notion
  */
 export const autoRetryHandler = {
   /**
-   * Gère une erreur et détermine si elle peut être réessayée
-   * @returns true si l'erreur a été ajoutée à la file d'attente, false sinon
+   * Exécute une opération avec réessai automatique
    */
-  handleError(error: NotionError, operation?: () => Promise<any>): boolean {
-    // Si pas d'opération fournie, impossible de réessayer
-    if (!operation) {
-      return false;
+  async execute<T>(
+    operation: () => Promise<T>,
+    context: string | Record<string, any> = {},
+    options: RetryOperationOptions = {}
+  ): Promise<T> {
+    try {
+      // Tenter d'exécuter l'opération directement
+      return await operation();
+    } catch (error) {
+      // Convertir en instance d'Error
+      const err = error instanceof Error ? error : new Error(String(error));
+      
+      // Vérifier si l'erreur est réessayable
+      if (!notionErrorUtils.isRetryableError(err)) {
+        throw err;
+      }
+      
+      // Si des conditions spécifiques empêchent le réessai
+      if (options.skipRetryIf && options.skipRetryIf(err)) {
+        throw err;
+      }
+      
+      // Ajouter à la file d'attente de réessai
+      return new Promise<T>((resolve, reject) => {
+        const operationId = notionRetryQueue.enqueue(
+          operation,
+          context,
+          {
+            ...options,
+            onSuccess: (result) => {
+              if (options.onSuccess) {
+                options.onSuccess(result);
+              }
+              resolve(result as T);
+            },
+            onFailure: (error) => {
+              if (options.onFailure) {
+                options.onFailure(error);
+              }
+              reject(error);
+            }
+          }
+        );
+        
+        console.log(`[AutoRetry] Opération placée en file d'attente: ${operationId}`);
+      });
     }
-    
-    // Vérifier si l'erreur est réessayable
-    if (!error.retryable) {
-      return false;
-    }
-    
-    // Ajouter l'opération à la file d'attente
-    const operationId = notionRetryQueue.addOperation(
-      operation, 
-      error.context?.toString() || 'Opération Notion'
-    );
-    
-    // Notifier l'utilisateur
-    toast.info('Opération en file d\'attente', {
-      description: 'Une opération Notion sera réessayée automatiquement'
-    });
-    
-    // Traiter la file d'attente après un court délai
-    setTimeout(() => {
-      notionRetryQueue.processQueue();
-    }, 1000);
-    
-    return true;
   },
   
   /**
-   * Encapsule une fonction avec gestion automatique des réessais
+   * Crée une version avec réessai automatique d'une fonction
    */
-  withAutoRetry<T>(fn: () => Promise<T>, context: string = 'Opération Notion'): () => Promise<T> {
-    return async () => {
-      try {
-        return await fn();
-      } catch (err) {
-        // Créer une erreur Notion
-        const error = err instanceof Error
-          ? notionErrorService.createError(err, notionErrorService.identifyErrorType(err))
-          : notionErrorService.createError('Erreur inconnue', NotionErrorType.UNKNOWN);
-        
-        // Ajouter le contexte
-        error.context = context;
-        
-        // Signaler l'erreur
-        notionErrorService.reportError(error, context);
-        
-        // Tenter de l'ajouter à la file d'attente
-        const wasQueued = this.handleError(error, fn);
-        
-        if (!wasQueued) {
-          // Si l'erreur n'a pas été mise en file d'attente, la propager
-          throw err;
-        }
-        
-        // Même si l'erreur a été mise en file d'attente, nous devons propager l'erreur
-        // pour que l'appelant sache que l'opération a échoué
-        throw err;
-      }
+  createAutoRetryFunction<T, Args extends any[]>(
+    fn: (...args: Args) => Promise<T>,
+    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry operation',
+    options: RetryOperationOptions = {}
+  ): (...args: Args) => Promise<T> {
+    return async (...args: Args): Promise<T> => {
+      return this.execute(
+        () => fn(...args),
+        contextGenerator(args),
+        options
+      );
+    };
+  },
+  
+  /**
+   * Décore une méthode de classe avec réessai automatique
+   */
+  autoRetry<T, Args extends any[]>(
+    contextGenerator: (args: Args) => string | Record<string, any> = () => 'Auto-retry method',
+    options: RetryOperationOptions = {}
+  ): MethodDecorator {
+    return function(
+      target: any,
+      propertyKey: string | symbol,
+      descriptor: PropertyDescriptor
+    ) {
+      const originalMethod = descriptor.value as (...args: Args) => Promise<T>;
+      
+      descriptor.value = async function(...args: Args): Promise<T> {
+        return autoRetryHandler.execute(
+          () => originalMethod.apply(this, args),
+          contextGenerator(args),
+          options
+        );
+      };
+      
+      return descriptor;
     };
   }
 };
-
-// Export par défaut
-export default autoRetryHandler;

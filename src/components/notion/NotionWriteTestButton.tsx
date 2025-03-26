@@ -5,7 +5,6 @@ import { RotateCw, Check, XCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { notionWriteService } from '@/services/notion/notionWriteService';
 import { notionApi } from '@/lib/notionProxy';
-import { operationMode } from '@/services/operationMode';
 
 interface NotionWriteTestButtonProps {
   onSuccess?: () => void;
@@ -39,9 +38,10 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
     
     try {
       // Forcer le mode réel pour ce test
-      const wasDemoMode = operationMode.isDemoMode;
-      if (wasDemoMode) {
-        operationMode.enableRealMode();
+      const wasInMockMode = notionApi.mockMode.isActive();
+      if (wasInMockMode) {
+        console.log('📝 Désactivation temporaire du mode mock pour le test d\'écriture');
+        notionApi.mockMode.deactivate();
       }
       
       // Créer un projet de test avec un timestamp pour unicité
@@ -58,11 +58,6 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
       // Utiliser le service d'écriture centralisé
       const result = await notionWriteService.createProject(testProject);
       
-      // Restaurer le mode démo si nécessaire
-      if (wasDemoMode) {
-        operationMode.enableDemoMode('Retour après test d\'écriture');
-      }
-      
       if (result) {
         console.log('✅ Test d\'écriture réussi!', result);
         setTestStatus('success');
@@ -76,11 +71,6 @@ const NotionWriteTestButton: React.FC<NotionWriteTestButtonProps> = ({ onSuccess
     } catch (error) {
       console.error('❌ Test d\'écriture Notion échoué:', error);
       setTestStatus('error');
-      
-      // Restaurer le mode démo en cas d'erreur
-      if (!operationMode.isDemoMode) {
-        operationMode.enableDemoMode('Erreur lors du test d\'écriture');
-      }
       
       // Le service d'écriture gère déjà l'affichage des erreurs
     } finally {

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { RotateCw, Check, XCircle } from 'lucide-react';
 import { notionApi } from '@/lib/notionProxy';
 import { toast } from 'sonner';
-import { operationMode } from '@/services/operationMode';
 
 interface NotionTestButtonProps {
   onSuccess?: () => void;
@@ -30,40 +29,36 @@ const NotionTestButton: React.FC<NotionTestButtonProps> = ({ onSuccess }) => {
     setTestStatus('idle');
     
     try {
-      // Sauvegarder l'état actuel du mode
-      const wasDemoMode = operationMode.isDemoMode;
+      console.log('🔄 Test de connexion avec clé API:', apiKey.substring(0, 8) + '...');
       
-      // Forcer le mode réel temporairement
-      if (wasDemoMode) {
-        operationMode.enableRealMode();
+      // Désactiver temporairement le mode mock pour ce test
+      const wasInMockMode = notionApi.mockMode.isActive();
+      if (wasInMockMode) {
+        notionApi.mockMode.deactivate();
       }
       
-      // Tester la connexion
-      const response = await notionApi.testConnection();
+      // Tenter de récupérer l'utilisateur Notion (me)
+      const user = await notionApi.users.me(apiKey);
+      console.log('✅ Notion API connection successful, user:', user.name);
       
       // Test réussi
-      if (response.success) {
-        setTestStatus('success');
-        toast.success('Connexion à Notion réussie', {
-          description: `Connecté en tant que ${response.user || 'Utilisateur Notion'}`
-        });
-        
-        if (onSuccess) {
-          onSuccess();
-        }
-      } else {
-        throw new Error(response.error || 'Erreur de connexion');
+      setTestStatus('success');
+      toast.success('Connexion à Notion réussie', {
+        description: `Connecté en tant que ${user.name}`
+      });
+      
+      // Si un callback onSuccess est fourni, l'appeler
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
       console.error('❌ Notion API connection test failed:', error);
       setTestStatus('error');
       
+      // Afficher une erreur détaillée
       toast.error('Erreur de connexion à Notion', {
-        description: error instanceof Error ? error.message : 'Vérifiez votre configuration Notion'
+        description: error.message || 'Vérifiez votre configuration Notion'
       });
-      
-      // Revenir en mode démo en cas d'erreur
-      operationMode.enableDemoMode('Erreur de connexion');
     } finally {
       setIsTesting(false);
     }

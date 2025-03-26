@@ -26,17 +26,17 @@ const NotionConnectionTest: React.FC<NotionConnectionTestProps> = ({
           return;
         }
 
-        const response = await notionApi.users.me(apiKey);
+        const user = await notionApi.users.me(apiKey);
         
-        if (response.success) {
+        if (user && user.id) {
           setStatus('success');
-          setMessage(`Connexion réussie. Connecté en tant que ${response.data?.user || 'Utilisateur'}`);
+          setMessage(`Connexion réussie. Connecté en tant que ${user.name || user.id}`);
           onSuccess && onSuccess();
         } else {
           setStatus('error');
           setMessage('Erreur de connexion');
-          setDetails(response.error ? response.error.message : 'La réponse de l\'API Notion est invalide');
-          onError && onError(new Error(response.error ? response.error.message : 'Réponse invalide'));
+          setDetails('La réponse de l\'API Notion est invalide');
+          onError && onError(new Error('Réponse invalide'));
         }
       } catch (error) {
         setStatus('error');

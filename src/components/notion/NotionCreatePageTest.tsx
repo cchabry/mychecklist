@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle2, FileWarning, RotateCw } from "lucide-react";
 import { notionApi } from '@/lib/notionProxy';
-import { operationMode } from '@/services/operationMode';
+import { isMockActive, temporarilyDisableMock, enableMock } from './utils';
 
 interface NotionCreatePageTestProps {
   onClose: () => void;
@@ -33,33 +32,18 @@ const NotionCreatePageTest: React.FC<NotionCreatePageTestProps> = ({ onClose }) 
       const urlParts = pageUrl.split('/');
       const projectId = urlParts[4];
 
-      // Stocker l'état du mode démo
-      const wasDemoMode = operationMode.isDemoMode;
-      
-      // Passer en mode réel pour cette opération
-      if (wasDemoMode) {
-        operationMode.enableRealMode();
-      }
-      
-      try {
-        // Créer la page
-        const newPage = await notionApi.createSamplePage({
-          projectId: projectId,
-          url: pageUrl,
-          title: `Page de test ${Date.now()}`,
-          description: 'Page créée pour tester l\'intégration Notion'
-        });
+      // Créer la page
+      const newPage = await notionApi.createSamplePage({
+        projectId: projectId,
+        url: pageUrl,
+        title: `Page de test ${Date.now()}`,
+        description: 'Page créée pour tester l\'intégration Notion'
+      });
 
-        if (newPage) {
-          setPageCreated(true);
-        } else {
-          setError('Erreur lors de la création de la page.');
-        }
-      } finally {
-        // Restaurer le mode démo si nécessaire
-        if (wasDemoMode) {
-          operationMode.enableDemoMode('Retour après création de page de test');
-        }
+      if (newPage) {
+        setPageCreated(true);
+      } else {
+        setError('Erreur lors de la création de la page.');
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Erreur inconnue';
