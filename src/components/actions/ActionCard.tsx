@@ -3,7 +3,6 @@ import React from 'react';
 import { Calendar, Clock, User, Flag, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { formatPercent } from '@/utils/format';
@@ -43,7 +42,6 @@ const statusConfig = {
  * Carte pour afficher une action corrective
  */
 export const ActionCard: React.FC<ActionCardProps> = ({
-  id,
   title,
   description,
   exigence,

@@ -3,4 +3,4 @@
  * Composants de formulaires spécifiques
  */
 
-// Ce fichier sera complété lors de l'implémentation des formulaires
+// Les composants de formulaires seront ajoutés ici à mesure qu'ils sont créés

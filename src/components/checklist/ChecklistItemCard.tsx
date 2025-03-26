@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Edit, FileText, Users, Tag, Calendar, Info } from 'lucide-react';
+import { Edit, FileText, Users, Tag, Calendar } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,6 @@ const priorityColors = {
  * Carte affichant un item de checklist
  */
 export const ChecklistItemCard: React.FC<ChecklistItemProps> = ({
-  id,
   consigne,
   description,
   category,

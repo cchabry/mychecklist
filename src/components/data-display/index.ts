@@ -3,4 +3,4 @@
  * Composants d'affichage de données
  */
 
-// Ce fichier sera complété lors de l'implémentation des composants d'affichage
+// Les composants d'affichage de données seront ajoutés ici à mesure qu'ils sont créés
