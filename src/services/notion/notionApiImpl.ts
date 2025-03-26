@@ -69,7 +69,7 @@ class NotionApiImplementation {
       throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
     }
     
-    return true;
+    return response.data || false;
   }
 }
 

@@ -15,7 +15,7 @@ export { evaluationService } from './evaluationService';
 export { actionService, progressService } from './action';
 
 // Exporter le client HTTP de base
-export { notionClient } from './notionClient';
+export { notionClient, NotionClient } from './notionClient';
 
 // Exporter les types
 export * from './types';

@@ -80,6 +80,46 @@ export class NotionClient {
       checklistsDbName: this.config.checklistsDbId ? 'Base de données des checklists' : undefined
     };
   }
+  
+  /**
+   * Effectue une requête GET à l'API Notion
+   */
+  async get<T>(endpoint: string): Promise<{ success: boolean; data?: T; error?: any }> {
+    // Pour l'instant, cette méthode est simplifiée et renvoie une erreur
+    // Dans une implémentation réelle, nous ferions une requête à l'API Notion
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: { message: 'Client Notion non configuré' }
+      };
+    }
+    
+    // Simule un appel d'API
+    return {
+      success: false,
+      error: { message: `Endpoint non implémenté: ${endpoint}` }
+    };
+  }
+  
+  /**
+   * Effectue une requête POST à l'API Notion
+   */
+  async post<T>(endpoint: string, data: any = {}): Promise<{ success: boolean; data?: T; error?: any }> {
+    // Pour l'instant, cette méthode est simplifiée et renvoie une erreur
+    // Dans une implémentation réelle, nous ferions une requête à l'API Notion
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: { message: 'Client Notion non configuré' }
+      };
+    }
+    
+    // Simule un appel d'API
+    return {
+      success: false,
+      error: { message: `Endpoint non implémenté: ${endpoint}` }
+    };
+  }
 }
 
 // Exporter une instance singleton pour être utilisée dans toute l'application
