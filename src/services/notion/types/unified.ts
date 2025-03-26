@@ -1,231 +1,410 @@
 
 /**
- * Types unifiés pour les services Notion
- * Ce fichier centralise toutes les définitions de types utilisées à travers les services Notion
+ * Définitions unifiées des types pour les services Notion
  */
 
-// Types d'erreurs Notion
+/**
+ * Types d'erreurs Notion
+ */
 export enum NotionErrorType {
-  // Erreurs authentification/autorisation
+  // Erreurs générales
+  UNKNOWN = 'unknown',
+  VALIDATION = 'validation',
+  
+  // Erreurs d'authentification et de permission
   AUTH = 'auth',
   PERMISSION = 'permission',
   
-  // Erreurs de structure
-  DATABASE = 'database',
-  NOT_FOUND = 'not_found',
-  VALIDATION = 'validation',
-  
-  // Erreurs de communication
+  // Erreurs réseau
   NETWORK = 'network',
   CORS = 'cors',
   TIMEOUT = 'timeout',
   RATE_LIMIT = 'rate_limit',
   
-  // Erreurs serveur
+  // Erreurs de ressource
+  NOT_FOUND = 'not_found',
+  DATABASE = 'database',
+  
+  // Erreurs API
+  API = 'api',
   SERVER = 'server',
   
-  // Erreurs applicatives
-  APP_ERROR = 'app_error',
+  // Erreurs configuration
+  CONFIG = 'config',
   
-  // Autres
-  UNKNOWN = 'unknown'
+  // Erreurs proxy
+  PROXY = 'proxy'
 }
 
-// Niveaux de sévérité des erreurs
+/**
+ * Niveaux de sévérité des erreurs
+ */
 export enum NotionErrorSeverity {
-  DEBUG = 'debug',
   INFO = 'info',
   WARNING = 'warning',
   ERROR = 'error',
   CRITICAL = 'critical'
 }
 
-// Structure d'une erreur Notion
+/**
+ * Options pour la création d'erreurs
+ */
+export interface NotionErrorOptions {
+  /** Niveau de sévérité de l'erreur */
+  severity?: NotionErrorSeverity;
+  
+  /** Indique si l'erreur peut être réessayée */
+  retryable?: boolean;
+  
+  /** Informations supplémentaires sur l'erreur */
+  details?: any;
+  
+  /** Contexte dans lequel l'erreur s'est produite */
+  context?: string | Record<string, any>;
+  
+  /** Stack trace de l'erreur */
+  stack?: string;
+  
+  /** Cause de l'erreur */
+  cause?: Error;
+  
+  /** Opération qui a échoué */
+  operation?: string;
+  
+  /** Indique si l'erreur peut être corrigée */
+  recoverable?: boolean;
+  
+  /** Actions de récupération possibles */
+  recoveryActions?: Array<{
+    id: string;
+    label: string;
+    action: () => Promise<void> | void;
+  }>;
+}
+
+/**
+ * Structure standardisée d'une erreur Notion
+ */
 export interface NotionError {
-  // Identifiant unique de l'erreur
+  /** Identifiant unique de l'erreur */
   id: string;
   
-  // Message d'erreur utilisateur
+  /** Message d'erreur */
   message: string;
   
-  // Type d'erreur
+  /** Type d'erreur */
   type: NotionErrorType;
   
-  // Timestamp de l'erreur (epoch ms)
+  /** Horodatage de l'erreur */
   timestamp: number;
   
-  // Niveau de sévérité
+  /** Niveau de sévérité */
   severity: NotionErrorSeverity;
   
-  // Si l'erreur peut être réessayée
+  /** Indique si l'erreur peut être réessayée */
   retryable: boolean;
   
-  // Contexte de l'erreur (chaîne ou objet)
-  context?: string | Record<string, any>;
-  
-  // Détails supplémentaires
-  details?: string | Record<string, any>;
-  
-  // Opération qui a causé l'erreur
-  operation?: string;
-  
-  // Si l'erreur est récupérable
-  recoverable?: boolean;
-  
-  // Actions de récupération suggérées
-  recoveryActions?: string[];
-  
-  // Trace de la pile d'appels
-  stack?: string;
-  
-  // Erreur originale
+  /** Cause de l'erreur (erreur d'origine) */
   originalError?: Error;
   
-  // Cause sous-jacente (chaînage d'erreurs)
-  cause?: Error | NotionError;
-}
-
-// Options pour créer une erreur Notion
-export interface NotionErrorOptions {
-  type?: NotionErrorType;
-  severity?: NotionErrorSeverity;
-  retryable?: boolean;
+  /** Cause de l'erreur (si différente de originalError) */
+  cause?: Error;
+  
+  /** Contexte dans lequel l'erreur s'est produite */
   context?: string | Record<string, any>;
-  details?: string | Record<string, any>;
-  operation?: string;
-  recoverable?: boolean;
-  recoveryActions?: string[];
+  
+  /** Informations supplémentaires sur l'erreur */
+  details?: any;
+  
+  /** Stack trace de l'erreur */
   stack?: string;
-  cause?: Error | NotionError;
+  
+  /** Opération qui a échoué */
+  operation?: string;
+  
+  /** Indique si l'erreur peut être corrigée */
+  recoverable?: boolean;
+  
+  /** Actions de récupération possibles */
+  recoveryActions?: Array<{
+    id: string;
+    label: string;
+    action: () => Promise<void> | void;
+  }>;
 }
 
-// Type pour les abonnés aux notifications d'erreurs
+/**
+ * Fonction d'abonnement aux erreurs
+ */
 export type ErrorSubscriber = (errors: NotionError[]) => void;
 
-// Statistiques de file d'attente de réessais
-export interface RetryQueueStats {
-  pending: number;
-  processing: number;
-  success: number;
-  failed: number;
-  total: number;
-  lastProcessed?: Date;
-  lastError?: NotionError;
-}
-
-// État d'une opération dans la file d'attente
-export type RetryOperationStatus = 'pending' | 'processing' | 'success' | 'failed' | 'completed';
-
-// Options pour les opérations de réessai
+/**
+ * Options pour les opérations de réessai
+ */
 export interface RetryOperationOptions {
-  maxAttempts?: number;
-  delayMs?: number;
-  exponentialBackoff?: boolean;
-  maxDelayMs?: number;
+  /** Nombre maximum de tentatives */
+  maxRetries?: number;
+  
+  /** Délai entre les tentatives (en ms) */
+  retryDelay?: number;
+  
+  /** Facteur d'augmentation du délai entre les tentatives */
+  backoffFactor?: number;
+  
+  /** Priorité de l'opération */
+  priority?: 'low' | 'normal' | 'high';
+  
+  /** Fonction de callback en cas de succès */
   onSuccess?: (result: any) => void;
-  onFailure?: (error: Error | NotionError) => void;
+  
+  /** Fonction de callback en cas d'échec */
+  onError?: (error: Error) => void;
 }
 
-// Type d'opération dans la file d'attente
+/**
+ * Définition d'une opération de réessai
+ */
 export interface RetryOperation {
+  /** Identifiant unique de l'opération */
   id: string;
+  
+  /** Fonction à exécuter */
   operation: () => Promise<any>;
+  
+  /** Contexte de l'opération */
   context: string;
-  timestamp: number;
-  status: RetryOperationStatus;
+  
+  /** Options de réessai */
+  options: RetryOperationOptions;
+  
+  /** Nombre de tentatives effectuées */
   attempts: number;
-  maxAttempts: number;
-  nextRetry?: number;
-  lastError?: Error | NotionError;
+  
+  /** Statut de l'opération */
+  status: 'pending' | 'processing' | 'success' | 'failed';
+  
+  /** Date de création */
+  createdAt: number;
+  
+  /** Date de dernière mise à jour */
+  updatedAt: number;
+  
+  /** Résultat de l'opération */
   result?: any;
+  
+  /** Erreur rencontrée */
+  error?: Error;
 }
 
-// Structure pour la file d'attente des opérations à réessayer
-export interface RetryQueue {
-  getStats: () => RetryQueueStats;
-  getOperations: () => RetryOperation[];
-  addOperation: (operation: () => Promise<any>, context: string, options?: RetryOperationOptions) => string;
-  retryOperation: (id: string) => Promise<boolean>;
-  retryAllOperations: () => Promise<number>;
-  removeOperation: (id: string) => boolean;
-  clearOperations: () => void;
-  processQueue: () => Promise<void>;
+/**
+ * Définition d'une opération en file d'attente
+ */
+export interface QueuedOperation extends RetryOperation {
+  /** Délai avant la prochaine tentative */
+  nextRetryAt?: number;
+  
+  /** Priorité calculée de l'opération */
+  computedPriority: number;
 }
 
-// Interface pour une réponse de l'API Notion
-export interface NotionApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    message: string;
-    code?: string;
-    status?: number;
-  };
+/**
+ * Statistiques de la file d'attente de réessai
+ */
+export interface RetryQueueStats {
+  /** Nombre total d'opérations */
+  totalOperations: number;
+  
+  /** Nombre d'opérations en attente */
+  pendingOperations: number;
+  
+  /** Nombre d'opérations réussies */
+  completedOperations: number;
+  
+  /** Nombre d'opérations échouées */
+  failedOperations: number;
+  
+  /** Indique si la file d'attente est en cours de traitement */
+  isProcessing: boolean;
+  
+  /** Indique si la file d'attente est en pause */
+  isPaused: boolean;
+  
+  /** Taux de réussite */
+  successRate: number;
 }
 
-// Base de données Notion
-export interface NotionDatabase {
-  id: string;
-  properties: Record<string, {
-    id: string;
-    name: string;
-    type: string;
-    [key: string]: any;
-  }>;
-  title?: string;
-  name?: string;
-  url?: string;
+/**
+ * Types pour la journalisation structurée
+ */
+export enum LogLevel {
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error'
 }
 
-// Page Notion
-export interface NotionPage {
-  id: string;
-  properties: Record<string, any>;
-  url?: string;
-  title?: string;
-  parent?: {
-    type: string;
-    database_id?: string;
-    page_id?: string;
-  };
-}
-
-// Options de structuration des logs
-export interface StructuredLoggerOptions {
-  level: 'debug' | 'info' | 'warn' | 'error';
-  maxEntries: number;
-  includeTimestamp: boolean;
-  printToConsole: boolean;
-  persistLogs?: boolean;
-  storageKey?: string;
-}
-
-// Message de log structuré
+/**
+ * Structure d'un message de journal
+ */
 export interface StructuredLogMessage {
-  level: 'debug' | 'info' | 'warn' | 'error';
+  /** Niveau de journalisation */
+  level: LogLevel;
+  
+  /** Message de journal */
   message: string;
+  
+  /** Source du message */
+  source: string[];
+  
+  /** Horodatage */
   timestamp: number;
-  tags?: string[];
-  source?: string;
-  context?: Record<string, any>;
+  
+  /** Données associées au message */
+  data?: Record<string, any>;
 }
 
-// Entrée de log structuré
+/**
+ * Entrée de journal structuré
+ */
 export interface StructuredLogEntry extends StructuredLogMessage {
+  /** Identifiant unique */
   id: string;
-  timestamp: number; // En millisecondes
+  
+  /** Horodatage (sous forme de Date) */
+  timestamp: Date;
 }
 
-// Interface pour le logger structuré
+/**
+ * Options pour la configuration du logger structuré
+ */
+export interface StructuredLoggerOptions {
+  /** Activer la journalisation dans la console */
+  consoleEnabled?: boolean;
+  
+  /** Activer le stockage des journaux */
+  storageEnabled?: boolean;
+  
+  /** Nombre maximum de journaux à stocker */
+  maxLogs?: number;
+  
+  /** Niveau minimum de journalisation */
+  minLevel?: LogLevel;
+  
+  /** Filtre sur les sources */
+  sourceFilter?: string[];
+}
+
+/**
+ * Interface du logger structuré
+ */
 export interface StructuredLogger {
-  debug: (message: string, context?: Record<string, any>, tags?: string[]) => void;
-  info: (message: string, context?: Record<string, any>, tags?: string[]) => void;
-  warn: (message: string, context?: Record<string, any>, tags?: string[]) => void;
-  error: (message: string, context?: Record<string, any>, tags?: string[]) => void;
-  log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, context?: Record<string, any>, tags?: string[]) => void;
-  clear: () => void;
+  /** Journal un message de niveau debug */
+  debug: (message: string, data?: Record<string, any>) => void;
+  
+  /** Journal un message de niveau info */
+  info: (message: string, data?: Record<string, any>) => void;
+  
+  /** Journal un message de niveau warning */
+  warn: (message: string, data?: Record<string, any>) => void;
+  
+  /** Journal un message de niveau error */
+  error: (message: string, data?: Record<string, any>) => void;
+  
+  /** Récupère tous les journaux */
   getLogs: () => StructuredLogEntry[];
-  getMessages: () => StructuredLogMessage[];
-  setOptions: (options: Partial<StructuredLoggerOptions>) => void;
-  getOptions: () => StructuredLoggerOptions;
+  
+  /** Récupère les journaux filtrés */
+  getFilteredLogs: (filter: {
+    level?: LogLevel;
+    source?: string | string[];
+    search?: string;
+    startTime?: number;
+    endTime?: number;
+  }) => StructuredLogEntry[];
+  
+  /** Efface tous les journaux */
+  clearLogs: () => void;
+  
+  /** Définit le niveau minimum de journalisation */
+  setMinLevel: (level: LogLevel) => void;
+  
+  /** Exporte les journaux au format JSON */
+  exportLogs: () => string;
+  
+  /** Configure le logger */
+  configure: (options: Partial<StructuredLoggerOptions>) => void;
+}
+
+/**
+ * Statistiques du compteur d'erreurs
+ */
+export interface ErrorCounterStats {
+  /** Nombre total d'erreurs */
+  totalErrors: number;
+  
+  /** Nombre d'erreurs par type */
+  errorsByType: Array<{ type: NotionErrorType; count: number }>;
+  
+  /** Nombre d'erreurs par endpoint */
+  errorsByEndpoint: Array<{ endpoint: string; count: number }>;
+  
+  /** Taux d'erreur global */
+  errorRate: number;
+  
+  /** Horodatage de la dernière erreur */
+  lastErrorTime?: number;
+}
+
+/**
+ * Configuration des seuils d'alerte
+ */
+export interface AlertThresholdConfig {
+  /** Nombre total d'erreurs avant alerte */
+  totalErrors?: number;
+  
+  /** Nombre d'erreurs par type avant alerte */
+  errorsByType?: Partial<Record<NotionErrorType, number>>;
+  
+  /** Nombre d'erreurs par endpoint avant alerte */
+  errorsByEndpoint?: Record<string, number>;
+  
+  /** Taux d'erreur avant alerte */
+  errorRate?: number;
+}
+
+/**
+ * Options pour le compteur d'erreurs
+ */
+export interface ErrorCounterOptions {
+  /** Période de réinitialisation des compteurs (en ms) */
+  resetPeriod?: number;
+  
+  /** Configuration des seuils d'alerte */
+  alertThresholds?: AlertThresholdConfig;
+  
+  /** Fonction de callback en cas d'alerte */
+  onAlert?: (stats: ErrorCounterStats, thresholds: AlertThresholdConfig) => void;
+}
+
+/**
+ * Réponse API standardisée Notion
+ */
+export interface NotionApiResponse<T = any> {
+  /** Indique si la requête a réussi */
+  success: boolean;
+  
+  /** Données retournées si succès */
+  data?: T;
+  
+  /** Informations d'erreur si échec */
+  error?: {
+    /** Message d'erreur */
+    message: string;
+    
+    /** Détails supplémentaires */
+    details?: any;
+    
+    /** Code d'erreur */
+    code?: string;
+  };
 }

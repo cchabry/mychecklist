@@ -1,15 +1,25 @@
 
-// Exporter les services et les hooks
+/**
+ * Point d'entrée unifié pour le système de gestion des erreurs Notion
+ */
+
+// Importer les services
 import { notionErrorService } from './notionErrorService';
 import { notionRetryQueue } from './retryQueue';
+
+// Importer les hooks (avec export type pour éviter les erreurs TS1205)
 import useNotionErrorService from '@/hooks/notion/useNotionErrorService';
 import useRetryQueue from '@/hooks/notion/useRetryQueue';
-import { 
+
+// Importer les types depuis le fichier unifié
+import type { 
   NotionError, 
   NotionErrorType, 
   NotionErrorSeverity,
   NotionErrorOptions
-} from '../types/errorTypes';
+} from '../types/unified';
+
+// Importer les utilitaires
 import { autoRetryHandler } from './autoRetry';
 import { errorUtils } from './utils';
 
@@ -19,12 +29,16 @@ export {
   notionRetryQueue,
   useNotionErrorService,
   useRetryQueue,
+  autoRetryHandler,
+  errorUtils
+};
+
+// Exporter les types (avec export type pour éviter les erreurs TS1205)
+export type { 
   NotionError, 
   NotionErrorType, 
   NotionErrorSeverity,
-  NotionErrorOptions,
-  autoRetryHandler,
-  errorUtils
+  NotionErrorOptions
 };
 
 // Fonction utilitaire pour créer une erreur Notion compatible

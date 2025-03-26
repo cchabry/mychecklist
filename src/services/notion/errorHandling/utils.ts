@@ -1,105 +1,86 @@
 
-import { NotionError, NotionErrorType } from '../types/errorTypes';
+/**
+ * Utilitaires pour la gestion des erreurs
+ */
+import type { NotionError, NotionErrorType } from '../types/unified';
 import { notionErrorService } from './notionErrorService';
 
-/**
- * Utilitaires pour la gestion des erreurs Notion
- */
 export const errorUtils = {
   /**
-   * Extrait le message utilisateur d'une erreur
+   * Extrait les informations utiles d'une erreur
    */
-  getUserFriendlyMessage(error: Error | NotionError | string): string {
-    if (typeof error === 'string') {
-      return error;
-    }
-    
+  extractErrorInfo(error: Error | NotionError | unknown): {
+    message: string;
+    type: NotionErrorType;
+    stack?: string;
+    details?: any;
+  } {
     // Si c'est une NotionError
-    if ('type' in error && 'severity' in error) {
-      return notionErrorService.createUserFriendlyMessage(error);
+    if (typeof error === 'object' && error !== null && 'type' in error && 'severity' in error) {
+      const notionError = error as NotionError;
+      return {
+        message: notionError.message,
+        type: notionError.type,
+        stack: notionError.stack,
+        details: notionError.details
+      };
     }
     
-    // Erreur standard
-    return error.message;
+    // Si c'est une Error standard
+    if (error instanceof Error) {
+      return {
+        message: error.message,
+        type: notionErrorService.identifyErrorType(error),
+        stack: error.stack
+      };
+    }
+    
+    // Autre type d'erreur
+    return {
+      message: String(error),
+      type: NotionErrorType.UNKNOWN
+    };
   },
   
   /**
-   * Détermine si une erreur est réessayable
+   * Formate une erreur pour l'affichage
    */
-  isRetryableError(error: Error | NotionError | string): boolean {
-    // Si c'est une NotionError
-    if (typeof error === 'object' && 'retryable' in error) {
-      return error.retryable;
-    }
-    
-    // Pour les erreurs standard, examiner le message
-    const message = typeof error === 'string' ? error : error.message;
-    const lowercaseMsg = message.toLowerCase();
-    
-    // Erreurs de réseau généralement réessayables
-    if (
-      lowercaseMsg.includes('network') ||
-      lowercaseMsg.includes('connection') ||
-      lowercaseMsg.includes('timeout') ||
-      lowercaseMsg.includes('failed to fetch') ||
-      lowercaseMsg.includes('rate limit') ||
-      lowercaseMsg.includes('too many requests')
-    ) {
-      return true;
-    }
-    
-    // Erreurs d'authentification non réessayables
-    if (
-      lowercaseMsg.includes('unauthorized') ||
-      lowercaseMsg.includes('authentication') ||
-      lowercaseMsg.includes('permission')
-    ) {
-      return false;
-    }
-    
-    return false;
+  formatErrorForDisplay(error: Error | NotionError | unknown): string {
+    const info = this.extractErrorInfo(error);
+    return `${info.type}: ${info.message}`;
   },
   
   /**
-   * Convertit une erreur standard en NotionError
+   * Vérifie si une erreur est récupérable
    */
-  toNotionError(error: Error | string, context?: string): NotionError {
-    if (typeof error === 'string') {
-      return notionErrorService.createError(error, NotionErrorType.UNKNOWN, { context });
+  isRecoverable(error: Error | NotionError | unknown): boolean {
+    // Si c'est une NotionError avec recoverable défini
+    if (typeof error === 'object' && error !== null && 'recoverable' in error) {
+      return Boolean((error as NotionError).recoverable);
     }
     
-    const errorType = notionErrorService.identifyErrorType(error);
-    return notionErrorService.createError(error, errorType, { context });
+    // Par défaut, considérer certains types d'erreurs comme récupérables
+    const info = this.extractErrorInfo(error);
+    return [
+      NotionErrorType.NETWORK,
+      NotionErrorType.TIMEOUT,
+      NotionErrorType.RATE_LIMIT
+    ].includes(info.type);
   },
   
   /**
-   * Détermine si l'erreur nécessite un changement de mode opérationnel
+   * Vérifie si une erreur est liée à l'authentification
    */
-  requiresOperationModeChange(error: Error | NotionError | string): boolean {
-    // Si c'est une NotionError
-    if (typeof error === 'object' && 'type' in error) {
-      // Les erreurs graves qui nécessitent un changement de mode
-      return [
-        NotionErrorType.AUTH,
-        NotionErrorType.PERMISSION,
-        NotionErrorType.DATABASE,
-        NotionErrorType.CORS
-      ].includes(error.type);
-    }
-    
-    // Pour les erreurs standard, examiner le message
-    const message = typeof error === 'string' ? error : error.message;
-    const lowercaseMsg = message.toLowerCase();
-    
-    return (
-      lowercaseMsg.includes('unauthorized') ||
-      lowercaseMsg.includes('not found') ||
-      lowercaseMsg.includes('permission') ||
-      lowercaseMsg.includes('cors') ||
-      lowercaseMsg.includes('cross-origin')
-    );
+  isAuthError(error: Error | NotionError | unknown): boolean {
+    const info = this.extractErrorInfo(error);
+    return info.type === NotionErrorType.AUTH;
+  },
+  
+  /**
+   * Vérifie si une erreur est liée à une permission
+   */
+  isPermissionError(error: Error | NotionError | unknown): boolean {
+    const info = this.extractErrorInfo(error);
+    return info.type === NotionErrorType.PERMISSION;
   }
 };
-
-// Export par défaut
-export default errorUtils;

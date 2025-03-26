@@ -1,7 +1,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionRetryQueue } from '@/services/notion/errorHandling/retryQueue';
-import { RetryOperation, RetryQueueStats, RetryOperationOptions } from '@/services/notion/types/errorTypes';
+import type {
+  RetryOperation,
+  RetryQueueStats,
+  RetryOperationOptions
+} from '@/services/notion/types/unified';
 
 /**
  * Hook pour utiliser la file d'attente des réessais
@@ -68,6 +72,22 @@ export function useRetryQueue() {
   );
 
   /**
+   * Mettre en pause la file d'attente
+   */
+  const pauseQueue = useCallback(() => {
+    notionRetryQueue.pause();
+    refreshData();
+  }, [refreshData]);
+
+  /**
+   * Reprendre le traitement de la file d'attente
+   */
+  const resumeQueue = useCallback(() => {
+    notionRetryQueue.resume();
+    refreshData();
+  }, [refreshData]);
+
+  /**
    * Supprimer une opération de la file d'attente
    */
   const removeOperation = useCallback(
@@ -91,12 +111,16 @@ export function useRetryQueue() {
     operations,
     stats,
     isProcessing,
+    isPaused: notionRetryQueue.isPaused(),
     addOperation,
     processQueue,
+    pauseQueue,
+    resumeQueue,
     retryOperation,
     removeOperation,
     clearQueue,
-    refreshData
+    refreshData,
+    processNow: processQueue
   };
 }
 

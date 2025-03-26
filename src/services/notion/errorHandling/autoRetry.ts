@@ -1,7 +1,11 @@
 
+/**
+ * Utilitaire pour la gestion automatique des réessais
+ */
+
 import { notionErrorService } from './notionErrorService';
 import { notionRetryQueue } from './retryQueue';
-import { NotionErrorType, NotionError } from '../types/errorTypes';
+import type { NotionErrorType, NotionError } from '../types/unified';
 import { toast } from 'sonner';
 
 /**
@@ -35,7 +39,10 @@ export const autoRetryHandler = {
     }
     
     // Ajouter l'opération à la file d'attente
-    const operationId = notionRetryQueue.addOperation(operation, error.context?.toString() || 'Opération Notion');
+    const operationId = notionRetryQueue.addOperation(
+      operation, 
+      error.context?.toString() || 'Opération Notion'
+    );
     
     // Notifier l'utilisateur
     toast.info('Opération en file d\'attente', {

@@ -10,7 +10,7 @@ import {
   NotionErrorSeverity, 
   NotionErrorOptions,
   ErrorSubscriber
-} from '../types/errorTypes';
+} from '../types/unified';
 
 // Stockage local des erreurs récentes
 let recentErrors: NotionError[] = [];
@@ -131,13 +131,36 @@ export const notionErrorService = {
    * Ajoute une erreur à l'historique et notifie les abonnés
    */
   reportError(
-    error: Error | string,
+    error: Error | string | NotionError,
     context: string = '',
     options: NotionErrorOptions = {}
   ): NotionError {
+    // Si l'erreur est déjà une NotionError, l'utiliser directement
+    if (typeof error === 'object' && 'type' in error && 'severity' in error && 'retryable' in error) {
+      const notionError = error as NotionError;
+      
+      // Mettre à jour le contexte si nécessaire
+      if (context && !notionError.context) {
+        notionError.context = context;
+      }
+      
+      // Ajouter l'erreur à l'historique
+      recentErrors.unshift(notionError);
+      
+      // Limiter la taille de l'historique
+      if (recentErrors.length > MAX_ERROR_HISTORY) {
+        recentErrors = recentErrors.slice(0, MAX_ERROR_HISTORY);
+      }
+      
+      // Notifier les abonnés
+      this.notifySubscribers();
+      
+      return notionError;
+    }
+    
     // Créer l'objet d'erreur normalisé
-    const errorType = this.identifyErrorType(error);
-    const notionError = this.createError(error, errorType, {
+    const errorType = this.identifyErrorType(error as (Error | string));
+    const notionError = this.createError(error as (Error | string), errorType, {
       ...options,
       context: context || options.context
     });
@@ -151,6 +174,15 @@ export const notionErrorService = {
     }
     
     // Notifier les abonnés
+    this.notifySubscribers();
+    
+    return notionError;
+  },
+  
+  /**
+   * Notifie tous les abonnés des changements d'erreurs
+   */
+  notifySubscribers(): void {
     subscribers.forEach(sub => {
       try {
         sub.callback([...recentErrors]);
@@ -158,8 +190,6 @@ export const notionErrorService = {
         console.error('Erreur lors de la notification d\'un abonné:', e);
       }
     });
-    
-    return notionError;
   },
   
   /**
@@ -178,13 +208,7 @@ export const notionErrorService = {
     recentErrors = [];
     
     // Notifier les abonnés
-    subscribers.forEach(sub => {
-      try {
-        sub.callback([]);
-      } catch (e) {
-        console.error('Erreur lors de la notification d\'un abonné:', e);
-      }
-    });
+    this.notifySubscribers();
   },
   
   /**
