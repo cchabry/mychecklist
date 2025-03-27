@@ -1,4 +1,3 @@
-
 /**
  * Utilitaires pour la gestion des exigences
  */
@@ -13,29 +12,29 @@ import { ChecklistItem } from '@/types/domain';
 import { ImportanceLevel } from '@/types/enums';
 
 /**
- * Enrichit les exigences avec les informations des items de checklist
+ * Enrichit les exigences avec les informations des items de checklist associés
  */
 export function enrichExigencesWithItems(
   exigences: Exigence[],
   checklistItems: ChecklistItem[]
 ): ExigenceWithItem[] {
   return exigences.map(exigence => {
-    const checklistItem = checklistItems.find(item => item.id === exigence.itemId);
+    const checklistItem = checklistItems.find(item => item.id === exigence.itemId) || {
+      id: exigence.itemId,
+      consigne: 'Item inconnu',
+      description: 'Cet item n\'existe plus dans la checklist',
+      category: 'Non catégorisé',
+      subcategory: 'Non catégorisé',
+      reference: [],
+      profil: [],
+      phase: [],
+      effort: 0,
+      priority: 0
+    };
     
     return {
       ...exigence,
-      checklistItem: checklistItem || {
-        id: exigence.itemId,
-        consigne: 'Item inconnu',
-        description: 'Cet item n\'existe plus dans la checklist',
-        category: 'Non catégorisé',
-        subcategory: 'Non catégorisé',
-        reference: [],
-        profil: [],
-        phase: [],
-        effort: 0,
-        priority: 0
-      }
+      checklistItem
     };
   });
 }

@@ -1,34 +1,37 @@
 
 /**
- * Point d'entrée pour tous les composants de l'application
- * 
- * Ce module exporte tous les composants organisés par catégorie
- * pour faciliter l'importation et maintenir la cohérence.
+ * Point d'entrée pour les composants
  */
 
-// Composants de base de l'UI
+// Composants UI de base
 export * from './ui';
 
 // Composants de layout
 export * from './layout';
 
+// Composants de données
+export * from './data-display';
+
+// Composants de filtres
+export * from './filters';
+
 // Composants de formulaires
 export * from './forms';
 
-// Composants d'affichage de données
-export * from './data-display';
-
-// Composants de filtrage
-export * from './filters';
-
-// Composants spécifiques aux fonctionnalités
-export * from './checklist';
-export * from './exigences';
+// Composants d'évaluation
 export * from './evaluation';
+
+// Composants d'actions
 export * from './actions';
 
-// Composants génériques
-export { default as ErrorBoundary } from './ErrorBoundary';
-export { default as Layout } from './Layout';
-export { default as Navbar } from './Navbar';
-export { default as OperationModeIndicator } from './OperationModeIndicator';
+// Composants de checklist
+export * from './checklist';
+
+// Composants d'exigences
+export * from './exigences';
+
+// Composants individuels
+export { ErrorBoundary } from './ErrorBoundary';
+export { OperationModeIndicator } from './OperationModeIndicator';
+export { Navbar } from './Navbar';
+export { Layout } from './Layout';
