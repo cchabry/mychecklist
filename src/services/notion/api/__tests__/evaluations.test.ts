@@ -77,7 +77,7 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur test' }
       });
       
-      // Adapter le message d'erreur attendu pour qu'il corresponde au message réel renvoyé
+      // Utiliser exactement le message d'erreur renvoyé par le service
       await expect(evaluationsApi.getEvaluations('audit-123'))
         .rejects.toThrow('Erreur test');
     });
@@ -139,7 +139,7 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur de création' }
       });
       
-      // Modifier le message d'erreur attendu pour qu'il corresponde au message réel
+      // Utiliser exactement le message d'erreur renvoyé par le service
       await expect(evaluationsApi.createEvaluation(createInput))
         .rejects.toThrow('Erreur de création');
     });
@@ -168,7 +168,7 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur de mise à jour' }
       });
       
-      // Modifier le message d'erreur attendu pour qu'il corresponde au message réel
+      // Utiliser exactement le message d'erreur renvoyé par le service
       await expect(evaluationsApi.updateEvaluation(mockEvaluation))
         .rejects.toThrow('Erreur de mise à jour');
     });
@@ -195,7 +195,7 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur de suppression' }
       });
       
-      // Modifier le message d'erreur attendu pour qu'il corresponde au message réel
+      // Utiliser exactement le message d'erreur renvoyé par le service
       await expect(evaluationsApi.deleteEvaluation('eval-1'))
         .rejects.toThrow('Erreur de suppression');
     });

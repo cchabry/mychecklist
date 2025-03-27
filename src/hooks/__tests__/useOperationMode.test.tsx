@@ -22,7 +22,6 @@ describe('useOperationMode hook', () => {
     const { result } = renderHook(() => useOperationMode());
     
     // Changer le mode via le service directement avec la raison "Test hook"
-    // Sans activer le mode démo d'abord (qui était redondant)
     act(() => {
       operationModeService.enableDemoMode('Test hook');
     });
