@@ -5,7 +5,6 @@
  * Ce script analyse le code source pour générer des métriques
  * et les présente dans un dashboard interactif.
  */
-import { fileURLToPath } from 'url';
 
 // Point d'entrée principal
 async function main() {

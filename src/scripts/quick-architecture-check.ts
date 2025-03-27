@@ -5,7 +5,6 @@
  * Ce script effectue une vérification rapide de l'architecture du projet
  * pour s'assurer qu'elle respecte les standards définis.
  */
-import { fileURLToPath } from 'url';
 
 // Point d'entrée principal
 async function main() {
