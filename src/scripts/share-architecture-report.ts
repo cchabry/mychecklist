@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script de partage des rapports d'architecture
