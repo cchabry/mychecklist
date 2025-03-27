@@ -23,7 +23,7 @@ const ROOT_DIR = path.resolve(__dirname, '../..');
 const SCRIPTS_DIR = path.join(ROOT_DIR, 'src/scripts');
 
 /**
- * Supprime les lignes vides au début d'un fichier
+ * Supprime les lignes vides au début d'un fichier et normalise le shebang
  */
 function removeLeadingEmptyLines(filePath) {
   console.log(`Traitement du fichier: ${filePath}`);
@@ -31,8 +31,20 @@ function removeLeadingEmptyLines(filePath) {
   try {
     let content = fs.readFileSync(filePath, 'utf8');
     
-    // Supprimer les lignes vides au début
-    content = content.replace(/^\s*\n+/, '');
+    // Vérifier si le fichier contient un shebang
+    const hasShebang = content.includes('#!/usr/bin/env node');
+    
+    // Supprimer tous les caractères invisibles et lignes vides au début du fichier
+    content = content.replace(/^\s*[\r\n]+/gm, '');
+    content = content.replace(/^\uFEFF/, ''); // Supprime le BOM (Byte Order Mark) si présent
+    
+    // Si le fichier avait un shebang, s'assurer qu'il est en première ligne
+    if (hasShebang) {
+      // Retirer le shebang existant où qu'il soit
+      content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
+      // Ajouter le shebang en première ligne
+      content = '#!/usr/bin/env node\n' + content;
+    }
     
     // Convertir les requires CommonJS en import ES Module
     content = content.replace(/const\s*\{\s*([^}]+)\s*\}\s*=\s*require\(['"]([^'"]+)['"]\);?/g, 
@@ -57,14 +69,6 @@ function removeLeadingEmptyLines(filePath) {
       (match, exportName) => {
         return `export ${exportName}`;
       });
-    
-    // Ne pas remplacer l'expression fileURLToPath car on l'utilise déjà correctement
-    // content = content.replace(/fileURLToPath\(import\.meta\.url\)/g, "fileURLToPath(import.meta.url)");
-    
-    // Ajouter import { fileURLToPath } from 'url' si nécessaire
-    if (content.includes('fileURLToPath(import.meta.url)') && !content.includes("import { fileURLToPath }")) {
-      content = "import { fileURLToPath } from 'url';\n" + content;
-    }
     
     // Gérer spécifiquement l'import de glob (problématique)
     if (content.includes("from 'glob';") && !content.includes("const { glob } = pkg;")) {
@@ -102,11 +106,13 @@ function removeLeadingEmptyLines(filePath) {
       }
     }
     
-    // Assurer que le shebang est en première ligne sans ligne vide avant
+    // Assurer une structure cohérente: shebang, imports, puis __dirname, puis reste du code
+    // avec une ligne vide entre chaque section
     if (content.includes('#!/usr/bin/env node')) {
-      content = content.replace(/^([\s\S]*?)(#!\/usr\/bin\/env node)/, '$2\n$1');
-      content = content.replace(/(#!\/usr\/bin\/env node)\n\n/, '$1\n');
-      content = content.replace(/(#!\/usr\/bin\/env node\n)(import[\s\S]*?)(\n\n)(const __filename)/, '$1$2\n$4');
+      // Assurer une ligne vide après le shebang
+      content = content.replace(/(#!\/usr\/bin\/env node)\s*\n/g, '$1\n\n');
+      // S'assurer qu'il n'y a pas trop de lignes vides
+      content = content.replace(/\n{3,}/g, '\n\n');
     }
     
     fs.writeFileSync(filePath, content);
@@ -116,6 +122,29 @@ function removeLeadingEmptyLines(filePath) {
     console.error(`✗ Erreur lors du traitement du fichier ${filePath}:`, error);
     return false;
   }
+}
+
+/**
+ * Nettoie également les fichiers .js et .ts à la racine du dossier src
+ */
+function cleanSrcRootScripts() {
+  console.log('\nRecherche de fichiers scripts à la racine de src...');
+  
+  const srcRootScripts = glob.sync(path.join(ROOT_DIR, 'src/*.{js,ts}'));
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const file of srcRootScripts) {
+    if (removeLeadingEmptyLines(file)) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+  
+  console.log(`✓ ${successCount} fichiers à la racine de src traités avec succès`);
+  console.log(`✗ ${failCount} fichiers à la racine de src ont échoué`);
 }
 
 /**
@@ -144,6 +173,7 @@ function updatePackageJsonScripts() {
     packageJson.scripts['architecture:dashboard'] = 'node src/scripts/generate-metrics-dashboard.js';
     packageJson.scripts['architecture:serve'] = 'node src/scripts/serve-architecture-dashboard.js';
     packageJson.scripts['architecture:full'] = 'node src/scripts/run-architecture-analysis.js';
+    packageJson.scripts['fix-scripts'] = 'node src/scripts/fix-script-files.js';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     console.log(`✓ Scripts mis à jour dans package.json`);
@@ -152,6 +182,33 @@ function updatePackageJsonScripts() {
     console.error(`✗ Erreur lors de la mise à jour de package.json:`, error);
     return false;
   }
+}
+
+/**
+ * Vérifie et corrige les autres scripts .js dans le projet
+ */
+function checkOtherScripts() {
+  console.log('\nVérification des autres scripts dans le projet...');
+  
+  const utilsScripts = glob.sync([
+    path.join(ROOT_DIR, 'src/utils/**/*.{js,ts}'),
+    path.join(ROOT_DIR, 'src/hooks/**/*.{js,ts}'),
+    path.join(ROOT_DIR, 'src/services/**/*.{js,ts}')
+  ]);
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const file of utilsScripts) {
+    if (removeLeadingEmptyLines(file)) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+  
+  console.log(`✓ ${successCount} scripts utilitaires traités avec succès`);
+  console.log(`✗ ${failCount} scripts utilitaires ont échoué`);
 }
 
 /**
@@ -174,6 +231,12 @@ function main() {
       failCount++;
     }
   }
+  
+  // Nettoyer également les fichiers scripts à la racine de src
+  cleanSrcRootScripts();
+  
+  // Vérifier et corriger d'autres scripts importants
+  checkOtherScripts();
   
   // Mettre à jour les scripts dans package.json
   updatePackageJsonScripts();

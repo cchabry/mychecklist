@@ -28,7 +28,8 @@ try {
     "architecture:metrics": "node src/scripts/architecture-metrics.js",
     "architecture:dashboard": "node src/scripts/generate-metrics-dashboard.js",
     "architecture:serve": "node src/scripts/serve-architecture-dashboard.js",
-    "build:dev": "vite build --mode development"
+    "build:dev": "vite build --mode development",
+    "fix-scripts": "node src/scripts/fix-script-files.js"
   };
 
   // Écrire le fichier package.json mis à jour
@@ -41,6 +42,7 @@ try {
   console.log('  npm run architecture:dashboard');
   console.log('  npm run architecture:serve');
   console.log('  npm run build:dev');
+  console.log('  npm run fix-scripts');
 } catch (error) {
   console.error('Erreur lors de la modification du fichier package.json:', error);
   process.exit(1);
