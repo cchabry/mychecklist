@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script d'analyse rapide de l'architecture
