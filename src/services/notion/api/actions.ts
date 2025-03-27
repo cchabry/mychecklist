@@ -6,17 +6,10 @@
 import { ActionApi } from '@/types/api/domain';
 import { 
   CorrectiveAction, 
-  ActionProgress,
-  ComplianceStatus,
-  ActionPriority,
-  ActionStatus,
-  complianceStatusToLevel,
-  actionPriorityToLevel,
-  actionStatusToType
+  ActionProgress
 } from '@/types/domain';
 import { actionService } from '../action';
 import { CreateActionInput, CreateProgressInput } from '../action/types';
-import { ComplianceLevel, PriorityLevel, StatusType } from '@/types/enums';
 
 export class NotionActionApi implements ActionApi {
   // Actions correctives
@@ -37,7 +30,7 @@ export class NotionActionApi implements ActionApi {
   }
   
   async createAction(action: Omit<CorrectiveAction, 'id' | 'createdAt' | 'updatedAt'>): Promise<CorrectiveAction> {
-    // Conversion des types d'énumération en valeurs numériques pour le service
+    // Pass the action properties directly to the service
     const actionInput: CreateActionInput = {
       evaluationId: action.evaluationId,
       targetScore: action.targetScore,
@@ -89,7 +82,7 @@ export class NotionActionApi implements ActionApi {
   }
   
   async createActionProgress(progress: Omit<ActionProgress, 'id'>): Promise<ActionProgress> {
-    // Conversion des types d'énumération en valeurs numériques pour le service
+    // Pass the progress properties directly to the service
     const progressInput: CreateProgressInput = {
       actionId: progress.actionId,
       date: progress.date,
@@ -121,9 +114,6 @@ export class NotionActionApi implements ActionApi {
     }
     return true;
   }
-  
-  // Ces méthodes ne sont plus nécessaires car nous avons modifié les types d'entrée
-  // pour accepter directement les deux types d'énumération
 }
 
 export const actionsApi = new NotionActionApi();
