@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de vérification spécifique pour la phase 2
