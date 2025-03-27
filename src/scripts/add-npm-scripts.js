@@ -1,4 +1,3 @@
-
 /**
  * Script pour ajouter les commandes npm dans package.json
  * 
