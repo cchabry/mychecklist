@@ -1,39 +1,54 @@
 
 /**
- * Hook pour mettre à jour une évaluation
+ * Hook pour mettre à jour une évaluation existante
+ * 
+ * Ce hook fournit une mutation pour mettre à jour une évaluation
+ * et gérer automatiquement l'invalidation du cache.
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { updateEvaluation } from '..';
 import { UpdateEvaluationData } from '../types';
-import { useEvaluationById } from './useEvaluationById';
+import { toast } from 'sonner';
 
 /**
- * Hook pour mettre à jour une évaluation
+ * Hook pour mettre à jour une évaluation existante
  * 
+ * @param auditId - Identifiant de l'audit (pour l'invalidation du cache)
  * @returns Mutation pour mettre à jour une évaluation
+ * 
+ * @example
+ * ```tsx
+ * const { mutate: update, isLoading } = useUpdateEvaluation('audit-456');
+ * 
+ * const handleUpdate = async (evaluationId, newData) => {
+ *   try {
+ *     await update({ id: evaluationId, data: newData });
+ *     // Traitement après mise à jour
+ *   } catch (error) {
+ *     // Gestion des erreurs
+ *   }
+ * };
+ * ```
  */
-export function useUpdateEvaluation(id: string) {
+export function useUpdateEvaluation(auditId: string) {
   const queryClient = useQueryClient();
-  const { data: currentEvaluation } = useEvaluationById(id);
   
   return useMutation({
-    mutationFn: async (data: UpdateEvaluationData) => {
-      if (!currentEvaluation) {
-        throw new Error("Évaluation non trouvée");
-      }
-      
-      const updatedEvaluation = {
-        ...currentEvaluation,
-        ...data,
-      };
-      
-      return await notionApi.updateEvaluation(updatedEvaluation);
+    mutationFn: async ({ id, data }: { id: string, data: UpdateEvaluationData }) => {
+      return await updateEvaluation(id, data);
     },
-    onSuccess: () => {
-      // Invalider les requêtes associées
+    onSuccess: (_, { id }) => {
+      // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['evaluation', id] });
-      queryClient.invalidateQueries({ queryKey: ['evaluations'] });
+      queryClient.invalidateQueries({ queryKey: ['evaluations', auditId] });
+      
+      // Notifier l'utilisateur
+      toast.success('Évaluation mise à jour avec succès');
+    },
+    onError: (error) => {
+      console.error(`Erreur lors de la mise à jour de l'évaluation:`, error);
+      toast.error(`Impossible de mettre à jour l'évaluation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   });
 }

@@ -65,3 +65,31 @@ export function calculateEvaluationStats(evaluations: Evaluation[]) {
     complianceScore
   };
 }
+
+/**
+ * Groupe les évaluations par page
+ */
+export function groupEvaluationsByPage(evaluations: Evaluation[]): Record<string, Evaluation[]> {
+  return evaluations.reduce((groups, evaluation) => {
+    const pageId = evaluation.pageId;
+    if (!groups[pageId]) {
+      groups[pageId] = [];
+    }
+    groups[pageId].push(evaluation);
+    return groups;
+  }, {} as Record<string, Evaluation[]>);
+}
+
+/**
+ * Groupe les évaluations par exigence
+ */
+export function groupEvaluationsByExigence(evaluations: Evaluation[]): Record<string, Evaluation[]> {
+  return evaluations.reduce((groups, evaluation) => {
+    const exigenceId = evaluation.exigenceId;
+    if (!groups[exigenceId]) {
+      groups[exigenceId] = [];
+    }
+    groups[exigenceId].push(evaluation);
+    return groups;
+  }, {} as Record<string, Evaluation[]>);
+}
