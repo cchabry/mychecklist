@@ -1,10 +1,7 @@
 
 /**
- * Hooks spécifiques aux projets
- * 
- * Ce fichier exporte tous les hooks liés à la fonctionnalité de gestion des projets
+ * Hooks pour la feature Projects
  */
 
-export { useProjects } from '@/hooks/useProjects';
-export { useProjectById } from '@/hooks/useProjectById';
-export { useProjectAudits } from '@/hooks/useProjectAudits';
+export { useProjects } from './useProjects';
+export { default as useProjectById } from '@/hooks/useProjectById';
