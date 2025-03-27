@@ -1,6 +1,9 @@
 
 /**
  * Service pour la gestion des évaluations via Notion
+ * 
+ * Ce service fournit les fonctionnalités nécessaires pour interagir avec
+ * les données d'évaluation, soit via l'API Notion, soit en mode simulation.
  */
 
 import { notionClient } from '../notionClient';
@@ -16,6 +19,13 @@ import { CreateEvaluationInput } from './types';
 class EvaluationService {
   /**
    * Récupère les évaluations d'un audit
+   * 
+   * Permet de filtrer optionnellement par page et/ou exigence.
+   * 
+   * @param auditId - Identifiant de l'audit
+   * @param pageId - Identifiant de la page (optionnel)
+   * @param exigenceId - Identifiant de l'exigence (optionnel)
+   * @returns Réponse contenant les évaluations ou une erreur
    */
   async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
     const config = notionClient.getConfig();
@@ -45,6 +55,9 @@ class EvaluationService {
   
   /**
    * Récupère une évaluation par son ID
+   * 
+   * @param id - Identifiant unique de l'évaluation
+   * @returns Réponse contenant l'évaluation ou une erreur
    */
   async getEvaluationById(id: string): Promise<NotionResponse<Evaluation>> {
     // Si en mode démo, renvoyer des données simulées
@@ -87,6 +100,9 @@ class EvaluationService {
   
   /**
    * Crée une nouvelle évaluation
+   * 
+   * @param evaluation - Données de l'évaluation à créer
+   * @returns Réponse contenant l'évaluation créée ou une erreur
    */
   async createEvaluation(evaluation: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     // Si en mode démo, simuler la création
@@ -119,6 +135,9 @@ class EvaluationService {
   
   /**
    * Met à jour une évaluation existante
+   * 
+   * @param evaluation - Données complètes de l'évaluation avec les modifications
+   * @returns Réponse contenant l'évaluation mise à jour ou une erreur
    */
   async updateEvaluation(evaluation: Evaluation): Promise<NotionResponse<Evaluation>> {
     // Si en mode démo, simuler la mise à jour
@@ -145,6 +164,9 @@ class EvaluationService {
   
   /**
    * Supprime une évaluation
+   * 
+   * @param _id - Identifiant unique de l'évaluation à supprimer
+   * @returns Réponse indiquant le succès ou l'échec de la suppression
    */
   async deleteEvaluation(_id: string): Promise<NotionResponse<boolean>> {
     // Si en mode démo, simuler la suppression

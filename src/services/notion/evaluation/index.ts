@@ -2,14 +2,15 @@
 /**
  * Module d'évaluation
  * 
- * Ce module exporte tous les services liés aux évaluations
+ * Ce module centralise tous les services, utilitaires et types liés aux évaluations.
+ * Il facilite l'accès aux fonctionnalités d'évaluation depuis d'autres parties de l'application.
  */
 
-// Exporter le service
+// Exporter le service principal d'évaluation
 export { evaluationService } from './evaluationService';
 
-// Exporter les utilitaires
+// Exporter les utilitaires pour la génération et manipulation des évaluations
 export * from './utils';
 
-// Exporter les types (à venir)
-// export * from './types';
+// Exporter les types spécifiques aux évaluations
+export * from './types';

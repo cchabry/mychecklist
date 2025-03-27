@@ -4,6 +4,7 @@
  * 
  * Ce module expose les fonctionnalités liées à la gestion des évaluations
  * d'audit pour les pages échantillons selon les exigences définies.
+ * Il fournit une interface simplifiée pour interagir avec les données d'évaluation.
  */
 
 // Réexporter les composants, hooks et utilitaires pour faciliter l'accès
@@ -23,6 +24,8 @@ import {
 
 /**
  * Récupère toutes les évaluations d'un audit
+ * 
+ * Cette fonction permet de filtrer optionnellement par page et/ou exigence.
  * 
  * @param auditId - Identifiant de l'audit
  * @param pageId - Identifiant de la page (optionnel)
@@ -82,6 +85,9 @@ export async function createEvaluation(data: CreateEvaluationData): Promise<Eval
 
 /**
  * Met à jour une évaluation existante
+ * 
+ * Seules les propriétés spécifiées dans `data` seront mises à jour.
+ * Les autres propriétés resteront inchangées.
  * 
  * @param id - Identifiant unique de l'évaluation
  * @param data - Données à mettre à jour
