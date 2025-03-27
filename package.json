@@ -1,4 +1,12 @@
 {
+  "scripts": {
+    "architecture:check": "ts-node src/scripts/analyze-architecture.ts",
+    "architecture:metrics": "ts-node src/scripts/architecture-metrics.ts",
+    "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
+    "feature:generate": "ts-node src/scripts/generate-feature.ts"
+  }
+}
+{
   "name": "audit-checklist",
   "private": true,
   "version": "0.1.0",
