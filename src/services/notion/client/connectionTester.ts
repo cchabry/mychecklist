@@ -6,7 +6,7 @@
  * de vérifier l'accès aux bases de données configurées.
  */
 
-import { NotionConfig, NotionResponse, ConnectionTestResult } from '../types';
+import { NotionConfig, ConnectionTestResult } from '../types';
 import { notionHttpClient } from './notionHttpClient';
 import { notionMockClient } from './notionMockClient';
 
