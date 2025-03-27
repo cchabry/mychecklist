@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { notionApi } from '@/services/api';
 import { toast } from 'sonner';
-import { Audit } from '@/types/domain';
 
 /**
  * Hook pour récupérer les audits d'un projet

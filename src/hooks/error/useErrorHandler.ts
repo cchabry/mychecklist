@@ -2,20 +2,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { AppError, ErrorType, isAppError, createAppError } from '@/types/error';
-
-/**
- * Options pour la configuration du comportement du gestionnaire d'erreurs
- */
-export interface ErrorHandlerOptions {
-  /** Afficher un toast pour informer l'utilisateur */
-  showToast?: boolean;
-  /** Titre optionnel pour le toast d'erreur */
-  toastTitle?: string;
-  /** Logger l'erreur dans la console */
-  logToConsole?: boolean;
-  /** Callback exécuté après le traitement de l'erreur */
-  onError?: (error: AppError) => void;
-}
+import { ErrorHandlerOptions } from './types';
 
 /**
  * Hook pour gérer les erreurs de manière standardisée dans l'application
@@ -63,6 +50,7 @@ export function useErrorHandler() {
     const { 
       showToast = true, 
       toastTitle, 
+      toastDescription,
       logToConsole = true,
       onError 
     } = options;
@@ -86,7 +74,7 @@ export function useErrorHandler() {
     // Afficher une toast si demandé
     if (showToast) {
       toast.error(appError.message, {
-        description: toastTitle || appError.context || appError.type
+        description: toastDescription || toastTitle || appError.context || appError.type
       });
     }
     
