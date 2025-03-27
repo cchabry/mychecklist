@@ -64,6 +64,11 @@ class OperationModeServiceImpl implements OperationModeService {
   }
   
   private updateState(newState: Partial<OperationModeState>): void {
+    // Préserver la raison si elle n'est pas spécifiée dans le nouveau state
+    if (newState.reason === undefined && this.state.reason) {
+      newState.reason = this.state.reason;
+    }
+    
     this.state = { ...this.state, ...newState, timestamp: Date.now() };
     this.saveState();
     this.notifyListeners();
@@ -127,13 +132,16 @@ class OperationModeServiceImpl implements OperationModeService {
   
   reset(): void {
     console.log(`[OperationMode] Réinitialisation au mode par défaut: ${DEFAULT_MODE}`);
-    // Conserver la raison existante lors d'une réinitialisation
-    const currentReason = this.state.reason || OPERATION_MODE_RESET;
-    this.updateState({
+    // Réinitialiser complètement l'état lors d'un reset
+    this.state = {
       mode: DEFAULT_MODE,
-      reason: currentReason,
+      reason: OPERATION_MODE_RESET,
+      timestamp: Date.now(),
       source: 'system'
-    });
+    };
+    this.saveState();
+    this.notifyListeners();
+    this.syncWithNotionClient();
   }
   
   isDemoMode(): boolean {
