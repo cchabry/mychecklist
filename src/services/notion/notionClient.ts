@@ -7,7 +7,7 @@
  */
 
 import { notionClient as notionUnifiedClient } from './client/notionClient';
-import { NotionConfig, ConnectionTestResult, NotionResponse } from './types';
+import type { NotionResponse } from './types';
 
 /**
  * Façade pour le client Notion unifié
