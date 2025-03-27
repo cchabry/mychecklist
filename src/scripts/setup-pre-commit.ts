@@ -6,10 +6,6 @@
 * la conformité architecturale avant chaque commit.
 */
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
 
 const HOOK_FILE = '.git/hooks/pre-commit';
 const HOOK_CONTENT = `#!/bin/sh

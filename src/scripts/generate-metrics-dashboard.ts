@@ -7,8 +7,6 @@
  */
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-
 // Point d'entrée principal
 async function main() {
   console.log("Script de génération du dashboard de métriques");
