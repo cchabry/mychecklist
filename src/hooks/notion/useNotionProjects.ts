@@ -2,7 +2,8 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notionService } from '@/services/notion/notionService';
-import { Project, CreateProjectData, UpdateProjectData } from '@/types/domain';
+import { Project } from '@/types/domain';
+import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
 
@@ -47,12 +48,12 @@ export function useNotionProjects() {
       if (!response.success) {
         throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
-      return response.data;
+      return response.data || null;
     } catch (error) {
       handleNotionError(error, {
         endpoint: `/pages/${id}`,
         toastTitle: 'Erreur de chargement',
-        toastDescription: `Impossible de récupérer le projet #${id}`
+        toastMessage: `Impossible de récupérer le projet #${id}`
       });
       return null;
     } finally {
@@ -73,7 +74,7 @@ export function useNotionProjects() {
         handleNotionError(error, {
           endpoint: '/pages',
           toastTitle: 'Erreur de création',
-          toastDescription: 'Impossible de créer le projet'
+          toastMessage: 'Impossible de créer le projet'
         });
         throw error;
       }
@@ -99,7 +100,7 @@ export function useNotionProjects() {
         handleNotionError(error, {
           endpoint: `/pages/${id}`,
           toastTitle: 'Erreur de mise à jour',
-          toastDescription: `Impossible de mettre à jour le projet #${id}`
+          toastMessage: `Impossible de mettre à jour le projet #${id}`
         });
         throw error;
       }
@@ -126,7 +127,7 @@ export function useNotionProjects() {
         handleNotionError(error, {
           endpoint: `/pages/${id}`,
           toastTitle: 'Erreur de suppression',
-          toastDescription: `Impossible de supprimer le projet #${id}`
+          toastMessage: `Impossible de supprimer le projet #${id}`
         });
         throw error;
       }

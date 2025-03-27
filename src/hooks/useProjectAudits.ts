@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { notionApi } from '@/services/api';
 import { toast } from 'sonner';
+import { Audit } from '@/types/domain';
 
 /**
  * Hook pour récupérer les audits d'un projet
@@ -10,7 +11,7 @@ import { toast } from 'sonner';
  * @returns Résultat de la requête contenant les audits
  */
 export function useProjectAudits(projectId: string) {
-  return useQuery({
+  const result = useQuery({
     queryKey: ['audits', 'project', projectId],
     queryFn: async () => {
       if (!projectId) return [];
@@ -27,6 +28,12 @@ export function useProjectAudits(projectId: string) {
     },
     enabled: !!projectId
   });
+  
+  return {
+    audits: result.data || [],
+    isLoading: result.isLoading,
+    error: result.error
+  };
 }
 
 export default useProjectAudits;

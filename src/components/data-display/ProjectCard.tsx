@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useProjectAudits } from '@/hooks/useProjectAudits';
-import { Project } from '@/types/domain';
+import { Project, Audit } from '@/types/domain';
 import { AuditCard } from './AuditCard';
 
 interface ProjectCardProps {
@@ -54,7 +54,7 @@ export const ProjectCard = ({ project, className }: ProjectCardProps) => {
           </div>
         ) : audits.length > 0 ? (
           <div className="space-y-3 mt-3">
-            {audits.map(audit => (
+            {audits.map((audit: Audit) => (
               <AuditCard key={audit.id} audit={audit} projectId={id} />
             ))}
           </div>

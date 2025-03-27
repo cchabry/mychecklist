@@ -22,6 +22,10 @@ interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
   switchToDemo?: boolean;
   /** Raison du basculement en mode démo */
   demoReason?: string;
+  /** Titre du toast d'erreur */
+  toastTitle?: string;
+  /** Message du toast d'erreur */
+  toastMessage?: string;
 }
 
 /**
@@ -57,6 +61,8 @@ export function useNotionErrorHandler() {
       endpoint,
       switchToDemo = false,
       demoReason = 'Erreur API Notion',
+      toastTitle,
+      toastMessage,
       ...errorOptions
     } = options;
     
@@ -68,8 +74,21 @@ export function useNotionErrorHandler() {
       enableDemoMode(`${demoReason}: ${appError.message}`);
     }
     
-    // Déléguer au gestionnaire d'erreurs général
-    return handleError(appError, errorOptions);
+    // Déléguer au gestionnaire d'erreurs général avec les options mises à jour
+    const updatedOptions: ErrorHandlerOptions = {
+      ...errorOptions,
+      showToast: options.showToast !== false,
+    };
+    
+    if (toastTitle) {
+      updatedOptions.toastTitle = toastTitle;
+    }
+    
+    if (toastMessage) {
+      updatedOptions.toastDescription = toastMessage;
+    }
+    
+    return handleError(appError, updatedOptions);
   }, [handleError, enableDemoMode]);
   
   return {
@@ -81,4 +100,3 @@ export function useNotionErrorHandler() {
 }
 
 export default useNotionErrorHandler;
-

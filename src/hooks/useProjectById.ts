@@ -1,6 +1,5 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { Project } from '@/types/domain';
 import { getProjectById } from '@/features/projects';
 import { toast } from 'sonner';
 
@@ -11,7 +10,7 @@ import { toast } from 'sonner';
  * @returns Résultat de la requête contenant le projet et l'état de chargement
  */
 export const useProjectById = (projectId: string) => {
-  return useQuery({
+  const result = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       if (!projectId) return null;
@@ -34,6 +33,12 @@ export const useProjectById = (projectId: string) => {
     },
     enabled: !!projectId
   });
+  
+  return {
+    project: result.data,
+    isLoading: result.isLoading,
+    error: result.error
+  };
 };
 
 export default useProjectById;
