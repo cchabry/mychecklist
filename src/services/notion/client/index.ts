@@ -11,10 +11,13 @@ export { notionClient } from './notionClient';
 
 // Exporter les clients spécialisés pour un accès direct si nécessaire
 export { notionHttpClient } from './notionHttpClient';
-export { notionMockClient } from './notionMockClient';
+export { notionMockClient } from './mock/notionMockClient';
 
 // Exporter le testeur de connexion
 export { testConnection } from './connectionTester';
 
 // Exporter le gestionnaire d'erreurs
 export { handleNotionError } from './errorHandler';
+
+// Exporter les générateurs de données mock
+export { mockDataGenerator } from './mock/mockDataGenerators';

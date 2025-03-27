@@ -4,7 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { notionMockClient } from '../notionMockClient';
+import { notionMockClient } from '../mock/notionMockClient';
+import { mockDataGenerator } from '../mock/mockDataGenerators';
 
 // Type pour les réponses de test
 interface MockUser {
@@ -68,11 +69,17 @@ describe('Notion Mock Client', () => {
     // Activer le mode debug pour le test
     notionMockClient.configure({ debug: true });
 
+    // Espionner le générateur de données
+    const generatorSpy = vi.spyOn(mockDataGenerator, 'generateMockUser');
+
     // Effectuer la requête
     const response = await notionMockClient.get<MockUser>('/users/me');
 
     // Vérifier que la requête a réussi
     expect(response.success).toBe(true);
+    
+    // Vérifier que le générateur a été appelé
+    expect(generatorSpy).toHaveBeenCalled();
     
     // Vérifier les données avec assertion de type
     if (response.success && response.data) {
