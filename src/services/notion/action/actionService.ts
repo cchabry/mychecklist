@@ -6,26 +6,14 @@
 import { notionClient } from '../notionClient';
 import { generateMockActions } from './utils';
 import { progressService } from './progressService';
+import { actionMappers } from './actionMappers';
 import { 
   CreateActionInput, 
   ActionResponse, 
   ActionListResponse,
-  ActionDeleteResponse,
-  ProgressListResponse,
-  ProgressResponse,
-  CreateProgressInput,
-  ProgressDeleteResponse
+  ActionDeleteResponse
 } from './types';
-import { 
-  CorrectiveAction, 
-  ComplianceStatus, 
-  ActionPriority, 
-  ActionStatus,
-  complianceStatusToLevel,
-  actionPriorityToLevel,
-  actionStatusToType,
-  ActionProgress
-} from '@/types/domain';
+import { CorrectiveAction } from '@/types/domain';
 
 /**
  * Service de gestion des actions correctives
@@ -77,16 +65,7 @@ class ActionService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: {
-        id,
-        evaluationId: 'mock-evaluation',
-        targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
-        priority: actionPriorityToLevel[ActionPriority.High],
-        dueDate: new Date().toISOString(),
-        responsible: 'John Doe',
-        comment: "Action corrective prioritaire",
-        status: actionStatusToType[ActionStatus.InProgress]
-      }
+      data: actionMappers.createMockAction(id)
     };
   }
   
@@ -96,19 +75,7 @@ class ActionService {
   async createAction(action: CreateActionInput): Promise<ActionResponse> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
-      const newAction: CorrectiveAction = {
-        ...action,
-        id: `action-${Date.now()}`,
-        targetScore: typeof action.targetScore === 'number' 
-          ? complianceStatusToLevel[action.targetScore as ComplianceStatus] 
-          : complianceStatusToLevel[action.targetScore],
-        priority: typeof action.priority === 'number' 
-          ? actionPriorityToLevel[action.priority as ActionPriority] 
-          : actionPriorityToLevel[action.priority],
-        status: typeof action.status === 'number' 
-          ? actionStatusToType[action.status as ActionStatus] 
-          : actionStatusToType[action.status]
-      };
+      const newAction = actionMappers.mapInputToAction(action);
       
       return {
         success: true,
@@ -120,19 +87,7 @@ class ActionService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: {
-        ...action,
-        id: `action-${Date.now()}`,
-        targetScore: typeof action.targetScore === 'number' 
-          ? complianceStatusToLevel[action.targetScore as ComplianceStatus] 
-          : complianceStatusToLevel[action.targetScore],
-        priority: typeof action.priority === 'number' 
-          ? actionPriorityToLevel[action.priority as ActionPriority] 
-          : actionPriorityToLevel[action.priority],
-        status: typeof action.status === 'number' 
-          ? actionStatusToType[action.status as ActionStatus] 
-          : actionStatusToType[action.status]
-      }
+      data: actionMappers.mapInputToAction(action)
     };
   }
   
@@ -177,25 +132,11 @@ class ActionService {
   }
 
   // Méthodes déléguées au progressService pour la gestion des suivis de progrès
-  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
-    return progressService.getActionProgress(actionId);
-  }
-
-  async getActionProgressById(id: string): Promise<ProgressResponse> {
-    return progressService.getActionProgressById(id);
-  }
-
-  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
-    return progressService.createActionProgress(progress);
-  }
-
-  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
-    return progressService.updateActionProgress(progress);
-  }
-
-  async deleteActionProgress(id: string): Promise<ProgressDeleteResponse> {
-    return progressService.deleteActionProgress(id);
-  }
+  getActionProgress = progressService.getActionProgress.bind(progressService);
+  getActionProgressById = progressService.getActionProgressById.bind(progressService);
+  createActionProgress = progressService.createActionProgress.bind(progressService);
+  updateActionProgress = progressService.updateActionProgress.bind(progressService);
+  deleteActionProgress = progressService.deleteActionProgress.bind(progressService);
 }
 
 // Créer et exporter une instance singleton
