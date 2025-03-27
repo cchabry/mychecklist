@@ -28,6 +28,6 @@ async function main() {
   console.log("Fonctionnalité de partage à implémenter");
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }

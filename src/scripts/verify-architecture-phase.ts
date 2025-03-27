@@ -27,6 +27,6 @@ async function main() {
   console.log("Fonctionnalité de vérification à implémenter");
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }
