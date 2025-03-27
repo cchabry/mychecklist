@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de serveur pour le tableau de bord d'architecture
@@ -24,6 +25,7 @@ const DASHBOARD_FILE = path.join(REPORTS_DIR, 'architecture-dashboard.html');
 function ensureDashboardExists() {
   // Vérifier si le répertoire des rapports existe
   if (!fs.existsSync(REPORTS_DIR)) {
+    console.log(chalk.blue('Création du répertoire des rapports...'));
     fs.mkdirSync(REPORTS_DIR, { recursive: true });
   }
   
@@ -31,8 +33,41 @@ function ensureDashboardExists() {
   if (!fs.existsSync(DASHBOARD_FILE)) {
     console.log(chalk.yellow('Tableau de bord non trouvé, génération en cours...'));
     try {
+      // Générer le répertoire des rapports si nécessaire
+      execSync(`mkdir -p ${REPORTS_DIR}`, { stdio: 'inherit' });
+      
       // Générer les métriques
       execSync('npx ts-node src/scripts/architecture-metrics.ts', { stdio: 'inherit' });
+      
+      // Vérifier si les métriques ont été générées
+      const metricsFile = path.join(REPORTS_DIR, 'architecture-metrics.json');
+      if (!fs.existsSync(metricsFile)) {
+        // Créer un fichier de métriques minimal
+        console.log(chalk.yellow('Création d\'un fichier de métriques minimal...'));
+        const minimalMetrics = {
+          timestamp: new Date().toISOString(),
+          summary: {
+            featuresTotal: 0,
+            featuresCompliant: 0,
+            complianceRate: 0,
+            issuesTotal: 0,
+            issuesBySeverity: {},
+            filesByCategory: {}
+          },
+          domainDetails: {
+            features: [],
+            services: [],
+            hooks: [],
+            components: []
+          },
+          antiPatterns: {
+            detectedPatterns: [],
+            thresholdViolations: []
+          },
+          issues: []
+        };
+        fs.writeFileSync(metricsFile, JSON.stringify(minimalMetrics, null, 2));
+      }
       
       // Générer le tableau de bord
       execSync('npx ts-node src/scripts/generate-metrics-dashboard.ts', { stdio: 'inherit' });
@@ -41,7 +76,36 @@ function ensureDashboardExists() {
     } catch (error) {
       console.error(chalk.red('Erreur lors de la génération du tableau de bord:'));
       console.error(error);
-      process.exit(1);
+      console.log(chalk.yellow('Tentative de création d\'un tableau de bord minimal...'));
+      
+      // Créer un tableau de bord minimal
+      const minimalDashboard = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Tableau de bord d'architecture</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+            h1 { color: #333; }
+            .error { color: red; padding: 20px; border: 1px solid red; border-radius: 5px; background-color: #fff0f0; }
+            .button { display: inline-block; padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <h1>Tableau de bord d'architecture</h1>
+          <div class="error">
+            <p>Erreur: Impossible de générer le tableau de bord complet.</p>
+            <p>Veuillez exécuter l'analyse d'architecture complète:</p>
+            <code>npm run architecture:full</code>
+          </div>
+          <p>
+            <a href="/refresh" class="button">Réessayer</a>
+          </p>
+        </body>
+        </html>
+      `;
+      fs.writeFileSync(DASHBOARD_FILE, minimalDashboard);
     }
   }
 }
