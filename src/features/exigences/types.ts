@@ -25,5 +25,18 @@ export interface ExigenceStat {
   byImportance: Record<ImportanceLevel, number>;
 }
 
-// Re-export des types déjà définis ailleurs si nécessaire
-// export * from '@/types/domain';
+// Types pour la création et la mise à jour d'exigences
+export interface CreateExigenceData {
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
+}
+
+export interface UpdateExigenceData {
+  importance?: ImportanceLevel;
+  comment?: string;
+}
+
+// Re-export du type Exigence pour simplifier les imports
+export { Exigence } from '@/types/domain';

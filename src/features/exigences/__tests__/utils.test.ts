@@ -9,7 +9,7 @@ import {
   sortExigences,
   enrichExigencesWithItems,
 } from '../utils';
-import { ExigenceWithItem } from '../types';
+import { ExigenceWithItem, ExigenceFilters } from '../types';
 import { ImportanceLevel } from '@/types/enums';
 import { ChecklistItem, Exigence } from '@/types/domain';
 
@@ -91,8 +91,8 @@ describe('Exigence Utils', () => {
       
       expect(result).toHaveLength(3);
       expect(result[0].checklistItem).toBeDefined();
-      expect(result[0].checklistItem.consigne).toBe('Utiliser des textes alternatifs');
-      expect(result[1].checklistItem.consigne).toBe('Optimiser les images');
+      expect(result[0].checklistItem?.consigne).toBe('Utiliser des textes alternatifs');
+      expect(result[1].checklistItem?.consigne).toBe('Optimiser les images');
     });
 
     it('devrait gérer les items manquants', () => {
@@ -110,31 +110,31 @@ describe('Exigence Utils', () => {
       
       expect(result).toHaveLength(1);
       expect(result[0].checklistItem).toBeDefined();
-      expect(result[0].checklistItem.consigne).toBe('Item inconnu');
+      expect(result[0].checklistItem?.consigne).toBe('Item inconnu');
     });
   });
 
   describe('filterExigences', () => {
     it('devrait retourner toutes les exigences si aucun filtre n\'est spécifié', () => {
-      const result = filterExigences(exigences, {});
+      const result = filterExigences(exigences, { search: '' });
       expect(result).toHaveLength(3);
     });
 
     it('devrait filtrer par importance', () => {
-      const result = filterExigences(exigences, { importance: ImportanceLevel.Major });
+      const result = filterExigences(exigences, { search: '', importance: ImportanceLevel.Major });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('exig-1');
     });
 
     it('devrait filtrer par catégorie', () => {
-      const result = filterExigences(exigences, { category: 'Accessibilité' });
+      const result = filterExigences(exigences, { search: '', category: 'Accessibilité' });
       expect(result).toHaveLength(2);
       expect(result.map(e => e.id)).toContain('exig-1');
       expect(result.map(e => e.id)).toContain('exig-3');
     });
 
     it('devrait filtrer par sous-catégorie', () => {
-      const result = filterExigences(exigences, { subCategory: 'Images' });
+      const result = filterExigences(exigences, { search: '', subCategory: 'Images' });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('exig-1');
     });
@@ -169,12 +169,12 @@ describe('Exigence Utils', () => {
 
     it('devrait trier par catégorie ascendante', () => {
       const result = sortExigences(exigences, 'category_asc');
-      expect(result.map(e => e.checklistItem.category)).toEqual(['Accessibilité', 'Accessibilité', 'Performance']);
+      expect(result.map(e => e.checklistItem?.category)).toEqual(['Accessibilité', 'Accessibilité', 'Performance']);
     });
 
     it('devrait trier par catégorie descendante', () => {
       const result = sortExigences(exigences, 'category_desc');
-      expect(result.map(e => e.checklistItem.category)).toEqual(['Performance', 'Accessibilité', 'Accessibilité']);
+      expect(result.map(e => e.checklistItem?.category)).toEqual(['Performance', 'Accessibilité', 'Accessibilité']);
     });
   });
 });
