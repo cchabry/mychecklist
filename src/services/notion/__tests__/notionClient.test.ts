@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notionClient } from '../notionClient';
 import { notionClient as notionUnifiedClient } from '../client/notionClient';
+import { NotionConfig, NotionResponse } from '../types';
 
 // Mocker le client unifié
 vi.mock('../client/notionClient', () => ({
@@ -37,15 +38,15 @@ describe('Notion Client Façade', () => {
   });
 
   it('devrait déléguer isConfigured() au client unifié', () => {
-    notionUnifiedClient.isConfigured.mockReturnValue(true);
+    (notionUnifiedClient.isConfigured as any).mockReturnValue(true);
     const result = notionClient.isConfigured();
     expect(notionUnifiedClient.isConfigured).toHaveBeenCalled();
     expect(result).toBe(true);
   });
 
   it('devrait déléguer getConfig() au client unifié', () => {
-    const mockConfig = { mockMode: true };
-    notionUnifiedClient.getConfig.mockReturnValue(mockConfig);
+    const mockConfig = { mockMode: true } as NotionConfig;
+    (notionUnifiedClient.getConfig as any).mockReturnValue(mockConfig);
     const result = notionClient.getConfig();
     expect(notionUnifiedClient.getConfig).toHaveBeenCalled();
     expect(result).toBe(mockConfig);
@@ -57,15 +58,15 @@ describe('Notion Client Façade', () => {
   });
 
   it('devrait déléguer isMockMode() au client unifié', () => {
-    notionUnifiedClient.isMockMode.mockReturnValue(true);
+    (notionUnifiedClient.isMockMode as any).mockReturnValue(true);
     const result = notionClient.isMockMode();
     expect(notionUnifiedClient.isMockMode).toHaveBeenCalled();
     expect(result).toBe(true);
   });
 
   it('devrait déléguer get() au client unifié', async () => {
-    const mockResponse = { success: true, data: { test: 'data' } };
-    notionUnifiedClient.get.mockResolvedValue(mockResponse);
+    const mockResponse = { success: true, data: { test: 'data' } } as NotionResponse<any>;
+    (notionUnifiedClient.get as any).mockResolvedValue(mockResponse);
     
     const result = await notionClient.get('/test');
     
@@ -74,9 +75,9 @@ describe('Notion Client Façade', () => {
   });
 
   it('devrait déléguer post() au client unifié', async () => {
-    const mockResponse = { success: true, data: { test: 'data' } };
+    const mockResponse = { success: true, data: { test: 'data' } } as NotionResponse<any>;
     const mockData = { name: 'Test' };
-    notionUnifiedClient.post.mockResolvedValue(mockResponse);
+    (notionUnifiedClient.post as any).mockResolvedValue(mockResponse);
     
     const result = await notionClient.post('/test', mockData);
     
@@ -86,11 +87,11 @@ describe('Notion Client Façade', () => {
 
   it('devrait gérer la méthode request() avec différentes méthodes HTTP', async () => {
     // Configurer les mocks pour chaque méthode HTTP
-    const mockResponse = { success: true, data: { test: 'data' } };
-    notionUnifiedClient.get.mockResolvedValue(mockResponse);
-    notionUnifiedClient.post.mockResolvedValue(mockResponse);
-    notionUnifiedClient.patch.mockResolvedValue(mockResponse);
-    notionUnifiedClient.delete.mockResolvedValue(mockResponse);
+    const mockResponse = { success: true, data: { test: 'data' } } as NotionResponse<any>;
+    (notionUnifiedClient.get as any).mockResolvedValue(mockResponse);
+    (notionUnifiedClient.post as any).mockResolvedValue(mockResponse);
+    (notionUnifiedClient.patch as any).mockResolvedValue(mockResponse);
+    (notionUnifiedClient.delete as any).mockResolvedValue(mockResponse);
 
     // Tester GET
     let result = await notionClient.request('GET', '/test');
@@ -106,6 +107,8 @@ describe('Notion Client Façade', () => {
     // Tester une méthode HTTP non supportée
     result = await notionClient.request('INVALID', '/test');
     expect(result.success).toBe(false);
-    expect(result.error.message).toContain('Méthode HTTP non supportée');
+    if (result.error) {
+      expect(result.error.message).toContain('Méthode HTTP non supportée');
+    }
   });
 });

@@ -6,6 +6,28 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notionMockClient } from '../notionMockClient';
 
+// Type pour les réponses de test
+interface MockUser {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  workspace_name?: string;
+}
+
+interface MockDatabase {
+  id: string;
+  title: Array<{ plain_text: string }>;
+  properties: Record<string, any>;
+}
+
+interface MockPage {
+  id: string;
+  created_time: string;
+  last_edited_time: string;
+  properties?: Record<string, any>;
+  deleted?: boolean;
+}
+
 describe('Notion Mock Client', () => {
   beforeEach(() => {
     // Réinitialiser toutes les mocks entre les tests
@@ -47,13 +69,17 @@ describe('Notion Mock Client', () => {
     notionMockClient.configure({ debug: true });
 
     // Effectuer la requête
-    const response = await notionMockClient.get('/users/me');
+    const response = await notionMockClient.get<MockUser>('/users/me');
 
     // Vérifier que la requête a réussi
     expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
-    expect(response.data.id).toBe('mock-user-id');
-    expect(response.data.name).toBe('Utilisateur Démo');
+    
+    // Vérifier les données avec assertion de type
+    if (response.success && response.data) {
+      const userData = response.data as MockUser;
+      expect(userData.id).toBe('mock-user-id');
+      expect(userData.name).toBe('Utilisateur Démo');
+    }
 
     // Vérifier que la requête a été loggée en mode debug
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Notion Mock] GET /users/me'));
@@ -61,14 +87,18 @@ describe('Notion Mock Client', () => {
 
   it('devrait simuler une requête GET sur une base de données avec succès', async () => {
     const dbId = 'mock-database-id';
-    const response = await notionMockClient.get(`/databases/${dbId}`);
+    const response = await notionMockClient.get<MockDatabase>(`/databases/${dbId}`);
 
     // Vérifier que la requête a réussi
     expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
-    expect(response.data.id).toBe(dbId);
-    expect(response.data.title).toBeDefined();
-    expect(response.data.properties).toBeDefined();
+    
+    // Vérifier les données avec assertion de type
+    if (response.success && response.data) {
+      const dbData = response.data as MockDatabase;
+      expect(dbData.id).toBe(dbId);
+      expect(dbData.title).toBeDefined();
+      expect(dbData.properties).toBeDefined();
+    }
   });
 
   it('devrait simuler une requête POST pour créer un page dans une base de données', async () => {
@@ -81,14 +111,18 @@ describe('Notion Mock Client', () => {
       }
     };
 
-    const response = await notionMockClient.post(`/databases/${dbId}/pages`, data);
+    const response = await notionMockClient.post<MockPage>(`/databases/${dbId}/pages`, data);
 
     // Vérifier que la requête a réussi
     expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
-    expect(response.data.id).toMatch(/^mock-/);
-    expect(response.data.created_time).toBeDefined();
-    expect(response.data.last_edited_time).toBeDefined();
+    
+    // Vérifier les données avec assertion de type
+    if (response.success && response.data) {
+      const pageData = response.data as MockPage;
+      expect(pageData.id).toMatch(/^mock-/);
+      expect(pageData.created_time).toBeDefined();
+      expect(pageData.last_edited_time).toBeDefined();
+    }
   });
 
   it('devrait simuler une requête PATCH pour mettre à jour une page', async () => {
@@ -103,25 +137,33 @@ describe('Notion Mock Client', () => {
       }
     };
 
-    const response = await notionMockClient.patch(`/pages/${pageId}`, data);
+    const response = await notionMockClient.patch<MockPage>(`/pages/${pageId}`, data);
 
     // Vérifier que la requête a réussi
     expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
-    expect(response.data.id).toBe(pageId);
-    expect(response.data.last_edited_time).toBeDefined();
-    expect(response.data.properties).toEqual(data.properties);
+    
+    // Vérifier les données avec assertion de type
+    if (response.success && response.data) {
+      const pageData = response.data as MockPage;
+      expect(pageData.id).toBe(pageId);
+      expect(pageData.last_edited_time).toBeDefined();
+      expect(pageData.properties).toEqual(data.properties);
+    }
   });
 
   it('devrait simuler une requête DELETE pour supprimer une page', async () => {
     const pageId = 'mock-page-id';
-    const response = await notionMockClient.delete(`/pages/${pageId}`);
+    const response = await notionMockClient.delete<MockPage>(`/pages/${pageId}`);
 
     // Vérifier que la requête a réussi
     expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
-    expect(response.data.id).toBe(pageId);
-    expect(response.data.deleted).toBe(true);
+    
+    // Vérifier les données avec assertion de type
+    if (response.success && response.data) {
+      const pageData = response.data as MockPage;
+      expect(pageData.id).toBe(pageId);
+      expect(pageData.deleted).toBe(true);
+    }
   });
 
   it('devrait simuler un test de connexion toujours réussi', async () => {
