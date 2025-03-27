@@ -90,12 +90,20 @@ export class NotionMockClient {
   async patch<T>(_endpoint: string, data: unknown): Promise<NotionResponse<T>> {
     await this.simulateDelay();
     
+    // Créer un nouvel objet pour éviter l'utilisation de l'opérateur spread sur un type inconnu
+    const responseData: any = {
+      id: `mock-${Date.now()}`,
+      last_edited_time: new Date().toISOString()
+    };
+    
+    // Ajouter les propriétés de data si c'est un objet
+    if (data && typeof data === 'object') {
+      Object.assign(responseData, data);
+    }
+    
     return {
       success: true,
-      data: {
-        ...data,
-        last_edited_time: new Date().toISOString()
-      } as unknown as T
+      data: responseData as T
     };
   }
   
