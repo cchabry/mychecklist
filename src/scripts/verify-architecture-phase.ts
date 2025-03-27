@@ -86,9 +86,10 @@ const phases: PhaseIndicators[] = [
           if (!fs.existsSync(errorHookPath)) return false;
           
           // Vérifier l'utilisation dans au moins un service
-          const serviceFiles = glob(path.join(__dirname, '../services/**/*.ts'));
+          const serviceFilesPromise = glob(path.join(__dirname, '../services/**/*.ts'));
           let usageCount = 0;
           
+          const serviceFiles = await serviceFilesPromise;
           for (const file of serviceFiles) {
             const content = fs.readFileSync(file, 'utf8');
             if (content.includes('handleError') || content.includes('useErrorHandler')) {
@@ -106,7 +107,9 @@ const phases: PhaseIndicators[] = [
         check: async () => {
           // Compter le nombre de fichiers dans le dossier services/notion
           const notionDir = path.join(__dirname, '../services/notion');
-          const fileCount = glob(path.join(notionDir, '**/*.ts')).length;
+          const filePromise = glob(path.join(notionDir, '**/*.ts'));
+          const files = await filePromise;
+          const fileCount = files.length;
           
           // Une bonne architecture ne devrait pas avoir trop de fichiers pour le même domaine
           return fileCount <= 15; // Seuil à ajuster selon l'objectif précis
