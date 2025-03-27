@@ -12,8 +12,10 @@ import glob from 'glob';
 import chalk from 'chalk';
 import { saveCurrentMetrics } from '../utils/tracking/architecture-tracker';
 import { 
-  antiPatterns, 
-  getComplianceThresholds, 
+  getAllRules,
+  getRulesByDomain,
+  getAllThresholds,
+  getThresholdsByDomain,
   getThreshold,
   ArchitectureMetrics,
   FeatureMetric,
@@ -176,9 +178,9 @@ function analyzeComponent(componentPath: string, componentName: string): Compone
 }
 
 /**
- * Détecte les anti-patterns dans le code
+ * Détecte les anti-patterns généraux dans le code
  */
-function detectAntiPatterns(): DetectedAntiPattern[] {
+function detectGeneralAntiPatterns(): DetectedAntiPattern[] {
   const detectedPatterns: DetectedAntiPattern[] = [];
   
   // Anti-pattern: Fichiers trop volumineux
@@ -261,13 +263,105 @@ function detectAntiPatterns(): DetectedAntiPattern[] {
 }
 
 /**
- * Vérifie les violations de seuils configurés
+ * Détecte les anti-patterns spécifiques au domaine d'audit
+ */
+function detectDomainSpecificAntiPatterns(): DetectedAntiPattern[] {
+  const detectedPatterns: DetectedAntiPattern[] = [];
+  
+  // Vérifier la convention de nommage des items de checklist
+  const checklistFiles = glob.sync('**/checklist/**/*.{ts,tsx}', { cwd: ROOT_DIR });
+  const misnamedChecklistItems = checklistFiles.filter(file => {
+    if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+    const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+    // Vérifier que chaque item de checklist est correctement nommé
+    return /const\s+[^C][a-zA-Z]*Item\s+=/.test(content) || 
+           /interface\s+[^C][a-zA-Z]*Item/.test(content) ||
+           /type\s+[^C][a-zA-Z]*Item\s+=/.test(content);
+  });
+  
+  if (misnamedChecklistItems.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'checklist-naming-convention',
+      ruleName: 'Convention de nommage des items de checklist',
+      severity: 'medium',
+      occurrences: misnamedChecklistItems.length,
+      affectedFiles: misnamedChecklistItems
+    });
+  }
+  
+  // Vérifier l'utilisation de fonctions de validation dans les audits
+  const auditFiles = glob.sync('**/audit/**/*.{ts,tsx}', { cwd: ROOT_DIR });
+  const auditFilesWithoutValidation = auditFiles.filter(file => {
+    if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+    const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+    // Vérifier s'il y a des fonctions de mutation sans validation
+    return /create|update|save/.test(content) && 
+           !/(validate|checkValid|isValid|validateAudit)/.test(content);
+  });
+  
+  if (auditFilesWithoutValidation.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'audit-validation',
+      ruleName: 'Validation des données d\'audit',
+      severity: 'high',
+      occurrences: auditFilesWithoutValidation.length,
+      affectedFiles: auditFilesWithoutValidation
+    });
+  }
+  
+  // Vérifier la gestion des erreurs de connexion à Notion
+  const notionFiles = glob.sync('**/notion/**/*.{ts,tsx}', { cwd: ROOT_DIR })
+    .filter(file => !file.includes('types.ts')); // Exclure les fichiers de types
+  
+  const notionFilesWithoutErrorHandling = notionFiles.filter(file => {
+    if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+    const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+    // Vérifier s'il y a des appels à l'API sans gestion d'erreur
+    return content.includes('notion.') && 
+           !content.includes('try {') && 
+           !content.includes('catch (');
+  });
+  
+  if (notionFilesWithoutErrorHandling.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'notion-connection-error-handling',
+      ruleName: 'Gestion des erreurs de connexion Notion',
+      severity: 'critical',
+      occurrences: notionFilesWithoutErrorHandling.length,
+      affectedFiles: notionFilesWithoutErrorHandling
+    });
+  }
+  
+  // Vérifier la validation des URLs dans les pages d'échantillon
+  const samplePageFiles = glob.sync('**/samplePage/**/*.{ts,tsx}', { cwd: ROOT_DIR });
+  const samplePageFilesWithoutUrlValidation = samplePageFiles.filter(file => {
+    if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+    const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+    // Vérifier s'il y a des manipulations d'URL sans validation
+    return /url\s*[:=]/.test(content) && 
+           !/(isValidUrl|validateUrl|validUrl)/.test(content);
+  });
+  
+  if (samplePageFilesWithoutUrlValidation.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'sample-page-url-validation',
+      ruleName: 'Validation des URLs des pages d\'échantillon',
+      severity: 'medium',
+      occurrences: samplePageFilesWithoutUrlValidation.length,
+      affectedFiles: samplePageFilesWithoutUrlValidation
+    });
+  }
+  
+  return detectedPatterns;
+}
+
+/**
+ * Vérifie les violations de seuils configurés (généraux et par domaine)
  */
 function checkThresholdViolations(metrics: ArchitectureMetrics): ThresholdViolation[] {
   const violations: ThresholdViolation[] = [];
-  const thresholds = getComplianceThresholds();
   
-  // Vérifier le seuil de conformité globale
+  // Vérifier les seuils globaux
   const overallThreshold = getThreshold('overall-compliance');
   if (metrics.summary.complianceRate < overallThreshold) {
     violations.push({
@@ -305,7 +399,56 @@ function checkThresholdViolations(metrics: ArchitectureMetrics): ThresholdViolat
     });
   }
   
+  // Vérifier les seuils spécifiques au domaine d'audit
+  // Ces vérifications sont spécifiques à notre application d'audit
+  
+  // Exemple: Taux de complétion des audits
+  const auditCompletionRate = calculateAuditCompletionRate();
+  const auditCompletionThreshold = getThreshold('audit-completion-rate', 'audit');
+  if (auditCompletionRate < auditCompletionThreshold) {
+    violations.push({
+      thresholdId: 'audit-completion-rate',
+      thresholdName: 'Taux de complétion des audits',
+      expectedValue: auditCompletionThreshold,
+      actualValue: auditCompletionRate,
+      description: `Le taux de complétion des audits (${auditCompletionRate}%) est inférieur au seuil configuré (${auditCompletionThreshold}%)`
+    });
+  }
+  
+  // Exemple: Taux de correction des actions
+  const actionCorrectionRate = calculateActionCorrectionRate();
+  const actionCorrectionThreshold = getThreshold('action-correction-rate', 'action');
+  if (actionCorrectionRate < actionCorrectionThreshold) {
+    violations.push({
+      thresholdId: 'action-correction-rate',
+      thresholdName: 'Taux de correction des actions',
+      expectedValue: actionCorrectionThreshold,
+      actualValue: actionCorrectionRate,
+      description: `Le taux de correction des actions (${actionCorrectionRate}%) est inférieur au seuil configuré (${actionCorrectionThreshold}%)`
+    });
+  }
+  
+  // Autres seuils spécifiques au domaine peuvent être ajoutés ici...
+  
   return violations;
+}
+
+/**
+ * Calcule le taux de complétion des audits (exemple)
+ */
+function calculateAuditCompletionRate(): number {
+  // Dans un cas réel, cette fonction analyserait les données d'audit
+  // Pour cet exemple, nous retournons une valeur fixe
+  return 85; // 85% de complétion
+}
+
+/**
+ * Calcule le taux de correction des actions (exemple)
+ */
+function calculateActionCorrectionRate(): number {
+  // Dans un cas réel, cette fonction analyserait les données d'actions correctives
+  // Pour cet exemple, nous retournons une valeur fixe
+  return 70; // 70% de correction
 }
 
 /**
@@ -485,13 +628,19 @@ function analyzeCodebase(): ArchitectureMetrics {
     metrics.summary.filesByCategory[category] = count;
   }
   
-  // Détecter les anti-patterns
-  metrics.antiPatterns.detectedPatterns = detectAntiPatterns();
+  // Détecter les anti-patterns généraux
+  const generalAntiPatterns = detectGeneralAntiPatterns();
+  
+  // Détecter les anti-patterns spécifiques au domaine
+  const domainSpecificAntiPatterns = detectDomainSpecificAntiPatterns();
+  
+  // Combiner tous les anti-patterns détectés
+  metrics.antiPatterns.detectedPatterns = [...generalAntiPatterns, ...domainSpecificAntiPatterns];
   
   // Ajouter les problèmes liés aux anti-patterns aux issues générales
   for (const pattern of metrics.antiPatterns.detectedPatterns) {
     metrics.issues.push({
-      domain: 'anti-patterns',
+      domain: pattern.ruleId.includes('-') ? pattern.ruleId.split('-')[0] : 'anti-patterns',
       category: pattern.ruleId,
       severity: pattern.severity as any,
       description: `${pattern.ruleName} (${pattern.occurrences} occurrences)`

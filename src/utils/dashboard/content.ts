@@ -1,4 +1,3 @@
-
 /**
  * Générateurs de contenu pour le tableau de bord
  * 
@@ -356,6 +355,158 @@ export function createAntiPatternsSection(detectedPatterns: DetectedAntiPattern[
       </div>
     </section>
   `;
+}
+
+/**
+ * Crée la section des seuils de conformité par domaine
+ */
+export function createDomainThresholdsSection(violations: ThresholdViolation[]): string {
+  const domainSpecificViolations = violations.filter(violation => 
+    violation.thresholdId.includes('-') && 
+    ['audit', 'project', 'action', 'checklist', 'evaluation', 'notion'].some(
+      domain => violation.thresholdId.includes(domain)
+    )
+  );
+  
+  if (domainSpecificViolations.length === 0) {
+    return '';
+  }
+  
+  let htmlContent = `
+    <section class="dashboard-section domain-thresholds-section">
+      <h2>Seuils de conformité par domaine</h2>
+      <table class="thresholds-table">
+        <thead>
+          <tr>
+            <th>Domaine</th>
+            <th>Seuil</th>
+            <th>Valeur attendue</th>
+            <th>Valeur actuelle</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  domainSpecificViolations.forEach(violation => {
+    const domain = violation.thresholdId.split('-')[0];
+    const status = violation.actualValue >= violation.expectedValue ? 'success' : 'failure';
+    
+    htmlContent += `
+      <tr class="threshold-${status}">
+        <td>${domain}</td>
+        <td>${violation.thresholdName}</td>
+        <td>${violation.expectedValue}${violation.thresholdId.includes('rate') ? '%' : ''}</td>
+        <td>${violation.actualValue}${violation.thresholdId.includes('rate') ? '%' : ''}</td>
+        <td class="status-${status}">
+          ${status === 'success' ? '✓ Conforme' : '✗ Non conforme'}
+        </td>
+      </tr>
+    `;
+  });
+  
+  htmlContent += `
+        </tbody>
+      </table>
+    </section>
+  `;
+  
+  return htmlContent;
+}
+
+/**
+ * Crée la section de règles spécifiques au domaine
+ */
+export function createDomainRulesSection(detectedPatterns: DetectedAntiPattern[]): string {
+  const domainSpecificPatterns = detectedPatterns.filter(pattern => 
+    pattern.ruleId.includes('-') && 
+    ['checklist', 'audit', 'project', 'evaluation', 'action', 'notion', 'samplePage'].some(
+      domain => pattern.ruleId.includes(domain)
+    )
+  );
+  
+  if (domainSpecificPatterns.length === 0) {
+    return '';
+  }
+  
+  // Regrouper par domaine
+  const patternsByDomain: Record<string, DetectedAntiPattern[]> = {};
+  
+  domainSpecificPatterns.forEach(pattern => {
+    const domain = pattern.ruleId.split('-')[0];
+    if (!patternsByDomain[domain]) {
+      patternsByDomain[domain] = [];
+    }
+    patternsByDomain[domain].push(pattern);
+  });
+  
+  let htmlContent = `
+    <section class="dashboard-section domain-rules-section">
+      <h2>Règles spécifiques au domaine</h2>
+      <div class="domain-rules-container">
+  `;
+  
+  // Créer un onglet pour chaque domaine
+  const domainTabs = Object.keys(patternsByDomain).map((domain, index) => 
+    `<button class="domain-tab ${index === 0 ? 'active' : ''}" data-domain="${domain}">${domain}</button>`
+  ).join('');
+  
+  htmlContent += `
+    <div class="domain-tabs">
+      ${domainTabs}
+    </div>
+  `;
+  
+  // Créer le contenu pour chaque domaine
+  Object.entries(patternsByDomain).forEach(([domain, patterns], index) => {
+    htmlContent += `
+      <div class="domain-content" id="domain-${domain}" ${index === 0 ? '' : 'style="display:none;"'}>
+        <h3>Anti-patterns du domaine ${domain}</h3>
+        <table class="patterns-table">
+          <thead>
+            <tr>
+              <th>Règle</th>
+              <th>Sévérité</th>
+              <th>Occurrences</th>
+              <th>Détails</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    patterns.forEach(pattern => {
+      htmlContent += `
+        <tr class="severity-${pattern.severity}">
+          <td>${pattern.ruleName}</td>
+          <td>${pattern.severity}</td>
+          <td>${pattern.occurrences}</td>
+          <td>
+            <button class="toggle-affected-files" data-rule="${pattern.ruleId}">
+              Voir fichiers affectés
+            </button>
+            <div class="affected-files" id="files-${pattern.ruleId}" style="display:none;">
+              <ul>
+                ${pattern.affectedFiles.map(file => `<li>${file}</li>`).join('')}
+              </ul>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+    
+    htmlContent += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  });
+  
+  htmlContent += `
+      </div>
+    </section>
+  `;
+  
+  return htmlContent;
 }
 
 /**

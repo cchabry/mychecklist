@@ -1,164 +1,230 @@
-
 /**
- * Utilitaires pour les filtres du tableau de bord
+ * Utilitaires pour les filtres et l'interactivité du tableau de bord
+ * 
+ * Ce module expose des fonctions pour créer des filtres interactifs
+ * et des scripts pour améliorer l'expérience utilisateur.
  */
 
 /**
- * Génère le HTML pour les filtres de sévérité
- */
-export function createSeverityFilters(): string {
-  return `
-    <div class="filter-group">
-      <h4 class="filter-title">Filtrer par sévérité</h4>
-      <div class="filter-options">
-        <label class="filter-option">
-          <input type="checkbox" class="severity-filter" value="high" checked> 
-          <span class="severity-badge high">Haute</span>
-        </label>
-        <label class="filter-option">
-          <input type="checkbox" class="severity-filter" value="medium" checked> 
-          <span class="severity-badge medium">Moyenne</span>
-        </label>
-        <label class="filter-option">
-          <input type="checkbox" class="severity-filter" value="low" checked> 
-          <span class="severity-badge low">Basse</span>
-        </label>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Génère le HTML pour les filtres de catégorie
- */
-export function createCategoryFilters(categories: string[]): string {
-  const categoryOptions = categories.map(category => `
-    <label class="filter-option">
-      <input type="checkbox" class="category-filter" value="${category}" checked> 
-      ${category}
-    </label>
-  `).join('');
-
-  return `
-    <div class="filter-group">
-      <h4 class="filter-title">Filtrer par catégorie</h4>
-      <div class="filter-options category-options">
-        ${categoryOptions}
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Génère le HTML pour les contrôles de filtrage
- */
-export function createFilterControls(): string {
-  return `
-    <div class="filter-controls">
-      <button id="reset-filters" class="filter-button">Réinitialiser les filtres</button>
-      <button id="toggle-all-categories" class="filter-button">Tout sélectionner/désélectionner</button>
-    </div>
-  `;
-}
-
-/**
- * Script JavaScript pour gérer les filtres côté client
+ * Crée les scripts HTML pour les filtres
  */
 export function createFilterScripts(): string {
   return `
+    <div class="filters-container">
+      <div class="filter-group">
+        <label for="domain-filter">Domaine:</label>
+        <select id="domain-filter" class="filter-select">
+          <option value="all">Tous</option>
+          <option value="feature">Features</option>
+          <option value="service">Services</option>
+          <option value="hook">Hooks</option>
+          <option value="component">Composants</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="severity-filter">Sévérité:</label>
+        <select id="severity-filter" class="filter-select">
+          <option value="all">Toutes</option>
+          <option value="low">Faible</option>
+          <option value="medium">Moyenne</option>
+          <option value="high">Haute</option>
+          <option value="critical">Critique</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="search-input">Rechercher:</label>
+        <input type="text" id="search-input" class="search-input" placeholder="Rechercher...">
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Crée les scripts JavaScript pour ajouter des fonctionnalités d'interactivité
+ */
+export function createInteractivityScripts(): string {
+  return `
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        // Récupérer les éléments DOM
-        const severityFilters = document.querySelectorAll('.severity-filter');
-        const categoryFilters = document.querySelectorAll('.category-filter');
-        const resetButton = document.getElementById('reset-filters');
-        const toggleCategoriesButton = document.getElementById('toggle-all-categories');
-        const issuesTable = document.querySelector('.issues-table');
-        const issuesRows = issuesTable ? issuesTable.querySelectorAll('tbody tr') : [];
-        
-        // Fonction pour appliquer les filtres
-        function applyFilters() {
-          // Récupérer les sévérités sélectionnées
-          const selectedSeverities = Array.from(severityFilters)
-            .filter(checkbox => checkbox.checked)
-            .map(checkbox => checkbox.value);
-          
-          // Récupérer les catégories sélectionnées
-          const selectedCategories = Array.from(categoryFilters)
-            .filter(checkbox => checkbox.checked)
-            .map(checkbox => checkbox.value);
-          
-          // Filtrer les lignes du tableau
-          issuesRows.forEach(row => {
-            const severityCell = row.querySelector('td:nth-child(3)');
-            const categoryCell = row.querySelector('td:nth-child(2)');
+        // Affichage/Masquage des fichiers affectés par les anti-patterns
+        document.querySelectorAll('.toggle-affected-files').forEach(button => {
+          button.addEventListener('click', function() {
+            const ruleId = this.getAttribute('data-rule');
+            const filesElement = document.getElementById('files-' + ruleId);
             
-            const severity = severityCell?.querySelector('.severity-badge')?.textContent?.toLowerCase() || '';
-            const category = categoryCell?.textContent?.trim() || '';
-            
-            // Vérifier si la ligne correspond aux filtres
-            const matchesSeverity = selectedSeverities.some(s => severity.includes(s));
-            const matchesCategory = selectedCategories.includes(category);
-            
-            // Afficher ou masquer la ligne
-            if (matchesSeverity && matchesCategory) {
-              row.style.display = '';
+            if (filesElement.style.display === 'none') {
+              filesElement.style.display = 'block';
+              this.textContent = 'Masquer fichiers affectés';
             } else {
-              row.style.display = 'none';
+              filesElement.style.display = 'none';
+              this.textContent = 'Voir fichiers affectés';
             }
           });
-          
-          // Mettre à jour le compteur d'éléments visibles
-          updateVisibleCount();
-        }
+        });
         
-        // Fonction pour mettre à jour le compteur d'éléments visibles
-        function updateVisibleCount() {
-          const visibleIssues = Array.from(issuesRows).filter(row => row.style.display !== 'none').length;
-          const totalIssues = issuesRows.length;
-          const countElement = document.getElementById('visible-issues-count');
+        // Plier/Déplier les sections
+        document.querySelectorAll('.toggle-section').forEach(button => {
+          button.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section');
+            const contentElement = document.getElementById(sectionId);
+            
+            if (contentElement.style.display === 'none') {
+              contentElement.style.display = 'block';
+              this.textContent = '−';
+            } else {
+              contentElement.style.display = 'none';
+              this.textContent = '+';
+            }
+          });
+        });
+        
+        // Initialisation des graphiques si Chart.js est disponible
+        if (typeof Chart !== 'undefined') {
+          // Graphique de tendance de conformité
+          const complianceCanvas = document.getElementById('compliance-trend-chart');
+          if (complianceCanvas) {
+            const ctx = complianceCanvas.getContext('2d');
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: complianceData.dates,
+                datasets: [{
+                  label: 'Taux de conformité (%)',
+                  data: complianceData.rates,
+                  borderColor: '#4361ee',
+                  backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 100
+                  }
+                }
+              }
+            });
+          }
           
-          if (countElement) {
-            countElement.textContent = \`\${visibleIssues} sur \${totalIssues} problèmes affichés\`;
+          // Graphique de distribution des fichiers
+          const filesCanvas = document.getElementById('files-distribution-chart');
+          if (filesCanvas && filesDistributionData) {
+            const ctx = filesCanvas.getContext('2d');
+            new Chart(ctx, {
+              type: 'doughnut',
+              data: {
+                labels: filesDistributionData.categories,
+                datasets: [{
+                  data: filesDistributionData.counts,
+                  backgroundColor: [
+                    '#4361ee', '#3a0ca3', '#f72585', '#7209b7', '#4cc9f0', '#4caf50', '#ff9800'
+                  ]
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'right'
+                  }
+                }
+              }
+            });
+          }
+          
+          // Graphique des problèmes par sévérité
+          const issuesCanvas = document.getElementById('issues-severity-chart');
+          if (issuesCanvas && issuesSeverityData) {
+            const ctx = issuesCanvas.getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: issuesSeverityData.severities,
+                datasets: [{
+                  label: 'Nombre de problèmes',
+                  data: issuesSeverityData.counts,
+                  backgroundColor: [
+                    'rgba(33, 150, 243, 0.7)', // Low
+                    'rgba(255, 152, 0, 0.7)',  // Medium
+                    'rgba(244, 67, 54, 0.7)',  // High
+                    'rgba(156, 39, 176, 0.7)'  // Critical
+                  ]
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
+              }
+            });
           }
         }
         
-        // Ajouter les écouteurs d'événements pour les filtres
-        severityFilters.forEach(filter => {
-          filter.addEventListener('change', applyFilters);
-        });
-        
-        categoryFilters.forEach(filter => {
-          filter.addEventListener('change', applyFilters);
-        });
-        
-        // Réinitialiser les filtres
-        resetButton?.addEventListener('click', function() {
-          severityFilters.forEach(filter => {
-            filter.checked = true;
+        // Gestion des onglets de domaines
+        document.querySelectorAll('.domain-tab').forEach(tab => {
+          tab.addEventListener('click', function() {
+            const domain = this.getAttribute('data-domain');
+            
+            // Mettre à jour les onglets actifs
+            document.querySelectorAll('.domain-tab').forEach(t => {
+              t.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Afficher le contenu correspondant
+            document.querySelectorAll('.domain-content').forEach(content => {
+              content.style.display = 'none';
+            });
+            document.getElementById('domain-' + domain).style.display = 'block';
           });
-          
-          categoryFilters.forEach(filter => {
-            filter.checked = true;
-          });
-          
-          applyFilters();
         });
         
-        // Tout sélectionner/désélectionner
-        let allCategoriesSelected = true; // Par défaut, toutes les catégories sont sélectionnées
-        toggleCategoriesButton?.addEventListener('click', function() {
-          allCategoriesSelected = !allCategoriesSelected;
-          
-          categoryFilters.forEach(filter => {
-            filter.checked = allCategoriesSelected;
+        // Tri des tableaux
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+          th.addEventListener('click', function() {
+            const table = this.closest('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const columnIndex = Array.from(th.parentNode.children).indexOf(th);
+            const sortKey = this.getAttribute('data-sort');
+            
+            // Tri des lignes
+            rows.sort((a, b) => {
+              const aValue = a.children[columnIndex].textContent.trim();
+              const bValue = b.children[columnIndex].textContent.trim();
+              
+              if (sortKey === 'numeric') {
+                return parseFloat(aValue) - parseFloat(bValue);
+              } else {
+                return aValue.localeCompare(bValue);
+              }
+            });
+            
+            // Inverser l'ordre si on clique sur la même colonne
+            if (th.classList.contains('sort-asc')) {
+              rows.reverse();
+              th.classList.remove('sort-asc');
+              th.classList.add('sort-desc');
+            } else {
+              th.classList.remove('sort-desc');
+              th.classList.add('sort-asc');
+            }
+            
+            // Réinsérer les lignes triées
+            rows.forEach(row => tbody.appendChild(row));
           });
-          
-          applyFilters();
         });
-        
-        // Appliquer les filtres au chargement
-        applyFilters();
       });
     </script>
   `;

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node;
 /**
  * Script de génération du tableau de bord de métriques architecturales
@@ -18,6 +19,8 @@ import {
   createIssuesSection, 
   createAntiPatternsSection,
   createThresholdViolationsSection,
+  createDomainRulesSection,
+  createDomainThresholdsSection,
   createInteractivityScripts, 
   generateDashboardStyles, 
   createFilterScripts,
@@ -46,6 +49,8 @@ function generateDashboardContent(metrics: ArchitectureMetrics): string {
   const issuesSection = createIssuesSection(metrics.issues);
   const antiPatternsSection = createAntiPatternsSection(metrics.antiPatterns.detectedPatterns);
   const thresholdViolationsSection = createThresholdViolationsSection(metrics.antiPatterns.thresholdViolations);
+  const domainRulesSection = createDomainRulesSection(metrics.antiPatterns.detectedPatterns);
+  const domainThresholdsSection = createDomainThresholdsSection(metrics.antiPatterns.thresholdViolations);
   
   // Générer le contenu complet
   return `
@@ -61,7 +66,9 @@ function generateDashboardContent(metrics: ArchitectureMetrics): string {
         ${filesDistributionSection}
         ${featuresSection}
         ${antiPatternsSection}
+        ${domainRulesSection}
         ${thresholdViolationsSection}
+        ${domainThresholdsSection}
         ${issuesSection}
       </div>
     </div>
