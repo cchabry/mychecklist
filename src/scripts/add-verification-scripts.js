@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes de vérification des phases dans package.json
@@ -22,10 +23,10 @@ try {
   // Ajouter les scripts
   packageJson.scripts = {
     ...packageJson.scripts,
-    "verify:phase1": "ts-node src/scripts/verify-architecture-phase.ts --phase=1",
-    "verify:phase2": "ts-node src/scripts/verify-phase2.js",
-    "verify:phase3": "ts-node src/scripts/verify-architecture-phase.ts --phase=3",
-    "verify:current": "ts-node src/scripts/verify-architecture-phase.ts",
+    "verify:phase1": "node src/scripts/verify-architecture-phase.js --phase=1",
+    "verify:phase2": "node src/scripts/verify-phase2.js",
+    "verify:phase3": "node src/scripts/verify-architecture-phase.js --phase=3",
+    "verify:current": "node src/scripts/verify-architecture-phase.js",
     "precommit": "npm run verify:current"
   };
 

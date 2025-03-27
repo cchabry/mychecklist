@@ -23,17 +23,17 @@ try {
   // Ajouter les scripts
   packageJson.scripts = {
     ...packageJson.scripts,
-    "analyze-architecture": "ts-node src/scripts/analyze-architecture.ts",
-    "generate-feature": "ts-node src/scripts/generate-feature.ts",
-    "architecture:analyze": "ts-node src/scripts/architecture-metrics.ts",
-    "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
-    "architecture:serve": "ts-node src/scripts/serve-architecture-dashboard.ts",
-    "architecture:full": "ts-node src/scripts/run-architecture-analysis.ts",
-    "architecture:quick": "ts-node src/scripts/quick-architecture-check.ts",
-    "setup-pre-commit": "ts-node src/scripts/setup-pre-commit.ts",
+    "analyze-architecture": "node src/scripts/analyze-architecture.js",
+    "generate-feature": "node src/scripts/generate-feature.js",
+    "architecture:analyze": "node src/scripts/architecture-metrics.js",
+    "architecture:dashboard": "node src/scripts/generate-metrics-dashboard.js",
+    "architecture:serve": "node src/scripts/serve-architecture-dashboard.js",
+    "architecture:full": "node src/scripts/run-architecture-analysis.js",
+    "architecture:quick": "node src/scripts/quick-architecture-check.js",
+    "setup-pre-commit": "node src/scripts/setup-pre-commit.js",
     "vscode:package": "cd vscode-extension && npm run package",
-    "architecture:export": "ts-node src/scripts/export-architecture-report.ts",
-    "architecture:share": "ts-node src/scripts/share-architecture-report.ts",
+    "architecture:export": "node src/scripts/export-architecture-report.js",
+    "architecture:share": "node src/scripts/share-architecture-report.js",
     "architecture:docs": "cp docs/architecture-rules-reference.md reports/architecture-docs.md && echo 'Documentation copiée dans le dossier reports'"
   };
 

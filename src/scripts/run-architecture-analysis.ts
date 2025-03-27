@@ -115,7 +115,7 @@ function main() {
   
   // Exécuter l'analyse d'architecture
   const analyzeSuccess = runCommand(
-    'npx ts-node src/scripts/architecture-metrics.ts',
+    'node src/scripts/architecture-metrics.js',
     'Génération des métriques d\'architecture'
   );
   
@@ -126,7 +126,7 @@ function main() {
   
   // Générer le tableau de bord
   const dashboardSuccess = runCommand(
-    'npx ts-node src/scripts/generate-metrics-dashboard.ts',
+    'node src/scripts/generate-metrics-dashboard.js',
     'Génération du tableau de bord'
   );
   

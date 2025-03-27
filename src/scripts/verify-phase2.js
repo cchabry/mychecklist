@@ -23,7 +23,8 @@ if (!fs.existsSync(REPORTS_DIR)) {
 
 try {
   console.log('Exécution de la vérification de la phase 2...');
-  execSync('npx ts-node src/scripts/verify-architecture-phase.ts --phase=2', { 
+  // Modifié pour utiliser node au lieu de ts-node
+  execSync('node src/scripts/verify-architecture-phase.js --phase=2', { 
     stdio: 'inherit',
     cwd: path.resolve(__dirname, '../..')
   });
@@ -44,5 +45,6 @@ try {
   }
 } catch (error) {
   console.error('Erreur lors de la vérification de la phase 2:');
+  console.error(error);
   process.exit(1);
 }

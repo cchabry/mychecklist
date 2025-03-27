@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script de serveur pour le tableau de bord d'architecture
@@ -37,7 +36,7 @@ function ensureDashboardExists() {
       execSync(`mkdir -p ${REPORTS_DIR}`, { stdio: 'inherit' });
       
       // Générer les métriques
-      execSync('npx ts-node src/scripts/architecture-metrics.ts', { stdio: 'inherit' });
+      execSync('node src/scripts/architecture-metrics.js', { stdio: 'inherit' });
       
       // Vérifier si les métriques ont été générées
       const metricsFile = path.join(REPORTS_DIR, 'architecture-metrics.json');
@@ -70,7 +69,7 @@ function ensureDashboardExists() {
       }
       
       // Générer le tableau de bord
-      execSync('npx ts-node src/scripts/generate-metrics-dashboard.ts', { stdio: 'inherit' });
+      execSync('node src/scripts/generate-metrics-dashboard.js', { stdio: 'inherit' });
       
       console.log(chalk.green('Tableau de bord généré avec succès!'));
     } catch (error) {
@@ -133,11 +132,11 @@ function startServer() {
       return;
     }
     
-    // Route pour régénérer les données
+    // Route pour régénérer les données - mise à jour pour utiliser node
     if (req.url === '/refresh') {
       try {
-        execSync('npx ts-node src/scripts/architecture-metrics.ts', { stdio: 'inherit' });
-        execSync('npx ts-node src/scripts/generate-metrics-dashboard.ts', { stdio: 'inherit' });
+        execSync('node src/scripts/architecture-metrics.js', { stdio: 'inherit' });
+        execSync('node src/scripts/generate-metrics-dashboard.js', { stdio: 'inherit' });
         
         res.writeHead(302, { 'Location': '/' });
         res.end();
