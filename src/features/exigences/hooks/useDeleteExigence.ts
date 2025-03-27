@@ -13,18 +13,17 @@ import { toast } from 'sonner';
 /**
  * Hook pour supprimer une exigence
  * 
- * @param id - Identifiant de l'exigence à supprimer
  * @param projectId - Identifiant du projet (pour l'invalidation du cache)
  * @returns Mutation pour supprimer une exigence
  * 
  * @example
  * ```tsx
- * const { mutate: remove, isLoading } = useDeleteExigence('exigence-123', 'project-456');
+ * const { mutate: remove, isLoading } = useDeleteExigence('project-456');
  * 
- * const handleDelete = async () => {
+ * const handleDelete = async (exigenceId) => {
  *   if (confirm('Êtes-vous sûr de vouloir supprimer cette exigence?')) {
  *     try {
- *       await remove();
+ *       await remove(exigenceId);
  *       // Redirection ou traitement après suppression
  *     } catch (error) {
  *       // Gestion des erreurs
@@ -33,11 +32,11 @@ import { toast } from 'sonner';
  * };
  * ```
  */
-export function useDeleteExigence(id: string, projectId: string) {
+export function useDeleteExigence(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (id: string) => {
       return await deleteExigence(id);
     },
     onSuccess: () => {
@@ -49,7 +48,7 @@ export function useDeleteExigence(id: string, projectId: string) {
       toast.success('Exigence supprimée avec succès');
     },
     onError: (error) => {
-      console.error(`Erreur lors de la suppression de l'exigence ${id}:`, error);
+      console.error(`Erreur lors de la suppression de l'exigence:`, error);
       toast.error(`Impossible de supprimer l'exigence: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   });

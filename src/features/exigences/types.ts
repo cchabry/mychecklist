@@ -59,8 +59,8 @@ export interface ExigenceWithItem {
   itemId: string;
   /** Niveau d'importance de cette exigence pour le projet */
   importance: ImportanceLevel;
-  /** Commentaire ou précisions sur cette exigence */
-  comment: string;
+  /** Commentaire ou précisions sur cette exigence (optionnel) */
+  comment?: string;
   /** Item de checklist associé avec toutes ses informations */
   checklistItem?: ChecklistItem;
 }
@@ -75,8 +75,8 @@ export interface CreateExigenceData {
   itemId: string;
   /** Niveau d'importance */
   importance: ImportanceLevel;
-  /** Commentaire ou précisions */
-  comment: string;
+  /** Commentaire ou précisions (optionnel) */
+  comment?: string;
 }
 
 /**

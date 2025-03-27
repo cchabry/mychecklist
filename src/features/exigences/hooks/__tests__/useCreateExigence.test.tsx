@@ -66,7 +66,7 @@ describe('useCreateExigence', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
     
-    const { result } = renderHook(() => useCreateExigence('project-123'), { wrapper });
+    const { result } = renderHook(() => useCreateExigence(), { wrapper });
     
     // Exécuter la mutation
     await result.current.mutateAsync(mockInput);
@@ -85,7 +85,7 @@ describe('useCreateExigence', () => {
     vi.mocked(exigencesModule.createExigence).mockRejectedValue(error);
     
     // Rendu du hook
-    const { result } = renderHook(() => useCreateExigence('project-123'), {
+    const { result } = renderHook(() => useCreateExigence(), {
       wrapper: createWrapper()
     });
     
@@ -93,7 +93,8 @@ describe('useCreateExigence', () => {
     await expect(result.current.mutateAsync({
       projectId: 'project-123',
       itemId: 'item-123',
-      importance: ImportanceLevel.Major
+      importance: ImportanceLevel.Major,
+      comment: 'Test comment'
     })).rejects.toThrow();
     
     // Vérifier que le toast d'erreur a été affiché

@@ -15,7 +15,7 @@ import { Exigence, ExigenceWithItem, ExigenceSortOption, ExigenceFilters, Exigen
  * @returns Liste des exigences enrichies
  */
 export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: ChecklistItem[]): ExigenceWithItem[] {
-  return exigences.map(exigence => {
+  const result: ExigenceWithItem[] = exigences.map(exigence => {
     const item = checklistItems.find(item => item.id === exigence.itemId);
     
     return {
@@ -34,6 +34,8 @@ export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: 
       }
     };
   });
+  
+  return result;
 }
 
 /**
@@ -54,7 +56,7 @@ export function filterExigences(
       exigence.checklistItem?.description,
       exigence.comment
     ].some(text => 
-      text && text.toLowerCase().includes(filters.search.toLowerCase())
+      text && text.toLowerCase().includes(filters.search?.toLowerCase() || '')
     );
     
     // Filtre par importance

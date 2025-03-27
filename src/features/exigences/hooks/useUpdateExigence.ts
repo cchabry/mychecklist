@@ -14,21 +14,16 @@ import { toast } from 'sonner';
 /**
  * Hook pour mettre à jour une exigence existante
  * 
- * @param id - Identifiant de l'exigence à mettre à jour
  * @param projectId - Identifiant du projet (pour l'invalidation du cache)
  * @returns Mutation pour mettre à jour une exigence
  * 
  * @example
  * ```tsx
- * const { mutate: update, isLoading } = useUpdateExigence('exigence-123', 'project-456');
+ * const { mutate: update, isLoading } = useUpdateExigence('project-456');
  * 
- * const handleUpdate = async (newImportance) => {
+ * const handleUpdate = async (exigenceId, newData) => {
  *   try {
- *     await update({
- *       importance: newImportance,
- *       comment: 'Mise à jour du niveau d\'importance'
- *     });
- *     
+ *     await update({ id: exigenceId, data: newData });
  *     // Traitement après mise à jour
  *   } catch (error) {
  *     // Gestion des erreurs
@@ -36,14 +31,14 @@ import { toast } from 'sonner';
  * };
  * ```
  */
-export function useUpdateExigence(id: string, projectId: string) {
+export function useUpdateExigence(projectId: string) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: UpdateExigenceData) => {
+    mutationFn: async ({ id, data }: { id: string, data: UpdateExigenceData }) => {
       return await updateExigence(id, data);
     },
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['exigence', id] });
       queryClient.invalidateQueries({ queryKey: ['exigences', projectId] });
@@ -53,7 +48,7 @@ export function useUpdateExigence(id: string, projectId: string) {
       toast.success('Exigence mise à jour avec succès');
     },
     onError: (error) => {
-      console.error(`Erreur lors de la mise à jour de l'exigence ${id}:`, error);
+      console.error(`Erreur lors de la mise à jour de l'exigence:`, error);
       toast.error(`Impossible de mettre à jour l'exigence: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   });

@@ -54,13 +54,14 @@ export function useExigenceWithItem(exigenceId: string) {
   // Effet pour combiner les données de l'exigence et de l'item
   useEffect(() => {
     if (exigence && checklistItem) {
-      setData({
+      const exigenceWithItem: ExigenceWithItem = {
         ...exigence,
         checklistItem
-      });
+      };
+      setData(exigenceWithItem);
     } else if (exigence) {
       // Si l'item n'est pas trouvé, créer un item placeholder
-      setData({
+      const exigenceWithItem: ExigenceWithItem = {
         ...exigence,
         checklistItem: {
           id: exigence.itemId,
@@ -74,7 +75,8 @@ export function useExigenceWithItem(exigenceId: string) {
           effort: 0,
           priority: 0
         }
-      });
+      };
+      setData(exigenceWithItem);
     } else {
       setData(null);
     }

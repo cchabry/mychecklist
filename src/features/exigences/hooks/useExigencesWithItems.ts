@@ -60,11 +60,6 @@ export function useExigencesWithItems(projectId: string) {
       return enrichExigencesWithItems(exigences, checklistItems);
     },
     // Activer uniquement si les deux requêtes sont activées et terminées
-    enabled: !!(exigencesQuery.data && checklistItemsQuery.data),
-    // Dépendre des résultats des deux requêtes
-    staleTime: Math.min(
-      exigencesQuery.staleTime || 0,
-      checklistItemsQuery.staleTime || 0
-    )
+    enabled: !!(exigencesQuery.data && checklistItemsQuery.data)
   });
 }

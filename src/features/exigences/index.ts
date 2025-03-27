@@ -67,7 +67,7 @@ export async function createExigence(data: CreateExigenceData): Promise<Exigence
       projectId: data.projectId,
       itemId: data.itemId,
       importance: data.importance,
-      comment: data.comment
+      comment: data.comment || ''
     };
     
     return await exigencesApi.createExigence(exigenceData);
