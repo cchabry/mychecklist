@@ -108,4 +108,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 // Exports pour les tests
-export { verifyPhase, phases };
+export { phases };

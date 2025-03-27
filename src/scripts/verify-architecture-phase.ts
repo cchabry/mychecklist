@@ -7,7 +7,7 @@
 */
 
 // Importer le nouveau module refactorisé
-import { main } from './architecture/index';
+import { main, verifyPhase } from './architecture/index';
 
 // Exécuter le script principal lorsqu'il est appelé directement
 if (import.meta.url === `file://${process.argv[1]}`) {
