@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node;
 /**
  * Script de génération du tableau de bord de métriques architecturales
