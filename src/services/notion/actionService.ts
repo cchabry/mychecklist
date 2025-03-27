@@ -1,7 +1,7 @@
 
 /**
  * Re-export du service d'actions (pour compatibilité avec le code existant)
- * @deprecated Utilisez plutôt l'import depuis './action/actionService'
+ * @deprecated Utilisez plutôt l'import depuis './action'
  */
 
 import { actionService } from './action/actionService';

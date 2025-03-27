@@ -13,6 +13,7 @@ import { notionHttpClient } from './notionHttpClient';
 import { notionMockClient } from './notionMockClient';
 import { NotionConfig, NotionResponse, ConnectionTestResult } from '../types';
 import { operationModeService } from '@/services/operationMode/operationModeService';
+import { testConnection } from './connectionTester';
 
 /**
  * Client API Notion
@@ -137,75 +138,7 @@ export class NotionClient {
    * @returns Résultat du test de connexion
    */
   async testConnection(): Promise<ConnectionTestResult> {
-    // En mode mock, utiliser le mock client
-    if (this.isMockMode()) {
-      return notionMockClient.testConnection();
-    }
-    
-    // Vérifier que le client est configuré
-    if (!this.config.apiKey) {
-      return {
-        success: false,
-        error: 'Clé API Notion non configurée'
-      };
-    }
-    
-    try {
-      // Tester l'API Notion en récupérant l'utilisateur
-      const userResponse = await this.get<any>('/users/me');
-      
-      if (!userResponse.success) {
-        return {
-          success: false,
-          error: userResponse.error?.message || 'Erreur lors de la connexion à Notion'
-        };
-      }
-      
-      // Tester l'accès à la base de données des projets
-      let projectsDbName = '';
-      if (this.config.projectsDbId) {
-        const projectsDbResponse = await this.get<any>(`/databases/${this.config.projectsDbId}`);
-        
-        if (projectsDbResponse.success) {
-          projectsDbName = projectsDbResponse.data?.title?.[0]?.plain_text || this.config.projectsDbId;
-        } else {
-          return {
-            success: false,
-            error: `Impossible d'accéder à la base de données des projets: ${projectsDbResponse.error?.message}`
-          };
-        }
-      } else {
-        return {
-          success: false,
-          error: 'ID de la base de données des projets non configuré'
-        };
-      }
-      
-      // Tester l'accès à la base de données des checklists si configurée
-      let checklistsDbName = '';
-      if (this.config.checklistsDbId) {
-        const checklistsDbResponse = await this.get<any>(`/databases/${this.config.checklistsDbId}`);
-        
-        if (checklistsDbResponse.success) {
-          checklistsDbName = checklistsDbResponse.data?.title?.[0]?.plain_text || this.config.checklistsDbId;
-        }
-      }
-      
-      // Retourner le résultat du test
-      return {
-        success: true,
-        user: userResponse.data?.name || userResponse.data?.id,
-        workspaceName: userResponse.data?.workspace_name || 'Workspace inconnu',
-        projectsDbName,
-        checklistsDbName: checklistsDbName || undefined
-      };
-    } catch (error) {
-      // Retourner une erreur
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erreur inconnue lors du test de connexion'
-      };
-    }
+    return testConnection(this.config, this.isMockMode());
   }
 }
 
