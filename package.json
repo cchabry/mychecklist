@@ -13,14 +13,16 @@
     "verify:phase2": "node src/scripts/verify-phase2.js",
     "verify:phase3": "node src/scripts/verify-architecture-phase.js --phase=3",
     "verify:current": "node src/scripts/verify-architecture-phase.js",
-    "precommit": "npm run verify:current",
+    "precommit": "npm run verify:current && npm run prevent-shebangs",
     "build:dev": "vite build --mode development",
     "analyze-architecture": "node src/scripts/analyze-architecture.js",
     "architecture:analyze": "node src/scripts/architecture-metrics.js",
     "architecture:dashboard": "node src/scripts/generate-metrics-dashboard.js",
     "architecture:serve": "node src/scripts/serve-architecture-dashboard.js",
     "architecture:full": "node src/scripts/run-architecture-analysis.js",
-    "fix-scripts": "node src/scripts/fix-script-files.js"
+    "fix-scripts": "node src/scripts/fix-script-files.js",
+    "remove-shebangs": "node src/scripts/remove-all-shebangs.js",
+    "prevent-shebangs": "node src/scripts/prevent-shebangs.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
