@@ -27,7 +27,7 @@ export type ExigenceSortOption = 'importance_desc' | 'importance_asc' | 'categor
  * Type pour l'exigence avec les informations de l'item de checklist associé
  */
 export interface ExigenceWithItem extends Exigence {
-  checklistItem: ChecklistItem | undefined;
+  checklistItem: ChecklistItem;
 }
 
 /**

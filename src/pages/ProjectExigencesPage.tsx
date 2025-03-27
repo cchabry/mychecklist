@@ -35,12 +35,12 @@ const ProjectExigencesPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   
   // Récupérer les données du projet et des exigences
-  const { data: project, isLoading: isLoadingProject } = useProjectById(projectId || '');
+  const { project, isLoading: isLoadingProject } = useProjectById(projectId || '');
   const { data: exigences = [], isLoading: isLoadingExigences } = useExigences(projectId || '');
   const { data: checklistItems = [], isLoading: isLoadingChecklist } = useChecklistItems();
   
   // État des filtres et du tri
-  const [filters, setFilters] = useState({ search: '' });
+  const [filters, setFilters] = useState<{ search: string }>({ search: '' });
   const [sortOption, setSortOption] = useState<ExigenceSortOption>('importance_desc');
   
   // Enrichir les exigences avec les informations des items de checklist
@@ -71,11 +71,11 @@ const ProjectExigencesPage = () => {
   const stats = useMemo(() => {
     const total = exigences.length;
     const byImportance = {
-      [ImportanceLevel.MAJOR]: exigences.filter(e => e.importance === ImportanceLevel.MAJOR).length,
-      [ImportanceLevel.IMPORTANT]: exigences.filter(e => e.importance === ImportanceLevel.IMPORTANT).length,
-      [ImportanceLevel.MEDIUM]: exigences.filter(e => e.importance === ImportanceLevel.MEDIUM).length,
-      [ImportanceLevel.MINOR]: exigences.filter(e => e.importance === ImportanceLevel.MINOR).length,
-      [ImportanceLevel.N_A]: exigences.filter(e => e.importance === ImportanceLevel.N_A).length,
+      [ImportanceLevel.Major]: exigences.filter(e => e.importance === ImportanceLevel.Major).length,
+      [ImportanceLevel.Important]: exigences.filter(e => e.importance === ImportanceLevel.Important).length,
+      [ImportanceLevel.Medium]: exigences.filter(e => e.importance === ImportanceLevel.Medium).length,
+      [ImportanceLevel.Minor]: exigences.filter(e => e.importance === ImportanceLevel.Minor).length,
+      [ImportanceLevel.NotApplicable]: exigences.filter(e => e.importance === ImportanceLevel.NotApplicable).length,
     };
     
     return { total, byImportance };
@@ -83,6 +83,11 @@ const ProjectExigencesPage = () => {
   
   // Déterminer si les données sont en cours de chargement
   const isLoading = isLoadingProject || isLoadingExigences || isLoadingChecklist;
+  
+  // Gestionnaire de changement de filtre adapté pour le type ExigenceFilters
+  const handleFilterChange = (newFilters: Partial<{ search: string; importance?: ImportanceLevel; category?: string; subcategory?: string }>) => {
+    setFilters({ ...filters, ...newFilters });
+  };
   
   return (
     <div className="space-y-6">
@@ -111,19 +116,19 @@ const ProjectExigencesPage = () => {
           <h3 className="text-sm font-medium text-gray-500 mb-2">Répartition des exigences par niveau d'importance</h3>
           <div className="flex flex-wrap gap-3">
             <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-              Majeur: {stats.byImportance[ImportanceLevel.MAJOR]}
+              Majeur: {stats.byImportance[ImportanceLevel.Major]}
             </Badge>
             <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
-              Important: {stats.byImportance[ImportanceLevel.IMPORTANT]}
+              Important: {stats.byImportance[ImportanceLevel.Important]}
             </Badge>
             <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-              Moyen: {stats.byImportance[ImportanceLevel.MEDIUM]}
+              Moyen: {stats.byImportance[ImportanceLevel.Medium]}
             </Badge>
             <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-              Mineur: {stats.byImportance[ImportanceLevel.MINOR]}
+              Mineur: {stats.byImportance[ImportanceLevel.Minor]}
             </Badge>
             <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
-              Non applicable: {stats.byImportance[ImportanceLevel.N_A]}
+              Non applicable: {stats.byImportance[ImportanceLevel.NotApplicable]}
             </Badge>
             <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
               Total: {stats.total}
@@ -136,7 +141,7 @@ const ProjectExigencesPage = () => {
       <div className="grid gap-6">
         <ExigenceFilter
           filters={filters}
-          onFilterChange={setFilters}
+          onFilterChange={handleFilterChange}
           categories={categories}
           subcategories={subcategories}
         />
@@ -197,7 +202,7 @@ const ProjectExigencesPage = () => {
             <ExigenceCard 
               key={exigence.id} 
               exigence={exigence} 
-              href={`/projects/${projectId}/exigences/${exigence.id}`}
+              onClick={() => window.location.href = `/projects/${projectId}/exigences/${exigence.id}`}
             />
           ))}
         </div>

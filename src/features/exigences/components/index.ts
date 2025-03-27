@@ -1,9 +1,8 @@
 
 /**
- * Composants pour la feature Exigences
+ * Index des composants d'exigences
  */
 
+export { default as ExigenceCard } from './ExigenceCard';
+export { default as ExigenceFilter } from './ExigenceFilter';
 export { ImportanceBadge } from './ImportanceBadge';
-export { ExigenceCard } from './ExigenceCard';
-export { ExigenceFilter } from './ExigenceFilter';
-export { default as ExigenceEditor } from '@/components/exigences/ExigenceEditor';

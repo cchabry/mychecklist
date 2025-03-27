@@ -1,3 +1,4 @@
+
 /**
  * Carte affichant les détails d'une exigence
  */
@@ -15,6 +16,7 @@ interface ExigenceCardProps {
   onEdit?: () => void;
   onClick?: () => void;
   className?: string;
+  href?: string; // Pour compatibilité avec ProjectExigencesPage
 }
 
 /**
@@ -22,6 +24,16 @@ interface ExigenceCardProps {
  */
 export function ExigenceCard({ exigence, onEdit, onClick, className }: ExigenceCardProps) {
   const { checklistItem } = exigence;
+  
+  if (!checklistItem) {
+    return (
+      <Card className={cn("w-full", className)}>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Exigence non trouvée</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
   
   return (
     <Card 
@@ -95,3 +107,5 @@ export function ExigenceCard({ exigence, onEdit, onClick, className }: ExigenceC
     </Card>
   );
 }
+
+export default ExigenceCard;

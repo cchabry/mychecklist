@@ -59,9 +59,9 @@ export function filterExigences(exigences: ExigenceWithItem[], filters: Exigence
     // Filtrer par texte de recherche
     if (filters.search && filters.search.trim() !== '') {
       const searchLower = filters.search.toLowerCase();
-      const inConsigne = exigence.checklistItem.consigne.toLowerCase().includes(searchLower);
-      const inDescription = exigence.checklistItem.description.toLowerCase().includes(searchLower);
-      const inComment = exigence.comment?.toLowerCase().includes(searchLower);
+      const inConsigne = exigence.checklistItem?.consigne?.toLowerCase().includes(searchLower) || false;
+      const inDescription = exigence.checklistItem?.description?.toLowerCase().includes(searchLower) || false;
+      const inComment = exigence.comment?.toLowerCase().includes(searchLower) || false;
       
       if (!inConsigne && !inDescription && !inComment) {
         return false;
@@ -74,12 +74,12 @@ export function filterExigences(exigences: ExigenceWithItem[], filters: Exigence
     }
     
     // Filtrer par catégorie
-    if (filters.category && exigence.checklistItem.category !== filters.category) {
+    if (filters.category && exigence.checklistItem?.category !== filters.category) {
       return false;
     }
     
     // Filtrer par sous-catégorie
-    if (filters.subcategory && exigence.checklistItem.subcategory !== filters.subcategory) {
+    if (filters.subcategory && exigence.checklistItem?.subcategory !== filters.subcategory) {
       return false;
     }
     
@@ -117,11 +117,11 @@ export function sortExigences(exigences: ExigenceWithItem[], sortOption: Exigenc
       );
     case 'category_asc':
       return sortedExigences.sort((a, b) => 
-        a.checklistItem.category.localeCompare(b.checklistItem.category)
+        (a.checklistItem?.category || '').localeCompare(b.checklistItem?.category || '')
       );
     case 'category_desc':
       return sortedExigences.sort((a, b) => 
-        b.checklistItem.category.localeCompare(a.checklistItem.category)
+        (b.checklistItem?.category || '').localeCompare(a.checklistItem?.category || '')
       );
     default:
       return sortedExigences;
@@ -135,7 +135,7 @@ export function extractUniqueCategories(exigences: ExigenceWithItem[]): string[]
   const categories = new Set<string>();
   
   exigences.forEach(exigence => {
-    if (exigence.checklistItem.category) {
+    if (exigence.checklistItem?.category) {
       categories.add(exigence.checklistItem.category);
     }
   });
@@ -150,7 +150,7 @@ export function extractUniqueSubcategories(exigences: ExigenceWithItem[]): strin
   const subcategories = new Set<string>();
   
   exigences.forEach(exigence => {
-    if (exigence.checklistItem.subcategory) {
+    if (exigence.checklistItem?.subcategory) {
       subcategories.add(exigence.checklistItem.subcategory);
     }
   });
@@ -172,7 +172,7 @@ export function getExigenceStats(exigences: ExigenceWithItem[]) {
   };
   
   exigences.forEach(exigence => {
-    byImportance[exigence.importance]++;
+    byImportance[exigence.importance as keyof typeof byImportance]++;
   });
   
   const applicable = total - byImportance[ImportanceLevel.NotApplicable];
@@ -182,4 +182,40 @@ export function getExigenceStats(exigences: ExigenceWithItem[]) {
     applicable,
     byImportance
   };
+}
+
+/**
+ * Regroupe les exigences par catégorie
+ */
+export function groupExigencesByCategory(exigences: ExigenceWithItem[]) {
+  const grouped: Record<string, ExigenceWithItem[]> = {};
+  
+  exigences.forEach(exigence => {
+    const category = exigence.checklistItem?.category || 'Non catégorisé';
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+    grouped[category].push(exigence);
+  });
+  
+  return grouped;
+}
+
+/**
+ * Compte les exigences par niveau d'importance
+ */
+export function countExigencesByImportance(exigences: ExigenceWithItem[]) {
+  const counts = {
+    [ImportanceLevel.Major]: 0,
+    [ImportanceLevel.Important]: 0,
+    [ImportanceLevel.Medium]: 0,
+    [ImportanceLevel.Minor]: 0,
+    [ImportanceLevel.NotApplicable]: 0
+  };
+  
+  exigences.forEach(exigence => {
+    counts[exigence.importance as keyof typeof counts]++;
+  });
+  
+  return counts;
 }

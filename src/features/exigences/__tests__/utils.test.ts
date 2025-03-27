@@ -13,45 +13,45 @@ import {
 } from '../utils';
 import { Exigence, ExigenceWithItem } from '../types';
 import { ImportanceLevel } from '@/types/enums';
-import { ChecklistItem } from '@/features/checklist/types';
+import { ChecklistItem } from '@/types/domain';
 
 // Données de test
 const checklistItems: ChecklistItem[] = [
   {
     id: 'item1',
-    title: 'Item 1',
+    consigne: 'Item 1',
     description: 'Description item 1',
     category: 'UX',
     subcategory: 'Navigation',
     reference: ['RGAA 1.1'],
     profil: ['Designer'],
     phase: ['Conception'],
-    effort: 'FAIBLE',
-    priority: 'HAUTE'
+    effort: 1,
+    priority: 3
   },
   {
     id: 'item2',
-    title: 'Item 2',
+    consigne: 'Item 2',
     description: 'Description item 2',
     category: 'Technique',
     subcategory: 'Performance',
     reference: ['RGESN 2.1'],
     profil: ['Développeur'],
     phase: ['Développement'],
-    effort: 'MOYEN',
-    priority: 'MOYENNE'
+    effort: 2,
+    priority: 2
   },
   {
     id: 'item3',
-    title: 'Item 3',
+    consigne: 'Item 3',
     description: 'Description item 3',
     category: 'UX',
     subcategory: 'Formulaire',
     reference: ['OPQUAST 3.1'],
     profil: ['Designer', 'Développeur'],
     phase: ['Conception', 'Développement'],
-    effort: 'ÉLEVÉ',
-    priority: 'BASSE'
+    effort: 3,
+    priority: 1
   }
 ];
 
@@ -60,21 +60,21 @@ const exigences: Exigence[] = [
     id: 'exigence1',
     projectId: 'project1',
     itemId: 'item1',
-    importance: ImportanceLevel.MAJOR,
+    importance: ImportanceLevel.Major,
     comment: 'Commentaire exigence 1'
   },
   {
     id: 'exigence2',
     projectId: 'project1',
     itemId: 'item2',
-    importance: ImportanceLevel.MEDIUM,
+    importance: ImportanceLevel.Medium,
     comment: 'Commentaire exigence 2'
   },
   {
     id: 'exigence3',
     projectId: 'project1',
     itemId: 'item3',
-    importance: ImportanceLevel.N_A,
+    importance: ImportanceLevel.NotApplicable,
     comment: 'Commentaire exigence 3'
   }
 ];
@@ -103,21 +103,22 @@ describe('Utilitaires d\'exigences', () => {
           id: 'exigence4',
           projectId: 'project1',
           itemId: 'item-inexistant',
-          importance: ImportanceLevel.MINOR,
+          importance: ImportanceLevel.Minor,
           comment: 'Commentaire exigence 4'
         }
       ];
       
-      // Le résultat devrait contenir undefined pour l'item non trouvé
+      // Le résultat devrait contenir un item par défaut pour l'item non trouvé
       const result = enrichExigencesWithItems(exigencesSansItem, checklistItems);
       expect(result).toHaveLength(1);
-      expect(result[0].checklistItem).toBeUndefined();
+      expect(result[0].checklistItem.id).toBe('item-inexistant');
+      expect(result[0].checklistItem.consigne).toBe('Item inconnu');
     });
   });
   
   describe('filterExigences', () => {
     it('doit filtrer les exigences par importance', () => {
-      const filters = { importance: ImportanceLevel.MAJOR };
+      const filters = { importance: ImportanceLevel.Major };
       const result = filterExigences(enrichedExigences, filters);
       
       expect(result).toHaveLength(1);
@@ -150,7 +151,7 @@ describe('Utilitaires d\'exigences', () => {
     });
     
     it('doit combiner plusieurs filtres', () => {
-      const filters = { category: 'UX', importance: ImportanceLevel.MAJOR };
+      const filters = { category: 'UX', importance: ImportanceLevel.Major };
       const result = filterExigences(enrichedExigences, filters);
       
       expect(result).toHaveLength(1);
@@ -162,17 +163,17 @@ describe('Utilitaires d\'exigences', () => {
     it('doit trier les exigences par importance (décroissante)', () => {
       const result = sortExigences(enrichedExigences, 'importance_desc');
       
-      expect(result[0].importance).toBe(ImportanceLevel.MAJOR);
-      expect(result[1].importance).toBe(ImportanceLevel.MEDIUM);
-      expect(result[2].importance).toBe(ImportanceLevel.N_A);
+      expect(result[0].importance).toBe(ImportanceLevel.Major);
+      expect(result[1].importance).toBe(ImportanceLevel.Medium);
+      expect(result[2].importance).toBe(ImportanceLevel.NotApplicable);
     });
     
     it('doit trier les exigences par importance (croissante)', () => {
       const result = sortExigences(enrichedExigences, 'importance_asc');
       
-      expect(result[0].importance).toBe(ImportanceLevel.N_A);
-      expect(result[1].importance).toBe(ImportanceLevel.MEDIUM);
-      expect(result[2].importance).toBe(ImportanceLevel.MAJOR);
+      expect(result[0].importance).toBe(ImportanceLevel.NotApplicable);
+      expect(result[1].importance).toBe(ImportanceLevel.Medium);
+      expect(result[2].importance).toBe(ImportanceLevel.Major);
     });
     
     it('doit trier les exigences par catégorie (A-Z)', () => {
@@ -220,11 +221,11 @@ describe('Utilitaires d\'exigences', () => {
     it('doit compter les exigences par niveau d\'importance', () => {
       const result = countExigencesByImportance(enrichedExigences);
       
-      expect(result[ImportanceLevel.MAJOR]).toBe(1);
-      expect(result[ImportanceLevel.MEDIUM]).toBe(1);
-      expect(result[ImportanceLevel.N_A]).toBe(1);
-      expect(result[ImportanceLevel.MINOR]).toBe(0);
-      expect(result[ImportanceLevel.IMPORTANT]).toBe(0);
+      expect(result[ImportanceLevel.Major]).toBe(1);
+      expect(result[ImportanceLevel.Medium]).toBe(1);
+      expect(result[ImportanceLevel.NotApplicable]).toBe(1);
+      expect(result[ImportanceLevel.Minor]).toBe(0);
+      expect(result[ImportanceLevel.Important]).toBe(0);
     });
   });
 });

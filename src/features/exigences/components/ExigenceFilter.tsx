@@ -24,8 +24,8 @@ import { ImportanceLevel } from '@/types/enums';
 import { ExigenceFilters } from '../types';
 
 interface ExigenceFilterProps {
-  filters: ExigenceFilters;
-  onFilterChange: (filters: ExigenceFilters) => void;
+  filters: Partial<ExigenceFilters>;
+  onFilterChange: (filters: Partial<ExigenceFilters>) => void;
   categories: string[];
   subcategories: string[];
   className?: string;
@@ -97,11 +97,11 @@ export function ExigenceFilter({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Tous les niveaux</SelectItem>
-                      <SelectItem value={ImportanceLevel.MAJOR}>Majeur</SelectItem>
-                      <SelectItem value={ImportanceLevel.IMPORTANT}>Important</SelectItem>
-                      <SelectItem value={ImportanceLevel.MEDIUM}>Moyen</SelectItem>
-                      <SelectItem value={ImportanceLevel.MINOR}>Mineur</SelectItem>
-                      <SelectItem value={ImportanceLevel.N_A}>Non applicable</SelectItem>
+                      <SelectItem value={ImportanceLevel.Major}>Majeur</SelectItem>
+                      <SelectItem value={ImportanceLevel.Important}>Important</SelectItem>
+                      <SelectItem value={ImportanceLevel.Medium}>Moyen</SelectItem>
+                      <SelectItem value={ImportanceLevel.Minor}>Mineur</SelectItem>
+                      <SelectItem value={ImportanceLevel.NotApplicable}>Non applicable</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -158,3 +158,5 @@ export function ExigenceFilter({
     </Card>
   );
 }
+
+export default ExigenceFilter;

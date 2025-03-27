@@ -8,7 +8,6 @@ import {
   sortChecklistItems,
   extractUniqueCategories,
   extractUniqueSubcategories,
-  ChecklistSortOption
 } from '@/features/checklist';
 import { 
   Select,
@@ -29,7 +28,7 @@ import { List } from 'lucide-react';
 const ChecklistPage = () => {
   // État des filtres et du tri
   const [filters, setFilters] = useState<{ search: string; category?: string; subcategory?: string; priority?: string; effort?: string }>({ search: '' });
-  const [sortOption, setSortOption] = useState<ChecklistSortOption>('consigne_asc');
+  const [sortOption, setSortOption] = useState<string>('consigne_asc');
   
   // Récupérer les items de checklist
   const { data: checklistItems = [], isLoading } = useChecklistItems();
@@ -76,7 +75,7 @@ const ChecklistPage = () => {
         <div className="flex items-center gap-2">
           <Select
             value={sortOption}
-            onValueChange={(value) => setSortOption(value as ChecklistSortOption)}
+            onValueChange={(value) => setSortOption(value)}
           >
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Trier par" />
