@@ -1,6 +1,7 @@
 
 import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 import { OPERATION_MODE_RESET } from '@/constants/errorMessages';
+import { STORAGE_KEYS } from '@/constants/appConstants';
 
 /**
  * Valeur par défaut du mode opérationnel
@@ -22,7 +23,6 @@ const DEFAULT_MODE: OperationModeType =
 class OperationModeServiceImpl implements OperationModeService {
   private state: OperationModeState;
   private listeners: Array<(state: OperationModeState) => void> = [];
-  private storageKey = 'operation_mode';
   
   constructor() {
     // Récupération du mode depuis le localStorage
@@ -39,14 +39,14 @@ class OperationModeServiceImpl implements OperationModeService {
   
   private getSavedState(): OperationModeState | null {
     try {
-      const saved = localStorage.getItem(this.storageKey);
+      const saved = localStorage.getItem(STORAGE_KEYS.OPERATION_MODE);
       if (saved) {
         try {
           return JSON.parse(saved) as OperationModeState;
         } catch (error) {
           console.error('Erreur lors de la récupération du mode opérationnel :', error);
           // Si l'analyse JSON échoue, supprimer la valeur corrompue
-          localStorage.removeItem(this.storageKey);
+          localStorage.removeItem(STORAGE_KEYS.OPERATION_MODE);
         }
       }
     } catch (error) {
@@ -57,7 +57,7 @@ class OperationModeServiceImpl implements OperationModeService {
   
   private saveState(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+      localStorage.setItem(STORAGE_KEYS.OPERATION_MODE, JSON.stringify(this.state));
     } catch (error) {
       console.error('Erreur lors de la sauvegarde du mode opérationnel :', error);
     }
