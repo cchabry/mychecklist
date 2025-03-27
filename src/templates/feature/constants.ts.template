@@ -1,0 +1,27 @@
+
+/**
+ * Constantes pour les {{entityNamePlural}}
+ * 
+ * Ce fichier définit les constantes utilisées dans la fonctionnalité de gestion des {{entityNamePlural}}
+ */
+
+/**
+ * Statuts possibles pour un {{entityName}}
+ */
+export enum {{EntityName}}Status {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  ARCHIVED = 'archived'
+}
+
+/**
+ * Options de tri pour les {{entityNamePlural}}
+ */
+export const SORT_OPTIONS = [
+  { label: 'Date (récent)', value: 'date_desc' },
+  { label: 'Date (ancien)', value: 'date_asc' },
+  { label: 'Nom (A-Z)', value: 'name_asc' },
+  { label: 'Nom (Z-A)', value: 'name_desc' }
+];
+

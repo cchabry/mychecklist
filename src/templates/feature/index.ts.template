@@ -1,0 +1,108 @@
+
+/**
+ * Fonctionnalité {{featureName}}
+ * 
+ * Ce module expose les fonctionnalités liées à {{featureDescription}}
+ */
+
+// Réexporter les composants, hooks et utilitaires pour faciliter l'accès
+export * from './components';
+export * from './hooks';
+export * from './types';
+export * from './utils';
+export * from './constants';
+
+// Fonctions d'accès aux données
+import { {{apiService}} } from '@/services/notion/api/{{apiServicePath}}';
+import { {{entityType}}, Create{{entityType}}Data, Update{{entityType}}Data } from './types';
+
+/**
+ * Récupère tous les {{entityNamePlural}}
+ * 
+ * @returns Promise résolvant vers un tableau de {{entityNamePlural}}
+ * @throws Error si la récupération échoue
+ */
+export async function get{{entityNamePlural}}(): Promise<{{entityType}}[]> {
+  try {
+    return await {{apiService}}.get{{entityNamePlural}}();
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des {{entityNamePlural}}:`, error);
+    throw new Error(`Impossible de récupérer les {{entityNamePlural}}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Récupère un {{entityName}} par son identifiant
+ * 
+ * @param id - Identifiant unique du {{entityName}}
+ * @returns Promise résolvant vers le {{entityName}} ou null si non trouvé
+ * @throws Error si la récupération échoue
+ */
+export async function get{{entityName}}ById(id: string): Promise<{{entityType}} | null> {
+  try {
+    return await {{apiService}}.get{{entityName}}ById(id);
+  } catch (error) {
+    console.error(`Erreur lors de la récupération du {{entityName}} ${id}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Crée un nouveau {{entityName}}
+ * 
+ * @param data - Données du {{entityName}} à créer
+ * @returns Promise résolvant vers le {{entityName}} créé
+ * @throws Error si la création échoue
+ */
+export async function create{{entityName}}(data: Create{{entityType}}Data): Promise<{{entityType}}> {
+  try {
+    return await {{apiService}}.create{{entityName}}(data);
+  } catch (error) {
+    console.error(`Erreur lors de la création du {{entityName}}:`, error);
+    throw new Error(`Impossible de créer le {{entityName}}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Met à jour un {{entityName}} existant
+ * 
+ * @param id - Identifiant unique du {{entityName}}
+ * @param data - Données à mettre à jour
+ * @returns Promise résolvant vers le {{entityName}} mis à jour
+ * @throws Error si la mise à jour échoue
+ */
+export async function update{{entityName}}(id: string, data: Update{{entityType}}Data): Promise<{{entityType}}> {
+  try {
+    const existing{{entityName}} = await {{apiService}}.get{{entityName}}ById(id);
+    if (!existing{{entityName}}) {
+      throw new Error(`{{entityName}} non trouvé`);
+    }
+    
+    const updated{{entityName}} = {
+      ...existing{{entityName}},
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return await {{apiService}}.update{{entityName}}(updated{{entityName}});
+  } catch (error) {
+    console.error(`Erreur lors de la mise à jour du {{entityName}} ${id}:`, error);
+    throw new Error(`Impossible de mettre à jour le {{entityName}}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Supprime un {{entityName}}
+ * 
+ * @param id - Identifiant unique du {{entityName}} à supprimer
+ * @returns Promise résolvant vers true si la suppression a réussi
+ * @throws Error si la suppression échoue
+ */
+export async function delete{{entityName}}(id: string): Promise<boolean> {
+  try {
+    return await {{apiService}}.delete{{entityName}}(id);
+  } catch (error) {
+    console.error(`Erreur lors de la suppression du {{entityName}} ${id}:`, error);
+    throw new Error(`Impossible de supprimer le {{entityName}}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}

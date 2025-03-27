@@ -1,0 +1,11 @@
+
+/**
+ * Composants spécifiques aux {{entityNamePlural}}
+ * 
+ * Ce fichier exporte tous les composants liés à la fonctionnalité de gestion des {{entityNamePlural}}
+ */
+
+// Exporter les composants spécifiques à cette feature
+// Exemple: export * from './{{EntityName}}Card';
+// Exemple: export * from './{{EntityName}}List';
+

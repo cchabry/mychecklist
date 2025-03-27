@@ -1,0 +1,17 @@
+
+/**
+ * Hook pour accéder à un {{entityName}} par son ID
+ */
+
+import { useQuery } from '@tanstack/react-query';
+import { get{{EntityName}}ById } from '..';
+
+export function use{{EntityName}}ById(id: string) {
+  return useQuery({
+    queryKey: ['{{entityName}}', id],
+    queryFn: async () => {
+      return await get{{EntityName}}ById(id);
+    },
+    enabled: !!id
+  });
+}
