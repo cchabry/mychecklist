@@ -8,7 +8,7 @@ import { notionService } from '@/services/notion/notionService';
 import { ConnectionStatus, ConnectionTestResult } from '@/services/notion/types';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/hooks/useOperationMode';
-import { useErrorHandler } from '@/hooks/error';
+import { useNotionErrorHandler } from './useNotionErrorHandler';
 
 /**
  * Hook principal pour accéder au service Notion
@@ -17,7 +17,7 @@ export function useNotionService() {
   const [isConfigured, setIsConfigured] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(ConnectionStatus.Disconnected);
   const [isLoading, setIsLoading] = useState(false);
-  const { handleError, clearError, lastError } = useErrorHandler();
+  const { handleNotionError, clearError, lastError } = useNotionErrorHandler();
   const { isDemoMode } = useOperationMode();
   
   // Initialiser à partir de la configuration stockée
@@ -44,12 +44,13 @@ export function useNotionService() {
       toast.success('Configuration Notion sauvegardée');
       return true;
     } catch (error) {
-      handleError(error, {
-        toastTitle: 'Erreur de configuration'
+      handleNotionError(error, {
+        toastTitle: 'Erreur de configuration',
+        endpoint: 'configuration'
       });
       return false;
     }
-  }, [handleError, clearError]);
+  }, [handleNotionError, clearError]);
   
   /**
    * Teste la connexion à l'API Notion
@@ -64,8 +65,9 @@ export function useNotionService() {
       setConnectionStatus(result.success ? ConnectionStatus.Connected : ConnectionStatus.Error);
       
       if (!result.success) {
-        handleError(new Error(result.error || 'Erreur de connexion'), {
-          showToast: false // On gère l'affichage nous-mêmes ci-dessous
+        handleNotionError(new Error(result.error || 'Erreur de connexion'), {
+          showToast: false, // On gère l'affichage nous-mêmes ci-dessous
+          endpoint: 'test-connection'
         });
         
         toast.error('Erreur de connexion à Notion', {
@@ -81,9 +83,12 @@ export function useNotionService() {
     } catch (error) {
       setConnectionStatus(ConnectionStatus.Error);
       
-      handleError(error, {
+      handleNotionError(error, {
         toastTitle: 'Erreur de connexion à Notion',
-        showToast: true
+        showToast: true,
+        endpoint: 'test-connection',
+        switchToDemo: true,
+        demoReason: 'Erreur de connexion'
       });
       
       return {
@@ -94,7 +99,7 @@ export function useNotionService() {
     } finally {
       setIsLoading(false);
     }
-  }, [handleError, clearError]);
+  }, [handleNotionError, clearError]);
   
   return {
     isConfigured,

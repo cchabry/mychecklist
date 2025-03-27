@@ -7,6 +7,7 @@
  */
 
 import { NotionConfig, NotionResponse, NotionError } from '../types';
+import { handleNotionError } from './errorHandler';
 
 /**
  * Client HTTP pour l'API Notion

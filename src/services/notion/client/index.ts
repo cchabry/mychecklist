@@ -15,3 +15,6 @@ export { notionMockClient } from './notionMockClient';
 
 // Exporter le testeur de connexion
 export { testConnection } from './connectionTester';
+
+// Exporter le gestionnaire d'erreurs
+export { handleNotionError } from './errorHandler';
