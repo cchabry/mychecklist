@@ -10,6 +10,7 @@ import { EvaluationApi } from '@/types/api/domain';
 import { evaluationService } from '../evaluation';
 import { Evaluation } from '@/types/domain';
 import { CreateEvaluationInput } from '../evaluation/types';
+import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constants/errorMessages';
 
 /**
  * Implémentation de l'API d'évaluations utilisant le service Notion
@@ -28,7 +29,7 @@ class NotionEvaluationApi implements EvaluationApi {
     const response = await evaluationService.getEvaluations(auditId, pageId, exigenceId);
     
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || 'Erreur lors de la récupération des évaluations');
+      throw new Error(response.error?.message || FETCH_ERROR);
     }
     
     return response.data;
@@ -62,7 +63,7 @@ class NotionEvaluationApi implements EvaluationApi {
     const response = await evaluationService.createEvaluation(evaluation);
     
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || 'Erreur lors de la création de l\'évaluation');
+      throw new Error(response.error?.message || CREATE_ERROR);
     }
     
     return response.data;
@@ -79,7 +80,7 @@ class NotionEvaluationApi implements EvaluationApi {
     const response = await evaluationService.updateEvaluation(evaluation);
     
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || 'Erreur lors de la mise à jour de l\'évaluation');
+      throw new Error(response.error?.message || UPDATE_ERROR);
     }
     
     return response.data;
@@ -96,7 +97,7 @@ class NotionEvaluationApi implements EvaluationApi {
     const response = await evaluationService.deleteEvaluation(id);
     
     if (!response.success) {
-      throw new Error(response.error?.message || 'Erreur lors de la suppression de l\'évaluation');
+      throw new Error(response.error?.message || DELETE_ERROR);
     }
     
     return response.data ?? false;

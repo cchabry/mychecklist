@@ -1,10 +1,7 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluationsApi } from '../evaluations';
 import { evaluationService } from '../../evaluation';
-import { ComplianceLevel } from '@/types/enums';
-import { Evaluation } from '@/types/domain';
-import { CreateEvaluationInput } from '../../evaluation/types';
+import { DELETE_ERROR } from '@/constants/errorMessages';
 
 // Mock du service d'évaluation
 vi.mock('../../evaluation', () => ({
@@ -17,7 +14,7 @@ vi.mock('../../evaluation', () => ({
   }
 }));
 
-describe('EvaluationsApi', () => {
+describe('NotionEvaluationApi', () => {
   const mockEvaluation: Evaluation = {
     id: 'eval-1',
     auditId: 'audit-123',
@@ -188,16 +185,16 @@ describe('EvaluationsApi', () => {
       expect(evaluationService.deleteEvaluation).toHaveBeenCalledWith('eval-1');
     });
 
-    it('devrait lancer une erreur en cas d\'échec de suppression', async () => {
-      // Configuration du mock
+    it('devrait propager l\'erreur en cas d\'échec de suppression', async () => {
+      // Configurer le mock pour simuler un échec
       vi.mocked(evaluationService.deleteEvaluation).mockResolvedValue({
         success: false,
-        error: { message: 'Erreur de suppression' }
+        error: { message: DELETE_ERROR }
       });
       
       // Utiliser exactement le message d'erreur renvoyé par le service
       await expect(evaluationsApi.deleteEvaluation('eval-1'))
-        .rejects.toThrow('Erreur de suppression');
+        .rejects.toThrow(DELETE_ERROR);
     });
   });
 });
