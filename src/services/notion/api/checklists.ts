@@ -1,4 +1,3 @@
-
 /**
  * Implémentation de l'API des items de checklist
  */
@@ -6,7 +5,7 @@
 import { ChecklistApi } from '@/types/api/domain';
 import { ChecklistItem } from '@/types/domain';
 import { checklistService } from '../checklistService';
-import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR, VALIDATION_ERROR } from '@/constants/errorMessages';
+import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR } from '@/constants/errorMessages';
 
 export class NotionChecklistApi implements ChecklistApi {
   async getChecklistItems(): Promise<ChecklistItem[]> {

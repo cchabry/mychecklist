@@ -1,7 +1,8 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluationsApi } from '../evaluations';
 import { evaluationService } from '../../evaluation';
-import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constants/errorMessages';
+import { DELETE_ERROR } from '@/constants/errorMessages';
 import { Evaluation } from '@/types/domain';
 import { ComplianceLevel } from '@/types/enums';
 import { CreateEvaluationInput } from '../../evaluation/types';
