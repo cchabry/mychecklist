@@ -8,9 +8,6 @@
 
 import fs from 'fs';
 import path from 'path';
-// Note: execSync est importé mais pas utilisé directement dans ce fichier
-// Il est gardé pour une utilisation future ou pour des extensions du script
-import { execSync } from 'child_process';
 import chalk from 'chalk';
 
 // Chemins principaux

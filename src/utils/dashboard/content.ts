@@ -61,6 +61,8 @@ export function createTrendsSection(trends: any, variations: any): string {
   const issuesChange = variations.issuesChange <= 0 ? `${variations.issuesChange}` : `+${variations.issuesChange}`;
   const featuresChange = variations.featuresChange >= 0 ? `+${variations.featuresChange}` : variations.featuresChange;
   
+  const trendsData = trends ? trends : { labels: [], datasets: [] };
+  
   return `
     <section class="trends-section dashboard-card" id="trendsSection">
       <h2>Tendances</h2>
@@ -92,7 +94,7 @@ export function createTrendsSection(trends: any, variations: any): string {
         </div>
       </div>
       <div class="chart-container">
-        <canvas id="trendsChart"></canvas>
+        <canvas id="trendsChart" data-trends="${JSON.stringify(trendsData).replace(/"/g, '&quot;')}"></canvas>
       </div>
     </section>
   `;

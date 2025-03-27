@@ -17,8 +17,7 @@ const SRC_DIR = path.join(ROOT_DIR, 'src');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
 // Seuils de qualité
-// MAX_ISSUES_ALLOWED est déclaré mais pas utilisé - on le garde pour une utilisation future
-const MAX_ISSUES_ALLOWED = 10;
+// MAX_ISSUES_ALLOWED est supprimé car non utilisé
 
 /**
  * Vérifie les imports interdits
