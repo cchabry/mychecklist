@@ -5,7 +5,7 @@
     "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
     "feature:generate": "ts-node src/scripts/generate-feature.ts"
   }
-}
+},
 {
   "name": "audit-checklist",
   "private": true,
