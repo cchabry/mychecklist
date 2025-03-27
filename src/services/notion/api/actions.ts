@@ -1,10 +1,20 @@
+
 /**
  * Implémentation de l'API des actions correctives et des progrès
  */
 
 import { ActionApi } from '@/types/api/domain';
-import { CorrectiveAction, ActionProgress } from '@/types/domain';
-import { actionService, actionMappers } from '../action';
+import { 
+  CorrectiveAction, 
+  ActionProgress,
+  ComplianceStatus,
+  ActionPriority,
+  ActionStatus,
+  complianceStatusToLevel,
+  actionPriorityToLevel,
+  actionStatusToType
+} from '@/types/domain';
+import { actionService } from '../action';
 import { CreateActionInput, CreateProgressInput } from '../action/types';
 
 export class NotionActionApi implements ActionApi {
