@@ -58,7 +58,7 @@ function removeLeadingEmptyLines(filePath) {
         return `export ${exportName}`;
       });
     
-    // Remplacer fileURLToPath(import.meta.url)
+    // Remplacer fileURLToPath\(import\.meta\.url\)
     content = content.replace(/fileURLToPath\(import\.meta\.url\)/g, "fileURLToPath(import.meta.url)");
     
     // Ajouter import { fileURLToPath } from 'url' si nécessaire
