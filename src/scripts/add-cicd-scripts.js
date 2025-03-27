@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes npm liées à l'intégration CI/CD
