@@ -1,4 +1,4 @@
-#!/usr/bin/env node;
+#!/usr/bin/env node
 /**
  * Script de génération du tableau de bord de métriques architecturales
  * 
@@ -579,4 +579,3 @@ function main() {
 }
 
 main();
-
