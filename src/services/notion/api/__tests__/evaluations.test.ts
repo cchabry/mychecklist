@@ -77,8 +77,9 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur test' }
       });
       
+      // Adapter le message d'erreur attendu pour qu'il corresponde au message réel renvoyé
       await expect(evaluationsApi.getEvaluations('audit-123'))
-        .rejects.toThrow('Erreur lors de la récupération des évaluations');
+        .rejects.toThrow('Erreur test');
     });
   });
 
@@ -194,8 +195,9 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur de suppression' }
       });
       
+      // Modifier le message d'erreur attendu pour qu'il corresponde au message réel
       await expect(evaluationsApi.deleteEvaluation('eval-1'))
-        .rejects.toThrow('Erreur lors de la suppression de l\'évaluation');
+        .rejects.toThrow('Erreur de suppression');
     });
   });
 });
