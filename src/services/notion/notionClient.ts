@@ -97,7 +97,7 @@ class NotionClient {
    * @returns Promise avec le résultat de la requête
    * @deprecated Utilisez plutôt les méthodes spécifiques (get, post, etc.)
    */
-  async request<T>(method: string, endpoint: string, data?: any): Promise<NotionResponse<T>> {
+  async request<T>(method: string, endpoint: string, data?: unknown): Promise<NotionResponse<T>> {
     switch (method.toUpperCase()) {
       case 'GET':
         return this.get<T>(endpoint);
