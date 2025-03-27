@@ -1,24 +1,24 @@
+
 /**
- * Service pour la gestion des évaluations
+ * Service pour la gestion des évaluations via Notion
  */
 
 import { notionClient } from './notionClient';
 import { NotionResponse } from './types';
 import { Evaluation } from '@/types/domain';
 import { ComplianceLevel } from '@/types/enums';
-import { complianceStatusToLevel, ComplianceStatus } from '@/types/domain';
 
 /**
  * Service de gestion des évaluations
  */
 class EvaluationService {
   /**
-   * Récupère toutes les évaluations d'un audit
+   * Récupère les évaluations d'un audit
    */
-  async getEvaluations(auditId: string): Promise<NotionResponse<Evaluation[]>> {
+  async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
     const config = notionClient.getConfig();
     
-    if (!config.evaluationsDbId) {
+    if (!config || !config.databaseMappings?.evaluations) {
       return { 
         success: false, 
         error: { message: "Base de données des évaluations non configurée" } 
@@ -29,7 +29,7 @@ class EvaluationService {
     if (notionClient.isMockMode()) {
       return {
         success: true,
-        data: this.getMockEvaluations(auditId)
+        data: this.getMockEvaluations(auditId, pageId, exigenceId)
       };
     }
     
@@ -37,7 +37,7 @@ class EvaluationService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: this.getMockEvaluations(auditId)
+      data: this.getMockEvaluations(auditId, pageId, exigenceId)
     };
   }
   
@@ -65,34 +65,35 @@ class EvaluationService {
     
     // TODO: Implémenter la récupération d'une évaluation depuis Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
+    const mockEvaluation: Evaluation = {
+      id,
+      auditId: 'mock-audit',
+      pageId: 'mock-page',
+      exigenceId: 'mock-exigence',
+      score: 1, // PartiallyCompliant
+      comment: "Évaluation d'exemple",
+      attachments: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
     return {
       success: true,
-      data: {
-        id,
-        auditId: 'mock-audit',
-        pageId: 'mock-page',
-        exigenceId: 'mock-exigence',
-        score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
-        comment: "Évaluation partielle",
-        attachments: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+      data: mockEvaluation
     };
   }
   
   /**
    * Crée une nouvelle évaluation
    */
-  async createEvaluation(evaluation: Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>): Promise<NotionResponse<Evaluation>> {
+  async createEvaluation(evaluation: Omit<Evaluation, 'id'>): Promise<NotionResponse<Evaluation>> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
-      const now = new Date().toISOString();
       const newEvaluation: Evaluation = {
         ...evaluation,
         id: `eval-${Date.now()}`,
-        createdAt: now,
-        updatedAt: now
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       
       return {
@@ -103,14 +104,13 @@ class EvaluationService {
     
     // TODO: Implémenter la création d'une évaluation dans Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
-    const now = new Date().toISOString();
     return {
       success: true,
       data: {
         ...evaluation,
         id: `eval-${Date.now()}`,
-        createdAt: now,
-        updatedAt: now
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
     };
   }
@@ -121,14 +121,12 @@ class EvaluationService {
   async updateEvaluation(evaluation: Evaluation): Promise<NotionResponse<Evaluation>> {
     // Si en mode démo, simuler la mise à jour
     if (notionClient.isMockMode()) {
-      const updatedEvaluation: Evaluation = {
-        ...evaluation,
-        updatedAt: new Date().toISOString()
-      };
-      
       return {
         success: true,
-        data: updatedEvaluation
+        data: {
+          ...evaluation,
+          updatedAt: new Date().toISOString()
+        }
       };
     }
     
@@ -166,44 +164,53 @@ class EvaluationService {
   /**
    * Génère des évaluations fictives pour le mode démo
    */
-  private getMockEvaluations(auditId: string): Evaluation[] {
-    const now = new Date().toISOString();
-    
-    return [
+  private getMockEvaluations(auditId: string, pageId?: string, exigenceId?: string): Evaluation[] {
+    const mockEvaluations: Evaluation[] = [
       {
         id: 'eval-1',
         auditId,
         pageId: 'page-1',
         exigenceId: 'exig-1',
-        score: complianceStatusToLevel[ComplianceStatus.Compliant],
-        comment: "Toutes les images ont des attributs alt",
+        score: 2, // Compliant
+        comment: "Cette page respecte parfaitement l'exigence",
         attachments: [],
-        createdAt: now,
-        updatedAt: now
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       },
       {
         id: 'eval-2',
         auditId,
-        pageId: 'page-1',
-        exigenceId: 'exig-2',
-        score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
-        comment: "Certaines images nécessitent une optimisation",
+        pageId: 'page-2',
+        exigenceId: 'exig-1',
+        score: 1, // PartiallyCompliant
+        comment: "Cette page respecte partiellement l'exigence",
         attachments: [],
-        createdAt: now,
-        updatedAt: now
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       },
       {
         id: 'eval-3',
         auditId,
         pageId: 'page-1',
-        exigenceId: 'exig-3',
-        score: complianceStatusToLevel[ComplianceStatus.NonCompliant],
-        comment: "Aucun contraste suffisant pour les textes",
+        exigenceId: 'exig-2',
+        score: 0, // NonCompliant
+        comment: "Cette page ne respecte pas l'exigence",
         attachments: [],
-        createdAt: now,
-        updatedAt: now
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
     ];
+    
+    // Filtrer selon pageId et exigenceId si fournis
+    return mockEvaluations.filter(eval => {
+      if (pageId && eval.pageId !== pageId) {
+        return false;
+      }
+      if (exigenceId && eval.exigenceId !== exigenceId) {
+        return false;
+      }
+      return true;
+    });
   }
 }
 

@@ -25,3 +25,14 @@ export const IMPORTANCE_ORDER = {
   [ImportanceLevel.Minor]: 2,
   [ImportanceLevel.NotApplicable]: 1
 };
+
+/**
+ * Mapping des niveaux d'importance avec leurs labels et couleurs
+ */
+export const IMPORTANCE_LEVEL_MAPPING = {
+  [ImportanceLevel.Major]: { label: 'Majeur', colorClass: 'bg-red-500' },
+  [ImportanceLevel.Important]: { label: 'Important', colorClass: 'bg-orange-500' },
+  [ImportanceLevel.Medium]: { label: 'Moyen', colorClass: 'bg-yellow-500' },
+  [ImportanceLevel.Minor]: { label: 'Mineur', colorClass: 'bg-blue-500' },
+  [ImportanceLevel.NotApplicable]: { label: 'Non applicable', colorClass: 'bg-gray-500' }
+};
