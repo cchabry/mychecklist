@@ -1,12 +1,4 @@
 {
-  "scripts": {
-    "architecture:check": "ts-node src/scripts/analyze-architecture.ts",
-    "architecture:metrics": "ts-node src/scripts/architecture-metrics.ts",
-    "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
-    "feature:generate": "ts-node src/scripts/generate-feature.ts"
-  }
-},
-{
   "name": "audit-checklist",
   "private": true,
   "version": "0.1.0",
@@ -19,7 +11,11 @@
     "preview": "vite preview",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css,md}'",
     "format:check": "prettier --check 'src/**/*.{ts,tsx,js,jsx,json,css,md}'",
-    "lint:fix": "eslint . --ext ts,tsx --fix"
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "architecture:check": "ts-node src/scripts/analyze-architecture.ts",
+    "architecture:metrics": "ts-node src/scripts/architecture-metrics.ts",
+    "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
+    "feature:generate": "ts-node src/scripts/generate-feature.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
