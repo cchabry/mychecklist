@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de correction globale des fichiers de scripts
@@ -22,27 +23,34 @@ const ROOT_DIR = path.resolve(__dirname, '../..');
 const SCRIPTS_DIR = path.join(ROOT_DIR, 'src/scripts');
 
 /**
- * Supprime les lignes vides au début d'un fichier et normalise le shebang
+ * Supprime les lignes vides et caractères invisibles au début d'un fichier et normalise le shebang
  */
 function removeLeadingEmptyLines(filePath) {
   console.log(`Traitement du fichier: ${filePath}`);
   
   try {
+    if (!fs.existsSync(filePath)) {
+      console.log(`✗ Fichier non trouvé: ${filePath}`);
+      return false;
+    }
+    
     let content = fs.readFileSync(filePath, 'utf8');
+    
+    // Supprimer le BOM si présent
+    content = content.replace(/^\uFEFF/, '');
     
     // Vérifier si le fichier contient un shebang
     const hasShebang = content.includes('#!/usr/bin/env node');
     
-    // Supprimer tous les caractères invisibles et lignes vides au début du fichier
-    content = content.replace(/^\s*[\r\n]+/gm, '');
-    content = content.replace(/^\uFEFF/, ''); // Supprime le BOM (Byte Order Mark) si présent
+    // Supprimer tous les caractères invisibles, espaces et lignes vides au début du fichier
+    content = content.replace(/^[\s\u200B\u200C\u200D\uFEFF\xA0\r\n]+/gm, '');
     
     // Si le fichier avait un shebang, s'assurer qu'il est en première ligne
     if (hasShebang) {
       // Retirer le shebang existant où qu'il soit
       content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
       // Ajouter le shebang en première ligne
-      content = '#!/usr/bin/env node\n' + content;
+      content = '#!/usr/bin/env node\n\n' + content;
     }
     
     // Convertir les requires CommonJS en import ES Module
@@ -92,7 +100,7 @@ function removeLeadingEmptyLines(filePath) {
       
       // Si le fichier a un shebang, l'insérer après
       if (content.includes("#!/usr/bin/env node")) {
-        content = content.replace("#!/usr/bin/env node\n", "#!/usr/bin/env node\n" + dirnameDeclaration);
+        content = content.replace("#!/usr/bin/env node\n", "#!/usr/bin/env node\n\n" + dirnameDeclaration);
       } else {
         // Sinon, insérer après les imports
         const lastImportIndex = content.lastIndexOf("import ");
@@ -129,21 +137,27 @@ function removeLeadingEmptyLines(filePath) {
 function cleanSrcRootScripts() {
   console.log('\nRecherche de fichiers scripts à la racine de src...');
   
-  const srcRootScripts = glob.sync(path.join(ROOT_DIR, 'src/*.{js,ts}'));
-  
-  let successCount = 0;
-  let failCount = 0;
-  
-  for (const file of srcRootScripts) {
-    if (removeLeadingEmptyLines(file)) {
-      successCount++;
-    } else {
-      failCount++;
+  try {
+    const srcRootScripts = glob.sync(path.join(ROOT_DIR, 'src/*.{js,ts}'), { 
+      ignore: '**/node_modules/**'
+    });
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const file of srcRootScripts) {
+      if (removeLeadingEmptyLines(file)) {
+        successCount++;
+      } else {
+        failCount++;
+      }
     }
+    
+    console.log(`✓ ${successCount} fichiers à la racine de src traités avec succès`);
+    console.log(`✗ ${failCount} fichiers à la racine de src ont échoué`);
+  } catch (error) {
+    console.error('Erreur lors de la recherche des fichiers à la racine de src:', error);
   }
-  
-  console.log(`✓ ${successCount} fichiers à la racine de src traités avec succès`);
-  console.log(`✗ ${failCount} fichiers à la racine de src ont échoué`);
 }
 
 /**
@@ -189,25 +203,32 @@ function updatePackageJsonScripts() {
 function checkOtherScripts() {
   console.log('\nVérification des autres scripts dans le projet...');
   
-  const utilsScripts = glob.sync([
-    path.join(ROOT_DIR, 'src/utils/**/*.{js,ts}'),
-    path.join(ROOT_DIR, 'src/hooks/**/*.{js,ts}'),
-    path.join(ROOT_DIR, 'src/services/**/*.{js,ts}')
-  ]);
-  
-  let successCount = 0;
-  let failCount = 0;
-  
-  for (const file of utilsScripts) {
-    if (removeLeadingEmptyLines(file)) {
-      successCount++;
-    } else {
-      failCount++;
+  try {
+    // Exclure explicitement node_modules pour éviter les erreurs
+    const utilsScripts = glob.sync([
+      path.join(ROOT_DIR, 'src/utils/**/*.{js,ts}'),
+      path.join(ROOT_DIR, 'src/hooks/**/*.{js,ts}'),
+      path.join(ROOT_DIR, 'src/services/**/*.{js,ts}')
+    ], { 
+      ignore: '**/node_modules/**' 
+    });
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const file of utilsScripts) {
+      if (removeLeadingEmptyLines(file)) {
+        successCount++;
+      } else {
+        failCount++;
+      }
     }
+    
+    console.log(`✓ ${successCount} scripts utilitaires traités avec succès`);
+    console.log(`✗ ${failCount} scripts utilitaires ont échoué`);
+  } catch (error) {
+    console.error('Erreur lors de la recherche des scripts utilitaires:', error);
   }
-  
-  console.log(`✓ ${successCount} scripts utilitaires traités avec succès`);
-  console.log(`✗ ${failCount} scripts utilitaires ont échoué`);
 }
 
 /**
@@ -217,41 +238,47 @@ function main() {
   console.log('Correction des fichiers de scripts');
   console.log('=================================');
   
-  // Récupérer tous les fichiers .js et .ts dans le dossier scripts
-  const scriptFiles = glob.sync(path.join(SCRIPTS_DIR, '*.{js,ts}'));
-  
-  let successCount = 0;
-  let failCount = 0;
-  
-  for (const file of scriptFiles) {
-    if (removeLeadingEmptyLines(file)) {
-      successCount++;
-    } else {
-      failCount++;
+  try {
+    // Récupérer tous les fichiers .js et .ts dans le dossier scripts en excluant node_modules
+    const scriptFiles = glob.sync(path.join(SCRIPTS_DIR, '*.{js,ts}'), { 
+      ignore: '**/node_modules/**' 
+    });
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const file of scriptFiles) {
+      if (removeLeadingEmptyLines(file)) {
+        successCount++;
+      } else {
+        failCount++;
+      }
     }
-  }
-  
-  // Nettoyer également les fichiers scripts à la racine de src
-  cleanSrcRootScripts();
-  
-  // Vérifier et corriger d'autres scripts importants
-  checkOtherScripts();
-  
-  // Mettre à jour les scripts dans package.json
-  updatePackageJsonScripts();
-  
-  console.log('\nRésumé:');
-  console.log(`✓ ${successCount} fichiers traités avec succès`);
-  console.log(`✗ ${failCount} fichiers ont échoué`);
-  
-  if (failCount === 0) {
-    console.log('\n✓ Tous les fichiers ont été corrigés avec succès!');
-    console.log('\nPour appliquer ces modifications:');
-    console.log('1. Exécutez: git add .');
-    console.log('2. Puis: git commit -m "Fix: Correction globale des fichiers de scripts"');
-    console.log('3. Enfin: git push');
-  } else {
-    console.log('\n⚠️ Certains fichiers n\'ont pas pu être corrigés. Vérifiez les erreurs ci-dessus.');
+    
+    // Nettoyer également les fichiers scripts à la racine de src
+    cleanSrcRootScripts();
+    
+    // Vérifier et corriger d'autres scripts importants
+    checkOtherScripts();
+    
+    // Mettre à jour les scripts dans package.json
+    updatePackageJsonScripts();
+    
+    console.log('\nRésumé:');
+    console.log(`✓ ${successCount} fichiers traités avec succès`);
+    console.log(`✗ ${failCount} fichiers ont échoué`);
+    
+    if (failCount === 0) {
+      console.log('\n✓ Tous les fichiers ont été corrigés avec succès!');
+      console.log('\nPour appliquer ces modifications:');
+      console.log('1. Exécutez: git add .');
+      console.log('2. Puis: git commit -m "Fix: Correction globale des fichiers de scripts"');
+      console.log('3. Enfin: git push');
+    } else {
+      console.log('\n⚠️ Certains fichiers n\'ont pas pu être corrigés. Vérifiez les erreurs ci-dessus.');
+    }
+  } catch (error) {
+    console.error('Erreur globale lors de l\'exécution du script:', error);
   }
 }
 
