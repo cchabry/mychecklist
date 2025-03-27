@@ -58,6 +58,9 @@ class NotionApiImplementation implements NotionAPI {
   // Checklist
   getChecklistItems = checklistsApi.getChecklistItems;
   getChecklistItemById = checklistsApi.getChecklistItemById;
+  createChecklistItem = checklistsApi.createChecklistItem;
+  updateChecklistItem = checklistsApi.updateChecklistItem;
+  deleteChecklistItem = checklistsApi.deleteChecklistItem;
   
   // Exigences
   getExigences = exigencesApi.getExigences;

@@ -24,19 +24,19 @@ export class NotionChecklistApi implements ChecklistApi {
     return response.data as ChecklistItem;
   }
 
-  async createChecklistItem(item: Omit<ChecklistItem, 'id'>): Promise<ChecklistItem> {
+  async createChecklistItem(_item: Omit<ChecklistItem, 'id'>): Promise<ChecklistItem> {
     // Pour l'instant, nous retournons une implémentation simulée
     // Cette méthode devra être complétée lors de l'implémentation du service correspondant
     throw new Error("Méthode createChecklistItem non implémentée");
   }
 
-  async updateChecklistItem(item: ChecklistItem): Promise<ChecklistItem> {
+  async updateChecklistItem(_item: ChecklistItem): Promise<ChecklistItem> {
     // Pour l'instant, nous retournons une implémentation simulée
     // Cette méthode devra être complétée lors de l'implémentation du service correspondant
     throw new Error("Méthode updateChecklistItem non implémentée");
   }
 
-  async deleteChecklistItem(id: string): Promise<boolean> {
+  async deleteChecklistItem(_id: string): Promise<boolean> {
     // Pour l'instant, nous retournons une implémentation simulée
     // Cette méthode devra être complétée lors de l'implémentation du service correspondant
     throw new Error("Méthode deleteChecklistItem non implémentée");
