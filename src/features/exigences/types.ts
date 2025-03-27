@@ -39,4 +39,5 @@ export interface UpdateExigenceData {
 }
 
 // Re-export du type Exigence pour simplifier les imports
-export { Exigence } from '@/types/domain';
+// Using 'export type' for compatibility with isolatedModules
+export type { Exigence } from '@/types/domain';

@@ -9,7 +9,7 @@ import {
   sortExigences,
   enrichExigencesWithItems,
 } from '../utils';
-import { ExigenceWithItem, ExigenceFilters } from '../types';
+import { ExigenceWithItem } from '../types';
 import { ImportanceLevel } from '@/types/enums';
 import { ChecklistItem, Exigence } from '@/types/domain';
 
