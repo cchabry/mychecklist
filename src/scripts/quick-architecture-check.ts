@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script d'analyse rapide de l'architecture
@@ -21,10 +22,6 @@ import {
 
 // Chemins principaux
 const ROOT_DIR = path.resolve(__dirname, '../..');
-const SRC_DIR = path.join(ROOT_DIR, 'src');
-
-// Configuration
-const MAX_ISSUES_ALLOWED = 0; // Nombre maximal de problèmes autorisés avant d'échouer
 
 /**
  * Récupère la liste des fichiers modifiés dans la staging area

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script d'export des rapports d'architecture
@@ -148,13 +149,6 @@ function exportPdf(options: ExportOptions): string {
     // Pour une implémentation complète, il faudrait installer puppeteer ou une 
     // autre bibliothèque de conversion HTML->PDF.
     
-    const outputDir = options.outputPath || EXPORTS_DIR;
-    const fileName = options.includeTimestamp 
-      ? createTimestampedFilename('architecture-report', 'pdf')
-      : 'architecture-report.pdf';
-    
-    const outputPath = path.join(outputDir, fileName);
-    
     console.log(chalk.yellow('La conversion PDF nécessite l\'installation de puppeteer.'));
     console.log(chalk.yellow('Pour l\'installer: npm install puppeteer'));
     console.log(chalk.yellow(`Utilisez le fichier HTML pour générer un PDF: ${htmlPath}`));
@@ -235,7 +229,7 @@ function exportMarkdown(options: ExportOptions): string {
   
   // Générer le nom de fichier
   const fileName = options.includeTimestamp 
-    ? createTimestampedFilename('architecture-report', 'md')
+    ? createTimestampedFilename('architecture-report', 'markdown')
     : 'architecture-report.md';
   
   const outputPath = path.join(outputDir, fileName);
@@ -326,4 +320,5 @@ if (require.main === module) {
   main();
 }
 
-export { exportReport, ExportOptions, ExportFormat };
+export { exportReport };
+export type { ExportOptions, ExportFormat };

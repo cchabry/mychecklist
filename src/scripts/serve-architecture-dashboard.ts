@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de serveur pour le tableau de bord d'architecture

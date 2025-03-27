@@ -1,4 +1,5 @@
-#!/usr/bin/env node;
+
+#!/usr/bin/env node
 /**
  * Script de génération de métriques d'architecture
  * 
@@ -8,21 +9,16 @@
 
 import fs from 'fs';
 import path from 'path';
-import glob from 'glob';
+import { glob } from 'glob';
 import chalk from 'chalk';
 import { saveCurrentMetrics } from '../utils/tracking/architecture-tracker';
 import { 
-  getAllRules,
-  getRulesByDomain,
-  getAllThresholds,
-  getThresholdsByDomain,
   getThreshold,
   ArchitectureMetrics,
   FeatureMetric,
   ServiceMetric,
   HookMetric,
   ComponentMetric,
-  IssueMetric,
   DetectedAntiPattern,
   ThresholdViolation
 } from '../utils/dashboard';
@@ -186,7 +182,7 @@ function detectGeneralAntiPatterns(): DetectedAntiPattern[] {
   // Anti-pattern: Fichiers trop volumineux
   const fileSizeThreshold = getThreshold('file-size');
   const largeFiles = glob.sync('**/*.{ts,tsx}', { cwd: ROOT_DIR })
-    .filter(file => {
+    .filter((file: string) => {
       if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
       const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
       const lineCount = content.split('\n').length;
@@ -205,7 +201,7 @@ function detectGeneralAntiPatterns(): DetectedAntiPattern[] {
   
   // Anti-pattern: Types any
   const filesWithAny = glob.sync('**/*.{ts,tsx}', { cwd: ROOT_DIR })
-    .filter(file => {
+    .filter((file: string) => {
       if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
       const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
       return /: any/.test(content) || /as any/.test(content);
@@ -223,7 +219,7 @@ function detectGeneralAntiPatterns(): DetectedAntiPattern[] {
   
   // Anti-pattern: Appels directs à l'API Notion
   const directNotionCalls = glob.sync('**/*.{ts,tsx}', { cwd: ROOT_DIR })
-    .filter(file => {
+    .filter((file: string) => {
       // Exclure les fichiers de services Notion qui sont supposés contenir les appels
       if (file.includes('services/notion/') || file.includes('notion/api/')) return false;
       
@@ -244,7 +240,7 @@ function detectGeneralAntiPatterns(): DetectedAntiPattern[] {
   
   // Anti-pattern: Hooks mal nommés
   const misnamedHooks = glob.sync('hooks/**/*.ts', { cwd: ROOT_DIR })
-    .filter(file => {
+    .filter((file: string) => {
       const hookName = path.basename(file, '.ts');
       return !hookName.startsWith('use');
     });
@@ -270,7 +266,7 @@ function detectDomainSpecificAntiPatterns(): DetectedAntiPattern[] {
   
   // Vérifier la convention de nommage des items de checklist
   const checklistFiles = glob.sync('**/checklist/**/*.{ts,tsx}', { cwd: ROOT_DIR });
-  const misnamedChecklistItems = checklistFiles.filter(file => {
+  const misnamedChecklistItems = checklistFiles.filter((file: string) => {
     if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
     const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
     // Vérifier que chaque item de checklist est correctement nommé
@@ -291,7 +287,7 @@ function detectDomainSpecificAntiPatterns(): DetectedAntiPattern[] {
   
   // Vérifier l'utilisation de fonctions de validation dans les audits
   const auditFiles = glob.sync('**/audit/**/*.{ts,tsx}', { cwd: ROOT_DIR });
-  const auditFilesWithoutValidation = auditFiles.filter(file => {
+  const auditFilesWithoutValidation = auditFiles.filter((file: string) => {
     if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
     const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
     // Vérifier s'il y a des fonctions de mutation sans validation
@@ -311,9 +307,9 @@ function detectDomainSpecificAntiPatterns(): DetectedAntiPattern[] {
   
   // Vérifier la gestion des erreurs de connexion à Notion
   const notionFiles = glob.sync('**/notion/**/*.{ts,tsx}', { cwd: ROOT_DIR })
-    .filter(file => !file.includes('types.ts')); // Exclure les fichiers de types
+    .filter((file: string) => !file.includes('types.ts')); // Exclure les fichiers de types
   
-  const notionFilesWithoutErrorHandling = notionFiles.filter(file => {
+  const notionFilesWithoutErrorHandling = notionFiles.filter((file: string) => {
     if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
     const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
     // Vérifier s'il y a des appels à l'API sans gestion d'erreur
@@ -334,7 +330,7 @@ function detectDomainSpecificAntiPatterns(): DetectedAntiPattern[] {
   
   // Vérifier la validation des URLs dans les pages d'échantillon
   const samplePageFiles = glob.sync('**/samplePage/**/*.{ts,tsx}', { cwd: ROOT_DIR });
-  const samplePageFilesWithoutUrlValidation = samplePageFiles.filter(file => {
+  const samplePageFilesWithoutUrlValidation = samplePageFiles.filter((file: string) => {
     if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
     const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
     // Vérifier s'il y a des manipulations d'URL sans validation
