@@ -6,15 +6,27 @@
 
 // Exporter les services principaux
 export * from './operationMode';
-export * from './notion/notionService';
-export * from './notion/notionClient';
+export { notionService } from './notion/notionService';
+export { notionClient } from './notion/notionClient';
 
-// Ne pas exporter directement les types pour éviter les ambiguïtés
-// car ils sont déjà exportés via './notion'
-// export * from './notion/types';
-
+// Export the cache service
 export * from './cache/cacheService';
 
-// Exporter les services de domaine
-export * from './notion';
+// Export the domain services but avoid type ambiguities
 export * from './api';
+
+// Export notion services but handle potential duplicates
+// by using named exports instead of re-exporting everything
+export {
+  // Types are exported via the notion module
+  // Services
+  notionBaseService,
+  notionApi,
+  checklistService,
+  exigenceService,
+  samplePageService,
+  auditService,
+  evaluationService,
+  actionService,
+  progressService
+} from './notion';
