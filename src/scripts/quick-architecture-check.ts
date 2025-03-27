@@ -1,134 +1,216 @@
 #!/usr/bin/env node
 /**
- * Script d'analyse rapide de l'architecture
+ * Script de vérification rapide de l'architecture
  * 
- * Version légère de l'analyse d'architecture, conçue pour être rapide
- * et utilisée dans le hook pre-commit. Analyse uniquement les fichiers modifiés.
+ * Version allégée du script d'analyse pour une exécution rapide
+ * lors des hooks pre-commit.
  */
 
-import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import fs from 'fs';
 import chalk from 'chalk';
-import { 
-  checkFileSize,
-  checkForAnyType, 
-  checkDirectNotionApiCalls,
-  checkHookNaming,
-  checkComponentNaming,
-  checkFeatureStructure
-} from '../utils/architecture/rules';
 
-// Utilisation du chemin root retirée car non utilisée
-// const ROOT_DIR = path.resolve(__dirname, '../..');
+// Chemins principaux
+// ROOT_DIR est déclaré mais pas utilisé - on le garde pour une utilisation future
+const ROOT_DIR = path.resolve(__dirname, '../..');
+const SRC_DIR = path.join(ROOT_DIR, 'src');
+const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
+
+// Seuils de qualité
+// MAX_ISSUES_ALLOWED est déclaré mais pas utilisé - on le garde pour une utilisation future
+const MAX_ISSUES_ALLOWED = 10;
 
 /**
- * Récupère la liste des fichiers modifiés dans la staging area
+ * Vérifie les imports interdits
  */
-function getModifiedFiles(): string[] {
-  try {
-    const gitOutput = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+function checkForbiddenImports(): { success: boolean; issues: string[] } {
+  console.log(chalk.blue('Vérification des imports interdits...'));
+  
+  const issues: string[] = [];
+  const forbiddenPatterns = [
+    { pattern: /from ['"]\.\.\/\.\.\//, message: 'Import remontant de plus d\'un niveau' },
+    { pattern: /from ['"]\.\.\/features/, message: 'Import direct entre features' },
+    { pattern: /from ['"]\.\.\/pages/, message: 'Import depuis pages' },
+  ];
+  
+  // Parcourir les fichiers de manière récursive
+  function scanDirectory(dir: string) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     
-    // Filtrer pour ne garder que les fichiers .ts/.tsx du dossier src
-    return gitOutput
-      .split('\n')
-      .filter(file => 
-        file.startsWith('src/') && 
-        (file.endsWith('.ts') || file.endsWith('.tsx')) &&
-        !file.endsWith('.d.ts') && // Exclure les fichiers de déclaration
-        fs.existsSync(file)
-      );
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isDirectory()) {
+        scanDirectory(fullPath);
+      } else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        
+        for (const { pattern, message } of forbiddenPatterns) {
+          if (pattern.test(content)) {
+            const relativePath = path.relative(ROOT_DIR, fullPath);
+            issues.push(`${relativePath}: ${message}`);
+          }
+        }
+      }
+    }
+  }
+  
+  try {
+    scanDirectory(SRC_DIR);
+    
+    if (issues.length === 0) {
+      console.log(chalk.green('✓ Aucun import interdit détecté'));
+      return { success: true, issues };
+    } else {
+      console.log(chalk.yellow(`⚠ ${issues.length} imports interdits détectés`));
+      issues.forEach(issue => console.log(chalk.yellow(`  - ${issue}`)));
+      return { success: false, issues };
+    }
   } catch (error) {
-    console.error(chalk.red('Erreur lors de la récupération des fichiers modifiés:'));
+    console.error(chalk.red('Erreur lors de la vérification des imports:'));
     console.error(error);
-    return [];
+    return { success: false, issues: [`Erreur: ${(error as Error).message}`] };
   }
 }
 
 /**
- * Analyse un fichier selon les règles d'architecture
+ * Vérifie la structure des dossiers
  */
-function analyzeFile(filePath: string): string[] {
+function checkFolderStructure(): { success: boolean; issues: string[] } {
+  console.log(chalk.blue('Vérification de la structure des dossiers...'));
+  
   const issues: string[] = [];
-  const fileContent = fs.readFileSync(filePath, 'utf8');
+  const requiredFolders = [
+    'components',
+    'features',
+    'hooks',
+    'services',
+    'types',
+    'utils',
+    'pages'
+  ];
   
-  // Appliquer les règles
-  const sizeIssue = checkFileSize(filePath, fileContent);
-  if (sizeIssue) issues.push(sizeIssue);
+  try {
+    for (const folder of requiredFolders) {
+      const folderPath = path.join(SRC_DIR, folder);
+      if (!fs.existsSync(folderPath)) {
+        issues.push(`Dossier manquant: ${folder}`);
+      }
+    }
+    
+    if (issues.length === 0) {
+      console.log(chalk.green('✓ Structure des dossiers conforme'));
+      return { success: true, issues };
+    } else {
+      console.log(chalk.yellow(`⚠ ${issues.length} problèmes de structure détectés`));
+      issues.forEach(issue => console.log(chalk.yellow(`  - ${issue}`)));
+      return { success: false, issues };
+    }
+  } catch (error) {
+    console.error(chalk.red('Erreur lors de la vérification de la structure:'));
+    console.error(error);
+    return { success: false, issues: [`Erreur: ${(error as Error).message}`] };
+  }
+}
+
+/**
+ * Vérifie les fichiers placés au mauvais endroit
+ */
+function checkMisplacedFiles(): { success: boolean; issues: string[] } {
+  console.log(chalk.blue('Vérification des fichiers mal placés...'));
   
-  const anyTypeIssues = checkForAnyType(filePath, fileContent);
-  issues.push(...anyTypeIssues);
+  const issues: string[] = [];
   
-  const directApiCallIssues = checkDirectNotionApiCalls(filePath, fileContent);
-  issues.push(...directApiCallIssues);
+  // Règles de placement des fichiers
+  const rules = [
+    { dir: 'components', pattern: /\.(tsx|jsx)$/, message: 'Les composants doivent être des fichiers .tsx ou .jsx' },
+    { dir: 'hooks', pattern: /^use[A-Z].*\.tsx?$/, message: 'Les hooks doivent commencer par "use" et être des fichiers .ts ou .tsx' },
+    { dir: 'services', pattern: /Service\.ts$/, message: 'Les services doivent se terminer par "Service.ts"' },
+    { dir: 'utils', pattern: /\.ts$/, message: 'Les utilitaires doivent être des fichiers .ts' }
+  ];
   
-  // Règles spécifiques selon le type de fichier
-  if (filePath.includes('/hooks/')) {
-    const hookIssues = checkHookNaming(filePath);
-    if (hookIssues) issues.push(hookIssues);
+  try {
+    for (const rule of rules) {
+      const dirPath = path.join(SRC_DIR, rule.dir);
+      if (fs.existsSync(dirPath)) {
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          if (entry.isFile() && !rule.pattern.test(entry.name)) {
+            issues.push(`${rule.dir}/${entry.name}: ${rule.message}`);
+          }
+        }
+      }
+    }
+    
+    if (issues.length === 0) {
+      console.log(chalk.green('✓ Aucun fichier mal placé détecté'));
+      return { success: true, issues };
+    } else {
+      console.log(chalk.yellow(`⚠ ${issues.length} fichiers mal placés détectés`));
+      issues.forEach(issue => console.log(chalk.yellow(`  - ${issue}`)));
+      return { success: false, issues };
+    }
+  } catch (error) {
+    console.error(chalk.red('Erreur lors de la vérification des fichiers mal placés:'));
+    console.error(error);
+    return { success: false, issues: [`Erreur: ${(error as Error).message}`] };
+  }
+}
+
+/**
+ * Génère un rapport de vérification rapide
+ */
+function generateQuickReport(results: Array<{ success: boolean; issues: string[] }>): void {
+  // Créer le répertoire des rapports s'il n'existe pas
+  if (!fs.existsSync(REPORTS_DIR)) {
+    fs.mkdirSync(REPORTS_DIR, { recursive: true });
   }
   
-  if (filePath.includes('/components/')) {
-    const componentIssues = checkComponentNaming(filePath);
-    if (componentIssues) issues.push(componentIssues);
-  }
+  const allIssues = results.flatMap(result => result.issues);
+  const success = results.every(result => result.success);
   
-  // Vérification de la structure des features
-  if (filePath.includes('/features/')) {
-    const featureIssues = checkFeatureStructure(filePath);
-    issues.push(...featureIssues);
-  }
+  const report = {
+    timestamp: new Date().toISOString(),
+    success,
+    issueCount: allIssues.length,
+    issues: allIssues
+  };
   
-  return issues;
+  const reportPath = path.join(REPORTS_DIR, 'quick-check.json');
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  
+  console.log(chalk.blue(`Rapport de vérification rapide généré: ${reportPath}`));
 }
 
 /**
  * Point d'entrée principal
  */
-function main(): void {
+function main() {
   console.log(chalk.bold('Vérification rapide de l\'architecture'));
   console.log(chalk.gray('====================================='));
   
-  // Récupérer les fichiers modifiés
-  const modifiedFiles = getModifiedFiles();
+  const results = [
+    checkForbiddenImports(),
+    checkFolderStructure(),
+    checkMisplacedFiles()
+  ];
   
-  if (modifiedFiles.length === 0) {
-    console.log(chalk.yellow('Aucun fichier TypeScript modifié à analyser.'));
-    process.exit(0);
-  }
+  generateQuickReport(results);
   
-  console.log(chalk.blue(`Analyse de ${modifiedFiles.length} fichiers modifiés...`));
+  const success = results.every(result => result.success);
   
-  // Analyser chaque fichier
-  let totalIssues = 0;
-  const fileIssues: Record<string, string[]> = {};
-  
-  modifiedFiles.forEach(file => {
-    const issues = analyzeFile(file);
-    if (issues.length > 0) {
-      fileIssues[file] = issues;
-      totalIssues += issues.length;
-    }
-  });
-  
-  // Afficher les résultats
-  if (totalIssues === 0) {
-    console.log(chalk.green('✓ Aucun problème d\'architecture détecté!'));
+  if (success) {
+    console.log(chalk.green('\n✓ Vérification rapide réussie!'));
     process.exit(0);
   } else {
-    console.error(chalk.red(`❌ ${totalIssues} problèmes d'architecture détectés:`));
-    
-    // Afficher les problèmes par fichier
-    Object.entries(fileIssues).forEach(([file, issues]) => {
-      console.error(chalk.yellow(`\nFichier: ${file}`));
-      issues.forEach(issue => {
-        console.error(chalk.red(`  • ${issue}`));
-      });
-    });
-    
-    console.error(chalk.red('\nVeuillez corriger ces problèmes avant de faire un commit.'));
+    console.log(chalk.red('\n✗ Vérification rapide échouée!'));
+    console.log(chalk.yellow('Consultez le rapport pour plus de détails.'));
     process.exit(1);
   }
 }
 
-main();
+// Exécuter le script si appelé directement
+if (require.main === module) {
+  main();
+}

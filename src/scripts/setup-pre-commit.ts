@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de configuration du hook pre-commit
@@ -8,7 +9,8 @@
 
 import fs from 'fs';
 import path from 'path';
-// execSync est utilisé dans la fonction main(), donc on le conserve
+// Note: execSync est importé mais pas utilisé directement dans ce fichier
+// Il est gardé pour une utilisation future ou pour des extensions du script
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 

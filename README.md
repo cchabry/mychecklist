@@ -57,4 +57,5 @@ Nous avons terminé la mise en place des fondations du projet et commencé le d�
 - 🔄 Implémentation des interfaces de gestion de projets (en cours)
 
 <!-- Version de build actuelle: 2023-11-10 -->
-<!-- Version de contrôle: 2023-11-23 -->
+<!-- Version de contrôle: 2023-11-24 -->
+
