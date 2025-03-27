@@ -1,31 +1,40 @@
 
 /**
- * Service de base pour l'API Notion avec les méthodes communes
+ * Service de base pour Notion
+ * 
+ * Ce service fournit les fonctionnalités de base pour interagir avec l'API Notion.
  */
 
-import { notionClient } from './notionClient';
-import { NotionConfig, ConnectionTestResult } from './types';
+import { notionClient } from './client/notionClient';
+import { ConnectionTestResult, NotionConfig } from './types';
+import { useOperationMode } from '@/hooks/useOperationMode';
 
 /**
- * Service de base pour Notion avec la configuration et les tests
+ * Service de base pour Notion
  */
 class NotionBaseService {
   /**
    * Configure le service Notion
    */
   configure(apiKey: string, projectsDbId: string, checklistsDbId?: string): void {
-    notionClient.configure({
+    const config: NotionConfig = {
       apiKey,
       projectsDbId,
-      checklistsDbId
-    });
+      checklistsDbId,
+      mockMode: useOperationMode().isDemoMode
+    };
+    
+    notionClient.configure(config);
+    
+    // Sauvegarder la configuration dans le localStorage
+    this.saveConfig(config);
   }
   
   /**
    * Vérifie si le service est configuré
    */
   isConfigured(): boolean {
-    return notionClient.isConfigured();
+    return notionClient.isConfigured() || useOperationMode().isDemoMode;
   }
   
   /**
@@ -36,42 +45,69 @@ class NotionBaseService {
   }
   
   /**
-   * Contrôle le mode démo (mock)
+   * Active ou désactive le mode mock
    */
   setMockMode(enabled: boolean): void {
     notionClient.setMockMode(enabled);
   }
   
   /**
-   * Vérifie si le mode démo est actif
+   * Vérifie si le mode mock est actif
    */
   isMockMode(): boolean {
-    return notionClient.isMockMode();
+    return notionClient.isMockMode() || useOperationMode().isDemoMode;
   }
   
   /**
-   * Teste la connexion à Notion
+   * Teste la connexion à l'API Notion
    */
   async testConnection(): Promise<ConnectionTestResult> {
     return notionClient.testConnection();
   }
   
   /**
-   * Utilitaire pour extraire le texte d'une propriété Notion
-   * À disposition des services dérivés
+   * Sauvegarde la configuration dans le localStorage
    */
-  protected extractTextProperty(property: any): string {
-    if (!property) return '';
-    
-    if (property.title && Array.isArray(property.title)) {
-      return property.title.map((t: any) => t.plain_text || '').join('');
+  private saveConfig(config: NotionConfig): void {
+    try {
+      const { apiKey, projectsDbId, checklistsDbId } = config;
+      
+      // Créer un objet de configuration pour le stockage
+      const storageConfig = {
+        apiKey,
+        projectsDbId,
+        checklistsDbId
+      };
+      
+      // Stocker la configuration
+      localStorage.setItem('notion_config', JSON.stringify(storageConfig));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la configuration Notion:', error);
     }
-    
-    if (property.rich_text && Array.isArray(property.rich_text)) {
-      return property.rich_text.map((t: any) => t.plain_text || '').join('');
+  }
+  
+  /**
+   * Charge la configuration depuis le localStorage
+   */
+  loadConfig(): NotionConfig | null {
+    try {
+      const configStr = localStorage.getItem('notion_config');
+      
+      if (!configStr) {
+        return null;
+      }
+      
+      const config = JSON.parse(configStr) as Partial<NotionConfig>;
+      
+      if (!config.apiKey || !config.projectsDbId) {
+        return null;
+      }
+      
+      return config as NotionConfig;
+    } catch (error) {
+      console.error('Erreur lors du chargement de la configuration Notion:', error);
+      return null;
     }
-    
-    return '';
   }
 }
 

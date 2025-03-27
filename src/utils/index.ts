@@ -1,24 +1,34 @@
 
 /**
- * Point d'entrée pour les utilitaires
- *
- * Ce module centralise l'accès à tous les utilitaires de l'application.
+ * Point d'entrée pour tous les utilitaires de l'application
+ * 
+ * Ce module centralise l'accès à tous les utilitaires utilisés dans l'application,
+ * garantissant une importation cohérente et une structure claire.
  */
 
-// Utilitaires de date
-export * from './date';
+// Utils communs
+export * from './common';
 
-// Utilitaires d'erreur
-export * from './error';
-
-// Utilitaires de format
+// Utils de format
 export * from './format';
 
-// Utilitaires de validation
+// Utils de date
+export * from './date';
+
+// Utils d'erreur
+export * from './error';
+
+// Utils de validation
 export * from './validation';
 
-// Utilitaires de requête React Query
+// Utils d'architecture
+export * from './architecture/rules';
+
+// Utils de dashboard
+export * from './dashboard';
+
+// Helpers pour les requêtes
 export * from './query-helpers';
 
-// Utilitaires génériques
-export * from '../lib/utils';
+// Utils de design
+export * from './design';
