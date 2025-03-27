@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes de vérification des phases dans package.json
@@ -22,7 +23,8 @@ try {
     "verify:phase2": "node src/scripts/verify-phase2.js",
     "verify:phase3": "node src/scripts/verify-architecture-phase.js --phase=3",
     "verify:current": "node src/scripts/verify-architecture-phase.js",
-    "precommit": "npm run verify:current"
+    "precommit": "npm run verify:current",
+    "build:dev": "vite build --mode development"
   };
 
   // Écrire le fichier package.json mis à jour
@@ -34,6 +36,7 @@ try {
   console.log('  npm run verify:phase2');
   console.log('  npm run verify:phase3');
   console.log('  npm run verify:current');
+  console.log('  npm run build:dev');
   console.log('\nDe plus, le script precommit a été configuré pour exécuter la vérification avant chaque commit.');
 } catch (error) {
   console.error('Erreur lors de la modification du fichier package.json:', error);

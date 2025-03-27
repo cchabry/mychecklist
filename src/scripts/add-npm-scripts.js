@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes npm dans package.json
