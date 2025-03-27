@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes de vérification des phases dans package.json
@@ -6,8 +5,8 @@
  * À exécuter manuellement pour ajouter les scripts npm
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const packageJsonPath = path.resolve(__dirname, '../../package.json');
 

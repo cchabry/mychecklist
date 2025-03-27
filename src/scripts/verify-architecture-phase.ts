@@ -12,7 +12,8 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { spawn, spawnSync } from 'child_process';
-import { glob } from 'glob';
+import pkg from 'glob';
+const { glob } = pkg;
 import { updatePhaseTracking, savePhaseProgressReport } from '../utils/tracking/phase-tracker';
 
 // Chemins principaux

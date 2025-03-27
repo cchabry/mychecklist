@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script d'analyse architecturale
@@ -12,8 +11,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const fileURLToPath(import.meta.url) = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Chemin principal pour les features
 const FEATURES_DIR = path.resolve(__dirname, '../features');
