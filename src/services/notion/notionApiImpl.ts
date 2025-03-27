@@ -5,7 +5,7 @@
  */
 
 import { NotionAPI, NotionTestResponse } from '@/types/api/notionApi';
-import { notionClient } from './notionClient';
+import { notionClient } from './client';
 
 // Import des APIs spécifiques à chaque domaine
 import {

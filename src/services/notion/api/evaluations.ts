@@ -45,7 +45,7 @@ class NotionEvaluationApi implements EvaluationApi {
   async getEvaluationById(id: string): Promise<Evaluation | null> {
     const response = await evaluationService.getEvaluationById(id);
     
-    if (!response.success || !response.data) {
+    if (!response.success) {
       return null;
     }
     
