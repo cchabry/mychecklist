@@ -1,11 +1,11 @@
 
 /**
- * Utilitaires pour les actions correctives
+ * Utilitaires pour générer des données mock d'actions correctives et de progrès
  */
 
 import { 
   CorrectiveAction, 
-  ActionProgress, 
+  ActionProgress,
   ComplianceStatus, 
   ActionPriority, 
   ActionStatus,
@@ -15,70 +15,68 @@ import {
 } from '@/types/domain';
 
 /**
- * Génère des actions correctives fictives pour le mode démo
+ * Génère un tableau d'actions correctives simulées pour une évaluation donnée
+ * 
+ * @param evaluationId - ID de l'évaluation pour laquelle générer des actions
+ * @param count - Nombre d'actions à générer (défaut: 3)
+ * @returns Tableau d'actions simulées
  */
-export function generateMockActions(evaluationId: string): CorrectiveAction[] {
-  return [
-    {
-      id: 'action-1',
+export function generateMockActions(evaluationId: string, count: number = 3): CorrectiveAction[] {
+  const actions: CorrectiveAction[] = [];
+  
+  for (let i = 1; i <= count; i++) {
+    // Générer des statuts différents selon l'index pour la variété
+    const priorityIndex = i % 4 as ActionPriority;
+    const statusIndex = i % 3 as ActionStatus;
+    
+    // Créer une date d'échéance dans le futur
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7 * i);
+    
+    actions.push({
+      id: `action-${evaluationId}-${i}`,
       evaluationId,
       targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
-      priority: actionPriorityToLevel[ActionPriority.High],
-      dueDate: getFutureDateString(7), // dans 1 semaine
-      responsible: 'John Doe',
-      comment: "Ajouter des attributs alt à toutes les images",
-      status: actionStatusToType[ActionStatus.InProgress]
-    },
-    {
-      id: 'action-2',
-      evaluationId,
-      targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
-      priority: actionPriorityToLevel[ActionPriority.Medium],
-      dueDate: getFutureDateString(14), // dans 2 semaines
-      responsible: 'Jane Smith',
-      comment: "Optimiser les images pour le web",
-      status: actionStatusToType[ActionStatus.Todo]
-    }
-  ];
+      priority: actionPriorityToLevel[priorityIndex],
+      dueDate: dueDate.toISOString(),
+      responsible: `Responsable ${i}`,
+      comment: `Action corrective ${i} pour l'évaluation ${evaluationId}`,
+      status: actionStatusToType[statusIndex]
+    });
+  }
+  
+  return actions;
 }
 
 /**
- * Génère des suivis de progrès fictifs pour le mode démo
+ * Génère un tableau de progrès simulés pour une action donnée
+ * 
+ * @param actionId - ID de l'action pour laquelle générer des progrès
+ * @param count - Nombre de progrès à générer (défaut: 2)
+ * @returns Tableau de progrès simulés
  */
-export function generateMockActionProgress(actionId: string): ActionProgress[] {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
+export function generateMockProgress(actionId: string, count: number = 2): ActionProgress[] {
+  const progress: ActionProgress[] = [];
   
-  const lastWeek = new Date();
-  lastWeek.setDate(lastWeek.getDate() - 7);
+  for (let i = 1; i <= count; i++) {
+    // Générer des statuts différents selon l'index pour la variété
+    const statusIndex = i % 3 as ActionStatus;
+    const scoreIndex = i % 4 as ComplianceStatus;
+    
+    // Créer une date dans le passé
+    const date = new Date();
+    date.setDate(date.getDate() - (count - i) * 3);
+    
+    progress.push({
+      id: `progress-${actionId}-${i}`,
+      actionId,
+      date: date.toISOString(),
+      responsible: `Responsable ${i}`,
+      comment: `Suivi ${i} pour l'action ${actionId}`,
+      score: complianceStatusToLevel[scoreIndex],
+      status: actionStatusToType[statusIndex]
+    });
+  }
   
-  return [
-    {
-      id: 'progress-1',
-      actionId,
-      date: lastWeek.toISOString(),
-      responsible: 'John Doe',
-      comment: "Début des corrections",
-      score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
-      status: actionStatusToType[ActionStatus.InProgress]
-    },
-    {
-      id: 'progress-2',
-      actionId,
-      date: yesterday.toISOString(),
-      responsible: 'John Doe',
-      comment: "50% des images corrigées",
-      score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
-      status: actionStatusToType[ActionStatus.InProgress]
-    }
-  ];
-}
-
-/**
- * Utilitaire pour générer une date future au format ISO
- */
-export function getFutureDateString(daysFromNow: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + daysFromNow);
-  return date.toISOString();
+  return progress;
 }

@@ -1,14 +1,14 @@
 
 /**
- * Types pour le suivi des progrès des actions correctives
+ * Types pour les progrès d'actions correctives
  */
 
 import { ComplianceLevel, StatusType } from '../enums';
 
 /**
- * Interface pour le suivi des progrès d'une action corrective
+ * Interface pour un progrès d'action corrective
  * 
- * Un suivi des progrès représente une étape dans la réalisation d'une action corrective.
+ * Un progrès représente une mise à jour de l'état d'avancement d'une action corrective.
  */
 export interface ActionProgress {
   id: string;

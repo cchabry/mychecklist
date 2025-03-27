@@ -1,19 +1,17 @@
 
 /**
- * Service pour la gestion des actions correctives
+ * Service pour la gestion des actions correctives via Notion
+ * 
+ * Ce service fournit les fonctionnalités nécessaires pour interagir avec
+ * les données d'actions correctives, soit via l'API Notion, soit en mode simulation.
  */
 
 import { notionClient } from '../notionClient';
-import { generateMockActions } from './utils';
-import { progressService } from './progressService';
-import { actionMappers } from './actionMappers';
-import { 
-  CreateActionInput, 
-  ActionResponse, 
-  ActionListResponse,
-  ActionDeleteResponse
-} from './types';
+import { NotionResponse } from '../types';
 import { CorrectiveAction } from '@/types/domain';
+import { generateMockActions } from './utils';
+import { actionMappers } from './actionMappers';
+import { CreateActionInput } from './types';
 
 /**
  * Service de gestion des actions correctives
@@ -22,7 +20,16 @@ class ActionService {
   /**
    * Récupère toutes les actions liées à une évaluation
    */
-  async getActions(evaluationId: string): Promise<ActionListResponse> {
+  async getActions(evaluationId: string): Promise<NotionResponse<CorrectiveAction[]>> {
+    const config = notionClient.getConfig();
+    
+    if (!config) {
+      return { 
+        success: false, 
+        error: { message: "Configuration Notion non disponible" } 
+      };
+    }
+    
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
       return {
@@ -42,7 +49,16 @@ class ActionService {
   /**
    * Récupère une action par son ID
    */
-  async getActionById(id: string): Promise<ActionResponse> {
+  async getActionById(id: string): Promise<NotionResponse<CorrectiveAction>> {
+    const config = notionClient.getConfig();
+    
+    if (!config) {
+      return { 
+        success: false, 
+        error: { message: "Configuration Notion non disponible" } 
+      };
+    }
+    
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
       const mockActions = generateMockActions('mock-evaluation');
@@ -72,7 +88,16 @@ class ActionService {
   /**
    * Crée une nouvelle action corrective
    */
-  async createAction(action: CreateActionInput): Promise<ActionResponse> {
+  async createAction(action: CreateActionInput): Promise<NotionResponse<CorrectiveAction>> {
+    const config = notionClient.getConfig();
+    
+    if (!config) {
+      return { 
+        success: false, 
+        error: { message: "Configuration Notion non disponible" } 
+      };
+    }
+    
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
       const newAction = actionMappers.mapInputToAction(action);
@@ -94,12 +119,24 @@ class ActionService {
   /**
    * Met à jour une action corrective existante
    */
-  async updateAction(action: CorrectiveAction): Promise<ActionResponse> {
+  async updateAction(action: CorrectiveAction): Promise<NotionResponse<CorrectiveAction>> {
+    const config = notionClient.getConfig();
+    
+    if (!config) {
+      return { 
+        success: false, 
+        error: { message: "Configuration Notion non disponible" } 
+      };
+    }
+    
     // Si en mode démo, simuler la mise à jour
     if (notionClient.isMockMode()) {
       return {
         success: true,
-        data: action
+        data: {
+          ...action,
+          updatedAt: new Date().toISOString()
+        }
       };
     }
     
@@ -107,14 +144,26 @@ class ActionService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: action
+      data: {
+        ...action,
+        updatedAt: new Date().toISOString()
+      }
     };
   }
   
   /**
    * Supprime une action corrective
    */
-  async deleteAction(_id: string): Promise<ActionDeleteResponse> {
+  async deleteAction(_id: string): Promise<NotionResponse<boolean>> {
+    const config = notionClient.getConfig();
+    
+    if (!config) {
+      return { 
+        success: false, 
+        error: { message: "Configuration Notion non disponible" } 
+      };
+    }
+    
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {
@@ -138,6 +187,10 @@ class ActionService {
   updateActionProgress = progressService.updateActionProgress.bind(progressService);
   deleteActionProgress = progressService.deleteActionProgress.bind(progressService);
 }
+
+// Import du service de progrès (après la définition de la classe ActionService
+// pour éviter les problèmes d'import circulaire)
+import { progressService } from './progressService';
 
 // Créer et exporter une instance singleton
 export const actionService = new ActionService();
