@@ -3,6 +3,7 @@
  * Mappeurs pour transformer les données d'actions correctives
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import { 
   CorrectiveAction, 
   ComplianceStatus, 
@@ -13,6 +14,7 @@ import {
   actionStatusToType
 } from '@/types/domain';
 import { CreateActionInput } from './types';
+import { ComplianceLevel, PriorityLevel, StatusType } from '@/types/enums';
 
 /**
  * Classe utilitaire pour les transformations de données d'actions correctives
@@ -24,16 +26,16 @@ class ActionMappers {
   mapInputToAction(input: CreateActionInput): CorrectiveAction {
     return {
       ...input,
-      id: `action-${Date.now()}`,
-      targetScore: typeof input.targetScore === 'number' 
-        ? complianceStatusToLevel[input.targetScore as ComplianceStatus] 
-        : complianceStatusToLevel[input.targetScore],
-      priority: typeof input.priority === 'number' 
-        ? actionPriorityToLevel[input.priority as ActionPriority] 
-        : actionPriorityToLevel[input.priority],
-      status: typeof input.status === 'number' 
-        ? actionStatusToType[input.status as ActionStatus] 
-        : actionStatusToType[input.status]
+      id: `action-${uuidv4()}`,
+      targetScore: typeof input.targetScore === 'string' 
+        ? input.targetScore as ComplianceLevel
+        : this.getComplianceLevelFromStatus(input.targetScore as ComplianceStatus), 
+      priority: typeof input.priority === 'string'
+        ? input.priority as PriorityLevel
+        : this.getPriorityLevelFromStatus(input.priority as ActionPriority),
+      status: typeof input.status === 'string'
+        ? input.status as StatusType
+        : this.getStatusTypeFromStatus(input.status as ActionStatus)
     };
   }
 
@@ -44,13 +46,34 @@ class ActionMappers {
     return {
       id,
       evaluationId: 'mock-evaluation',
-      targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
-      priority: actionPriorityToLevel[ActionPriority.High],
+      targetScore: ComplianceLevel.Compliant,
+      priority: PriorityLevel.High,
       dueDate: new Date().toISOString(),
       responsible: 'John Doe',
       comment: "Action corrective prioritaire",
-      status: actionStatusToType[ActionStatus.InProgress]
+      status: StatusType.InProgress
     };
+  }
+
+  /**
+   * Convertit un ComplianceStatus en ComplianceLevel
+   */
+  private getComplianceLevelFromStatus(status: ComplianceStatus): ComplianceLevel {
+    return complianceStatusToLevel[status];
+  }
+
+  /**
+   * Convertit un ActionPriority en PriorityLevel
+   */
+  private getPriorityLevelFromStatus(priority: ActionPriority): PriorityLevel {
+    return actionPriorityToLevel[priority];
+  }
+
+  /**
+   * Convertit un ActionStatus en StatusType
+   */
+  private getStatusTypeFromStatus(status: ActionStatus): StatusType {
+    return actionStatusToType[status];
   }
 }
 

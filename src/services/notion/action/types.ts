@@ -4,18 +4,19 @@
  */
 
 import { ComplianceLevel, StatusType, PriorityLevel } from '@/types/enums';
+import { ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
 
 /**
  * Interface pour les données de création d'une action
  */
 export interface CreateActionInput {
   evaluationId: string;
-  targetScore: ComplianceLevel;
-  priority: PriorityLevel;
+  targetScore: ComplianceLevel | ComplianceStatus;
+  priority: PriorityLevel | ActionPriority;
   dueDate: string;
   responsible: string;
   comment?: string;
-  status: StatusType;
+  status: StatusType | ActionStatus;
 }
 
 /**
@@ -26,6 +27,6 @@ export interface CreateProgressInput {
   date: string;
   responsible: string;
   comment?: string;
-  score: ComplianceLevel; // Utilisation de ComplianceLevel enum, pas number
-  status: StatusType;
+  score: ComplianceLevel | ComplianceStatus;
+  status: StatusType | ActionStatus;
 }

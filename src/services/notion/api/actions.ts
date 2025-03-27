@@ -16,6 +16,7 @@ import {
 } from '@/types/domain';
 import { actionService } from '../action';
 import { CreateActionInput, CreateProgressInput } from '../action/types';
+import { ComplianceLevel, PriorityLevel, StatusType } from '@/types/enums';
 
 export class NotionActionApi implements ActionApi {
   // Actions correctives
@@ -39,12 +40,12 @@ export class NotionActionApi implements ActionApi {
     // Conversion des types d'énumération en valeurs numériques pour le service
     const actionInput: CreateActionInput = {
       evaluationId: action.evaluationId,
-      targetScore: this.getComplianceStatusFromLevel(action.targetScore),
-      priority: this.getPriorityStatusFromLevel(action.priority),
+      targetScore: action.targetScore,
+      priority: action.priority,
       dueDate: action.dueDate,
       responsible: action.responsible,
       comment: action.comment,
-      status: this.getActionStatusFromType(action.status)
+      status: action.status
     };
     
     const response = await actionService.createAction(actionInput);
@@ -94,8 +95,8 @@ export class NotionActionApi implements ActionApi {
       date: progress.date,
       responsible: progress.responsible,
       comment: progress.comment,
-      score: this.getComplianceStatusFromLevel(progress.score),
-      status: this.getActionStatusFromType(progress.status)
+      score: progress.score,
+      status: progress.status
     };
     
     const response = await actionService.createActionProgress(progressInput);
@@ -121,35 +122,8 @@ export class NotionActionApi implements ActionApi {
     return true;
   }
   
-  // Méthodes utilitaires pour la conversion entre types d'énumération et valeurs numériques
-  private getComplianceStatusFromLevel(level: string): ComplianceStatus {
-    const statusMap: Record<string, ComplianceStatus> = {
-      [complianceStatusToLevel[ComplianceStatus.Compliant]]: ComplianceStatus.Compliant,
-      [complianceStatusToLevel[ComplianceStatus.PartiallyCompliant]]: ComplianceStatus.PartiallyCompliant,
-      [complianceStatusToLevel[ComplianceStatus.NonCompliant]]: ComplianceStatus.NonCompliant,
-      [complianceStatusToLevel[ComplianceStatus.NotApplicable]]: ComplianceStatus.NotApplicable
-    };
-    return statusMap[level] ?? ComplianceStatus.NonCompliant;
-  }
-  
-  private getPriorityStatusFromLevel(level: string): ActionPriority {
-    const priorityMap: Record<string, ActionPriority> = {
-      [actionPriorityToLevel[ActionPriority.Low]]: ActionPriority.Low,
-      [actionPriorityToLevel[ActionPriority.Medium]]: ActionPriority.Medium,
-      [actionPriorityToLevel[ActionPriority.High]]: ActionPriority.High,
-      [actionPriorityToLevel[ActionPriority.Critical]]: ActionPriority.Critical
-    };
-    return priorityMap[level] ?? ActionPriority.Medium;
-  }
-  
-  private getActionStatusFromType(type: string): ActionStatus {
-    const statusMap: Record<string, ActionStatus> = {
-      [actionStatusToType[ActionStatus.Todo]]: ActionStatus.Todo,
-      [actionStatusToType[ActionStatus.InProgress]]: ActionStatus.InProgress,
-      [actionStatusToType[ActionStatus.Done]]: ActionStatus.Done
-    };
-    return statusMap[type] ?? ActionStatus.Todo;
-  }
+  // Ces méthodes ne sont plus nécessaires car nous avons modifié les types d'entrée
+  // pour accepter directement les deux types d'énumération
 }
 
 export const actionsApi = new NotionActionApi();

@@ -4,9 +4,10 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { ActionProgress } from '@/types/domain';
+import { ActionProgress, ComplianceStatus, ActionStatus } from '@/types/domain';
 import { ComplianceLevel, StatusType } from '@/types/enums';
 import { CreateProgressInput } from './types';
+import { complianceStatusToLevel, actionStatusToType } from '@/types/domain';
 
 /**
  * Fonctions utilitaires pour mapper les données de progrès
@@ -37,8 +38,12 @@ export const progressMappers = {
       date: input.date,
       responsible: input.responsible,
       comment: input.comment,
-      score: input.score, // Utilisation du ComplianceLevel de l'entrée
-      status: input.status
+      score: typeof input.score === 'string' 
+        ? input.score as ComplianceLevel
+        : complianceStatusToLevel[input.score as ComplianceStatus],
+      status: typeof input.status === 'string'
+        ? input.status as StatusType
+        : actionStatusToType[input.status as ActionStatus]
     };
   }
 };
