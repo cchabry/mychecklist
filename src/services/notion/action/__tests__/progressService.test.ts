@@ -2,10 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { progressService } from '../progressService';
 import { notionClient } from '../../notionClient';
-import { ActionStatus, ComplianceStatus } from '@/types/domain';
+import { ComplianceLevel, StatusType } from '@/types/enums';
 import { ActionProgress } from '@/types/domain';
 import { NotionConfig } from '../../types';
-import { ComplianceLevel, StatusType } from '@/types/enums';
 
 // Mock du notionClient
 vi.mock('../../notionClient', () => ({
@@ -86,8 +85,8 @@ describe('ProgressService', () => {
       date: '2023-01-01T00:00:00.000Z',
       responsible: 'Jane Doe',
       comment: 'Test progress',
-      score: ComplianceStatus.PartiallyCompliant,
-      status: ActionStatus.InProgress
+      score: ComplianceLevel.PartiallyCompliant,
+      status: StatusType.InProgress
     };
 
     it('devrait créer un progrès en mode mock', async () => {
