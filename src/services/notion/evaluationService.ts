@@ -18,10 +18,10 @@ class EvaluationService {
   async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
     const config = notionClient.getConfig();
     
-    if (!config || !config.databaseMappings?.evaluations) {
+    if (!config) {
       return { 
         success: false, 
-        error: { message: "Base de données des évaluations non configurée" } 
+        error: { message: "Configuration Notion non disponible" } 
       };
     }
     
@@ -70,7 +70,7 @@ class EvaluationService {
       auditId: 'mock-audit',
       pageId: 'mock-page',
       exigenceId: 'mock-exigence',
-      score: 1, // PartiallyCompliant
+      score: ComplianceLevel.PartiallyCompliant,
       comment: "Évaluation d'exemple",
       attachments: [],
       createdAt: new Date().toISOString(),
@@ -171,7 +171,7 @@ class EvaluationService {
         auditId,
         pageId: 'page-1',
         exigenceId: 'exig-1',
-        score: 2, // Compliant
+        score: ComplianceLevel.Compliant,
         comment: "Cette page respecte parfaitement l'exigence",
         attachments: [],
         createdAt: new Date().toISOString(),
@@ -182,7 +182,7 @@ class EvaluationService {
         auditId,
         pageId: 'page-2',
         exigenceId: 'exig-1',
-        score: 1, // PartiallyCompliant
+        score: ComplianceLevel.PartiallyCompliant,
         comment: "Cette page respecte partiellement l'exigence",
         attachments: [],
         createdAt: new Date().toISOString(),
@@ -193,7 +193,7 @@ class EvaluationService {
         auditId,
         pageId: 'page-1',
         exigenceId: 'exig-2',
-        score: 0, // NonCompliant
+        score: ComplianceLevel.NonCompliant,
         comment: "Cette page ne respecte pas l'exigence",
         attachments: [],
         createdAt: new Date().toISOString(),

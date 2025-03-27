@@ -87,9 +87,15 @@ class ProgressService {
   async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
-      const newProgress = {
+      const newProgress: ActionProgress = {
         ...progress,
-        id: `progress-${Date.now()}`
+        id: `progress-${Date.now()}`,
+        score: typeof progress.score === 'number' 
+          ? complianceStatusToLevel[progress.score as ComplianceStatus] 
+          : complianceStatusToLevel[progress.score],
+        status: typeof progress.status === 'number' 
+          ? actionStatusToType[progress.status as ActionStatus] 
+          : actionStatusToType[progress.status]
       };
       
       return {
@@ -104,7 +110,13 @@ class ProgressService {
       success: true,
       data: {
         ...progress,
-        id: `progress-${Date.now()}`
+        id: `progress-${Date.now()}`,
+        score: typeof progress.score === 'number' 
+          ? complianceStatusToLevel[progress.score as ComplianceStatus] 
+          : complianceStatusToLevel[progress.score],
+        status: typeof progress.status === 'number' 
+          ? actionStatusToType[progress.status as ActionStatus] 
+          : actionStatusToType[progress.status]
       }
     };
   }

@@ -21,7 +21,7 @@ export function ImportanceBadge({ importance, className, withLabel = true }: Imp
   const mapping = IMPORTANCE_LEVEL_MAPPING[importance] || IMPORTANCE_LEVEL_MAPPING[ImportanceLevel.NotApplicable];
   
   return (
-    <Badge className={cn(mapping.color, className)}>
+    <Badge className={cn(mapping.colorClass, className)}>
       {withLabel ? mapping.label : importance}
     </Badge>
   );

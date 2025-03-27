@@ -1,14 +1,20 @@
+
 /**
  * Service pour la gestion des actions correctives
  */
 
 import { notionClient } from '../notionClient';
 import { generateMockActions } from './utils';
+import { progressService } from './progressService';
 import { 
   CreateActionInput, 
   ActionResponse, 
-  ActionsResponse,
-  ActionDeleteResponse
+  ActionListResponse,
+  ActionDeleteResponse,
+  ProgressListResponse,
+  ProgressResponse,
+  CreateProgressInput,
+  ProgressDeleteResponse
 } from './types';
 import { 
   CorrectiveAction, 
@@ -17,7 +23,8 @@ import {
   ActionStatus,
   complianceStatusToLevel,
   actionPriorityToLevel,
-  actionStatusToType
+  actionStatusToType,
+  ActionProgress
 } from '@/types/domain';
 
 /**
@@ -27,7 +34,7 @@ class ActionService {
   /**
    * Récupère toutes les actions liées à une évaluation
    */
-  async getActions(evaluationId: string): Promise<ActionsResponse> {
+  async getActions(evaluationId: string): Promise<ActionListResponse> {
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
       return {
@@ -89,9 +96,18 @@ class ActionService {
   async createAction(action: CreateActionInput): Promise<ActionResponse> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
-      const newAction = {
+      const newAction: CorrectiveAction = {
         ...action,
-        id: `action-${Date.now()}`
+        id: `action-${Date.now()}`,
+        targetScore: typeof action.targetScore === 'number' 
+          ? complianceStatusToLevel[action.targetScore as ComplianceStatus] 
+          : complianceStatusToLevel[action.targetScore],
+        priority: typeof action.priority === 'number' 
+          ? actionPriorityToLevel[action.priority as ActionPriority] 
+          : actionPriorityToLevel[action.priority],
+        status: typeof action.status === 'number' 
+          ? actionStatusToType[action.status as ActionStatus] 
+          : actionStatusToType[action.status]
       };
       
       return {
@@ -106,7 +122,16 @@ class ActionService {
       success: true,
       data: {
         ...action,
-        id: `action-${Date.now()}`
+        id: `action-${Date.now()}`,
+        targetScore: typeof action.targetScore === 'number' 
+          ? complianceStatusToLevel[action.targetScore as ComplianceStatus] 
+          : complianceStatusToLevel[action.targetScore],
+        priority: typeof action.priority === 'number' 
+          ? actionPriorityToLevel[action.priority as ActionPriority] 
+          : actionPriorityToLevel[action.priority],
+        status: typeof action.status === 'number' 
+          ? actionStatusToType[action.status as ActionStatus] 
+          : actionStatusToType[action.status]
       }
     };
   }
