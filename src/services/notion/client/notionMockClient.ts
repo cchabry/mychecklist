@@ -1,5 +1,5 @@
 
-import { NotionResponse } from '../types';
+import { NotionResponse, ConnectionTestResult } from '../types';
 
 /**
  * Client Notion en mode démonstration
@@ -78,6 +78,21 @@ export class NotionMockClient {
    */
   getConfig() {
     return this.config;
+  }
+  
+  /**
+   * Teste la connexion à l'API Notion (simulée)
+   */
+  async testConnection(): Promise<ConnectionTestResult> {
+    await this.simulateDelay();
+    
+    return {
+      success: true,
+      user: 'Utilisateur démo',
+      workspaceName: 'Workspace démo',
+      projectsDbName: 'Projets (démo)',
+      checklistsDbName: 'Checklists (démo)'
+    };
   }
   
   /**

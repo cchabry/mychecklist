@@ -5,12 +5,9 @@
  * Ce script génère automatiquement les fichiers de base pour une nouvelle 
  * feature (types, hooks, components, services, etc.) selon les standards définis.
  */
-import fs from 'fs';
-import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Point d'entrée principal
 async function main() {

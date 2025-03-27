@@ -5,12 +5,9 @@
  * Ce script effectue une vérification rapide de l'architecture du projet
  * pour s'assurer qu'elle respecte les standards définis.
  */
-import fs from 'fs';
-import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Point d'entrée principal
 async function main() {
