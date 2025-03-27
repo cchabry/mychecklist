@@ -27,8 +27,10 @@ function fixFileHeader(filePath) {
     // Supprimer tous les caractères invisibles et lignes vides au début du fichier
     content = content.replace(/^[\s\u200B\u200C\u200D\uFEFF\xA0\r\n]+/g, '');
     
-    // Supprimer les shebangs, peu importe leur position
-    content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
+    // Supprimer tous les shebangs, peu importe leur position
+    content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/gm, '');
+    content = content.replace(/^\s*#!\/bin\/node\s*[\r\n]*/gm, '');
+    content = content.replace(/^\s*#!.*\s*[\r\n]*/gm, '');
     
     // Éviter les opérations inutiles d'écriture sur disque
     const newSize = content.length;
