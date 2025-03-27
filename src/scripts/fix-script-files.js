@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * Script de correction globale des fichiers de scripts
