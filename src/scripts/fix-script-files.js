@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de correction globale des fichiers de scripts
@@ -16,8 +17,8 @@ import pkg from 'glob';
 const { glob } = pkg;
 
 // Chemins principaux
-const fileURLToPath(import.meta.url) = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const SCRIPTS_DIR = path.join(ROOT_DIR, 'src/scripts');
 
@@ -58,7 +59,7 @@ function removeLeadingEmptyLines(filePath) {
       });
     
     // Remplacer fileURLToPath(import.meta.url)
-    content = content.replace(/fileURLToPath(import.meta.url)/g, "fileURLToPath(import.meta.url)");
+    content = content.replace(/fileURLToPath\(import\.meta\.url\)/g, "fileURLToPath(import.meta.url)");
     
     // Ajouter import { fileURLToPath } from 'url' si nécessaire
     if (content.includes('fileURLToPath(import.meta.url)') && !content.includes("import { fileURLToPath }")) {
@@ -66,8 +67,7 @@ function removeLeadingEmptyLines(filePath) {
     }
     
     // Gérer spécifiquement l'import de glob (problématique)
-    if (content.includes("import pkg from 'glob';
-const { glob } = pkg;")) {
+    if (content.includes("import pkg from 'glob';") && content.includes("const { glob } = pkg;")) {
       content = content.replace(
         "import { glob } from 'glob';", 
         "import pkg from 'glob';\nconst { glob } = pkg;"

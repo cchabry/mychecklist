@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes npm liées à l'intégration CI/CD
@@ -7,6 +8,11 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Obtenir l'équivalent de __dirname pour les modules ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const packageJsonPath = path.resolve(__dirname, '../../package.json');
 
