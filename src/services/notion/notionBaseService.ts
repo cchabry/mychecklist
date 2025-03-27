@@ -7,7 +7,7 @@
 
 import { notionClient } from './client/notionClient';
 import { ConnectionTestResult, NotionConfig } from './types';
-import { useOperationMode } from '@/hooks/useOperationMode';
+import { operationModeService } from '@/services/operationMode/operationModeService';
 
 /**
  * Service de base pour Notion
@@ -21,7 +21,7 @@ class NotionBaseService {
       apiKey,
       projectsDbId,
       checklistsDbId,
-      mockMode: useOperationMode().isDemoMode
+      mockMode: operationModeService.isDemoMode()
     };
     
     notionClient.configure(config);
@@ -34,7 +34,7 @@ class NotionBaseService {
    * Vérifie si le service est configuré
    */
   isConfigured(): boolean {
-    return notionClient.isConfigured() || useOperationMode().isDemoMode;
+    return notionClient.isConfigured() || operationModeService.isDemoMode();
   }
   
   /**
@@ -55,7 +55,7 @@ class NotionBaseService {
    * Vérifie si le mode mock est actif
    */
   isMockMode(): boolean {
-    return notionClient.isMockMode() || useOperationMode().isDemoMode;
+    return notionClient.isMockMode() || operationModeService.isDemoMode();
   }
   
   /**

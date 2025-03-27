@@ -6,12 +6,15 @@
  * les données d'actions correctives, soit via l'API Notion, soit en mode simulation.
  */
 
-import { notionClient } from '../notionClient';
+import { notionClient } from '../client/notionClient';
 import { NotionResponse } from '../types';
 import { CorrectiveAction } from '@/types/domain';
 import { generateMockActions } from './utils';
 import { actionMappers } from './actionMappers';
 import { CreateActionInput } from './types';
+// Import du service de progrès avant la définition de la classe
+// pour éviter les problèmes d'import circulaire
+import { progressService } from './progressService';
 
 /**
  * Service de gestion des actions correctives
@@ -181,10 +184,6 @@ class ActionService {
   updateActionProgress = progressService.updateActionProgress.bind(progressService);
   deleteActionProgress = progressService.deleteActionProgress.bind(progressService);
 }
-
-// Import du service de progrès (après la définition de la classe ActionService
-// pour éviter les problèmes d'import circulaire)
-import { progressService } from './progressService';
 
 // Créer et exporter une instance singleton
 export const actionService = new ActionService();

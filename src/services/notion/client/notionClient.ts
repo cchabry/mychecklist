@@ -12,7 +12,7 @@
 import { notionHttpClient } from './notionHttpClient';
 import { notionMockClient } from './notionMockClient';
 import { NotionConfig, NotionResponse, ConnectionTestResult } from '../types';
-import { useOperationMode } from '@/hooks/useOperationMode';
+import { operationModeService } from '@/services/operationMode/operationModeService';
 
 /**
  * Client API Notion
@@ -60,7 +60,7 @@ export class NotionClient {
    * Vérifie si le mode mock est actif
    */
   isMockMode(): boolean {
-    return !!this.config.mockMode || useOperationMode().isDemoMode;
+    return !!this.config.mockMode || operationModeService.isDemoMode();
   }
   
   /**
