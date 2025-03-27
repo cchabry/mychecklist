@@ -1,4 +1,3 @@
-
 /**
  * Point d'entrée pour la feature Evaluations
  */
@@ -12,7 +11,7 @@ export * from './components';
 
 // Services et API
 import { evaluationsApi } from '@/services/notion/api/evaluations';
-import { Evaluation, CreateEvaluationData } from './types';
+import { Evaluation, CreateEvaluationData, UpdateEvaluationData } from './types';
 
 /**
  * Récupère toutes les évaluations d'un audit
@@ -71,15 +70,30 @@ export async function createEvaluation(data: CreateEvaluationData): Promise<Eval
 /**
  * Met à jour une évaluation existante
  * 
- * @param evaluation - Évaluation à mettre à jour
+ * @param id - Identifiant de l'évaluation à mettre à jour
+ * @param data - Données de mise à jour partielles
  * @returns Promise résolvant vers l'évaluation mise à jour
  * @throws Error si la mise à jour échoue
  */
-export async function updateEvaluation(evaluation: Evaluation): Promise<Evaluation> {
+export async function updateEvaluation(id: string, data: UpdateEvaluationData): Promise<Evaluation> {
   try {
-    return await evaluationsApi.updateEvaluation(evaluation);
+    // Récupérer l'��valuation existante
+    const existingEvaluation = await getEvaluationById(id);
+    
+    if (!existingEvaluation) {
+      throw new Error(`Évaluation avec l'ID ${id} non trouvée`);
+    }
+    
+    // Fusionner les données existantes avec les mises à jour
+    const updatedEvaluation: Evaluation = {
+      ...existingEvaluation,
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return await evaluationsApi.updateEvaluation(updatedEvaluation);
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour de l'évaluation ${evaluation.id}:`, error);
+    console.error(`Erreur lors de la mise à jour de l'évaluation ${id}:`, error);
     throw new Error(`Impossible de mettre à jour l'évaluation: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
