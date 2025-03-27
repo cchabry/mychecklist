@@ -3,10 +3,12 @@
  * Types pour la feature Actions
  */
 
-import { CorrectiveAction, ActionProgress } from '@/types/domain';
 import { PriorityLevel, StatusType, ComplianceLevel } from '@/types/enums';
+import { ActionProgress } from '@/types/domain/progress';
 
-export { CorrectiveAction, ActionProgress };
+// Re-export avec 'export type' pour isolatedModules
+export type { CorrectiveAction } from '@/types/domain';
+export type { ActionProgress };
 
 /**
  * Type pour les filtres d'actions
@@ -33,6 +35,7 @@ export type CreateActionData = {
   dueDate: string;
   responsible: string;
   comment?: string;
+  status: StatusType; // Ajout du champ manquant
 };
 
 /**

@@ -3,32 +3,20 @@
  * Types pour la feature Exigences
  */
 
-import { Exigence } from '@/types/domain';
-import { ChecklistItem } from '@/types/domain';
+import { ChecklistItem } from '../checklist/types';
 import { ImportanceLevel } from '@/types/enums';
 
-export { Exigence };
+// Re-export avec 'export type' pour isolatedModules
+export type { Exigence } from '@/types/domain';
 
 /**
  * Type pour les filtres d'exigences
  */
 export interface ExigenceFilters {
   importance?: ImportanceLevel;
-  category?: string;
-  subcategory?: string;
   search?: string;
-}
-
-/**
- * Type pour les options de tri
- */
-export type ExigenceSortOption = 'importance_desc' | 'importance_asc' | 'category_asc' | 'category_desc';
-
-/**
- * Type pour l'exigence avec les informations de l'item de checklist associé
- */
-export interface ExigenceWithItem extends Exigence {
-  checklistItem: ChecklistItem;
+  category?: string;
+  subCategory?: string;
 }
 
 /**
@@ -48,3 +36,11 @@ export type UpdateExigenceData = {
   importance?: ImportanceLevel;
   comment?: string;
 };
+
+/**
+ * Type pour une exigence avec son item de checklist associé
+ */
+export interface ExigenceWithItem {
+  exigence: import('@/types/domain').Exigence;
+  item: ChecklistItem;
+}

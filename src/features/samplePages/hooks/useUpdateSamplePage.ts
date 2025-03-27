@@ -6,6 +6,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { notionApi } from '@/services/api';
 import { UpdateSamplePageData } from '../types';
+import { useSamplePageById } from './useSamplePageById';
 
 /**
  * Hook pour mettre à jour une page d'échantillon
@@ -14,10 +15,20 @@ import { UpdateSamplePageData } from '../types';
  */
 export function useUpdateSamplePage(id: string, projectId: string) {
   const queryClient = useQueryClient();
+  const { data: currentPage } = useSamplePageById(id);
   
   return useMutation({
     mutationFn: async (data: UpdateSamplePageData) => {
-      return await notionApi.updateSamplePage({ id, ...data });
+      if (!currentPage) {
+        throw new Error("Page d'échantillon non trouvée");
+      }
+      
+      const updatedPage = {
+        ...currentPage,
+        ...data,
+      };
+      
+      return await notionApi.updateSamplePage(updatedPage);
     },
     onSuccess: () => {
       // Invalider les requêtes associées

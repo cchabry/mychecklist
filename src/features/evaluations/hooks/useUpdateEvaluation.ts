@@ -6,6 +6,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { notionApi } from '@/services/api';
 import { UpdateEvaluationData } from '../types';
+import { useEvaluationById } from './useEvaluationById';
 
 /**
  * Hook pour mettre à jour une évaluation
@@ -14,12 +15,22 @@ import { UpdateEvaluationData } from '../types';
  */
 export function useUpdateEvaluation(id: string) {
   const queryClient = useQueryClient();
+  const { data: currentEvaluation } = useEvaluationById(id);
   
   return useMutation({
     mutationFn: async (data: UpdateEvaluationData) => {
-      return await notionApi.updateEvaluation({ id, ...data });
+      if (!currentEvaluation) {
+        throw new Error("Évaluation non trouvée");
+      }
+      
+      const updatedEvaluation = {
+        ...currentEvaluation,
+        ...data,
+      };
+      
+      return await notionApi.updateEvaluation(updatedEvaluation);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['evaluation', id] });
       queryClient.invalidateQueries({ queryKey: ['evaluations'] });

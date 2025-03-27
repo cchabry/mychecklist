@@ -15,6 +15,7 @@ export * from './samplePage';
 export * from './evaluation';
 export * from './action';
 export * from './progress';
+export * from './actionStatus';
 
 // Éviter d'utiliser l'ancien fichier 'models.ts'
 // Le fichier models.ts est conservé pour compatibilité uniquement

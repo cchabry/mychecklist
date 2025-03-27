@@ -33,5 +33,6 @@ export * from './exigences';
 // Composants individuels
 export { ErrorBoundary } from './ErrorBoundary';
 export { OperationModeIndicator } from './OperationModeIndicator';
-export { Navbar } from './Navbar';
-export { Layout } from './Layout';
+// Import correctement les composants par défaut
+export { default as Navbar } from './Navbar';
+export { default as Layout } from './Layout';

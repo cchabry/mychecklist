@@ -3,9 +3,8 @@
  * Types pour la feature SamplePages
  */
 
-import { SamplePage } from '@/types/domain';
-
-export { SamplePage };
+// Re-export avec 'export type' pour isolatedModules
+export type { SamplePage } from '@/types/domain';
 
 /**
  * Type pour les filtres de pages d'échantillon

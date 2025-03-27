@@ -3,10 +3,10 @@
  * Types pour la feature Evaluations
  */
 
-import { Evaluation } from '@/types/domain';
 import { ComplianceLevel } from '@/types/enums';
 
-export { Evaluation };
+// Re-export avec 'export type' pour isolatedModules
+export type { Evaluation } from '@/types/domain';
 
 /**
  * Type pour les filtres d'évaluations
