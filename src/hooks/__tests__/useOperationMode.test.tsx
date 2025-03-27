@@ -23,6 +23,8 @@ describe('useOperationMode hook', () => {
     
     // Changer le mode via le service
     act(() => {
+      // Réinitialiser explicitement avant de définir un nouveau mode
+      operationModeService.reset();
       operationModeService.enableDemoMode('Test hook');
     });
     
