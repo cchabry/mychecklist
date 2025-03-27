@@ -8,6 +8,7 @@ import {
   sortChecklistItems,
   extractUniqueCategories,
   extractUniqueSubcategories,
+  ChecklistSortOption
 } from '@/features/checklist';
 import { 
   Select,
@@ -28,7 +29,7 @@ import { List } from 'lucide-react';
 const ChecklistPage = () => {
   // État des filtres et du tri
   const [filters, setFilters] = useState<{ search: string; category?: string; subcategory?: string; priority?: string; effort?: string }>({ search: '' });
-  const [sortOption, setSortOption] = useState<string>('consigne_asc');
+  const [sortOption, setSortOption] = useState<ChecklistSortOption>('consigne_asc');
   
   // Récupérer les items de checklist
   const { data: checklistItems = [], isLoading } = useChecklistItems();
@@ -75,7 +76,7 @@ const ChecklistPage = () => {
         <div className="flex items-center gap-2">
           <Select
             value={sortOption}
-            onValueChange={(value) => setSortOption(value)}
+            onValueChange={(value: ChecklistSortOption) => setSortOption(value)}
           >
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Trier par" />
@@ -116,12 +117,37 @@ const ChecklistPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredChecklistItems.map((item) => (
-            <ChecklistItemCard key={item.id} item={item} />
+            <ChecklistItemCard 
+              key={item.id}
+              id={item.id}
+              consigne={item.consigne}
+              description={item.description}
+              category={item.category}
+              subcategory={item.subcategory}
+              references={item.reference}
+              profiles={item.profil}
+              phases={item.phase}
+              effort={getEffortLevel(item.effort)}
+              priority={getPriorityLevel(item.priority)}
+            />
           ))}
         </div>
       )}
     </div>
   );
+};
+
+// Fonctions pour convertir les niveaux numériques en étiquettes
+const getEffortLevel = (level: number): 'FAIBLE' | 'MOYEN' | 'ÉLEVÉ' => {
+  if (level <= 1) return 'FAIBLE';
+  if (level <= 3) return 'MOYEN';
+  return 'ÉLEVÉ';
+};
+
+const getPriorityLevel = (level: number): 'BASSE' | 'MOYENNE' | 'HAUTE' => {
+  if (level <= 2) return 'BASSE';
+  if (level <= 3) return 'MOYENNE';
+  return 'HAUTE';
 };
 
 export default ChecklistPage;

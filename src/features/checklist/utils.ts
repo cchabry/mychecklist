@@ -1,66 +1,53 @@
 
 /**
- * Utilitaires pour les items de checklist
+ * Utilitaires pour la gestion de la checklist
  */
 
 import { ChecklistItem, ChecklistFilters, ChecklistSortOption } from './types';
 
 /**
- * Filtre les items de checklist selon des critères spécifiques
- * 
- * @param items - Liste des items à filtrer
- * @param filters - Critères de filtrage
- * @returns Items filtrés
+ * Filtre les items de checklist selon les critères spécifiés
  */
-export function filterChecklistItems(items: ChecklistItem[], filters: ChecklistFilters): ChecklistItem[] {
+export function filterChecklistItems(
+  items: ChecklistItem[],
+  filters: ChecklistFilters
+): ChecklistItem[] {
   return items.filter(item => {
-    // Filtrer par texte de recherche
-    if (filters.search && filters.search.trim() !== '') {
-      const searchLower = filters.search.toLowerCase();
-      const inConsigne = item.consigne.toLowerCase().includes(searchLower);
-      const inDescription = item.description.toLowerCase().includes(searchLower);
-      
-      if (!inConsigne && !inDescription) {
-        return false;
-      }
-    }
+    const { search, category, subcategory, priority, effort } = filters;
     
     // Filtrer par catégorie
-    if (filters.category && item.category !== filters.category) {
+    if (category && item.category !== category) {
       return false;
     }
     
     // Filtrer par sous-catégorie
-    if (filters.subcategory && item.subcategory !== filters.subcategory) {
+    if (subcategory && item.subcategory !== subcategory) {
       return false;
     }
     
-    // Filtrer par profil
-    if (filters.profile && filters.profile.length > 0) {
-      if (!item.profil.some(p => filters.profile?.includes(p))) {
-        return false;
-      }
-    }
-    
-    // Filtrer par phase
-    if (filters.phase && filters.phase.length > 0) {
-      if (!item.phase.some(p => filters.phase?.includes(p))) {
-        return false;
-      }
-    }
-    
     // Filtrer par priorité
-    if (filters.priority) {
-      const priorityLevel = item.priority >= 4 ? 'HAUTE' : (item.priority >= 3 ? 'MOYENNE' : 'BASSE');
-      if (priorityLevel !== filters.priority) {
+    if (priority) {
+      const priorityLevel = getPriorityLevel(item.priority);
+      if (priorityLevel !== priority) {
         return false;
       }
     }
     
     // Filtrer par effort
-    if (filters.effort) {
-      const effortLevel = item.effort >= 4 ? 'ÉLEVÉ' : (item.effort >= 3 ? 'MOYEN' : 'FAIBLE');
-      if (effortLevel !== filters.effort) {
+    if (effort) {
+      const effortLevel = getEffortLevel(item.effort);
+      if (effortLevel !== effort) {
+        return false;
+      }
+    }
+    
+    // Filtrer par recherche textuelle
+    if (search) {
+      const searchLower = search.toLowerCase();
+      const matchesConsigne = item.consigne.toLowerCase().includes(searchLower);
+      const matchesDescription = item.description.toLowerCase().includes(searchLower);
+      
+      if (!matchesConsigne && !matchesDescription) {
         return false;
       }
     }
@@ -70,107 +57,74 @@ export function filterChecklistItems(items: ChecklistItem[], filters: ChecklistF
 }
 
 /**
- * Trie les items de checklist selon un critère spécifique
- * 
- * @param items - Liste des items à trier
- * @param sortOption - Option de tri
- * @returns Items triés
+ * Trie les items de checklist selon l'option spécifiée
  */
-export function sortChecklistItems(items: ChecklistItem[], sortOption: ChecklistSortOption): ChecklistItem[] {
+export function sortChecklistItems(
+  items: ChecklistItem[],
+  sortOption: ChecklistSortOption
+): ChecklistItem[] {
   const sortedItems = [...items];
   
   switch (sortOption) {
-    case 'priority_desc':
-      return sortedItems.sort((a, b) => b.priority - a.priority);
-    case 'priority_asc':
-      return sortedItems.sort((a, b) => a.priority - b.priority);
-    case 'effort_desc':
-      return sortedItems.sort((a, b) => b.effort - a.effort);
-    case 'effort_asc':
-      return sortedItems.sort((a, b) => a.effort - b.effort);
+    case 'consigne_asc':
+      return sortedItems.sort((a, b) => a.consigne.localeCompare(b.consigne));
+      
+    case 'consigne_desc':
+      return sortedItems.sort((a, b) => b.consigne.localeCompare(a.consigne));
+      
     case 'category_asc':
       return sortedItems.sort((a, b) => a.category.localeCompare(b.category));
+      
     case 'category_desc':
       return sortedItems.sort((a, b) => b.category.localeCompare(a.category));
+      
+    case 'priority_desc':
+      return sortedItems.sort((a, b) => b.priority - a.priority);
+      
+    case 'priority_asc':
+      return sortedItems.sort((a, b) => a.priority - b.priority);
+      
+    case 'effort_desc':
+      return sortedItems.sort((a, b) => b.effort - a.effort);
+      
+    case 'effort_asc':
+      return sortedItems.sort((a, b) => a.effort - b.effort);
+      
     default:
       return sortedItems;
   }
 }
 
 /**
- * Extrait les catégories uniques d'une liste d'items
+ * Extrait les catégories uniques des items de checklist
  */
 export function extractUniqueCategories(items: ChecklistItem[]): string[] {
-  const categories = new Set<string>();
-  
-  items.forEach(item => {
-    if (item.category) {
-      categories.add(item.category);
-    }
-  });
-  
-  return Array.from(categories).sort();
+  const categories = items.map(item => item.category).filter(Boolean);
+  return [...new Set(categories)].sort();
 }
 
 /**
- * Extrait les sous-catégories uniques d'une liste d'items
+ * Extrait les sous-catégories uniques des items de checklist
  */
 export function extractUniqueSubcategories(items: ChecklistItem[]): string[] {
-  const subcategories = new Set<string>();
-  
-  items.forEach(item => {
-    if (item.subcategory) {
-      subcategories.add(item.subcategory);
-    }
-  });
-  
-  return Array.from(subcategories).sort();
+  const subcategories = items.map(item => item.subcategory).filter(Boolean);
+  return [...new Set(subcategories)].sort();
 }
 
 /**
- * Extrait les profils uniques d'une liste d'items
+ * Convertit un niveau d'effort numérique en étiquette
  */
-export function extractUniqueProfiles(items: ChecklistItem[]): string[] {
-  const profiles = new Set<string>();
-  
-  items.forEach(item => {
-    item.profil.forEach(profile => {
-      profiles.add(profile);
-    });
-  });
-  
-  return Array.from(profiles).sort();
+export function getEffortLevel(level: number): 'FAIBLE' | 'MOYEN' | 'ÉLEVÉ' {
+  if (level <= 1) return 'FAIBLE';
+  if (level <= 3) return 'MOYEN';
+  return 'ÉLEVÉ';
 }
 
 /**
- * Extrait les phases uniques d'une liste d'items
+ * Convertit un niveau de priorité numérique en étiquette
  */
-export function extractUniquePhases(items: ChecklistItem[]): string[] {
-  const phases = new Set<string>();
-  
-  items.forEach(item => {
-    item.phase.forEach(phase => {
-      phases.add(phase);
-    });
-  });
-  
-  return Array.from(phases).sort();
-}
-
-/**
- * Convertit un niveau numérique d'effort en catégorie
- */
-export function getEffortLevel(effort: number): string {
-  if (effort >= 4) return 'ÉLEVÉ';
-  if (effort >= 3) return 'MOYEN';
-  return 'FAIBLE';
-}
-
-/**
- * Convertit un niveau numérique de priorité en catégorie
- */
-export function getPriorityLevel(priority: number): string {
-  if (priority >= 4) return 'HAUTE';
-  if (priority >= 3) return 'MOYENNE';
-  return 'BASSE';
+export function getPriorityLevel(level: number): 'BASSE' | 'MOYENNE' | 'HAUTE' {
+  if (level <= 2) return 'BASSE';
+  if (level <= 3) return 'MOYENNE';
+  return 'HAUTE';
 }
