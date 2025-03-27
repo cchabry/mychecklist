@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createSamplePage } from '..';
+import { samplePagesApi } from '@/services/notion/api/samplePages';
 import { CreateSamplePageData } from '../types';
 import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
@@ -18,7 +18,7 @@ export function useCreateSamplePage() {
   
   return useMutation({
     mutationFn: async (data: CreateSamplePageData) => {
-      return await createSamplePage(data);
+      return await samplePagesApi.createSamplePage(data);
     },
     onSuccess: (data, variables) => {
       // Invalider les requêtes associées

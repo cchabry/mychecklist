@@ -1,52 +1,48 @@
 
 /**
- * Utilitaires pour la feature SamplePages
+ * Utilitaires pour les pages d'échantillon
+ * 
+ * Ce module fournit des fonctions utilitaires pour la gestion des pages d'échantillon.
  */
 
-import { SamplePage, SamplePageFilters } from './types';
-import { URL_REGEX } from './constants';
+import { samplePagesApi } from '@/services/notion/api/samplePages';
+import { CreateSamplePageData, SamplePage, UpdateSamplePageData } from './types';
 
 /**
- * Filtre les pages d'échantillon selon les critères spécifiés
+ * Récupère les pages d'échantillon d'un projet
  */
-export function filterSamplePages(pages: SamplePage[], filters: SamplePageFilters): SamplePage[] {
-  if (!filters.search) {
-    return pages;
-  }
-  
-  const searchLower = filters.search.toLowerCase();
-  
-  return pages.filter(page => {
-    const titleMatch = page.title.toLowerCase().includes(searchLower);
-    const urlMatch = page.url.toLowerCase().includes(searchLower);
-    const descriptionMatch = page.description ? page.description.toLowerCase().includes(searchLower) : false;
-    
-    return titleMatch || urlMatch || descriptionMatch;
+export const getSamplePages = async (projectId: string) => {
+  return await samplePagesApi.getSamplePages(projectId);
+};
+
+/**
+ * Récupère une page d'échantillon par son ID
+ */
+export const getSamplePageById = async (id: string) => {
+  return await samplePagesApi.getSamplePageById(id);
+};
+
+/**
+ * Crée une nouvelle page d'échantillon
+ */
+export const createSamplePage = async (data: CreateSamplePageData) => {
+  return await samplePagesApi.createSamplePage(data);
+};
+
+/**
+ * Met à jour une page d'échantillon existante
+ */
+export const updateSamplePage = async (id: string, data: UpdateSamplePageData) => {
+  const currentPage = await getSamplePageById(id);
+  return await samplePagesApi.updateSamplePage({
+    ...currentPage,
+    ...data
   });
-}
+};
 
 /**
- * Trie les pages d'échantillon par ordre
+ * Supprime une page d'échantillon
  */
-export function sortSamplePagesByOrder(pages: SamplePage[]): SamplePage[] {
-  return [...pages].sort((a, b) => a.order - b.order);
-}
-
-/**
- * Valide une URL
- */
-export function validateUrl(url: string): boolean {
-  return URL_REGEX.test(url);
-}
-
-/**
- * Génère un ordre pour une nouvelle page (après la dernière)
- */
-export function generateNextOrder(pages: SamplePage[]): number {
-  if (pages.length === 0) {
-    return 1;
-  }
-  
-  const maxOrder = Math.max(...pages.map(page => page.order));
-  return maxOrder + 1;
-}
+export const deleteSamplePage = async (id: string) => {
+  return await samplePagesApi.deleteSamplePage(id);
+};

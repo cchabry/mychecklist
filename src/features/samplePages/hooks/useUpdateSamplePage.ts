@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateSamplePage } from '..';
+import { samplePagesApi } from '@/services/notion/api/samplePages';
 import { UpdateSamplePageData } from '../types';
 import { useSamplePageById } from './useSamplePageById';
 import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
@@ -26,7 +26,10 @@ export function useUpdateSamplePage(id: string, projectId: string) {
         throw new Error("Page d'échantillon non trouvée");
       }
       
-      return await updateSamplePage(id, data);
+      return await samplePagesApi.updateSamplePage({
+        ...currentPage,
+        ...data
+      });
     },
     onSuccess: (data) => {
       // Invalider les requêtes associées

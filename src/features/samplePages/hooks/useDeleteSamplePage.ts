@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteSamplePage } from '..';
+import { samplePagesApi } from '@/services/notion/api/samplePages';
 import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
@@ -19,7 +19,7 @@ export function useDeleteSamplePage(id: string, projectId: string) {
   
   return useMutation({
     mutationFn: async () => {
-      return await deleteSamplePage(id);
+      return await samplePagesApi.deleteSamplePage(id);
     },
     onSuccess: () => {
       // Invalider les requêtes associées

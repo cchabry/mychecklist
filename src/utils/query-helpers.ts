@@ -59,7 +59,7 @@ export function handleMutationError(
   }
   
   if (options?.showToast !== false) {
-    const title = options?.title || getDefaultErrorTitle(entityName, action);
+    const title = options?.title || getDefaultErrorTitle(action);
     const description = options?.description || `Impossible de ${getActionVerb(action)} ${entityName}: ${errorMessage}`;
     
     toast.error(title, { description });
@@ -83,7 +83,7 @@ function getDefaultSuccessTitle(entityName: string, action: 'create' | 'update' 
 /**
  * Retourne un titre par défaut pour un message d'erreur
  */
-function getDefaultErrorTitle(entityName: string, action: 'create' | 'update' | 'delete'): string {
+function getDefaultErrorTitle(action: 'create' | 'update' | 'delete'): string {
   switch (action) {
     case 'create':
       return `Erreur de création`;
