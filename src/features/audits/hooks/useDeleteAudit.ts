@@ -14,7 +14,7 @@ export function useDeleteAudit(projectId?: string) {
     mutationFn: async (id: string) => {
       return await deleteAudit(id);
     },
-    onSuccess: (_data, id) => {
+    onSuccess: () => {
       // Invalider les requêtes pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['audits', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -22,8 +22,8 @@ export function useDeleteAudit(projectId?: string) {
       // Notifier l'utilisateur
       toast.success('Audit supprimé avec succès');
     },
-    onError: (error, id) => {
-      console.error(`Erreur lors de la suppression de l'audit ${id}:`, error);
+    onError: (error) => {
+      console.error(`Erreur lors de la suppression de l'audit:`, error);
       toast.error(`Impossible de supprimer l'audit: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   });
