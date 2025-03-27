@@ -36,12 +36,18 @@ export function useUpdateSamplePage(id: string, projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['samplePage', id] });
       queryClient.invalidateQueries({ queryKey: ['samplePages', projectId] });
       
-      handleMutationSuccess('Page d\'échantillon', 'update');
+      handleMutationSuccess({ 
+        entity: 'Page d\'échantillon', 
+        action: 'update' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'page d\'échantillon', 'update');
+      handleMutationError(error, { 
+        entity: 'page d\'échantillon', 
+        action: 'update' 
+      });
     }
   });
 }

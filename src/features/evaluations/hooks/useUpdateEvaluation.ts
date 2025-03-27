@@ -51,14 +51,18 @@ export function useUpdateEvaluation(evaluationId: string) {
         queryClient.invalidateQueries({ queryKey: ['evaluations', evaluation.auditId] });
       }
       
-      // Correction de l'appel à handleMutationSuccess pour accepter un seul argument
-      handleMutationSuccess({ entity: 'Évaluation', action: 'update' });
+      handleMutationSuccess({ 
+        entity: 'Évaluation', 
+        action: 'update' 
+      });
       
       return data;
     },
     onError: (error) => {
-      // Correction de l'appel à handleMutationError si nécessaire
-      handleMutationError(error, { entity: 'évaluation', action: 'update' });
+      handleMutationError(error, {
+        entity: 'évaluation', 
+        action: 'update'
+      });
     }
   });
 }

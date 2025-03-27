@@ -20,12 +20,18 @@ export function useCreateAudit() {
       queryClient.invalidateQueries({ queryKey: ['audits', variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       
-      handleMutationSuccess('Audit', 'create');
+      handleMutationSuccess({ 
+        entity: 'Audit', 
+        action: 'create' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'audit', 'create');
+      handleMutationError(error, { 
+        entity: 'audit', 
+        action: 'create' 
+      });
     }
   });
 }

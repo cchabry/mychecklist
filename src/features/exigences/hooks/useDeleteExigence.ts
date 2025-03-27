@@ -44,10 +44,16 @@ export function useDeleteExigence(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['exigences', projectId] });
       queryClient.invalidateQueries({ queryKey: ['exigencesWithItems', projectId] });
       
-      handleMutationSuccess('Exigence', 'delete');
+      handleMutationSuccess({ 
+        entity: 'Exigence', 
+        action: 'delete' 
+      });
     },
     onError: (error) => {
-      handleMutationError(error, 'exigence', 'delete');
+      handleMutationError(error, { 
+        entity: 'exigence', 
+        action: 'delete' 
+      });
     }
   });
 }

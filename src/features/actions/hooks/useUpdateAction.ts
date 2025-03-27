@@ -32,12 +32,18 @@ export function useUpdateAction(id: string) {
       queryClient.invalidateQueries({ queryKey: ['action', id] });
       queryClient.invalidateQueries({ queryKey: ['actions'] });
       
-      handleMutationSuccess('Action corrective', 'update');
+      handleMutationSuccess({ 
+        entity: 'Action corrective', 
+        action: 'update' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'action corrective', 'update');
+      handleMutationError(error, { 
+        entity: 'action corrective', 
+        action: 'update' 
+      });
     }
   });
 }

@@ -31,12 +31,18 @@ export function useCreateEvaluation() {
     onSuccess: (data, variables) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['evaluations', variables.auditId] });
-      handleMutationSuccess('Évaluation', 'create');
+      handleMutationSuccess({ 
+        entity: 'Évaluation', 
+        action: 'create' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'évaluation', 'create');
+      handleMutationError(error, { 
+        entity: 'évaluation', 
+        action: 'create' 
+      });
     }
   });
 }

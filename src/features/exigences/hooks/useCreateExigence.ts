@@ -48,12 +48,18 @@ export function useCreateExigence() {
       queryClient.invalidateQueries({ queryKey: ['exigences', variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ['exigencesWithItems', variables.projectId] });
       
-      handleMutationSuccess('Exigence', 'create');
+      handleMutationSuccess({ 
+        entity: 'Exigence', 
+        action: 'create' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'exigence', 'create');
+      handleMutationError(error, { 
+        entity: 'exigence', 
+        action: 'create' 
+      });
     }
   });
 }

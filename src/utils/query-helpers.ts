@@ -1,36 +1,9 @@
+
 /**
  * Utilitaires pour les hooks de requêtes
  */
 
 import { toast } from 'sonner';
-
-// Messages pour les opérations réussies
-const SUCCESS_MESSAGES = {
-  create: (entity: string) => `${entity} créé(e) avec succès`,
-  update: (entity: string) => `${entity} mis(e) à jour avec succès`,
-  delete: (entity: string) => `${entity} supprimé(e) avec succès`,
-  import: (entity: string) => `${entity} importé(e) avec succès`,
-  export: (entity: string) => `${entity} exporté(e) avec succès`,
-  validate: (entity: string) => `${entity} validé(e) avec succès`,
-  complete: (entity: string) => `${entity} terminé(e) avec succès`,
-  publish: (entity: string) => `${entity} publié(e) avec succès`,
-  archive: (entity: string) => `${entity} archivé(e) avec succès`,
-  restore: (entity: string) => `${entity} restauré(e) avec succès`,
-};
-
-// Messages pour les erreurs
-const ERROR_MESSAGES = {
-  create: (entity: string) => `Erreur lors de la création de ${entity}`,
-  update: (entity: string) => `Erreur lors de la mise à jour de ${entity}`,
-  delete: (entity: string) => `Erreur lors de la suppression de ${entity}`,
-  import: (entity: string) => `Erreur lors de l'importation de ${entity}`,
-  export: (entity: string) => `Erreur lors de l'exportation de ${entity}`,
-  validate: (entity: string) => `Erreur lors de la validation de ${entity}`,
-  complete: (entity: string) => `Erreur lors de la terminaison de ${entity}`,
-  publish: (entity: string) => `Erreur lors de la publication de ${entity}`,
-  archive: (entity: string) => `Erreur lors de l'archivage de ${entity}`,
-  restore: (entity: string) => `Erreur lors de la restauration de ${entity}`,
-};
 
 // Type pour les opérations possibles
 export type MutationOperation = 

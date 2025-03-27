@@ -29,12 +29,18 @@ export function useCreateAction() {
     onSuccess: (_, variables) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['actions', variables.evaluationId] });
-      handleMutationSuccess('Action corrective', 'create');
+      handleMutationSuccess({ 
+        entity: 'Action corrective', 
+        action: 'create' 
+      });
       
       return _; // Retourner les données pour chaîner les appels
     },
     onError: (error) => {
-      handleMutationError(error, 'action corrective', 'create');
+      handleMutationError(error, { 
+        entity: 'action corrective', 
+        action: 'create' 
+      });
     }
   });
 }

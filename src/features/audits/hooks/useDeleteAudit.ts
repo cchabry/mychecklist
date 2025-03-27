@@ -29,10 +29,16 @@ export function useDeleteAudit(projectId?: string) {
       }
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       
-      handleMutationSuccess('Audit', 'delete');
+      handleMutationSuccess({ 
+        entity: 'Audit', 
+        action: 'delete' 
+      });
     },
     onError: (error) => {
-      handleMutationError(error, 'audit', 'delete');
+      handleMutationError(error, { 
+        entity: 'audit', 
+        action: 'delete' 
+      });
     }
   });
 }

@@ -24,12 +24,18 @@ export function useCreateSamplePage() {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['samplePages', variables.projectId] });
       
-      handleMutationSuccess('Page d\'échantillon', 'create');
+      handleMutationSuccess({ 
+        entity: 'Page d\'échantillon', 
+        action: 'create' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'page d\'échantillon', 'create');
+      handleMutationError(error, { 
+        entity: 'page d\'échantillon', 
+        action: 'create' 
+      });
     }
   });
 }

@@ -25,12 +25,18 @@ export function useCreateActionProgress() {
       queryClient.invalidateQueries({ queryKey: ['actionProgress', variables.actionId] });
       queryClient.invalidateQueries({ queryKey: ['action', variables.actionId] });
       
-      handleMutationSuccess('Progrès d\'action', 'create');
+      handleMutationSuccess({ 
+        entity: 'Progrès d\'action', 
+        action: 'create' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'progrès d\'action', 'create');
+      handleMutationError(error, { 
+        entity: 'progrès d\'action', 
+        action: 'create' 
+      });
     }
   });
 }

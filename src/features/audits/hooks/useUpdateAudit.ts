@@ -26,12 +26,18 @@ export function useUpdateAudit(auditId: string) {
       queryClient.invalidateQueries({ queryKey: ['audit', auditId] });
       queryClient.invalidateQueries({ queryKey: ['audits'] });
       
-      handleMutationSuccess('Audit', 'update');
+      handleMutationSuccess({ 
+        entity: 'Audit', 
+        action: 'update' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'audit', 'update');
+      handleMutationError(error, { 
+        entity: 'audit', 
+        action: 'update' 
+      });
     }
   });
 }

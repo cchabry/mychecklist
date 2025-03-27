@@ -25,10 +25,16 @@ export function useDeleteSamplePage(id: string, projectId: string) {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['samplePages', projectId] });
       
-      handleMutationSuccess('Page d\'échantillon', 'delete');
+      handleMutationSuccess({ 
+        entity: 'Page d\'échantillon', 
+        action: 'delete' 
+      });
     },
     onError: (error) => {
-      handleMutationError(error, 'page d\'échantillon', 'delete');
+      handleMutationError(error, { 
+        entity: 'page d\'échantillon', 
+        action: 'delete' 
+      });
     }
   });
 }

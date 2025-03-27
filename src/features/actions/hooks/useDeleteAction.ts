@@ -25,10 +25,16 @@ export function useDeleteAction(id: string, evaluationId: string) {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['actions', evaluationId] });
       
-      handleMutationSuccess('Action corrective', 'delete');
+      handleMutationSuccess({ 
+        entity: 'Action corrective', 
+        action: 'delete' 
+      });
     },
     onError: (error) => {
-      handleMutationError(error, 'action corrective', 'delete');
+      handleMutationError(error, { 
+        entity: 'action corrective', 
+        action: 'delete' 
+      });
     }
   });
 }

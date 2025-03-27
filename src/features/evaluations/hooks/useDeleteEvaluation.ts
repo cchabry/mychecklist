@@ -43,10 +43,16 @@ export function useDeleteEvaluation(auditId: string) {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['evaluations', auditId] });
       
-      handleMutationSuccess('Évaluation', 'delete');
+      handleMutationSuccess({ 
+        entity: 'Évaluation', 
+        action: 'delete' 
+      });
     },
     onError: (error) => {
-      handleMutationError(error, 'évaluation', 'delete');
+      handleMutationError(error, { 
+        entity: 'évaluation', 
+        action: 'delete' 
+      });
     }
   });
 }

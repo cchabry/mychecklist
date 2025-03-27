@@ -44,12 +44,18 @@ export function useUpdateExigence(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['exigences', projectId] });
       queryClient.invalidateQueries({ queryKey: ['exigencesWithItems', projectId] });
       
-      handleMutationSuccess('Exigence', 'update');
+      handleMutationSuccess({ 
+        entity: 'Exigence', 
+        action: 'update' 
+      });
       
       return data;
     },
     onError: (error) => {
-      handleMutationError(error, 'exigence', 'update');
+      handleMutationError(error, { 
+        entity: 'exigence', 
+        action: 'update' 
+      });
     }
   });
 }
