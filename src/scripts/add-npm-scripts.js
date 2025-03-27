@@ -22,7 +22,10 @@ packageJson.scripts = {
   "architecture:full": "ts-node src/scripts/run-architecture-analysis.ts",
   "architecture:quick": "ts-node src/scripts/quick-architecture-check.ts",
   "setup-pre-commit": "ts-node src/scripts/setup-pre-commit.ts",
-  "vscode:package": "cd vscode-extension && npm run package"
+  "vscode:package": "cd vscode-extension && npm run package",
+  "architecture:export": "ts-node src/scripts/export-architecture-report.ts",
+  "architecture:share": "ts-node src/scripts/share-architecture-report.ts",
+  "architecture:docs": "cp docs/architecture-rules-reference.md reports/architecture-docs.md && echo 'Documentation copiée dans le dossier reports'"
 };
 
 // Écrire le fichier package.json mis à jour
@@ -39,3 +42,6 @@ console.log('  npm run architecture:full');
 console.log('  npm run architecture:quick');
 console.log('  npm run setup-pre-commit');
 console.log('  npm run vscode:package');
+console.log('  npm run architecture:export');
+console.log('  npm run architecture:share');
+console.log('  npm run architecture:docs');
