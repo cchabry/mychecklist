@@ -5,14 +5,18 @@
  * À exécuter manuellement pour ajouter les scripts npm
  */
 
-const fs = require('fs');
-const path = require('path');
+import { readFileSync, writeFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const packageJsonPath = path.resolve(__dirname, '../../package.json');
+// Obtenir le chemin du répertoire actuel avec la compatibilité ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJsonPath = resolve(__dirname, '../../package.json');
 
 // Lire le fichier package.json
 try {
-  const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8');
+  const packageJsonContent = readFileSync(packageJsonPath, 'utf8');
   const packageJson = JSON.parse(packageJsonContent);
 
   // Ajouter les scripts
@@ -26,7 +30,7 @@ try {
   };
 
   // Écrire le fichier package.json mis à jour
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
   console.log('Scripts de vérification ajoutés avec succès!');
   console.log('Vous pouvez maintenant exécuter:');
