@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEvaluations } from '../useEvaluations';
 import { notionApi } from '@/services/api';
@@ -49,7 +49,7 @@ describe('useEvaluations', () => {
     expect(result.current.isLoading).toBe(true);
     
     // Attendre que la requête soit terminée
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await vi.waitFor(() => expect(result.current.isLoading).toBe(false));
     
     // Vérifier les résultats
     expect(result.current.data).toEqual(mockEvaluations);

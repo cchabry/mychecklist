@@ -34,7 +34,7 @@ describe('EvaluationService', () => {
   describe('getEvaluations', () => {
     it('devrait retourner une erreur si la configuration est manquante', async () => {
       // Configuration du mock pour simuler l'absence de configuration
-      vi.mocked(notionClient.getConfig).mockReturnValue(null);
+      vi.mocked(notionClient.getConfig).mockReturnValue(undefined);
       
       const result = await evaluationService.getEvaluations('audit-123');
       
@@ -65,7 +65,7 @@ describe('EvaluationService', () => {
       expect(result.success).toBe(true);
       expect(Array.isArray(result.data)).toBe(true);
       if (result.data) {
-        expect(result.data.every(eval => eval.pageId === 'page-1')).toBe(true);
+        expect(result.data.every(evaluation => evaluation.pageId === 'page-1')).toBe(true);
       }
     });
 
@@ -79,7 +79,7 @@ describe('EvaluationService', () => {
       expect(result.success).toBe(true);
       expect(Array.isArray(result.data)).toBe(true);
       if (result.data) {
-        expect(result.data.every(eval => eval.exigenceId === 'exig-1')).toBe(true);
+        expect(result.data.every(evaluation => evaluation.exigenceId === 'exig-1')).toBe(true);
       }
     });
   });
