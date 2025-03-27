@@ -1,109 +1,89 @@
 
 /**
- * Utilitaires pour standardiser l'utilisation de React Query
- * 
- * Ce module fournit des fonctions utilitaires pour simplifier et
- * standardiser l'implémentation des hooks React Query à travers l'application.
+ * Utilitaires pour les hooks de requêtes
  */
 
 import { toast } from 'sonner';
 
-/**
- * Options pour les messages de succès
- */
-export interface SuccessMessageOptions {
-  title?: string;
-  description?: string;
-  showToast?: boolean;
-}
+// Messages pour les opérations réussies
+const SUCCESS_MESSAGES = {
+  create: (entity: string) => `${entity} créé(e) avec succès`,
+  update: (entity: string) => `${entity} mis(e) à jour avec succès`,
+  delete: (entity: string) => `${entity} supprimé(e) avec succès`,
+  import: (entity: string) => `${entity} importé(e) avec succès`,
+  export: (entity: string) => `${entity} exporté(e) avec succès`,
+  validate: (entity: string) => `${entity} validé(e) avec succès`,
+  complete: (entity: string) => `${entity} terminé(e) avec succès`,
+  publish: (entity: string) => `${entity} publié(e) avec succès`,
+  archive: (entity: string) => `${entity} archivé(e) avec succès`,
+  restore: (entity: string) => `${entity} restauré(e) avec succès`,
+};
+
+// Messages pour les erreurs
+const ERROR_MESSAGES = {
+  create: (entity: string) => `Erreur lors de la création de ${entity}`,
+  update: (entity: string) => `Erreur lors de la mise à jour de ${entity}`,
+  delete: (entity: string) => `Erreur lors de la suppression de ${entity}`,
+  import: (entity: string) => `Erreur lors de l'importation de ${entity}`,
+  export: (entity: string) => `Erreur lors de l'exportation de ${entity}`,
+  validate: (entity: string) => `Erreur lors de la validation de ${entity}`,
+  complete: (entity: string) => `Erreur lors de la terminaison de ${entity}`,
+  publish: (entity: string) => `Erreur lors de la publication de ${entity}`,
+  archive: (entity: string) => `Erreur lors de l'archivage de ${entity}`,
+  restore: (entity: string) => `Erreur lors de la restauration de ${entity}`,
+};
+
+// Type pour les opérations possibles
+export type MutationOperation = 
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'import'
+  | 'export'
+  | 'validate'
+  | 'complete'
+  | 'publish'
+  | 'archive'
+  | 'restore';
 
 /**
- * Options pour les messages d'erreur
+ * Affiche une notification de succès pour une mutation
+ * 
+ * @param entityName - Nom de l'entité concernée (ex: "Projet", "Audit")
+ * @param operation - Opération effectuée
  */
-export interface ErrorMessageOptions {
-  title?: string;
-  description?: string;
-  showToast?: boolean;
-  logToConsole?: boolean;
-}
-
-/**
- * Affiche un message de succès
- */
-export function handleMutationSuccess(
-  entityName: string, 
-  action: 'create' | 'update' | 'delete', 
-  options?: SuccessMessageOptions
-) {
-  if (options?.showToast === false) return;
+export const handleMutationSuccess = (
+  entityName: string,
+  operation: MutationOperation
+) => {
+  const getMessage = SUCCESS_MESSAGES[operation];
   
-  const title = options?.title || getDefaultSuccessTitle(entityName, action);
-  const description = options?.description || '';
+  if (getMessage) {
+    toast.success(getMessage(entityName));
+  } else {
+    toast.success(`Opération réussie`);
+  }
+};
+
+/**
+ * Affiche une notification d'erreur pour une mutation
+ * 
+ * @param error - Erreur rencontrée
+ * @param entityName - Nom de l'entité concernée (ex: "Projet", "Audit")
+ * @param operation - Opération qui a échoué
+ */
+export const handleMutationError = (
+  error: unknown,
+  entityName: string,
+  operation: MutationOperation
+) => {
+  const getMessage = ERROR_MESSAGES[operation];
   
-  toast.success(title, description ? { description } : undefined);
-}
-
-/**
- * Affiche un message d'erreur
- */
-export function handleMutationError(
-  error: unknown, 
-  entityName: string, 
-  action: 'create' | 'update' | 'delete',
-  options?: ErrorMessageOptions
-) {
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`Erreur lors de l'opération ${operation} sur ${entityName}:`, error);
   
-  if (options?.logToConsole !== false) {
-    console.error(`Erreur lors de l'action ${action} sur ${entityName}:`, error);
+  if (getMessage) {
+    toast.error(getMessage(entityName));
+  } else {
+    toast.error(`Erreur lors de l'opération`);
   }
-  
-  if (options?.showToast !== false) {
-    const title = options?.title || getDefaultErrorTitle(action);
-    const description = options?.description || `Impossible de ${getActionVerb(action)} ${entityName}: ${errorMessage}`;
-    
-    toast.error(title, { description });
-  }
-}
-
-/**
- * Retourne un titre par défaut pour un message de succès
- */
-function getDefaultSuccessTitle(entityName: string, action: 'create' | 'update' | 'delete'): string {
-  switch (action) {
-    case 'create':
-      return `${entityName} créé`;
-    case 'update':
-      return `${entityName} mis à jour`;
-    case 'delete':
-      return `${entityName} supprimé`;
-  }
-}
-
-/**
- * Retourne un titre par défaut pour un message d'erreur
- */
-function getDefaultErrorTitle(action: 'create' | 'update' | 'delete'): string {
-  switch (action) {
-    case 'create':
-      return `Erreur de création`;
-    case 'update':
-      return `Erreur de mise à jour`;
-    case 'delete':
-      return `Erreur de suppression`;
-  }
-}
-
-/**
- * Retourne le verbe correspondant à une action
- */
-function getActionVerb(action: 'create' | 'update' | 'delete'): string {
-  switch (action) {
-    case 'create':
-      return 'créer';
-    case 'update':
-      return 'mettre à jour';
-    case 'delete':
-      return 'supprimer';
-  }
-}
+};
