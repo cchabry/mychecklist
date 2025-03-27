@@ -19,11 +19,11 @@ describe('ActionService', () => {
     id: 'action-1',
     evaluationId: 'eval-123',
     targetScore: 'Conforme',
-    priority: 'Haute',
+    priority: 'haute',
     dueDate: '2023-01-01T00:00:00.000Z',
     responsible: 'John Doe',
     comment: 'Test comment',
-    status: 'À faire'
+    status: 'à faire'
   };
 
   beforeEach(() => {

@@ -22,7 +22,7 @@ describe('ProgressService', () => {
     responsible: 'Jane Doe',
     comment: 'Test progress',
     score: 'Partiellement conforme',
-    status: 'En cours'
+    status: 'en cours'
   };
 
   beforeEach(() => {

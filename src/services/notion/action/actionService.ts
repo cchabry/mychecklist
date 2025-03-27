@@ -133,10 +133,7 @@ class ActionService {
     if (notionClient.isMockMode()) {
       return {
         success: true,
-        data: {
-          ...action,
-          updatedAt: new Date().toISOString()
-        }
+        data: action
       };
     }
     
@@ -144,10 +141,7 @@ class ActionService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: {
-        ...action,
-        updatedAt: new Date().toISOString()
-      }
+      data: action
     };
   }
   
