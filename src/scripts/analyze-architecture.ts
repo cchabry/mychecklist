@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script d'analyse architecturale
@@ -11,10 +12,8 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 
+// Chemin principal pour les features
 const FEATURES_DIR = path.resolve(__dirname, '../features');
-const COMPONENTS_DIR = path.resolve(__dirname, '../components');
-const SERVICES_DIR = path.resolve(__dirname, '../services');
-const HOOKS_DIR = path.resolve(__dirname, '../hooks');
 
 // Structure attendue pour une feature
 const EXPECTED_FEATURE_STRUCTURE = [
