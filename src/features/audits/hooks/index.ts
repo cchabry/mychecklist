@@ -5,9 +5,19 @@
  * Ce fichier exporte tous les hooks liés à la fonctionnalité de gestion des audits
  */
 
-import { useProjectAudits } from '@/hooks/useProjectAudits';
+import { useAudits } from './useAudits';
+import { useAuditById } from './useAuditById';
+import { useCreateAudit } from './useCreateAudit';
+import { useUpdateAudit } from './useUpdateAudit';
+import { useDeleteAudit } from './useDeleteAudit';
 
-export { useProjectAudits };
+export { 
+  useAudits, 
+  useAuditById, 
+  useCreateAudit,
+  useUpdateAudit,
+  useDeleteAudit
+};
 
-// Ce fichier sera enrichi au fur et à mesure du développement
-// des hooks spécifiques aux audits
+// Re-export des hooks génériques utilisés par la feature audits
+export { useProjectAudits } from '@/hooks/useProjectAudits';

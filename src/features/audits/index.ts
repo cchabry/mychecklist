@@ -29,7 +29,7 @@ export async function getProjectAudits(projectId: string): Promise<Audit[]> {
     return await auditsApi.getAudits(projectId);
   } catch (error) {
     console.error(`Erreur lors de la récupération des audits du projet ${projectId}:`, error);
-    return [];
+    throw new Error(`Impossible de récupérer les audits: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -46,7 +46,7 @@ export async function getAuditById(id: string): Promise<Audit | null> {
     return audit;
   } catch (error) {
     console.error(`Erreur lors de la récupération de l'audit ${id}:`, error);
-    return null;
+    throw new Error(`Impossible de récupérer l'audit: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -67,7 +67,12 @@ export async function createAudit(data: CreateAuditData): Promise<Audit> {
     updatedAt: new Date().toISOString()
   };
   
-  return await auditsApi.createAudit(auditData);
+  try {
+    return await auditsApi.createAudit(auditData);
+  } catch (error) {
+    console.error(`Erreur lors de la création de l'audit:`, error);
+    throw new Error(`Impossible de créer l'audit: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 /**
@@ -81,6 +86,10 @@ export async function createAudit(data: CreateAuditData): Promise<Audit> {
 export async function updateAudit(id: string, data: UpdateAuditData): Promise<Audit> {
   try {
     const existingAudit = await auditsApi.getAuditById(id);
+    if (!existingAudit) {
+      throw new Error(`Audit non trouvé`);
+    }
+    
     const updatedAudit = {
       ...existingAudit,
       ...data,
