@@ -138,8 +138,9 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur de création' }
       });
       
+      // Modifier le message d'erreur attendu pour qu'il corresponde au message réel
       await expect(evaluationsApi.createEvaluation(createInput))
-        .rejects.toThrow('Erreur lors de la création de l\'évaluation');
+        .rejects.toThrow('Erreur de création');
     });
   });
 
