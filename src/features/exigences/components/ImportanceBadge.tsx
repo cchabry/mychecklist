@@ -4,7 +4,8 @@
  */
 
 import { Badge } from '@/components/ui/badge';
-import { ImportanceLevel, IMPORTANCE_LEVEL_MAPPING } from '../constants';
+import { ImportanceLevel } from '@/types/enums';
+import { IMPORTANCE_LEVEL_MAPPING } from '../constants';
 import { cn } from '@/lib/utils';
 
 interface ImportanceBadgeProps {

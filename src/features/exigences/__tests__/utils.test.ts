@@ -1,172 +1,230 @@
+
 /**
- * Tests unitaires pour les utilitaires d'exigences
+ * Tests pour les utilitaires des exigences
  */
 
 import { describe, it, expect } from 'vitest';
 import { 
-  enrichExigencesWithItems,
   filterExigences,
   sortExigences,
-  extractUniqueCategories,
-  extractUniqueSubcategories,
-  getExigenceStats
+  enrichExigencesWithItems,
+  groupExigencesByCategory,
+  countExigencesByImportance
 } from '../utils';
 import { Exigence, ExigenceWithItem } from '../types';
-import { ChecklistItem } from '@/types/domain';
 import { ImportanceLevel } from '@/types/enums';
+import { ChecklistItem } from '@/features/checklist/types';
 
-describe('Exigences Utils', () => {
-  // Exemple de données pour les tests
-  const checklistItems: ChecklistItem[] = [
-    {
-      id: 'item-1',
-      consigne: 'Utiliser des textes alternatifs',
-      description: 'Images accessibles',
-      category: 'Accessibilité',
-      subcategory: 'Images',
-      reference: ['RGAA 1.1'],
-      profil: ['Développeur'],
-      phase: ['Développement'],
-      effort: 2,
-      priority: 5
-    },
-    {
-      id: 'item-2',
-      consigne: 'Optimiser les images',
-      description: 'Images compressées',
-      category: 'Performance',
-      subcategory: 'Médias',
-      reference: ['RGESN 4.2'],
-      profil: ['Designer'],
-      phase: ['Design', 'Développement'],
-      effort: 3,
-      priority: 3
-    }
-  ];
+// Données de test
+const checklistItems: ChecklistItem[] = [
+  {
+    id: 'item1',
+    title: 'Item 1',
+    description: 'Description item 1',
+    category: 'UX',
+    subcategory: 'Navigation',
+    reference: ['RGAA 1.1'],
+    profil: ['Designer'],
+    phase: ['Conception'],
+    effort: 'FAIBLE',
+    priority: 'HAUTE'
+  },
+  {
+    id: 'item2',
+    title: 'Item 2',
+    description: 'Description item 2',
+    category: 'Technique',
+    subcategory: 'Performance',
+    reference: ['RGESN 2.1'],
+    profil: ['Développeur'],
+    phase: ['Développement'],
+    effort: 'MOYEN',
+    priority: 'MOYENNE'
+  },
+  {
+    id: 'item3',
+    title: 'Item 3',
+    description: 'Description item 3',
+    category: 'UX',
+    subcategory: 'Formulaire',
+    reference: ['OPQUAST 3.1'],
+    profil: ['Designer', 'Développeur'],
+    phase: ['Conception', 'Développement'],
+    effort: 'ÉLEVÉ',
+    priority: 'BASSE'
+  }
+];
 
-  const exigences: Exigence[] = [
-    {
-      id: 'exig-1',
-      projectId: 'project-1',
-      itemId: 'item-1',
-      importance: ImportanceLevel.Major,
-      comment: 'Très important pour l\'accessibilité'
-    },
-    {
-      id: 'exig-2',
-      projectId: 'project-1',
-      itemId: 'item-2',
-      importance: ImportanceLevel.Medium,
-      comment: 'Important pour les performances'
-    },
-    {
-      id: 'exig-3',
-      projectId: 'project-1',
-      itemId: 'item-inconnu',
-      importance: ImportanceLevel.Minor,
-      comment: 'Item qui n\'existe plus'
-    }
-  ];
+const exigences: Exigence[] = [
+  {
+    id: 'exigence1',
+    projectId: 'project1',
+    itemId: 'item1',
+    importance: ImportanceLevel.MAJOR,
+    comment: 'Commentaire exigence 1'
+  },
+  {
+    id: 'exigence2',
+    projectId: 'project1',
+    itemId: 'item2',
+    importance: ImportanceLevel.MEDIUM,
+    comment: 'Commentaire exigence 2'
+  },
+  {
+    id: 'exigence3',
+    projectId: 'project1',
+    itemId: 'item3',
+    importance: ImportanceLevel.N_A,
+    comment: 'Commentaire exigence 3'
+  }
+];
 
+// Exigences enrichies pour les tests
+const enrichedExigences: ExigenceWithItem[] = exigences.map((exigence, index) => ({
+  ...exigence,
+  checklistItem: checklistItems[index]
+}));
+
+describe('Utilitaires d\'exigences', () => {
   describe('enrichExigencesWithItems', () => {
-    it('devrait enrichir les exigences avec les items de checklist', () => {
+    it('doit correctement enrichir les exigences avec les items de checklist', () => {
       const result = enrichExigencesWithItems(exigences, checklistItems);
       
-      // Vérifier le nombre d'exigences
-      expect(result).toHaveLength(3);
+      // Vérifier que les résultats contiennent les items de checklist
+      expect(result).toHaveLength(exigences.length);
+      expect(result[0].checklistItem).toEqual(checklistItems[0]);
+      expect(result[1].checklistItem).toEqual(checklistItems[1]);
+      expect(result[2].checklistItem).toEqual(checklistItems[2]);
+    });
+    
+    it('doit gérer les cas où l\'item de checklist n\'est pas trouvé', () => {
+      const exigencesSansItem = [
+        {
+          id: 'exigence4',
+          projectId: 'project1',
+          itemId: 'item-inexistant',
+          importance: ImportanceLevel.MINOR,
+          comment: 'Commentaire exigence 4'
+        }
+      ];
       
-      // Vérifier les détails d'une exigence enrichie
-      const enrichedExigence = result.find(e => e.id === 'exig-1');
-      expect(enrichedExigence).toBeDefined();
-      expect(enrichedExigence?.checklistItem.consigne).toBe('Utiliser des textes alternatifs');
-      
-      // Vérifier que les exigences sans item correspondant ont un placeholder
-      const missingItemExigence = result.find(e => e.id === 'exig-3');
-      expect(missingItemExigence).toBeDefined();
-      expect(missingItemExigence?.checklistItem.consigne).toBe('Item inconnu');
+      // Le résultat devrait contenir undefined pour l'item non trouvé
+      const result = enrichExigencesWithItems(exigencesSansItem, checklistItems);
+      expect(result).toHaveLength(1);
+      expect(result[0].checklistItem).toBeUndefined();
     });
   });
-
-  // Données d'exemple pour les tests suivants
-  const enrichedExigences: ExigenceWithItem[] = enrichExigencesWithItems(exigences, checklistItems);
-
+  
   describe('filterExigences', () => {
-    it('devrait filtrer par niveau d\'importance', () => {
-      const result = filterExigences(enrichedExigences, { importance: ImportanceLevel.Major });
+    it('doit filtrer les exigences par importance', () => {
+      const filters = { importance: ImportanceLevel.MAJOR };
+      const result = filterExigences(enrichedExigences, filters);
+      
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('exig-1');
+      expect(result[0].id).toBe('exigence1');
     });
-
-    it('devrait filtrer par catégorie', () => {
-      const result = filterExigences(enrichedExigences, { category: 'Performance' });
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('exig-2');
+    
+    it('doit filtrer les exigences par catégorie', () => {
+      const filters = { category: 'UX' };
+      const result = filterExigences(enrichedExigences, filters);
+      
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('exigence1');
+      expect(result[1].id).toBe('exigence3');
     });
-
-    it('devrait filtrer par texte', () => {
-      const result = filterExigences(enrichedExigences, { search: 'accessibilité' });
+    
+    it('doit filtrer les exigences par sous-catégorie', () => {
+      const filters = { subcategory: 'Performance' };
+      const result = filterExigences(enrichedExigences, filters);
+      
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('exig-1');
+      expect(result[0].id).toBe('exigence2');
+    });
+    
+    it('doit filtrer les exigences par recherche textuelle', () => {
+      const filters = { search: 'item 2' };
+      const result = filterExigences(enrichedExigences, filters);
+      
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('exigence2');
+    });
+    
+    it('doit combiner plusieurs filtres', () => {
+      const filters = { category: 'UX', importance: ImportanceLevel.MAJOR };
+      const result = filterExigences(enrichedExigences, filters);
+      
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('exigence1');
     });
   });
-
+  
   describe('sortExigences', () => {
-    it('devrait trier par importance descendante', () => {
+    it('doit trier les exigences par importance (décroissante)', () => {
       const result = sortExigences(enrichedExigences, 'importance_desc');
-      expect(result.map(e => e.id)).toEqual(['exig-1', 'exig-2', 'exig-3']);
+      
+      expect(result[0].importance).toBe(ImportanceLevel.MAJOR);
+      expect(result[1].importance).toBe(ImportanceLevel.MEDIUM);
+      expect(result[2].importance).toBe(ImportanceLevel.N_A);
     });
-
-    it('devrait trier par importance ascendante', () => {
+    
+    it('doit trier les exigences par importance (croissante)', () => {
       const result = sortExigences(enrichedExigences, 'importance_asc');
-      expect(result.map(e => e.id)).toEqual(['exig-3', 'exig-2', 'exig-1']);
+      
+      expect(result[0].importance).toBe(ImportanceLevel.N_A);
+      expect(result[1].importance).toBe(ImportanceLevel.MEDIUM);
+      expect(result[2].importance).toBe(ImportanceLevel.MAJOR);
     });
-
-    it('devrait trier par catégorie ascendante', () => {
+    
+    it('doit trier les exigences par catégorie (A-Z)', () => {
       const result = sortExigences(enrichedExigences, 'category_asc');
-      // Noter que l'exigence avec l'item manquant aura 'Non catégorisé' comme catégorie
-      expect(result.map(e => e.checklistItem.category)).toEqual([
-        'Accessibilité', 
-        'Non catégorisé', 
-        'Performance'
-      ]);
+      
+      expect(result[0].checklistItem?.category).toBe('Technique');
+      expect(result[1].checklistItem?.category).toBe('UX');
+      expect(result[2].checklistItem?.category).toBe('UX');
+    });
+    
+    it('doit trier les exigences par catégorie (Z-A)', () => {
+      const result = sortExigences(enrichedExigences, 'category_desc');
+      
+      expect(result[0].checklistItem?.category).toBe('UX');
+      expect(result[1].checklistItem?.category).toBe('UX');
+      expect(result[2].checklistItem?.category).toBe('Technique');
     });
   });
-
-  describe('extractUniqueCategories', () => {
-    it('devrait extraire les catégories uniques', () => {
-      const result = extractUniqueCategories(enrichedExigences);
-      expect(result).toHaveLength(3);
-      expect(result).toContain('Accessibilité');
-      expect(result).toContain('Performance');
-      expect(result).toContain('Non catégorisé');
+  
+  describe('groupExigencesByCategory', () => {
+    it('doit regrouper les exigences par catégorie', () => {
+      const result = groupExigencesByCategory(enrichedExigences);
+      
+      expect(Object.keys(result)).toHaveLength(2);
+      expect(result['UX']).toHaveLength(2);
+      expect(result['Technique']).toHaveLength(1);
+    });
+    
+    it('doit gérer le cas où aucune exigence n\'a de catégorie', () => {
+      const exigencesSansCategorie = [
+        {
+          ...enrichedExigences[0],
+          checklistItem: { ...checklistItems[0], category: undefined }
+        }
+      ];
+      
+      const result = groupExigencesByCategory(exigencesSansCategorie);
+      
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(result['Non catégorisé']).toHaveLength(1);
     });
   });
-
-  describe('extractUniqueSubcategories', () => {
-    it('devrait extraire les sous-catégories uniques', () => {
-      const result = extractUniqueSubcategories(enrichedExigences);
-      expect(result).toHaveLength(3);
-      expect(result).toContain('Images');
-      expect(result).toContain('Médias');
-      expect(result).toContain('Non catégorisé');
-    });
-  });
-
-  describe('getExigenceStats', () => {
-    it('devrait calculer les statistiques des exigences', () => {
-      const stats = getExigenceStats(enrichedExigences);
+  
+  describe('countExigencesByImportance', () => {
+    it('doit compter les exigences par niveau d\'importance', () => {
+      const result = countExigencesByImportance(enrichedExigences);
       
-      // Vérifier le total
-      expect(stats.total).toBe(3);
-      
-      // Vérifier les exigences par niveau d'importance
-      expect(stats.byImportance[ImportanceLevel.Major]).toBe(1);
-      expect(stats.byImportance[ImportanceLevel.Medium]).toBe(1);
-      expect(stats.byImportance[ImportanceLevel.Minor]).toBe(1);
-      expect(stats.byImportance[ImportanceLevel.N_A]).toBe(0);
-      
-      // Vérifier le nombre d'exigences applicables
-      expect(stats.applicable).toBe(3);
+      expect(result[ImportanceLevel.MAJOR]).toBe(1);
+      expect(result[ImportanceLevel.MEDIUM]).toBe(1);
+      expect(result[ImportanceLevel.N_A]).toBe(1);
+      expect(result[ImportanceLevel.MINOR]).toBe(0);
+      expect(result[ImportanceLevel.IMPORTANT]).toBe(0);
     });
   });
 });

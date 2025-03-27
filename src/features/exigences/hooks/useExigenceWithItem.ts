@@ -25,12 +25,18 @@ export function useExigenceWithItem(exigenceId: string) {
     if (exigence && checklistItem) {
       const enriched = enrichExigencesWithItems([exigence], [checklistItem])[0];
       setExigenceWithItem(enriched);
+    } else if (exigence) {
+      // Si l'item n'est pas trouvé, on crée quand même l'exigence enrichie avec un item undefined
+      setExigenceWithItem({
+        ...exigence,
+        checklistItem: undefined
+      });
     }
   }, [exigence, checklistItem]);
 
   return {
     data: exigenceWithItem,
-    isLoading: isLoadingExigence || isLoadingItem,
+    isLoading: isLoadingExigence || (exigence && isLoadingItem),
     error: exigenceError || itemError
   };
 }

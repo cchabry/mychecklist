@@ -1,212 +1,203 @@
+
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { PageHeader } from '@/components/layout';
 import { 
-  useExigences,
-  enrichExigencesWithItems,
+  useExigences, 
+  ExigenceFilter, 
+  ExigenceCard,
   filterExigences,
   sortExigences,
-  extractUniqueCategories,
-  extractUniqueSubcategories,
-  ExigenceFilters,
-  ExigenceSortOption,
-  EXIGENCE_SORT_OPTIONS,
-  ExigenceCard,
-  ExigenceFilter
+  enrichExigencesWithItems,
+  ExigenceWithItem,
+  ExigenceSortOption
 } from '@/features/exigences';
-import { useChecklistItems } from '@/features/checklist/hooks';
-import { 
+import { useChecklistItems } from '@/features/checklist';
+import { useProjectById } from '@/hooks/useProjectById';
+import { PageHeader } from '@/components/layout';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Info, List, PlusCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { PlusCircle, List, Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ImportanceLevel } from '@/types/enums';
+import { extractUniqueCategories, extractUniqueSubcategories } from '@/features/checklist';
 
 /**
- * Page des exigences d'un projet
+ * Page affichant les exigences d'un projet
  */
 const ProjectExigencesPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   
+  // Récupérer les données du projet et des exigences
+  const { data: project, isLoading: isLoadingProject } = useProjectById(projectId || '');
+  const { data: exigences = [], isLoading: isLoadingExigences } = useExigences(projectId || '');
+  const { data: checklistItems = [], isLoading: isLoadingChecklist } = useChecklistItems();
+  
   // État des filtres et du tri
-  const [filters, setFilters] = useState<ExigenceFilters>({});
+  const [filters, setFilters] = useState({ search: '' });
   const [sortOption, setSortOption] = useState<ExigenceSortOption>('importance_desc');
   
-  // Récupérer les exigences du projet
-  const { data: exigences = [], isLoading: isLoadingExigences, error: exigencesError } = useExigences(projectId || '');
+  // Enrichir les exigences avec les informations des items de checklist
+  const exigencesWithItems = useMemo<ExigenceWithItem[]>(() => {
+    if (exigences.length === 0 || checklistItems.length === 0) return [];
+    return enrichExigencesWithItems(exigences, checklistItems);
+  }, [exigences, checklistItems]);
   
-  // Récupérer les items de checklist pour enrichir les exigences
-  const { data: checklistItems = [], isLoading: isLoadingItems } = useChecklistItems();
-  
-  // Enrichir les exigences avec les détails des items de checklist
-  const exigencesWithItems = useMemo(() => 
-    enrichExigencesWithItems(exigences, checklistItems),
-    [exigences, checklistItems]
-  );
+  // Filtrer et trier les exigences
+  const filteredExigences = useMemo(() => {
+    let filtered = filterExigences(exigencesWithItems, filters);
+    filtered = sortExigences(filtered, sortOption);
+    return filtered;
+  }, [exigencesWithItems, filters, sortOption]);
   
   // Extraire les valeurs uniques pour les filtres
   const categories = useMemo(() => 
-    extractUniqueCategories(exigencesWithItems),
-    [exigencesWithItems]
+    extractUniqueCategories(checklistItems),
+    [checklistItems]
   );
   
-  const subcategories = useMemo(() => {
-    if (filters.category) {
-      return extractUniqueSubcategories(
-        exigencesWithItems.filter(item => item.checklistItem.category === filters.category)
-      );
-    }
-    return extractUniqueSubcategories(exigencesWithItems);
-  }, [exigencesWithItems, filters.category]);
-  
-  // Filtrer et trier les exigences
-  const filteredExigences = useMemo(() => 
-    sortExigences(
-      filterExigences(exigencesWithItems, filters),
-      sortOption
-    ),
-    [exigencesWithItems, filters, sortOption]
+  const subcategories = useMemo(() => 
+    extractUniqueSubcategories(checklistItems),
+    [checklistItems]
   );
   
-  // État de chargement combiné
-  const isLoading = isLoadingExigences || isLoadingItems;
+  // Calculer les statistiques des exigences
+  const stats = useMemo(() => {
+    const total = exigences.length;
+    const byImportance = {
+      [ImportanceLevel.MAJOR]: exigences.filter(e => e.importance === ImportanceLevel.MAJOR).length,
+      [ImportanceLevel.IMPORTANT]: exigences.filter(e => e.importance === ImportanceLevel.IMPORTANT).length,
+      [ImportanceLevel.MEDIUM]: exigences.filter(e => e.importance === ImportanceLevel.MEDIUM).length,
+      [ImportanceLevel.MINOR]: exigences.filter(e => e.importance === ImportanceLevel.MINOR).length,
+      [ImportanceLevel.N_A]: exigences.filter(e => e.importance === ImportanceLevel.N_A).length,
+    };
+    
+    return { total, byImportance };
+  }, [exigences]);
   
-  // Gestion des erreurs
-  if (exigencesError) {
-    return (
-      <div>
-        <PageHeader 
-          title="Exigences du projet" 
-          description="Gestion des exigences et critères d'évaluation"
-        />
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-red-500 flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              Erreur
-            </CardTitle>
-            <CardDescription>
-              Impossible de charger les exigences du projet. Veuillez réessayer plus tard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-sm bg-muted p-2 rounded-md overflow-auto">
-              {exigencesError instanceof Error ? exigencesError.message : String(exigencesError)}
-            </pre>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Déterminer si les données sont en cours de chargement
+  const isLoading = isLoadingProject || isLoadingExigences || isLoadingChecklist;
   
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader 
-        title="Exigences du projet" 
-        description="Gestion des exigences et critères d'évaluation"
+        title={`Exigences${project ? ` : ${project.name}` : ''}`}
+        description="Définition des exigences du projet basées sur les items du référentiel"
         actions={[
-          <Button key="add-exigence" className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Ajouter une exigence
-          </Button>
+          {
+            icon: <PlusCircle size={16} />,
+            label: "Ajouter une exigence",
+            href: `/projects/${projectId}/exigences/create`,
+            variant: "default"
+          },
+          {
+            icon: <Tag size={16} />,
+            label: "Définir les exigences",
+            href: `/projects/${projectId}/exigences/edit-bulk`,
+            variant: "outline"
+          }
         ]}
       />
       
+      {/* Statistiques des exigences */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="bg-white shadow rounded-lg p-4 md:col-span-5">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Répartition des exigences par niveau d'importance</h3>
+          <div className="flex flex-wrap gap-3">
+            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+              Majeur: {stats.byImportance[ImportanceLevel.MAJOR]}
+            </Badge>
+            <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
+              Important: {stats.byImportance[ImportanceLevel.IMPORTANT]}
+            </Badge>
+            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+              Moyen: {stats.byImportance[ImportanceLevel.MEDIUM]}
+            </Badge>
+            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+              Mineur: {stats.byImportance[ImportanceLevel.MINOR]}
+            </Badge>
+            <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+              Non applicable: {stats.byImportance[ImportanceLevel.N_A]}
+            </Badge>
+            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+              Total: {stats.total}
+            </Badge>
+          </div>
+        </div>
+      </div>
+      
       {/* Filtres et tri */}
-      <div className="grid gap-6 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <ExigenceFilter
-            filters={filters}
-            onFilterChange={setFilters}
-            categories={categories}
-            subcategories={subcategories}
-            className="flex-grow"
-          />
-          
+      <div className="grid gap-6">
+        <ExigenceFilter
+          filters={filters}
+          onFilterChange={setFilters}
+          categories={categories}
+          subcategories={subcategories}
+        />
+        
+        <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Select
               value={sortOption}
               onValueChange={(value) => setSortOption(value as ExigenceSortOption)}
             >
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder="Trier par" />
               </SelectTrigger>
               <SelectContent>
-                {EXIGENCE_SORT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+                <SelectItem value="importance_desc">Importance (haute → basse)</SelectItem>
+                <SelectItem value="importance_asc">Importance (basse → haute)</SelectItem>
+                <SelectItem value="category_asc">Catégorie (A-Z)</SelectItem>
+                <SelectItem value="category_desc">Catégorie (Z-A)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
-        
-        {/* Affichage du nombre de résultats */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <List className="h-4 w-4" />
-          <span>
-            {isLoading 
-              ? 'Chargement des exigences...' 
-              : `${filteredExigences.length} ${filteredExigences.length > 1 ? 'exigences' : 'exigence'} sur ${exigencesWithItems.length} au total`
-            }
-          </span>
+          
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <List className="h-4 w-4" />
+            <span>
+              {isLoading 
+                ? 'Chargement des exigences...' 
+                : `${filteredExigences.length} exigences sur ${exigences.length} au total`
+              }
+            </span>
+          </div>
         </div>
       </div>
       
       {/* Liste des exigences */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Card key={index} className="w-full">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-6 w-3/4" />
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="flex gap-2 mb-3">
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-6 w-20" />
-                </div>
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-3/4" />
-              </CardContent>
-            </Card>
+        <div className="grid gap-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 w-full" />
           ))}
         </div>
       ) : filteredExigences.length === 0 ? (
-        <Card className="p-6 text-center">
-          <CardContent className="pt-6">
-            <p className="text-muted-foreground">
-              Aucune exigence ne correspond aux critères de recherche.
-            </p>
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => setFilters({})}
-            >
-              Réinitialiser les filtres
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune exigence définie</h3>
+          <p className="text-gray-500 mb-6">
+            Commencez par définir les exigences pour ce projet en sélectionnant des items du référentiel.
+          </p>
+          <Button asChild>
+            <a href={`/projects/${projectId}/exigences/create`}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Ajouter une exigence
+            </a>
+          </Button>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid gap-4">
           {filteredExigences.map((exigence) => (
-            <ExigenceCard
-              key={exigence.id}
-              exigence={exigence}
-              onEdit={() => console.log('Edit exigence:', exigence.id)}
-              onClick={() => console.log('View exigence:', exigence.id)}
+            <ExigenceCard 
+              key={exigence.id} 
+              exigence={exigence} 
+              href={`/projects/${projectId}/exigences/${exigence.id}`}
             />
           ))}
         </div>

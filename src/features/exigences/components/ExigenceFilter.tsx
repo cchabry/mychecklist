@@ -1,8 +1,8 @@
+
 /**
  * Composant de filtrage pour les exigences
  */
 
-import React from 'react';
 import { Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { IMPORTANCE_LEVEL_MAPPING } from '../constants';
-import { ExigenceFilters } from '../types';
 import { cn } from '@/lib/utils';
+import { ImportanceLevel } from '@/types/enums';
+import { ExigenceFilters } from '../types';
 
 interface ExigenceFilterProps {
   filters: ExigenceFilters;
@@ -55,9 +55,9 @@ export function ExigenceFilter({
   };
   
   const hasActiveFilters = !!(
-    filters.importance || 
     filters.category || 
-    filters.subcategory
+    filters.subcategory ||
+    filters.importance
   );
   
   return (
@@ -97,14 +97,11 @@ export function ExigenceFilter({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Tous les niveaux</SelectItem>
-                      {Object.entries(IMPORTANCE_LEVEL_MAPPING).map(([key, value]) => (
-                        <SelectItem key={key} value={key}>
-                          <div className="flex items-center gap-2">
-                            <span className={cn("w-2 h-2 rounded-full", value.color.split(' ')[0])} />
-                            {value.label}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      <SelectItem value={ImportanceLevel.MAJOR}>Majeur</SelectItem>
+                      <SelectItem value={ImportanceLevel.IMPORTANT}>Important</SelectItem>
+                      <SelectItem value={ImportanceLevel.MEDIUM}>Moyen</SelectItem>
+                      <SelectItem value={ImportanceLevel.MINOR}>Mineur</SelectItem>
+                      <SelectItem value={ImportanceLevel.N_A}>Non applicable</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

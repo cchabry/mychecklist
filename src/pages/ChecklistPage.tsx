@@ -1,12 +1,14 @@
+
 import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/layout';
 import { 
   useChecklistItems,
+  ChecklistFilter,
   filterChecklistItems,
   sortChecklistItems,
   extractUniqueCategories,
   extractUniqueSubcategories,
-  ChecklistFilter
+  ChecklistSortOption
 } from '@/features/checklist';
 import { 
   Select,
@@ -26,8 +28,8 @@ import { List } from 'lucide-react';
 // Page affichant la checklist complète
 const ChecklistPage = () => {
   // État des filtres et du tri
-  const [filters, setFilters] = useState({ search: '' });
-  const [sortOption, setSortOption] = useState('consigne_asc');
+  const [filters, setFilters] = useState<{ search: string; category?: string; subcategory?: string; priority?: string; effort?: string }>({ search: '' });
+  const [sortOption, setSortOption] = useState<ChecklistSortOption>('consigne_asc');
   
   // Récupérer les items de checklist
   const { data: checklistItems = [], isLoading } = useChecklistItems();
@@ -50,6 +52,11 @@ const ChecklistPage = () => {
     return filtered;
   }, [checklistItems, filters, sortOption]);
 
+  // Gestionnaire de changement de filtre
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
   return (
     <div>
       <PageHeader 
@@ -61,7 +68,7 @@ const ChecklistPage = () => {
       <div className="grid gap-6 mb-6">
         <ChecklistFilter
           filters={filters}
-          onFilterChange={setFilters}
+          onFilterChange={handleFilterChange}
           categories={categories}
           subcategories={subcategories}
         />
@@ -69,7 +76,7 @@ const ChecklistPage = () => {
         <div className="flex items-center gap-2">
           <Select
             value={sortOption}
-            onValueChange={setSortOption}
+            onValueChange={(value) => setSortOption(value as ChecklistSortOption)}
           >
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Trier par" />
