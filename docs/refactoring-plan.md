@@ -175,3 +175,4 @@ Pour minimiser les perturbations pendant le refactoring :
 - Réunion hebdomadaire de suivi du refactoring
 - Mise à jour des priorités et du plan selon les progrès
 - Revue mensuelle des métriques et ajustement des objectifs si nécessaire
+

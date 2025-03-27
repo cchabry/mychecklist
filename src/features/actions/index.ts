@@ -145,3 +145,4 @@ export async function createActionProgress(data: CreateProgressData): Promise<Ac
     throw new Error(`Impossible de créer le progrès: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+

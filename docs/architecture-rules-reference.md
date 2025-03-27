@@ -154,3 +154,4 @@ Les règles d'architecture peuvent évoluer avec le projet. Pour proposer des mo
 2. Décrivez la règle à modifier et sa justification
 3. Proposez une implémentation de la vérification
 4. Soumettez pour revue
+

@@ -36,3 +36,4 @@ Consultez le [guide de développement](./dev-guide.md) pour les conventions de c
 ## Diagrammes
 
 Les [flux de données](./data-flows.md) principaux sont documentés avec des diagrammes Mermaid pour faciliter la compréhension.
+
