@@ -1,4 +1,3 @@
-
 /**
  * Composant de filtrage pour les items de checklist
  */
@@ -19,17 +18,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ChecklistFilters } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
+interface ChecklistFilters {
+  search?: string;
+  category?: string;
+  subcategory?: string;
+  effort?: number;
+  priority?: number;
+}
 
 interface ChecklistFilterProps {
   filters: ChecklistFilters;
   onFilterChange: (filters: ChecklistFilters) => void;
   categories: string[];
   subcategories: string[];
-  profiles: string[];
-  phases: string[];
   className?: string;
 }
 
@@ -41,8 +45,6 @@ export function ChecklistFilter({
   onFilterChange,
   categories,
   subcategories,
-  profiles,
-  phases,
   className,
 }: ChecklistFilterProps) {
   const updateFilter = (key: keyof ChecklistFilters, value: any) => {
@@ -60,11 +62,9 @@ export function ChecklistFilter({
   
   const hasActiveFilters = !!(
     filters.category || 
-    filters.subcategory || 
-    (filters.profile && filters.profile.length > 0) || 
-    (filters.phase && filters.phase.length > 0) || 
-    filters.priority || 
-    filters.effort
+    filters.subcategory ||
+    filters.effort ||
+    filters.priority
   );
   
   return (

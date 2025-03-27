@@ -62,7 +62,15 @@ export async function getExigenceById(id: string): Promise<Exigence | null> {
  */
 export async function createExigence(data: CreateExigenceData): Promise<Exigence> {
   try {
-    return await exigencesApi.createExigence(data);
+    // Conversion du type pour l'API
+    const exigenceData: Omit<Exigence, 'id'> = {
+      projectId: data.projectId,
+      itemId: data.itemId,
+      importance: data.importance,
+      comment: data.comment
+    };
+    
+    return await exigencesApi.createExigence(exigenceData);
   } catch (error) {
     console.error(`Erreur lors de la création de l'exigence:`, error);
     throw new Error(`Impossible de créer l'exigence: ${error instanceof Error ? error.message : String(error)}`);
@@ -84,9 +92,10 @@ export async function updateExigence(id: string, data: UpdateExigenceData): Prom
       throw new Error(`Exigence non trouvée`);
     }
     
-    const updatedExigence = {
+    const updatedExigence: Exigence = {
       ...existingExigence,
-      ...data
+      ...(data.importance !== undefined && { importance: data.importance }),
+      ...(data.comment !== undefined && { comment: data.comment })
     };
     
     return await exigencesApi.updateExigence(updatedExigence);

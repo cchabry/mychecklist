@@ -3,16 +3,12 @@
  * Constantes pour les exigences
  */
 
+import { ImportanceLevel as DomainImportanceLevel } from '@/types/enums';
+
 /**
- * Niveaux d'importance pour les exigences
+ * Réutilisation de l'énumération ImportanceLevel du domaine
  */
-export enum ImportanceLevel {
-  N_A = 'N/A',
-  MINEUR = 'MINEUR',
-  MOYEN = 'MOYEN',
-  IMPORTANT = 'IMPORTANT',
-  MAJEUR = 'MAJEUR'
-}
+export const ImportanceLevel = DomainImportanceLevel;
 
 /**
  * Options de filtrage pour les exigences
@@ -37,27 +33,27 @@ export const EXIGENCE_SORT_OPTIONS = [
  * Mappings des niveaux d'importance
  */
 export const IMPORTANCE_LEVEL_MAPPING = {
-  [ImportanceLevel.N_A]: { 
+  [ImportanceLevel.NotApplicable]: { 
     label: 'Non applicable', 
     color: 'bg-gray-100 text-gray-800',
     description: 'Cette exigence ne s\'applique pas à ce projet'
   },
-  [ImportanceLevel.MINEUR]: { 
+  [ImportanceLevel.Minor]: { 
     label: 'Mineur', 
     color: 'bg-blue-100 text-blue-800',
     description: 'Peu d\'impact sur la qualité globale du projet'
   },
-  [ImportanceLevel.MOYEN]: { 
+  [ImportanceLevel.Medium]: { 
     label: 'Moyen', 
     color: 'bg-yellow-100 text-yellow-800',
     description: 'Impact modéré sur la qualité du projet'
   },
-  [ImportanceLevel.IMPORTANT]: { 
+  [ImportanceLevel.Important]: { 
     label: 'Important', 
     color: 'bg-orange-100 text-orange-800',
     description: 'Impact significatif sur la qualité du projet'
   },
-  [ImportanceLevel.MAJEUR]: { 
+  [ImportanceLevel.Major]: { 
     label: 'Majeur', 
     color: 'bg-red-100 text-red-800',
     description: 'Impact critique sur la qualité et la réussite du projet'

@@ -3,7 +3,7 @@
  * Utilitaires pour les exigences
  */
 
-import { ImportanceLevel } from './constants';
+import { ImportanceLevel } from '@/types/enums';
 import { ExigenceWithItem, ExigenceFilters, Exigence, ExigenceSortOption } from './types';
 import { ChecklistItem } from '@/types/domain';
 
@@ -99,11 +99,11 @@ export function sortExigences(exigences: ExigenceWithItem[], sortOption: Exigenc
   
   // Ordre de priorité des niveaux d'importance
   const importanceOrder = {
-    [ImportanceLevel.MAJEUR]: 5,
-    [ImportanceLevel.IMPORTANT]: 4,
-    [ImportanceLevel.MOYEN]: 3,
-    [ImportanceLevel.MINEUR]: 2,
-    [ImportanceLevel.N_A]: 1
+    [ImportanceLevel.Major]: 5,
+    [ImportanceLevel.Important]: 4,
+    [ImportanceLevel.Medium]: 3,
+    [ImportanceLevel.Minor]: 2,
+    [ImportanceLevel.NotApplicable]: 1
   };
   
   switch (sortOption) {
@@ -164,18 +164,18 @@ export function extractUniqueSubcategories(exigences: ExigenceWithItem[]): strin
 export function getExigenceStats(exigences: ExigenceWithItem[]) {
   const total = exigences.length;
   const byImportance = {
-    [ImportanceLevel.MAJEUR]: 0,
-    [ImportanceLevel.IMPORTANT]: 0,
-    [ImportanceLevel.MOYEN]: 0,
-    [ImportanceLevel.MINEUR]: 0,
-    [ImportanceLevel.N_A]: 0
+    [ImportanceLevel.Major]: 0,
+    [ImportanceLevel.Important]: 0,
+    [ImportanceLevel.Medium]: 0,
+    [ImportanceLevel.Minor]: 0,
+    [ImportanceLevel.NotApplicable]: 0
   };
   
   exigences.forEach(exigence => {
     byImportance[exigence.importance]++;
   });
   
-  const applicable = total - byImportance[ImportanceLevel.N_A];
+  const applicable = total - byImportance[ImportanceLevel.NotApplicable];
   
   return {
     total,

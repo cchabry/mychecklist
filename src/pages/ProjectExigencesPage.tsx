@@ -1,10 +1,8 @@
-
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/layout';
 import { 
   useExigences,
-  useChecklistItems,
   enrichExigencesWithItems,
   filterExigences,
   sortExigences,
@@ -13,10 +11,10 @@ import {
   ExigenceFilters,
   ExigenceSortOption,
   EXIGENCE_SORT_OPTIONS,
-  ImportanceBadge,
   ExigenceCard,
   ExigenceFilter
 } from '@/features/exigences';
+import { useChecklistItems } from '@/features/checklist/hooks';
 import { 
   Select,
   SelectContent,
@@ -117,12 +115,12 @@ const ProjectExigencesPage = () => {
       <PageHeader 
         title="Exigences du projet" 
         description="Gestion des exigences et critères d'évaluation"
-        actions={
-          <Button className="gap-2">
+        actions={[
+          <Button key="add-exigence" className="gap-2">
             <PlusCircle className="h-4 w-4" />
             Ajouter une exigence
           </Button>
-        }
+        ]}
       />
       
       {/* Filtres et tri */}

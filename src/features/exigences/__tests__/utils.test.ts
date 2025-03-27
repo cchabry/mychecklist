@@ -1,4 +1,3 @@
-
 /**
  * Tests unitaires pour les utilitaires d'exigences
  */
@@ -14,7 +13,7 @@ import {
 } from '../utils';
 import { Exigence, ExigenceWithItem } from '../types';
 import { ChecklistItem } from '@/types/domain';
-import { ImportanceLevel } from '../constants';
+import { ImportanceLevel } from '@/types/enums';
 
 describe('Exigences Utils', () => {
   // Exemple de données pour les tests
@@ -50,21 +49,21 @@ describe('Exigences Utils', () => {
       id: 'exig-1',
       projectId: 'project-1',
       itemId: 'item-1',
-      importance: ImportanceLevel.MAJEUR,
+      importance: ImportanceLevel.Major,
       comment: 'Très important pour l\'accessibilité'
     },
     {
       id: 'exig-2',
       projectId: 'project-1',
       itemId: 'item-2',
-      importance: ImportanceLevel.MOYEN,
+      importance: ImportanceLevel.Medium,
       comment: 'Important pour les performances'
     },
     {
       id: 'exig-3',
       projectId: 'project-1',
       itemId: 'item-inconnu',
-      importance: ImportanceLevel.MINEUR,
+      importance: ImportanceLevel.Minor,
       comment: 'Item qui n\'existe plus'
     }
   ];
@@ -93,7 +92,7 @@ describe('Exigences Utils', () => {
 
   describe('filterExigences', () => {
     it('devrait filtrer par niveau d\'importance', () => {
-      const result = filterExigences(enrichedExigences, { importance: ImportanceLevel.MAJEUR });
+      const result = filterExigences(enrichedExigences, { importance: ImportanceLevel.Major });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('exig-1');
     });
@@ -161,9 +160,9 @@ describe('Exigences Utils', () => {
       expect(stats.total).toBe(3);
       
       // Vérifier les exigences par niveau d'importance
-      expect(stats.byImportance[ImportanceLevel.MAJEUR]).toBe(1);
-      expect(stats.byImportance[ImportanceLevel.MOYEN]).toBe(1);
-      expect(stats.byImportance[ImportanceLevel.MINEUR]).toBe(1);
+      expect(stats.byImportance[ImportanceLevel.Major]).toBe(1);
+      expect(stats.byImportance[ImportanceLevel.Medium]).toBe(1);
+      expect(stats.byImportance[ImportanceLevel.Minor]).toBe(1);
       expect(stats.byImportance[ImportanceLevel.N_A]).toBe(0);
       
       // Vérifier le nombre d'exigences applicables

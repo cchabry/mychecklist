@@ -1,10 +1,8 @@
-
 /**
  * Carte affichant les détails d'une exigence
  */
 
-import React from 'react';
-import { Edit, FileText, Info } from 'lucide-react';
+import { Edit, Info } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

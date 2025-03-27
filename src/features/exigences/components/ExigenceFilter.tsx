@@ -1,4 +1,3 @@
-
 /**
  * Composant de filtrage pour les exigences
  */
@@ -20,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { ImportanceLevel, IMPORTANCE_LEVEL_MAPPING } from '../constants';
+import { IMPORTANCE_LEVEL_MAPPING } from '../constants';
 import { ExigenceFilters } from '../types';
 import { cn } from '@/lib/utils';
 

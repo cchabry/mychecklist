@@ -3,10 +3,10 @@
  * Types pour la feature Exigences
  */
 
-import { Exigence, ChecklistItem } from '@/types/domain';
-import { ImportanceLevel } from './constants';
+import { Exigence as DomainExigence, ChecklistItem } from '@/types/domain';
+import { ImportanceLevel } from '@/types/enums';
 
-export type { Exigence };
+export type Exigence = DomainExigence;
 
 /**
  * Type pour les filtres d'exigences
