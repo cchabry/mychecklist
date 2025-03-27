@@ -21,7 +21,7 @@ describe('useOperationMode hook', () => {
   it('devrait refléter les changements de mode', () => {
     const { result } = renderHook(() => useOperationMode());
     
-    // Changer le mode via le service sans réinitialiser d'abord
+    // Changer le mode via le service directement avec la raison "Test hook"
     act(() => {
       operationModeService.enableDemoMode('Test hook');
     });
