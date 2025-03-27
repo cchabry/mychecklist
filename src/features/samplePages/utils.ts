@@ -6,7 +6,7 @@
  */
 
 import { samplePagesApi } from '@/services/notion/api/samplePages';
-import { CreateSamplePageData, SamplePage, UpdateSamplePageData } from './types';
+import { CreateSamplePageData, UpdateSamplePageData } from './types';
 
 /**
  * Récupère les pages d'échantillon d'un projet
