@@ -36,6 +36,7 @@ content = content.replace(/^\uFEFF/, '');
 content = content.replace(/^[\s\u200B\u200C\u200D\uFEFF\xA0\r\n]+/gm, '');
 // Supprimer les shebangs complètement
 content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
+content = content.replace(/^\s*#!.*\s*[\r\n]*/m, '');
 // Convertir les requires CommonJS en import ES Module
 content = content.replace(/const\s*\{\s*([^}]+)\s*\}\s*=\s*require\(['"]([^'"]+)['"]\);?/g, 
 (match, imports, source) => {

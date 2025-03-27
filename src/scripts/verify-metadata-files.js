@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * Script de vérification des fichiers de métadonnées
  * 
