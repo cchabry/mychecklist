@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 
 /**
@@ -105,9 +106,14 @@ function createFileFromTemplate(templatePath: string, outputPath: string, args: 
     let template = fs.readFileSync(templatePath, 'utf8');
 
     // Remplacer les placeholders
-    for (const key in args) {
+    const placeholders: Record<string, string> = {};
+    Object.entries(args).forEach(([key, value]) => {
+      placeholders[key] = value;
+    });
+
+    for (const key in placeholders) {
       const placeholder = new RegExp(`{{${key}}}`, 'g');
-      template = template.replace(placeholder, args[key]);
+      template = template.replace(placeholder, placeholders[key]);
     }
 
     // Écrire le fichier

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 
 /**
@@ -9,7 +10,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import http from 'http';
 import { createServer } from 'http';
 import { URL } from 'url';
 

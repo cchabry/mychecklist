@@ -1,78 +1,93 @@
 
+import { NotionResponse } from '../types';
+
 /**
- * Client Mock pour l'API Notion
+ * Client Notion en mode démonstration
  * 
- * Fournit une implémentation simulée du client Notion pour le mode démo.
- * Ce client ne fait pas de vraies requêtes HTTP mais retourne des données simulées.
- */
-
-import { NotionResponse, ConnectionTestResult } from '../types';
-import { delay } from '@/utils';
-
-/**
- * Client Mock pour l'API Notion
+ * Fournit un client factice qui simule les réponses de l'API Notion
+ * sans effectuer de requêtes réelles. Utile pour les tests et le développement.
  */
 export class NotionMockClient {
   /**
-   * Simule une requête GET vers l'API Notion
+   * Configuration actuelle
    */
-  async get<T>(endpoint: string): Promise<NotionResponse<T>> {
-    return this.simulateRequest<T>();
-  }
+  private config: Record<string, string> | null = null;
   
   /**
-   * Simule une requête POST vers l'API Notion
+   * Délai de simulation (ms)
    */
-  async post<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
-    return this.simulateRequest<T>();
-  }
+  private delay = 300;
   
   /**
-   * Simule une requête PATCH vers l'API Notion
+   * Effectue une requête GET simulée
    */
-  async patch<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
-    return this.simulateRequest<T>();
-  }
-  
-  /**
-   * Simule une requête DELETE vers l'API Notion
-   */
-  async delete<T>(endpoint: string): Promise<NotionResponse<T>> {
-    return this.simulateRequest<T>();
-  }
-  
-  /**
-   * Simule un test de connexion à l'API Notion
-   */
-  async testConnection(): Promise<ConnectionTestResult> {
-    await delay(500);
+  async get<T>(_endpoint: string): Promise<NotionResponse<T>> {
+    await this.simulateDelay();
     
-    return {
-      success: true,
-      user: 'Utilisateur démo',
-      workspaceName: 'Workspace démo',
-      projectsDbName: 'Projets (démo)',
-      checklistsDbName: 'Checklists (démo)'
-    };
-  }
-  
-  /**
-   * Simule une requête HTTP vers l'API Notion
-   */
-  private async simulateRequest<T>(): Promise<NotionResponse<T>> {
-    // Attendre pour simuler une latence réseau
-    await delay(500);
-    
-    // Retourner une réponse simulée
     return {
       success: true,
       data: {} as T
     };
   }
+  
+  /**
+   * Effectue une requête POST simulée
+   */
+  async post<T>(_endpoint: string, _data: unknown): Promise<NotionResponse<T>> {
+    await this.simulateDelay();
+    
+    return {
+      success: true,
+      data: {} as T
+    };
+  }
+  
+  /**
+   * Effectue une requête PATCH simulée
+   */
+  async patch<T>(_endpoint: string, _data: unknown): Promise<NotionResponse<T>> {
+    await this.simulateDelay();
+    
+    return {
+      success: true,
+      data: {} as T
+    };
+  }
+  
+  /**
+   * Effectue une requête DELETE simulée
+   */
+  async delete<T>(_endpoint: string): Promise<NotionResponse<T>> {
+    await this.simulateDelay();
+    
+    return {
+      success: true,
+      data: {} as T
+    };
+  }
+  
+  /**
+   * Définit la configuration
+   */
+  setConfig(config: Record<string, string>) {
+    this.config = config;
+  }
+  
+  /**
+   * Récupère la configuration actuelle
+   */
+  getConfig() {
+    return this.config;
+  }
+  
+  /**
+   * Simule un délai pour mieux représenter les requêtes réseau
+   */
+  private async simulateDelay() {
+    return new Promise(resolve => setTimeout(resolve, this.delay));
+  }
 }
 
-// Exporter une instance singleton
+// Exporter une instance par défaut
 export const notionMockClient = new NotionMockClient();
-
-// Export par défaut
 export default notionMockClient;
