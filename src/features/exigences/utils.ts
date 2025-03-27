@@ -1,151 +1,159 @@
 
 /**
- * Utilitaires pour la gestion des exigences
+ * Utilitaires pour les exigences
  */
 
-import { 
-  Exigence,
-  ExigenceWithItem,
-  ExigenceFilters,
-  ExigenceSortOption
-} from './types';
-import { ChecklistItem } from '@/types/domain';
 import { ImportanceLevel } from '@/types/enums';
+import { ChecklistItem } from '@/types/domain';
+import { Exigence, ExigenceWithItem, ExigenceSortOption, ExigenceFilters, ExigenceStat } from './types';
 
 /**
  * Enrichit les exigences avec les informations des items de checklist associés
+ * 
+ * @param exigences - Liste des exigences
+ * @param checklistItems - Liste des items de checklist
+ * @returns Liste des exigences enrichies
  */
-export function enrichExigencesWithItems(
-  exigences: Exigence[],
-  checklistItems: ChecklistItem[]
-): ExigenceWithItem[] {
+export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: ChecklistItem[]): ExigenceWithItem[] {
   return exigences.map(exigence => {
-    const checklistItem = checklistItems.find(item => item.id === exigence.itemId) || {
-      id: exigence.itemId,
-      consigne: 'Item inconnu',
-      description: 'Cet item n\'existe plus dans la checklist',
-      category: 'Non catégorisé',
-      subcategory: 'Non catégorisé',
-      reference: [],
-      profil: [],
-      phase: [],
-      effort: 0,
-      priority: 0
-    };
+    const item = checklistItems.find(item => item.id === exigence.itemId);
     
     return {
       ...exigence,
-      checklistItem
+      checklistItem: item || {
+        id: exigence.itemId,
+        consigne: 'Item inconnu',
+        description: 'Cet item de checklist n\'existe plus ou n\'est pas accessible',
+        category: 'Non catégorisé',
+        subcategory: 'Non catégorisé',
+        reference: [],
+        profil: [],
+        phase: [],
+        effort: 0,
+        priority: 0
+      }
     };
   });
 }
 
 /**
- * Filtre les exigences selon les critères spécifiés
+ * Filtre une liste d'exigences selon différents critères
+ * 
+ * @param exigences - Liste des exigences à filtrer
+ * @param filters - Critères de filtrage
+ * @returns Liste des exigences filtrées
  */
 export function filterExigences(
-  exigences: ExigenceWithItem[],
+  exigences: ExigenceWithItem[], 
   filters: ExigenceFilters
 ): ExigenceWithItem[] {
   return exigences.filter(exigence => {
-    const { importance, category, subCategory, search } = filters;
+    // Filtre par recherche textuelle (titre, description ou commentaire)
+    const searchMatch = !filters.search || [
+      exigence.checklistItem?.consigne,
+      exigence.checklistItem?.description,
+      exigence.comment
+    ].some(text => 
+      text && text.toLowerCase().includes(filters.search.toLowerCase())
+    );
     
-    // Filtrer par importance
-    if (importance && exigence.importance !== importance) {
-      return false;
-    }
+    // Filtre par importance
+    const importanceMatch = !filters.importance || exigence.importance === filters.importance;
     
-    // Filtrer par catégorie
-    if (category && exigence.checklistItem?.category !== category) {
-      return false;
-    }
+    // Filtre par catégorie
+    const categoryMatch = !filters.category || exigence.checklistItem?.category === filters.category;
     
-    // Filtrer par sous-catégorie
-    if (subCategory && exigence.checklistItem?.subcategory !== subCategory) {
-      return false;
-    }
+    // Filtre par sous-catégorie
+    const subCategoryMatch = !filters.subCategory || exigence.checklistItem?.subcategory === filters.subCategory;
     
-    // Filtrer par recherche textuelle
-    if (search) {
-      const searchLower = search.toLowerCase();
-      const matchesConsigne = exigence.checklistItem?.consigne.toLowerCase().includes(searchLower);
-      const matchesDescription = exigence.checklistItem?.description.toLowerCase().includes(searchLower);
-      const matchesComment = exigence.comment?.toLowerCase().includes(searchLower);
-      
-      if (!matchesConsigne && !matchesDescription && !matchesComment) {
-        return false;
-      }
-    }
-    
-    return true;
+    return searchMatch && importanceMatch && categoryMatch && subCategoryMatch;
   });
 }
 
 /**
- * Trie les exigences selon l'option spécifiée
+ * Trie une liste d'exigences selon différents critères
+ * 
+ * @param exigences - Liste des exigences à trier
+ * @param sortOption - Option de tri
+ * @returns Liste des exigences triées
  */
 export function sortExigences(
-  exigences: ExigenceWithItem[],
+  exigences: ExigenceWithItem[], 
   sortOption: ExigenceSortOption
 ): ExigenceWithItem[] {
-  const sortedExigences = [...exigences];
+  const sorted = [...exigences];
   
   switch (sortOption) {
     case 'importance_desc':
-      return sortedExigences.sort((a, b) => {
-        const order = { 
-          [ImportanceLevel.Major]: 5, 
-          [ImportanceLevel.Important]: 4, 
-          [ImportanceLevel.Medium]: 3, 
-          [ImportanceLevel.Minor]: 2, 
-          [ImportanceLevel.NotApplicable]: 1 
-        };
-        return (order[b.importance] || 0) - (order[a.importance] || 0);
-      });
-      
+      return sorted.sort((a, b) => importanceToValue(b.importance) - importanceToValue(a.importance));
+    
     case 'importance_asc':
-      return sortedExigences.sort((a, b) => {
-        const order = { 
-          [ImportanceLevel.Major]: 5, 
-          [ImportanceLevel.Important]: 4, 
-          [ImportanceLevel.Medium]: 3, 
-          [ImportanceLevel.Minor]: 2, 
-          [ImportanceLevel.NotApplicable]: 1 
-        };
-        return (order[a.importance] || 0) - (order[b.importance] || 0);
-      });
-      
+      return sorted.sort((a, b) => importanceToValue(a.importance) - importanceToValue(b.importance));
+    
     case 'category_asc':
-      return sortedExigences.sort((a, b) => {
-        const categoryA = a.checklistItem?.category || '';
-        const categoryB = b.checklistItem?.category || '';
-        return categoryA.localeCompare(categoryB);
+      return sorted.sort((a, b) => {
+        const catA = a.checklistItem?.category || '';
+        const catB = b.checklistItem?.category || '';
+        return catA.localeCompare(catB);
       });
-      
+    
     case 'category_desc':
-      return sortedExigences.sort((a, b) => {
-        const categoryA = a.checklistItem?.category || '';
-        const categoryB = b.checklistItem?.category || '';
-        return categoryB.localeCompare(categoryA);
+      return sorted.sort((a, b) => {
+        const catA = a.checklistItem?.category || '';
+        const catB = b.checklistItem?.category || '';
+        return catB.localeCompare(catA);
       });
-      
+    
     default:
-      return sortedExigences;
+      return sorted;
   }
 }
 
 /**
- * Calcule des statistiques sur les exigences
+ * Calcule les statistiques pour un ensemble d'exigences
+ * 
+ * @param exigences - Liste des exigences
+ * @returns Statistiques calculées
  */
-export function calculateExigenceStats(exigences: Exigence[]) {
-  const total = exigences.length;
-  const byImportance = {
-    [ImportanceLevel.Major]: exigences.filter(e => e.importance === ImportanceLevel.Major).length,
-    [ImportanceLevel.Important]: exigences.filter(e => e.importance === ImportanceLevel.Important).length,
-    [ImportanceLevel.Medium]: exigences.filter(e => e.importance === ImportanceLevel.Medium).length,
-    [ImportanceLevel.Minor]: exigences.filter(e => e.importance === ImportanceLevel.Minor).length,
-    [ImportanceLevel.NotApplicable]: exigences.filter(e => e.importance === ImportanceLevel.NotApplicable).length,
+export function calculateExigenceStats(exigences: ExigenceWithItem[]): ExigenceStat {
+  const stats: ExigenceStat = {
+    total: exigences.length,
+    byImportance: {
+      [ImportanceLevel.NA]: 0,
+      [ImportanceLevel.Minor]: 0,
+      [ImportanceLevel.Medium]: 0,
+      [ImportanceLevel.Important]: 0,
+      [ImportanceLevel.Major]: 0
+    }
   };
   
-  return { total, byImportance };
+  // Compter les exigences par niveau d'importance
+  exigences.forEach(exigence => {
+    stats.byImportance[exigence.importance]++;
+  });
+  
+  return stats;
+}
+
+/**
+ * Convertit un niveau d'importance en valeur numérique pour le tri
+ * 
+ * @param importance - Niveau d'importance
+ * @returns Valeur numérique correspondante
+ */
+function importanceToValue(importance: ImportanceLevel): number {
+  switch (importance) {
+    case ImportanceLevel.NA:
+      return 0;
+    case ImportanceLevel.Minor:
+      return 1;
+    case ImportanceLevel.Medium:
+      return 2;
+    case ImportanceLevel.Important:
+      return 3;
+    case ImportanceLevel.Major:
+      return 4;
+    default:
+      return -1;
+  }
 }

@@ -8,6 +8,7 @@ import {
   filterExigences,
   sortExigences,
   enrichExigencesWithItems,
+  calculateExigenceStats
 } from '../utils';
 import { ExigenceWithItem } from '../types';
 import { ImportanceLevel } from '@/types/enums';
@@ -169,12 +170,40 @@ describe('Exigence Utils', () => {
 
     it('devrait trier par catégorie ascendante', () => {
       const result = sortExigences(exigences, 'category_asc');
-      expect(result.map(e => e.checklistItem?.category)).toEqual(['Accessibilité', 'Accessibilité', 'Performance']);
+      // Using optional chaining to handle potentially undefined checklistItem
+      const categories = result.map(e => e.checklistItem?.category);
+      expect(categories).toEqual(['Accessibilité', 'Accessibilité', 'Performance']);
     });
 
     it('devrait trier par catégorie descendante', () => {
       const result = sortExigences(exigences, 'category_desc');
-      expect(result.map(e => e.checklistItem?.category)).toEqual(['Performance', 'Accessibilité', 'Accessibilité']);
+      // Using optional chaining to handle potentially undefined checklistItem
+      const categories = result.map(e => e.checklistItem?.category);
+      expect(categories).toEqual(['Performance', 'Accessibilité', 'Accessibilité']);
+    });
+  });
+  
+  describe('calculateExigenceStats', () => {
+    it('devrait calculer correctement les statistiques', () => {
+      const stats = calculateExigenceStats(exigences);
+      
+      expect(stats.total).toBe(3);
+      expect(stats.byImportance[ImportanceLevel.Major]).toBe(1);
+      expect(stats.byImportance[ImportanceLevel.Important]).toBe(1);
+      expect(stats.byImportance[ImportanceLevel.Medium]).toBe(1);
+      expect(stats.byImportance[ImportanceLevel.Minor]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.NA]).toBe(0);
+    });
+    
+    it('devrait gérer un tableau vide', () => {
+      const stats = calculateExigenceStats([]);
+      
+      expect(stats.total).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.Major]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.Important]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.Medium]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.Minor]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.NA]).toBe(0);
     });
   });
 });
