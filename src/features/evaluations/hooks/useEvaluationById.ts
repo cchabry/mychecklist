@@ -10,7 +10,7 @@ import { notionApi } from '@/services/api';
  * Hook pour récupérer une évaluation par son ID
  * 
  * @param id - Identifiant de l'évaluation à récupérer
- * @returns Résultat de la requête contenant l'évaluation
+ * @returns Résultat de la requête contenant l'évaluation ou null si non trouvée
  */
 export function useEvaluationById(id?: string) {
   return useQuery({
