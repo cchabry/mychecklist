@@ -96,8 +96,7 @@ class NotionEvaluationApi implements EvaluationApi {
     const response = await evaluationService.deleteEvaluation(id);
     
     if (!response.success) {
-      // Utiliser exactement le message attendu dans le test
-      throw new Error(response.error?.message || 'Erreur lors de la suppression de l\'évaluation');
+      throw new Error('Erreur lors de la suppression de l\'évaluation');
     }
     
     return response.data ?? false;

@@ -1,87 +1,31 @@
 
 /**
- * Types pour les services d'actions correctives
+ * Types pour les services d'actions et de progrès
  */
 
-import { ActionStatus, ComplianceStatus, ActionPriority } from '@/types/domain/actionStatus';
-import { CorrectiveAction, ActionProgress } from '@/types/domain';
-import { NotionError } from '../types';
+import { ComplianceLevel, StatusType, PriorityLevel } from '@/types/enums';
 
 /**
- * Type de réponse pour une liste d'actions correctives
- */
-export interface ActionListResponse {
-  success: boolean;
-  data?: CorrectiveAction[];
-  error?: NotionError;
-}
-
-/**
- * Type de réponse pour une action corrective unique
- */
-export interface ActionResponse {
-  success: boolean;
-  data?: CorrectiveAction;
-  error?: NotionError;
-}
-
-/**
- * Type de réponse pour la suppression d'une action
- */
-export interface ActionDeleteResponse {
-  success: boolean;
-  data?: boolean;
-  error?: NotionError;
-}
-
-/**
- * Type pour la création d'une action corrective
+ * Interface pour les données de création d'une action
  */
 export interface CreateActionInput {
   evaluationId: string;
-  targetScore: ComplianceStatus | number;
-  priority: ActionPriority | number;
+  targetScore: ComplianceLevel;
+  priority: PriorityLevel;
   dueDate: string;
   responsible: string;
   comment?: string;
-  status: ActionStatus | number;
+  status: StatusType;
 }
 
 /**
- * Type de réponse pour une liste de progrès d'action
- */
-export interface ProgressListResponse {
-  success: boolean;
-  data?: ActionProgress[];
-  error?: NotionError;
-}
-
-/**
- * Type de réponse pour un progrès d'action unique
- */
-export interface ProgressResponse {
-  success: boolean;
-  data?: ActionProgress;
-  error?: NotionError;
-}
-
-/**
- * Type de réponse pour la suppression d'un progrès d'action
- */
-export interface ProgressDeleteResponse {
-  success: boolean;
-  data?: boolean;
-  error?: NotionError;
-}
-
-/**
- * Type pour la création d'un progrès d'action
+ * Interface pour les données de création d'un progrès
  */
 export interface CreateProgressInput {
   actionId: string;
   date: string;
   responsible: string;
   comment?: string;
-  score: ComplianceStatus | number;
-  status: ActionStatus | number;
+  score: ComplianceLevel; // Utilisation de ComplianceLevel enum, pas number
+  status: StatusType;
 }

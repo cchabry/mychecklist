@@ -1,55 +1,46 @@
 
 /**
- * Mappeurs pour transformer les données de progrès d'actions correctives
+ * Mappers pour les données de progrès d'actions
  */
 
-import { 
-  ActionProgress, 
-  ComplianceStatus, 
-  ActionStatus,
-  complianceStatusToLevel,
-  actionStatusToType
-} from '@/types/domain';
+import { v4 as uuidv4 } from 'uuid';
+import { ActionProgress } from '@/types/domain';
+import { ComplianceLevel, StatusType } from '@/types/enums';
 import { CreateProgressInput } from './types';
 
 /**
- * Classe utilitaire pour les transformations de données de progrès d'actions
+ * Fonctions utilitaires pour mapper les données de progrès
  */
-class ProgressMappers {
+export const progressMappers = {
   /**
-   * Transforme les données d'entrée en un progrès d'action
-   */
-  mapInputToProgress(input: CreateProgressInput): ActionProgress {
-    return {
-      ...input,
-      id: `progress-${Date.now()}`,
-      score: typeof input.score === 'number' 
-        ? complianceStatusToLevel[input.score as ComplianceStatus] 
-        : complianceStatusToLevel[input.score],
-      status: typeof input.status === 'number' 
-        ? actionStatusToType[input.status as ActionStatus] 
-        : actionStatusToType[input.status]
-    };
-  }
-
-  /**
-   * Crée un progrès fictif pour les tests ou le mode démo
+   * Crée un progrès simulé avec l'ID spécifié
    */
   createMockProgress(id: string): ActionProgress {
     return {
       id,
-      actionId: 'mock-action',
+      actionId: 'action-123',
       date: new Date().toISOString(),
-      responsible: 'Jane Doe',
-      comment: "Progrès sur l'action corrective",
-      score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
-      status: actionStatusToType[ActionStatus.InProgress]
+      responsible: 'John Doe',
+      comment: 'Progrès simulé',
+      score: ComplianceLevel.PartiallyCompliant,
+      status: StatusType.InProgress
+    };
+  },
+
+  /**
+   * Transforme les données d'entrée en objet ActionProgress
+   */
+  mapInputToProgress(input: CreateProgressInput): ActionProgress {
+    return {
+      id: `progress-${uuidv4()}`,
+      actionId: input.actionId,
+      date: input.date,
+      responsible: input.responsible,
+      comment: input.comment,
+      score: input.score, // Utilisation du ComplianceLevel de l'entrée
+      status: input.status
     };
   }
-}
+};
 
-// Exporter une instance singleton
-export const progressMappers = new ProgressMappers();
-
-// Export par défaut
 export default progressMappers;
