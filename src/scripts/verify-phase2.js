@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de vérification spécifique pour la phase 2
@@ -22,7 +23,7 @@ if (!fs.existsSync(REPORTS_DIR)) {
 
 try {
   console.log('Exécution de la vérification de la phase 2...');
-  // Modifié pour utiliser node au lieu de ts-node
+  // Utiliser node au lieu de ts-node
   execSync('node src/scripts/verify-architecture-phase.js --phase=2', { 
     stdio: 'inherit',
     cwd: path.resolve(__dirname, '../..')

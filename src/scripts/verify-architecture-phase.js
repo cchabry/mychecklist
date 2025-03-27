@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de vérification des phases d'architecture
@@ -215,9 +216,9 @@ function verifyUtilsDuplication() {
       exportedFunctions[feature] = new Set();
       
       // Extraire les définitions de fonctions exportées
-      const functionMatches = content.matchAll(/export (?:const|function) (\w+)/g);
+      const functionMatches = Array.from(content.matchAll(/export (?:const|function) (\w+)/g));
       
-      for (const match of Array.from(functionMatches)) {
+      for (const match of functionMatches) {
         const funcName = match[1];
         exportedFunctions[feature].add(funcName);
         
