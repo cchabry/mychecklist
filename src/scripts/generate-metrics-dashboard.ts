@@ -1,5 +1,14 @@
-import { fileURLToPath } from 'url';
 #!/usr/bin/env node
+
+/**
+* Script de génération du tableau de bord des métriques
+* 
+* Ce script crée un tableau de bord visuel des métriques d'architecture
+* pour suivre l'évolution de la qualité du code.
+*/
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,8 +19,6 @@ const __dirname = path.dirname(__filename);
 * Ce script génère un tableau de bord HTML interactif à partir des métriques
 * architecturales générées par le script architecture-metrics.ts.
 */
-import fs from 'fs';
-import path from 'path';
 import chalk from 'chalk';
 import { getArchitectureTrends, getMetricsVariations } from '../utils/tracking/architecture-tracker';
 import { 

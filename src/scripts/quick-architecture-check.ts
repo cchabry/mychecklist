@@ -1,18 +1,18 @@
-import { fileURLToPath } from 'url';
 #!/usr/bin/env node
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
 * Script de vérification rapide de l'architecture
 * 
-* Version allégée du script d'analyse pour une exécution rapide
-* lors des hooks pre-commit.
+* Ce script effectue une analyse rapide des fichiers modifiés
+* pour vérifier leur conformité aux règles d'architecture.
 */
-import path from 'path';
 import fs from 'fs';
-import chalk from 'chalk';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Chemins principaux
 // ROOT_DIR est déclaré mais pas utilisé - on le garde pour une utilisation future
 const ROOT_DIR = path.resolve(__dirname, '../..');
@@ -20,6 +20,7 @@ const SRC_DIR = path.join(ROOT_DIR, 'src');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 // Seuils de qualité
 // MAX_ISSUES_ALLOWED est supprimé car non utilisé
+
 /**
 * Vérifie les imports interdits
 */

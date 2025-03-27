@@ -1,21 +1,24 @@
-import { fileURLToPath } from 'url';
 #!/usr/bin/env node
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
 * Script d'analyse architecturale
 * 
-* Ce script analyse la structure du code et vérifie sa conformité
+* Ce script analyse la structure du code et v��rifie sa conformité
 * avec l'architecture définie. Il identifie les écarts et génère
 * un rapport détaillé.
 */
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import chalk from 'chalk';
+
+// Obtenir l'équivalent de __dirname pour les modules ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Chemin principal pour les features
 const FEATURES_DIR = path.resolve(__dirname, '../features');
+
 // Structure attendue pour une feature
 const EXPECTED_FEATURE_STRUCTURE = [
 'components/index.ts',
@@ -25,6 +28,7 @@ const EXPECTED_FEATURE_STRUCTURE = [
 'constants.ts',
 'index.ts'
 ];
+
 // Patterns d'export attendus
 const EXPECTED_EXPORTS = {
 feature: [
@@ -37,12 +41,14 @@ feature: [
 componentIndex: [/export \* from/],
 hookIndex: [/export \{ .+ \} from/]
 };
+
 // Statistiques globales
 const stats = {
 totalFeatures: 0,
 compliantFeatures: 0,
 issues: [] as string[]
 };
+
 /**
 * Analyse une feature et vérifie sa conformité
 */
@@ -85,6 +91,7 @@ stats.issues.push(`${featureName}: ${missingFiles.length} fichiers manquants`);
 }
 return isCompliant;
 }
+
 /**
 * Point d'entrée principal
 */

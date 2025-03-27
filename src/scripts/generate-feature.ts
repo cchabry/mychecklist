@@ -1,151 +1,163 @@
-import { fileURLToPath } from 'url';
 #!/usr/bin/env node
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
 * Script de génération de feature
 * 
-* Ce script génère une nouvelle feature conforme à l'architecture
-* à partir des templates.
+* Ce script crée la structure complète d'une nouvelle feature
+* selon les standards d'architecture du projet.
 */
 import fs from 'fs';
 import path from 'path';
-import readline from 'readline';
-const TEMPLATES_DIR = path.resolve(__dirname, '../templates/feature');
-const FEATURES_DIR = path.resolve(__dirname, '../features');
-// Interface pour les entrées utilisateur
-interface FeatureInfo {
-featureName: string;
-featureDescription: string;
-entityName: string;
-entityNamePlural: string;
-entityType: string;
-apiService: string;
-apiServicePath: string;
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Interface pour les arguments de la ligne de commande
+interface Arguments {
+  featureName: string;
+  entityName: string;
+  entityNamePlural: string;
+  entityDescription: string;
+  apiService: string;
+  apiServicePath: string;
 }
-// Créer l'interface de ligne de commande
-const rl = readline.createInterface({
-input: process.stdin,
-output: process.stdout
-});
+
 /**
-* Capitalise la première lettre d'une chaîne
-*/
-function capitalize(str: string): string {
-return str.charAt(0).toUpperCase() + str.slice(1);
+ * Affiche l'aide en ligne
+ */
+function displayHelp() {
+  console.log(`
+  Usage: generate-feature --featureName <featureName> --entityName <entityName> --entityNamePlural <entityNamePlural> --entityDescription <entityDescription> --apiService <apiService> --apiServicePath <apiServicePath>
+
+  Options:
+    --featureName         Nom de la feature (ex: Projects)
+    --entityName          Nom de l'entité (ex: Project)
+    --entityNamePlural    Nom de l'entité au pluriel (ex: Projects)
+    --entityDescription   Description de l'entité (ex: les projets)
+    --apiService          Nom du service API (ex: projectsApi)
+    --apiServicePath      Chemin du service API (ex: projects)
+    --help                Affiche cette aide
+  `);
 }
+
 /**
-* Remplace les placeholders dans un contenu de template
-*/
-function replaceTemplateVariables(content: string, info: FeatureInfo): string {
-return content
-.replace(/\{\{featureName\}\}/g, info.featureName)
-.replace(/\{\{featureDescription\}\}/g, info.featureDescription)
-.replace(/\{\{entityName\}\}/g, info.entityName)
-.replace(/\{\{entityNamePlural\}\}/g, info.entityNamePlural)
-.replace(/\{\{entityType\}\}/g, info.entityType)
-.replace(/\{\{EntityType\}\}/g, capitalize(info.entityType))
-.replace(/\{\{EntityName\}\}/g, capitalize(info.entityName))
-.replace(/\{\{EntityNamePlural\}\}/g, capitalize(info.entityNamePlural))
-.replace(/\{\{apiService\}\}/g, info.apiService)
-.replace(/\{\{apiServicePath\}\}/g, info.apiServicePath);
+ * Parse les arguments de la ligne de commande
+ */
+function parseArguments(): Arguments | null {
+  const args = process.argv.slice(2);
+  const parsedArgs: Partial<Arguments> = {};
+
+  for (let i = 0; i < args.length; i += 2) {
+    const argName = args[i].replace('--', '');
+    const argValue = args[i + 1];
+
+    switch (argName) {
+      case 'featureName':
+        parsedArgs.featureName = argValue;
+        break;
+      case 'entityName':
+        parsedArgs.entityName = argValue;
+        break;
+      case 'entityNamePlural':
+        parsedArgs.entityNamePlural = argValue;
+        break;
+      case 'entityDescription':
+        parsedArgs.entityDescription = argValue;
+        break;
+      case 'apiService':
+        parsedArgs.apiService = argValue;
+        break;
+      case 'apiServicePath':
+        parsedArgs.apiServicePath = argValue;
+        break;
+      case 'help':
+        displayHelp();
+        process.exit(0);
+      default:
+        console.error(`Argument inconnu: ${args[i]}`);
+        displayHelp();
+        process.exit(1);
+    }
+  }
+
+  if (
+    !parsedArgs.featureName ||
+    !parsedArgs.entityName ||
+    !parsedArgs.entityNamePlural ||
+    !parsedArgs.entityDescription ||
+    !parsedArgs.apiService ||
+    !parsedArgs.apiServicePath
+  ) {
+    console.error('Tous les arguments sont requis.');
+    displayHelp();
+    return null;
+  }
+
+  return parsedArgs as Arguments;
 }
+
 /**
-* Crée un dossier de manière récursive
-*/
-function createDirectoryRecursive(targetDir: string): void {
-if (fs.existsSync(targetDir)) return;
-createDirectoryRecursive(path.dirname(targetDir));
-fs.mkdirSync(targetDir);
+ * Crée un fichier à partir d'un template
+ */
+function createFileFromTemplate(templatePath: string, outputPath: string, args: Arguments) {
+  try {
+    let template = fs.readFileSync(templatePath, 'utf8');
+
+    // Remplacer les placeholders
+    for (const key in args) {
+      const placeholder = new RegExp(`{{${key}}}`, 'g');
+      template = template.replace(placeholder, args[key]);
+    }
+
+    // Écrire le fichier
+    fs.writeFileSync(outputPath, template);
+    console.log(`Fichier créé: ${outputPath}`);
+  } catch (error) {
+    console.error(`Erreur lors de la création du fichier ${outputPath}:`, error);
+  }
 }
+
 /**
-* Génère tous les fichiers pour une feature
-*/
-function generateFeatureFiles(info: FeatureInfo): void {
-const featureDir = path.join(FEATURES_DIR, info.featureName);
-// Vérifier si la feature existe déjà
-if (fs.existsSync(featureDir)) {
-console.error(`Erreur: La feature '${info.featureName}' existe déjà.`);
-process.exit(1);
+ * Crée la structure de la feature
+ */
+function createFeatureStructure(args: Arguments) {
+  const featureName = args.featureName;
+  const featurePath = path.resolve(__dirname, '..', 'features', featureName);
+
+  // Créer le dossier de la feature
+  fs.mkdirSync(featurePath, { recursive: true });
+  fs.mkdirSync(path.join(featurePath, 'components'), { recursive: true });
+  fs.mkdirSync(path.join(featurePath, 'hooks'), { recursive: true });
+
+  // Templates
+  const templatesDir = path.resolve(__dirname, '..', 'templates', 'feature');
+
+  // Créer les fichiers
+  createFileFromTemplate(
+    path.join(templatesDir, 'index.ts.template'),
+    path.join(featurePath, 'index.ts'),
+    args
+  );
+
+  createFileFromTemplate(
+    path.join(templatesDir, 'types.ts.template'),
+    path.join(featurePath, 'types.ts'),
+    args
+  );
 }
-// Créer les répertoires nécessaires
-createDirectoryRecursive(path.join(featureDir, 'components'));
-createDirectoryRecursive(path.join(featureDir, 'hooks'));
-// Parcourir tous les templates et générer les fichiers
-processTemplateDirectory(TEMPLATES_DIR, featureDir, info);
-console.log(`✅ Feature '${info.featureName}' générée avec succès dans ${featureDir}`);
-}
+
 /**
-* Traite récursivement un répertoire de templates
-*/
-function processTemplateDirectory(templateDir: string, targetDir: string, info: FeatureInfo): void {
-const templateFiles = fs.readdirSync(templateDir);
-for (const templateFile of templateFiles) {
-const templatePath = path.join(templateDir, templateFile);
-const stat = fs.statSync(templatePath);
-if (stat.isDirectory()) {
-// Récursion pour les sous-répertoires
-const nestedTargetDir = path.join(targetDir, templateFile);
-createDirectoryRecursive(nestedTargetDir);
-processTemplateDirectory(templatePath, nestedTargetDir, info);
-} else {
-// Traiter le fichier template
-let targetFileName = templateFile.replace('.template', '');
-// Remplacer les variables dans le nom du fichier
-targetFileName = replaceTemplateVariables(targetFileName, info);
-const targetPath = path.join(targetDir, targetFileName);
-const templateContent = fs.readFileSync(templatePath, 'utf8');
-const processedContent = replaceTemplateVariables(templateContent, info);
-fs.writeFileSync(targetPath, processedContent);
-console.log(`Fichier créé: ${targetPath}`);
+ * Point d'entrée principal
+ */
+function main() {
+  const args = parseArguments();
+
+  if (!args) {
+    process.exit(1);
+  }
+
+  createFeatureStructure(args);
 }
-}
-}
-/**
-* Collecte les informations de feature via l'interface utilisateur
-*/
-function collectFeatureInfo(): Promise<FeatureInfo> {
-return new Promise((resolve) => {
-const info: Partial<FeatureInfo> = {};
-rl.question('Nom de la feature (camelCase): ', (featureName) => {
-info.featureName = featureName;
-rl.question('Description de la feature: ', (featureDescription) => {
-info.featureDescription = featureDescription;
-rl.question('Nom de l\'entité principale (singulier, camelCase): ', (entityName) => {
-info.entityName = entityName;
-rl.question('Nom de l\'entité principale (pluriel, camelCase): ', (entityNamePlural) => {
-info.entityNamePlural = entityNamePlural;
-rl.question('Type de l\'entité (PascalCase): ', (entityType) => {
-info.entityType = entityType;
-rl.question('Nom du service API (ex: auditsApi): ', (apiService) => {
-info.apiService = apiService;
-rl.question('Chemin du service API (ex: audits): ', (apiServicePath) => {
-info.apiServicePath = apiServicePath;
-rl.close();
-resolve(info as FeatureInfo);
-});
-});
-});
-});
-});
-});
-});
-});
-}
-/**
-* Point d'entrée principal
-*/
-async function main(): Promise<void> {
-console.log('Générateur de feature conforme à l\'architecture');
-console.log('==============================================');
-try {
-const featureInfo = await collectFeatureInfo();
-generateFeatureFiles(featureInfo);
-} catch (error) {
-console.error('Erreur lors de la génération de la feature:', error);
-process.exit(1);
-}
-}
+
 main();
