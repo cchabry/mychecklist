@@ -17,7 +17,15 @@ export function useCreateEvaluation() {
   
   return useMutation({
     mutationFn: async (data: CreateEvaluationData) => {
-      return await notionApi.createEvaluation(data);
+      // Ajouter createdAt et updatedAt avant d'envoyer à l'API
+      const currentTime = new Date().toISOString();
+      const evaluationInput = {
+        ...data,
+        createdAt: currentTime,
+        updatedAt: currentTime
+      };
+      
+      return await notionApi.createEvaluation(evaluationInput);
     },
     onSuccess: (_, variables) => {
       // Invalider les requêtes associées

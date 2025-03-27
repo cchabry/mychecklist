@@ -5,6 +5,7 @@
 
 import { evaluationService } from '../evaluation';
 import { Evaluation } from '@/types/domain';
+import { CreateEvaluationInput } from '../evaluation/types';
 
 /**
  * API pour accéder aux évaluations
@@ -16,7 +17,7 @@ export const evaluationsApi = {
   getEvaluations: async (auditId: string, pageId?: string, exigenceId?: string): Promise<Evaluation[]> => {
     const response = await evaluationService.getEvaluations(auditId, pageId, exigenceId);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'Erreur lors de la récupération des évaluations');
     }
     
@@ -29,7 +30,7 @@ export const evaluationsApi = {
   getEvaluationById: async (id: string): Promise<Evaluation | null> => {
     const response = await evaluationService.getEvaluationById(id);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       return null;
     }
     
@@ -39,10 +40,10 @@ export const evaluationsApi = {
   /**
    * Crée une nouvelle évaluation
    */
-  createEvaluation: async (evaluation: Omit<Evaluation, 'id'>): Promise<Evaluation> => {
+  createEvaluation: async (evaluation: CreateEvaluationInput): Promise<Evaluation> => {
     const response = await evaluationService.createEvaluation(evaluation);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'Erreur lors de la création de l\'évaluation');
     }
     
@@ -55,7 +56,7 @@ export const evaluationsApi = {
   updateEvaluation: async (evaluation: Evaluation): Promise<Evaluation> => {
     const response = await evaluationService.updateEvaluation(evaluation);
     
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'Erreur lors de la mise à jour de l\'évaluation');
     }
     
@@ -72,6 +73,6 @@ export const evaluationsApi = {
       throw new Error(response.error?.message || 'Erreur lors de la suppression de l\'évaluation');
     }
     
-    return response.data;
+    return response.data ?? false;
   }
 };

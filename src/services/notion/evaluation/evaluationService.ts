@@ -6,7 +6,9 @@
 import { notionClient } from '../notionClient';
 import { NotionResponse } from '../types';
 import { Evaluation } from '@/types/domain';
+import { ComplianceLevel } from '@/types/enums';
 import { generateMockEvaluations } from './utils';
+import { CreateEvaluationInput } from './types';
 
 /**
  * Service de gestion des évaluations
@@ -70,7 +72,7 @@ class EvaluationService {
       auditId: 'mock-audit',
       pageId: 'mock-page',
       exigenceId: 'mock-exigence',
-      score: 2, // ComplianceLevel.PartiallyCompliant
+      score: ComplianceLevel.PartiallyCompliant,
       comment: "Évaluation d'exemple",
       attachments: [],
       createdAt: new Date().toISOString(),
@@ -86,14 +88,14 @@ class EvaluationService {
   /**
    * Crée une nouvelle évaluation
    */
-  async createEvaluation(evaluation: Omit<Evaluation, 'id'>): Promise<NotionResponse<Evaluation>> {
+  async createEvaluation(evaluation: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
       const newEvaluation: Evaluation = {
         ...evaluation,
         id: `eval-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: evaluation.createdAt || new Date().toISOString(),
+        updatedAt: evaluation.updatedAt || new Date().toISOString()
       };
       
       return {
@@ -109,8 +111,8 @@ class EvaluationService {
       data: {
         ...evaluation,
         id: `eval-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: evaluation.createdAt || new Date().toISOString(),
+        updatedAt: evaluation.updatedAt || new Date().toISOString()
       }
     };
   }

@@ -5,6 +5,7 @@
 
 import { Evaluation } from '@/types/domain';
 import { NotionResponse } from '../types';
+import { ComplianceLevel } from '@/types/enums';
 
 /**
  * Paramètres de filtrage des évaluations
@@ -38,7 +39,9 @@ export interface CreateEvaluationInput {
   auditId: string;
   pageId: string;
   exigenceId: string;
-  score: number;
+  score: ComplianceLevel;
   comment?: string;
   attachments?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
