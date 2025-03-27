@@ -84,8 +84,8 @@ describe('useUpdateEvaluation', () => {
     
     const { result } = renderHook(() => useUpdateEvaluation('eval-1'), { wrapper });
     
-    // Exécuter la mutation
-    const mutationResult = result.current.mutateAsync(updateData);
+    // Exécuter la mutation - Correction de l'appel pour respecter la structure attendue
+    const mutationResult = result.current.mutateAsync({ id: 'eval-1', data: updateData });
     
     // Vérifier que la fonction a été appelée avec les bons paramètres
     expect(notionApi.updateEvaluation).toHaveBeenCalledTimes(1);
@@ -112,8 +112,8 @@ describe('useUpdateEvaluation', () => {
       wrapper: createWrapper()
     });
     
-    // Exécuter la mutation et vérifier qu'elle échoue
-    await expect(result.current.mutateAsync({ comment: 'Test' })).rejects.toThrow('Évaluation non trouvée');
+    // Exécuter la mutation et vérifier qu'elle échoue - Correction de l'appel
+    await expect(result.current.mutateAsync({ id: 'non-existant', data: { comment: 'Test' } })).rejects.toThrow('Évaluation non trouvée');
     
     // Vérifier que l'API n'a pas été appelée
     expect(notionApi.updateEvaluation).not.toHaveBeenCalled();

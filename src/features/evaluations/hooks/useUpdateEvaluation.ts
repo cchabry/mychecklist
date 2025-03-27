@@ -10,20 +10,21 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateEvaluation } from '..';
 import { UpdateEvaluationData } from '../types';
 import { toast } from 'sonner';
+import { useEvaluationById } from './useEvaluationById';
 
 /**
  * Hook pour mettre à jour une évaluation existante
  * 
- * @param auditId - Identifiant de l'audit (pour l'invalidation du cache)
+ * @param evaluationId - Identifiant de l'évaluation à mettre à jour
  * @returns Mutation pour mettre à jour une évaluation
  * 
  * @example
  * ```tsx
- * const { mutate: update, isLoading } = useUpdateEvaluation('audit-456');
+ * const { mutate: update, isLoading } = useUpdateEvaluation('eval-123');
  * 
- * const handleUpdate = async (evaluationId, newData) => {
+ * const handleUpdate = async (data) => {
  *   try {
- *     await update({ id: evaluationId, data: newData });
+ *     await update({ id: 'eval-123', data: data });
  *     // Traitement après mise à jour
  *   } catch (error) {
  *     // Gestion des erreurs
@@ -31,17 +32,24 @@ import { toast } from 'sonner';
  * };
  * ```
  */
-export function useUpdateEvaluation(auditId: string) {
+export function useUpdateEvaluation(evaluationId: string) {
   const queryClient = useQueryClient();
+  const { data: evaluation } = useEvaluationById(evaluationId);
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string, data: UpdateEvaluationData }) => {
+      if (!evaluation) {
+        throw new Error('Évaluation non trouvée');
+      }
       return await updateEvaluation(id, data);
     },
     onSuccess: (_, { id }) => {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['evaluation', id] });
-      queryClient.invalidateQueries({ queryKey: ['evaluations', auditId] });
+      
+      if (evaluation?.auditId) {
+        queryClient.invalidateQueries({ queryKey: ['evaluations', evaluation.auditId] });
+      }
       
       // Notifier l'utilisateur
       toast.success('Évaluation mise à jour avec succès');

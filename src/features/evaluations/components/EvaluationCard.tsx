@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { Evaluation } from '../types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ComplianceLevel } from '@/types/enums';
-import { SCORE_DESCRIPTIONS } from '../constants';
 
 const scoreBadgeColors: Record<ComplianceLevel, string> = {
   [ComplianceLevel.Compliant]: 'bg-green-100 text-green-800',
