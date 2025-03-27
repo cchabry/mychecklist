@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { operationModeService } from '@/services/operationMode/operationModeService';
 import { OperationModeType, OperationModeState, UseOperationMode } from '@/types/operation';
+import { OPERATION_MODE_SWITCH } from '@/constants/errorMessages';
 
 /**
  * Hook pour accéder et modifier le mode opérationnel de l'application
@@ -41,11 +42,11 @@ export const useOperationMode = (): UseOperationMode => {
 
   // Fonctions pour changer le mode
   const enableDemoMode = useCallback((reason?: string) => {
-    operationModeService.enableDemoMode(reason);
+    operationModeService.enableDemoMode(reason || OPERATION_MODE_SWITCH);
   }, []);
 
   const enableRealMode = useCallback((reason?: string) => {
-    operationModeService.enableRealMode(reason);
+    operationModeService.enableRealMode(reason || OPERATION_MODE_SWITCH);
   }, []);
 
   const reset = useCallback(() => {

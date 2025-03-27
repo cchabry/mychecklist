@@ -23,3 +23,25 @@ export const NOTION_CONFIGURATION_ERROR = 'Configuration Notion invalide';
 
 // Messages d'erreur spécifiques au mode opérationnel
 export const OPERATION_MODE_RESET = 'Réinitialisation du mode';
+export const OPERATION_MODE_SWITCH = 'Changement de mode opérationnel';
+
+// Messages d'erreur spécifiques aux actions
+export const ACTION_NOT_FOUND = 'Action non trouvée';
+export const ACTION_INVALID_STATUS = 'Statut d\'action invalide';
+
+// Messages d'erreur spécifiques aux audits
+export const AUDIT_NOT_FOUND = 'Audit non trouvé';
+export const AUDIT_ALREADY_EXISTS = 'Un audit avec ce nom existe déjà pour ce projet';
+
+// Messages d'erreur pour les évaluations
+export const EVALUATION_NOT_FOUND = 'Évaluation non trouvée';
+export const EVALUATION_INVALID_SCORE = 'Score d\'évaluation invalide';
+
+// Messages d'erreur pour les exigences
+export const EXIGENCE_NOT_FOUND = 'Exigence non trouvée';
+export const EXIGENCE_DUPLICATE = 'Une exigence existe déjà pour cet item dans ce projet';
+
+// Messages d'erreur pour l'authentification
+export const AUTH_REQUIRED = 'Authentification requise';
+export const AUTH_INVALID = 'Identifiants invalides';
+export const AUTH_EXPIRED = 'Session expirée';

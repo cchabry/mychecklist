@@ -6,12 +6,13 @@
 import { SamplePageApi } from '@/types/api/domain';
 import { SamplePage } from '@/types/domain';
 import { samplePageService } from '../samplePageService';
+import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR } from '@/constants/errorMessages';
 
 export class NotionSamplePageApi implements SamplePageApi {
   async getSamplePages(projectId: string): Promise<SamplePage[]> {
     const response = await samplePageService.getSamplePages(projectId);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la récupération des pages d'échantillon");
+      throw new Error(response.error?.message || FETCH_ERROR);
     }
     return response.data || [];
   }
@@ -19,7 +20,7 @@ export class NotionSamplePageApi implements SamplePageApi {
   async getSamplePageById(id: string): Promise<SamplePage> {
     const response = await samplePageService.getSamplePageById(id);
     if (!response.success) {
-      throw new Error(response.error?.message || `Page d'échantillon #${id} non trouvée`);
+      throw new Error(response.error?.message || `${NOT_FOUND_ERROR}: Page d'échantillon #${id}`);
     }
     return response.data as SamplePage;
   }
@@ -27,7 +28,7 @@ export class NotionSamplePageApi implements SamplePageApi {
   async createSamplePage(page: Omit<SamplePage, 'id'>): Promise<SamplePage> {
     const response = await samplePageService.createSamplePage(page);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la création de la page d'échantillon");
+      throw new Error(response.error?.message || CREATE_ERROR);
     }
     return response.data as SamplePage;
   }
@@ -35,7 +36,7 @@ export class NotionSamplePageApi implements SamplePageApi {
   async updateSamplePage(page: SamplePage): Promise<SamplePage> {
     const response = await samplePageService.updateSamplePage(page);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la mise à jour de la page d'échantillon");
+      throw new Error(response.error?.message || UPDATE_ERROR);
     }
     return response.data as SamplePage;
   }
@@ -43,7 +44,7 @@ export class NotionSamplePageApi implements SamplePageApi {
   async deleteSamplePage(id: string): Promise<boolean> {
     const response = await samplePageService.deleteSamplePage(id);
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la suppression de la page d'échantillon");
+      throw new Error(response.error?.message || DELETE_ERROR);
     }
     return true;
   }

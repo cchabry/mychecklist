@@ -6,12 +6,13 @@
 import { ChecklistApi } from '@/types/api/domain';
 import { ChecklistItem } from '@/types/domain';
 import { checklistService } from '../checklistService';
+import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR, VALIDATION_ERROR } from '@/constants/errorMessages';
 
 export class NotionChecklistApi implements ChecklistApi {
   async getChecklistItems(): Promise<ChecklistItem[]> {
     const response = await checklistService.getChecklistItems();
     if (!response.success) {
-      throw new Error(response.error?.message || "Erreur lors de la récupération des items de checklist");
+      throw new Error(response.error?.message || FETCH_ERROR);
     }
     return response.data || [];
   }
@@ -19,27 +20,24 @@ export class NotionChecklistApi implements ChecklistApi {
   async getChecklistItemById(id: string): Promise<ChecklistItem> {
     const response = await checklistService.getChecklistItemById(id);
     if (!response.success) {
-      throw new Error(response.error?.message || `Item de checklist #${id} non trouvé`);
+      throw new Error(response.error?.message || `${NOT_FOUND_ERROR}: Item de checklist #${id}`);
     }
     return response.data as ChecklistItem;
   }
 
   async createChecklistItem(_item: Omit<ChecklistItem, 'id'>): Promise<ChecklistItem> {
     // Pour l'instant, nous retournons une implémentation simulée
-    // Cette méthode devra être complétée lors de l'implémentation du service correspondant
-    throw new Error("Méthode createChecklistItem non implémentée");
+    throw new Error(CREATE_ERROR + ": Méthode createChecklistItem non implémentée");
   }
 
   async updateChecklistItem(_item: ChecklistItem): Promise<ChecklistItem> {
     // Pour l'instant, nous retournons une implémentation simulée
-    // Cette méthode devra être complétée lors de l'implémentation du service correspondant
-    throw new Error("Méthode updateChecklistItem non implémentée");
+    throw new Error(UPDATE_ERROR + ": Méthode updateChecklistItem non implémentée");
   }
 
   async deleteChecklistItem(_id: string): Promise<boolean> {
     // Pour l'instant, nous retournons une implémentation simulée
-    // Cette méthode devra être complétée lors de l'implémentation du service correspondant
-    throw new Error("Méthode deleteChecklistItem non implémentée");
+    throw new Error(DELETE_ERROR + ": Méthode deleteChecklistItem non implémentée");
   }
 }
 

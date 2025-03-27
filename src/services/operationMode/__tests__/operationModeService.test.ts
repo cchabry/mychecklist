@@ -1,7 +1,5 @@
-
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { operationModeService } from '../operationModeService';
-import { OPERATION_MODE_RESET } from '@/constants/errorMessages';
 
 describe('OperationModeService', () => {
   beforeEach(() => {
