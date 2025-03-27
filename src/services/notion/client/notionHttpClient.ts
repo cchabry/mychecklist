@@ -10,6 +10,9 @@ import { NotionConfig, NotionResponse, NotionError } from '../types';
 
 /**
  * Client HTTP pour l'API Notion
+ * 
+ * Gère les communications HTTP avec l'API Notion, sans aucune 
+ * logique de mode opérationnel ou de transformation de données.
  */
 export class NotionHttpClient {
   private config: NotionConfig = {
@@ -19,6 +22,7 @@ export class NotionHttpClient {
   
   /**
    * Configure le client Notion
+   * @param config Configuration du client
    */
   configure(config: NotionConfig): void {
     this.config = { ...this.config, ...config };
@@ -26,6 +30,7 @@ export class NotionHttpClient {
   
   /**
    * Récupère la configuration actuelle
+   * @returns Copie de la configuration actuelle
    */
   getConfig(): NotionConfig {
     return { ...this.config };
@@ -33,6 +38,8 @@ export class NotionHttpClient {
   
   /**
    * Effectue une requête GET vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @returns Promise avec le résultat de la requête
    */
   async get<T>(endpoint: string): Promise<NotionResponse<T>> {
     return this.request<T>('GET', endpoint);
@@ -40,6 +47,9 @@ export class NotionHttpClient {
   
   /**
    * Effectue une requête POST vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @param data Données à envoyer
+   * @returns Promise avec le résultat de la requête
    */
   async post<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
     return this.request<T>('POST', endpoint, data);
@@ -47,6 +57,9 @@ export class NotionHttpClient {
   
   /**
    * Effectue une requête PATCH vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @param data Données à envoyer
+   * @returns Promise avec le résultat de la requête
    */
   async patch<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
     return this.request<T>('PATCH', endpoint, data);
@@ -54,6 +67,8 @@ export class NotionHttpClient {
   
   /**
    * Effectue une requête DELETE vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @returns Promise avec le résultat de la requête
    */
   async delete<T>(endpoint: string): Promise<NotionResponse<T>> {
     return this.request<T>('DELETE', endpoint);
@@ -61,6 +76,10 @@ export class NotionHttpClient {
   
   /**
    * Effectue une requête HTTP vers l'API Notion
+   * @param method Méthode HTTP (GET, POST, etc.)
+   * @param endpoint Point d'entrée API
+   * @param data Données à envoyer (optionnel)
+   * @returns Promise avec le résultat de la requête
    */
   private async request<T>(method: string, endpoint: string, data?: any): Promise<NotionResponse<T>> {
     // Vérifier que le client est configuré

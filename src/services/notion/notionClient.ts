@@ -14,36 +14,87 @@ import { NotionConfig, ConnectionTestResult, NotionResponse } from './types';
  * 
  * Cette classe est conservée pour la compatibilité avec le code existant.
  * Elle délègue toutes les opérations au client unifié implémenté dans client/notionClient.ts.
- * 
- * @deprecated Utilisez directement l'import depuis './client/notionClient'
  */
 class NotionClient {
-  // Déléguer les méthodes de configuration
+  /**
+   * Configure le client Notion
+   * @param config Configuration du client
+   */
   configure = notionUnifiedClient.configure.bind(notionUnifiedClient);
+  
+  /**
+   * Vérifie si le client est correctement configuré pour fonctionner
+   * @returns true si la configuration minimale est présente
+   */
   isConfigured = notionUnifiedClient.isConfigured.bind(notionUnifiedClient);
+  
+  /**
+   * Récupère la configuration actuelle
+   * @returns Copie de la configuration actuelle
+   */
   getConfig = notionUnifiedClient.getConfig.bind(notionUnifiedClient);
   
-  // Déléguer les méthodes de gestion du mode
+  /**
+   * Active ou désactive le mode mock
+   * @param enabled État souhaité du mode mock
+   */
   setMockMode = notionUnifiedClient.setMockMode.bind(notionUnifiedClient);
-  isMockMode = notionUnifiedClient.isMockMode.bind(notionUnifiedClient);
-  setDebugMode = notionUnifiedClient.setDebugMode?.bind(notionUnifiedClient) || 
-    ((enabled: boolean) => { 
-      const config = this.getConfig();
-      this.configure({ ...config, debug: enabled });
-    });
   
-  // Déléguer les méthodes de requête
+  /**
+   * Vérifie si le mode mock est actif
+   * @returns true si le client est en mode mock/démo
+   */
+  isMockMode = notionUnifiedClient.isMockMode.bind(notionUnifiedClient);
+  
+  /**
+   * Active ou désactive le mode debug
+   * @param enabled État souhaité du mode debug
+   */
+  setDebugMode = notionUnifiedClient.setDebugMode.bind(notionUnifiedClient);
+  
+  /**
+   * Effectue une requête GET vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @returns Promise avec le résultat de la requête
+   */
   get = notionUnifiedClient.get.bind(notionUnifiedClient);
+  
+  /**
+   * Effectue une requête POST vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @param data Données à envoyer
+   * @returns Promise avec le résultat de la requête
+   */
   post = notionUnifiedClient.post.bind(notionUnifiedClient);
+  
+  /**
+   * Effectue une requête PATCH vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @param data Données à envoyer
+   * @returns Promise avec le résultat de la requête
+   */
   patch = notionUnifiedClient.patch.bind(notionUnifiedClient);
+  
+  /**
+   * Effectue une requête DELETE vers l'API Notion
+   * @param endpoint Point d'entrée API
+   * @returns Promise avec le résultat de la requête
+   */
   delete = notionUnifiedClient.delete.bind(notionUnifiedClient);
   
-  // Déléguer la méthode de test de connexion
+  /**
+   * Teste la connexion à l'API Notion
+   * @returns Résultat du test de connexion
+   */
   testConnection = notionUnifiedClient.testConnection.bind(notionUnifiedClient);
   
   /**
    * Effectue une requête vers l'API Notion
    * 
+   * @param method Méthode HTTP (GET, POST, etc.)
+   * @param endpoint Point d'entrée API
+   * @param data Données à envoyer (optionnel)
+   * @returns Promise avec le résultat de la requête
    * @deprecated Utilisez plutôt les méthodes spécifiques (get, post, etc.)
    */
   async request<T>(method: string, endpoint: string, data?: any): Promise<NotionResponse<T>> {
