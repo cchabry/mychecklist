@@ -19,7 +19,7 @@ export { checklistService } from './checklistService';
 export { exigenceService } from './exigenceService';
 export { samplePageService } from './samplePageService';
 export { auditService } from './audit';
-export { evaluationService } from './evaluationService';
+export { evaluationService } from './evaluation';
 export { actionService, progressService } from './action';
 
 // Exporter les types
