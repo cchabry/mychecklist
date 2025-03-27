@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de correction globale des fichiers de scripts
@@ -11,7 +12,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { glob } from 'glob';
+// Importer glob correctement en tant que module CommonJS
+import pkg from 'glob';
+const { glob } = pkg;
 
 // Chemins principaux
 const __filename = fileURLToPath(import.meta.url);
@@ -61,6 +64,14 @@ function removeLeadingEmptyLines(filePath) {
     // Ajouter import { fileURLToPath } from 'url' si nécessaire
     if (content.includes('fileURLToPath(import.meta.url)') && !content.includes("import { fileURLToPath }")) {
       content = "import { fileURLToPath } from 'url';\n" + content;
+    }
+    
+    // Gérer spécifiquement l'import de glob (problématique)
+    if (content.includes("import { glob } from 'glob';")) {
+      content = content.replace(
+        "import { glob } from 'glob';", 
+        "import pkg from 'glob';\nconst { glob } = pkg;"
+      );
     }
     
     // Assurer que le shebang est en première ligne sans ligne vide avant
