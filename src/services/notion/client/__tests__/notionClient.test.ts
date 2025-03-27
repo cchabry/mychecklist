@@ -38,8 +38,8 @@ describe('NotionClient', () => {
     vi.resetAllMocks();
     
     // Configuration par défaut pour les tests
-    (operationModeService.isDemoMode as jest.Mock).mockReturnValue(false);
-    (operationModeService.isRealMode as jest.Mock).mockReturnValue(true);
+    (operationModeService.isDemoMode as any).mockReturnValue(false);
+    (operationModeService.isRealMode as any).mockReturnValue(true);
   });
 
   it('devrait correctement configurer le client HTTP en mode réel', () => {
@@ -52,7 +52,7 @@ describe('NotionClient', () => {
 
   it('devrait utiliser le client HTTP en mode réel', async () => {
     const mockResponse = { success: true, data: { test: 'data' } };
-    (notionHttpClient.get as jest.Mock).mockResolvedValue(mockResponse);
+    (notionHttpClient.get as any).mockResolvedValue(mockResponse);
     
     const result = await notionClient.get('/test-endpoint');
     
@@ -62,11 +62,11 @@ describe('NotionClient', () => {
 
   it('devrait utiliser le client mock en mode démo', async () => {
     // Configurer le mode démo
-    (operationModeService.isDemoMode as jest.Mock).mockReturnValue(true);
-    (operationModeService.isRealMode as jest.Mock).mockReturnValue(false);
+    (operationModeService.isDemoMode as any).mockReturnValue(true);
+    (operationModeService.isRealMode as any).mockReturnValue(false);
     
     const mockResponse = { success: true, data: { test: 'mock-data' } };
-    (notionMockClient.get as jest.Mock).mockResolvedValue(mockResponse);
+    (notionMockClient.get as any).mockResolvedValue(mockResponse);
     
     const result = await notionClient.get('/test-endpoint');
     
@@ -80,7 +80,7 @@ describe('NotionClient', () => {
     notionClient.setMockMode(true);
     
     const mockResponse = { success: true, data: { test: 'mock-data' } };
-    (notionMockClient.post as jest.Mock).mockResolvedValue(mockResponse);
+    (notionMockClient.post as any).mockResolvedValue(mockResponse);
     
     const data = { name: 'Test' };
     const result = await notionClient.post('/test-endpoint', data);
@@ -92,7 +92,7 @@ describe('NotionClient', () => {
 
   it('devrait effectuer des requêtes PATCH via le client approprié', async () => {
     const mockResponse = { success: true, data: { test: 'data' } };
-    (notionHttpClient.patch as jest.Mock).mockResolvedValue(mockResponse);
+    (notionHttpClient.patch as any).mockResolvedValue(mockResponse);
     
     const data = { name: 'Updated' };
     const result = await notionClient.patch('/test-endpoint', data);
@@ -103,7 +103,7 @@ describe('NotionClient', () => {
 
   it('devrait effectuer des requêtes DELETE via le client approprié', async () => {
     const mockResponse = { success: true, data: { test: 'data' } };
-    (notionHttpClient.delete as jest.Mock).mockResolvedValue(mockResponse);
+    (notionHttpClient.delete as any).mockResolvedValue(mockResponse);
     
     const result = await notionClient.delete('/test-endpoint');
     

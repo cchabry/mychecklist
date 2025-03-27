@@ -33,7 +33,7 @@ describe('NotionHttpClient', () => {
 
   it('devrait effectuer des requêtes GET avec les bons headers', async () => {
     // Configuration de la réponse mock
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ results: [] })
     });
@@ -43,7 +43,7 @@ describe('NotionHttpClient', () => {
     
     // Vérifier que fetch a été appelé avec les bons paramètres
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+    const [url, options] = (global.fetch as any).mock.calls[0];
     
     expect(url).toBe('https://api.notion.com/v1/databases');
     expect(options.method).toBe('GET');
@@ -54,7 +54,7 @@ describe('NotionHttpClient', () => {
 
   it('devrait effectuer des requêtes POST avec les bonnes données', async () => {
     // Configuration de la réponse mock
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 'new-item' })
     });
@@ -66,7 +66,7 @@ describe('NotionHttpClient', () => {
     
     // Vérifier que fetch a été appelé avec les bons paramètres
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+    const [url, options] = (global.fetch as any).mock.calls[0];
     
     expect(url).toBe('https://api.notion.com/v1/databases/test-db/pages');
     expect(options.method).toBe('POST');
@@ -75,7 +75,7 @@ describe('NotionHttpClient', () => {
 
   it('devrait gérer les erreurs HTTP correctement', async () => {
     // Configuration de la réponse d'erreur
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: false,
       status: 401,
       json: async () => ({
@@ -99,7 +99,7 @@ describe('NotionHttpClient', () => {
 
   it('devrait gérer les exceptions lors des requêtes', async () => {
     // Simuler une erreur réseau
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+    (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
     
     // Effectuer la requête
     const response = await notionHttpClient.get('/databases');

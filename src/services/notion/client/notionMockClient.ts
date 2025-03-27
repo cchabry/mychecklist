@@ -5,5 +5,8 @@
  * @deprecated Utiliser l'import depuis 'src/services/notion/client/mock/notionMockClient.ts'
  */
 
-export { notionMockClient, NotionMockClient } from './mock/notionMockClient';
-export default { notionMockClient };
+import { notionMockClient as importedMockClient, NotionMockClient } from './mock/notionMockClient';
+
+export const notionMockClient = importedMockClient;
+export { NotionMockClient };
+export default notionMockClient;
