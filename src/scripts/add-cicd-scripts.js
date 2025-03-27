@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes npm liées à l'intégration CI/CD
@@ -5,12 +6,8 @@
  * À exécuter manuellement pour ajouter les scripts npm
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const fs = require('fs');
+const path = require('path');
 
 const packageJsonPath = path.resolve(__dirname, '../../package.json');
 
@@ -22,10 +19,10 @@ try {
   // Ajouter les scripts
   packageJson.scripts = {
     ...packageJson.scripts,
-    "architecture:analysis": "ts-node src/scripts/run-architecture-analysis.ts",
-    "architecture:metrics": "ts-node src/scripts/architecture-metrics.ts",
-    "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
-    "architecture:serve": "ts-node src/scripts/serve-architecture-dashboard.ts"
+    "architecture:analysis": "node src/scripts/run-architecture-analysis.js",
+    "architecture:metrics": "node src/scripts/architecture-metrics.js",
+    "architecture:dashboard": "node src/scripts/generate-metrics-dashboard.js",
+    "architecture:serve": "node src/scripts/serve-architecture-dashboard.js"
   };
 
   // Écrire le fichier package.json mis à jour
