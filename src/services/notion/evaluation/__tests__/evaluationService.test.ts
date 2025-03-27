@@ -1,9 +1,9 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluationService } from '../evaluationService';
 import { notionClient } from '../../notionClient';
 import { ComplianceLevel } from '@/types/enums';
 import { Evaluation } from '@/types/domain';
+import { NotionConfig } from '../../types';
 
 // Mock du notionClient
 vi.mock('../../notionClient', () => ({
@@ -34,7 +34,7 @@ describe('EvaluationService', () => {
   describe('getEvaluations', () => {
     it('devrait retourner une erreur si la configuration est manquante', async () => {
       // Configuration du mock pour simuler l'absence de configuration
-      vi.mocked(notionClient.getConfig).mockReturnValue(undefined);
+      vi.mocked(notionClient.getConfig).mockReturnValue(undefined as unknown as NotionConfig);
       
       const result = await evaluationService.getEvaluations('audit-123');
       
