@@ -1,4 +1,5 @@
-#!/usr/bin/env node;
+
+#!/usr/bin/env node
 /**
  * Script de génération du tableau de bord de métriques architecturales
  * 
@@ -16,6 +17,8 @@ import {
   createFilesDistributionSection, 
   createFeaturesSection, 
   createIssuesSection, 
+  createAntiPatternsSection,
+  createThresholdViolationsSection,
   createInteractivityScripts, 
   generateDashboardStyles, 
   createFilterScripts,
@@ -42,6 +45,8 @@ function generateDashboardContent(metrics: ArchitectureMetrics): string {
   const filesDistributionSection = createFilesDistributionSection(metrics.summary.filesByCategory);
   const featuresSection = createFeaturesSection(metrics.domainDetails.features);
   const issuesSection = createIssuesSection(metrics.issues);
+  const antiPatternsSection = createAntiPatternsSection(metrics.antiPatterns.detectedPatterns);
+  const thresholdViolationsSection = createThresholdViolationsSection(metrics.antiPatterns.thresholdViolations);
   
   // Générer le contenu complet
   return `
@@ -56,6 +61,8 @@ function generateDashboardContent(metrics: ArchitectureMetrics): string {
         ${trendsSection}
         ${filesDistributionSection}
         ${featuresSection}
+        ${antiPatternsSection}
+        ${thresholdViolationsSection}
         ${issuesSection}
       </div>
     </div>

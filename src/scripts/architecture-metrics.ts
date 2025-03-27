@@ -1,4 +1,5 @@
-#!/usr/bin/env node;
+
+#!/usr/bin/env node
 /**
  * Script de génération de métriques d'architecture
  * 
@@ -11,6 +12,19 @@ import path from 'path';
 import glob from 'glob';
 import chalk from 'chalk';
 import { saveCurrentMetrics } from '../utils/tracking/architecture-tracker';
+import { 
+  antiPatterns, 
+  getComplianceThresholds, 
+  getThreshold,
+  ArchitectureMetrics,
+  FeatureMetric,
+  ServiceMetric,
+  HookMetric,
+  ComponentMetric,
+  IssueMetric,
+  DetectedAntiPattern,
+  ThresholdViolation
+} from '../utils/dashboard';
 
 // Chemins principaux
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -38,57 +52,6 @@ const EXPECTED_EXPORTS = {
   componentIndex: [/export \* from/],
   hookIndex: [/export \{ .+ \} from/]
 };
-
-// Interface pour les métriques
-interface ArchitectureMetrics {
-  timestamp: string;
-  summary: {
-    featuresTotal: number;
-    featuresCompliant: number;
-    complianceRate: number;
-    issuesTotal: number;
-    filesByCategory: Record<string, number>;
-  };
-  domainDetails: {
-    features: FeatureMetric[];
-    services: ServiceMetric[];
-    hooks: HookMetric[];
-    components: ComponentMetric[];
-  };
-  issues: IssueMetric[];
-}
-
-interface FeatureMetric {
-  name: string;
-  compliant: boolean;
-  missingFiles: string[];
-  missingExports: string[];
-}
-
-interface ServiceMetric {
-  name: string;
-  hasClearInterface: boolean;
-  hasTypeDefs: boolean;
-}
-
-interface HookMetric {
-  name: string;
-  compliant: boolean;
-  issues: string[];
-}
-
-interface ComponentMetric {
-  name: string;
-  hasPropsType: boolean;
-  isExported: boolean;
-}
-
-interface IssueMetric {
-  domain: string;
-  category: string;
-  severity: 'low' | 'medium' | 'high';
-  description: string;
-}
 
 /**
  * Analyse une feature et vérifie sa conformité
@@ -214,6 +177,139 @@ function analyzeComponent(componentPath: string, componentName: string): Compone
 }
 
 /**
+ * Détecte les anti-patterns dans le code
+ */
+function detectAntiPatterns(): DetectedAntiPattern[] {
+  const detectedPatterns: DetectedAntiPattern[] = [];
+  
+  // Anti-pattern: Fichiers trop volumineux
+  const fileSizeThreshold = getThreshold('file-size');
+  const largeFiles = glob.sync('**/*.{ts,tsx}', { cwd: ROOT_DIR })
+    .filter(file => {
+      if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+      const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+      const lineCount = content.split('\n').length;
+      return lineCount > fileSizeThreshold;
+    });
+  
+  if (largeFiles.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'single-responsibility',
+      ruleName: 'Principe de responsabilité unique',
+      severity: 'medium',
+      occurrences: largeFiles.length,
+      affectedFiles: largeFiles
+    });
+  }
+  
+  // Anti-pattern: Types any
+  const filesWithAny = glob.sync('**/*.{ts,tsx}', { cwd: ROOT_DIR })
+    .filter(file => {
+      if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+      const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+      return /: any/.test(content) || /as any/.test(content);
+    });
+  
+  if (filesWithAny.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'no-any-types',
+      ruleName: 'Pas de types any',
+      severity: 'medium',
+      occurrences: filesWithAny.length,
+      affectedFiles: filesWithAny
+    });
+  }
+  
+  // Anti-pattern: Appels directs à l'API Notion
+  const directNotionCalls = glob.sync('**/*.{ts,tsx}', { cwd: ROOT_DIR })
+    .filter(file => {
+      // Exclure les fichiers de services Notion qui sont supposés contenir les appels
+      if (file.includes('services/notion/') || file.includes('notion/api/')) return false;
+      
+      if (!fs.existsSync(path.join(ROOT_DIR, file))) return false;
+      const content = fs.readFileSync(path.join(ROOT_DIR, file), 'utf8');
+      return /notion\.api\./.test(content) || /notion\.databases\./.test(content);
+    });
+  
+  if (directNotionCalls.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'no-direct-notion-api',
+      ruleName: 'Pas d\'appel direct à l\'API Notion',
+      severity: 'high',
+      occurrences: directNotionCalls.length,
+      affectedFiles: directNotionCalls
+    });
+  }
+  
+  // Anti-pattern: Hooks mal nommés
+  const misnamedHooks = glob.sync('hooks/**/*.ts', { cwd: ROOT_DIR })
+    .filter(file => {
+      const hookName = path.basename(file, '.ts');
+      return !hookName.startsWith('use');
+    });
+  
+  if (misnamedHooks.length > 0) {
+    detectedPatterns.push({
+      ruleId: 'hooks-naming',
+      ruleName: 'Nommage des hooks',
+      severity: 'medium',
+      occurrences: misnamedHooks.length,
+      affectedFiles: misnamedHooks
+    });
+  }
+  
+  return detectedPatterns;
+}
+
+/**
+ * Vérifie les violations de seuils configurés
+ */
+function checkThresholdViolations(metrics: ArchitectureMetrics): ThresholdViolation[] {
+  const violations: ThresholdViolation[] = [];
+  const thresholds = getComplianceThresholds();
+  
+  // Vérifier le seuil de conformité globale
+  const overallThreshold = getThreshold('overall-compliance');
+  if (metrics.summary.complianceRate < overallThreshold) {
+    violations.push({
+      thresholdId: 'overall-compliance',
+      thresholdName: 'Conformité globale',
+      expectedValue: overallThreshold,
+      actualValue: metrics.summary.complianceRate,
+      description: `Le taux de conformité (${metrics.summary.complianceRate}%) est inférieur au seuil configuré (${overallThreshold}%)`
+    });
+  }
+  
+  // Vérifier le seuil de problèmes critiques
+  const criticalCount = metrics.summary.issuesBySeverity['critical'] || 0;
+  const criticalThreshold = getThreshold('critical-issues');
+  if (criticalCount > criticalThreshold) {
+    violations.push({
+      thresholdId: 'critical-issues',
+      thresholdName: 'Problèmes critiques',
+      expectedValue: criticalThreshold,
+      actualValue: criticalCount,
+      description: `Le nombre de problèmes critiques (${criticalCount}) dépasse le seuil configuré (${criticalThreshold})`
+    });
+  }
+  
+  // Vérifier le seuil de problèmes importants
+  const highCount = metrics.summary.issuesBySeverity['high'] || 0;
+  const highThreshold = getThreshold('high-issues');
+  if (highCount > highThreshold) {
+    violations.push({
+      thresholdId: 'high-issues',
+      thresholdName: 'Problèmes importants',
+      expectedValue: highThreshold,
+      actualValue: highCount,
+      description: `Le nombre de problèmes importants (${highCount}) dépasse le seuil configuré (${highThreshold})`
+    });
+  }
+  
+  return violations;
+}
+
+/**
  * Analyse la base de code complète
  */
 function analyzeCodebase(): ArchitectureMetrics {
@@ -224,6 +320,12 @@ function analyzeCodebase(): ArchitectureMetrics {
       featuresCompliant: 0,
       complianceRate: 0,
       issuesTotal: 0,
+      issuesBySeverity: {
+        low: 0,
+        medium: 0,
+        high: 0,
+        critical: 0
+      },
       filesByCategory: {}
     },
     domainDetails: {
@@ -231,6 +333,10 @@ function analyzeCodebase(): ArchitectureMetrics {
       services: [],
       hooks: [],
       components: []
+    },
+    antiPatterns: {
+      detectedPatterns: [],
+      thresholdViolations: []
     },
     issues: []
   };
@@ -380,6 +486,28 @@ function analyzeCodebase(): ArchitectureMetrics {
     metrics.summary.filesByCategory[category] = count;
   }
   
+  // Détecter les anti-patterns
+  metrics.antiPatterns.detectedPatterns = detectAntiPatterns();
+  
+  // Ajouter les problèmes liés aux anti-patterns aux issues générales
+  for (const pattern of metrics.antiPatterns.detectedPatterns) {
+    metrics.issues.push({
+      domain: 'anti-patterns',
+      category: pattern.ruleId,
+      severity: pattern.severity as any,
+      description: `${pattern.ruleName} (${pattern.occurrences} occurrences)`
+    });
+  }
+  
+  // Calculer le nombre d'issues par sévérité
+  for (const issue of metrics.issues) {
+    metrics.summary.issuesBySeverity[issue.severity] = 
+      (metrics.summary.issuesBySeverity[issue.severity] || 0) + 1;
+  }
+  
+  // Vérifier les violations de seuils
+  metrics.antiPatterns.thresholdViolations = checkThresholdViolations(metrics);
+  
   // Calculer le nombre total de problèmes
   metrics.summary.issuesTotal = metrics.issues.length;
   
@@ -419,6 +547,22 @@ function main() {
   console.log(`Nombre total de features: ${metrics.summary.featuresTotal}`);
   console.log(`Nombre de features conformes: ${metrics.summary.featuresCompliant}`);
   console.log(`Nombre total de problèmes: ${metrics.summary.issuesTotal}`);
+  
+  // Afficher le résumé des anti-patterns détectés
+  if (metrics.antiPatterns.detectedPatterns.length > 0) {
+    console.log(chalk.yellow('\nAnti-patterns détectés:'));
+    metrics.antiPatterns.detectedPatterns.forEach(pattern => {
+      console.log(`- ${pattern.ruleName}: ${pattern.occurrences} occurrences`);
+    });
+  }
+  
+  // Afficher les violations de seuils
+  if (metrics.antiPatterns.thresholdViolations.length > 0) {
+    console.log(chalk.red('\nViolations de seuils:'));
+    metrics.antiPatterns.thresholdViolations.forEach(violation => {
+      console.log(`- ${violation.thresholdName}: ${violation.description}`);
+    });
+  }
 }
 
 main();
