@@ -40,10 +40,16 @@ class OperationModeServiceImpl implements OperationModeService {
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
-        return JSON.parse(saved) as OperationModeState;
+        try {
+          return JSON.parse(saved) as OperationModeState;
+        } catch (error) {
+          console.error('Erreur lors de la récupération du mode opérationnel :', error);
+          // Si l'analyse JSON échoue, supprimer la valeur corrompue
+          localStorage.removeItem(this.storageKey);
+        }
       }
     } catch (error) {
-      console.error('Erreur lors de la récupération du mode opérationnel :', error);
+      console.error('Erreur lors de l\'accès au localStorage :', error);
     }
     return null;
   }
@@ -137,6 +143,9 @@ class OperationModeServiceImpl implements OperationModeService {
   
   subscribe(listener: (state: OperationModeState) => void): () => void {
     this.listeners.push(listener);
+    
+    // Appeler immédiatement le listener avec l'état actuel
+    listener(this.state);
     
     // Retourne une fonction de désinscription
     return () => {

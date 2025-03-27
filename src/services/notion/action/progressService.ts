@@ -79,9 +79,10 @@ class ProgressService {
     
     // TODO: Implémenter la récupération d'un progrès depuis Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
+    const mockProgress = progressMappers.createMockProgress(id);
     return {
       success: true,
-      data: progressMappers.createMockProgress(id)
+      data: mockProgress
     };
   }
   
