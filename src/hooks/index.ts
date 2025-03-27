@@ -1,33 +1,29 @@
 
 /**
- * Index principal des hooks de l'application
+ * Point d'entrée pour tous les hooks de l'application
  * 
- * Ce fichier centralise tous les hooks de l'application
- * pour faciliter leur importation dans les composants.
+ * Ce module exporte tous les hooks organisés par catégorie
+ * pour maintenir la cohérence et faciliter l'importation.
  */
 
-// Hooks de formulaire
-export * from './form';
-
 // Hooks d'API
-export * from './api/useApiClient';
+export * from './api';
 
-// Hooks d'erreur
+// Hooks de gestion des erreurs
 export * from './error';
 
-// Hooks spécifiques au domaine
+// Hooks de formulaires
+export * from './form';
+
+// Hooks de cache
+export * from './cache';
+
+// Hooks Notion
+export * from './notion';
+
+// Hooks génériques
+export * from './use-toast';
+export * from './useOperationMode';
 export * from './useProjects';
 export * from './useProjectById';
 export * from './useProjectAudits';
-
-// Hooks d'opération
-export * from './useOperationMode';
-
-// Hooks Notion
-export * from './notion/useNotionService';
-
-// Hooks de cache
-export * from './cache/useCache';
-
-// Hooks de toast
-export * from './use-toast';

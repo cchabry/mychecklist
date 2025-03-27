@@ -3,9 +3,11 @@
  * Types pour l'API de l'application
  */
 
-// Import base API types
+// Exporter les types de base
 export * from './types';
 
-// Import Notion API types, but exclude the ones already exported from types.ts
+// Exporter les types de l'API Notion
 export * from './notionApi';
 
+// Exporter les types d'API par domaine
+export * from './domain';

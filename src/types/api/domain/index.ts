@@ -1,6 +1,9 @@
 
 /**
  * Point d'entrée pour les interfaces API des différents domaines
+ * 
+ * Ce module exporte toutes les interfaces d'API de domaine de manière
+ * centralisée et cohérente.
  */
 
 export * from './projectApi';
