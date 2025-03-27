@@ -29,6 +29,15 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
+        
+      - name: Debug package.json
+        run: cat package.json
+      
+      - name: List scripts directory
+        run: ls -la src/scripts/
+      
+      - name: Check script permissions
+        run: chmod +x src/scripts/*.js
       
       - name: Run architecture analysis
         run: node src/scripts/run-architecture-analysis.js
@@ -44,7 +53,7 @@ jobs:
           fi
       
       - name: Upload architecture report
-        if: steps.check_status.outputs.success == 'true'
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: architecture-reports
@@ -60,24 +69,28 @@ jobs:
             const fs = require('fs');
             
             try {
-              const statusData = JSON.parse(fs.readFileSync('reports/analysis-status.json', 'utf8'));
-              
-              let commentBody = `## Architecture Analysis Results\n\n`;
-              
-              if (statusData.success) {
-                commentBody += `✅ **Success**: Architecture analysis completed successfully.\n\n`;
-                commentBody += `Reports are available as build artifacts.\n`;
+              if (fs.existsSync('reports/analysis-status.json')) {
+                const statusData = JSON.parse(fs.readFileSync('reports/analysis-status.json', 'utf8'));
+                
+                let commentBody = `## Architecture Analysis Results\n\n`;
+                
+                if (statusData.success) {
+                  commentBody += `✅ **Success**: Architecture analysis completed successfully.\n\n`;
+                  commentBody += `Reports are available as build artifacts.\n`;
+                } else {
+                  commentBody += `❌ **Failed**: Architecture analysis failed.\n\n`;
+                  commentBody += `Please check the workflow logs for more details.\n`;
+                }
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: commentBody
+                });
               } else {
-                commentBody += `❌ **Failed**: Architecture analysis failed.\n\n`;
-                commentBody += `Please check the workflow logs for more details.\n`;
+                console.log('No analysis-status.json file found');
               }
-              
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: commentBody
-              });
             } catch (error) {
               console.error('Error posting analysis comment:', error);
             }
