@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
 * Script d'exécution de l'analyse architecturale

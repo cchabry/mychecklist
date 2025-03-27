@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
 * Script pour créer le répertoire des rapports
 * 
