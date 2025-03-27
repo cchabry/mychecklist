@@ -41,6 +41,20 @@ export type UpdateExigenceData = {
  * Type pour une exigence avec son item de checklist associé
  */
 export interface ExigenceWithItem {
-  exigence: import('@/types/domain').Exigence;
-  item: ChecklistItem;
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
+  checklistItem: ChecklistItem;
 }
+
+/**
+ * Options de tri pour les exigences
+ */
+export type ExigenceSortOption = 
+  | 'importance_desc'
+  | 'importance_asc'
+  | 'category_asc'
+  | 'category_desc';
+

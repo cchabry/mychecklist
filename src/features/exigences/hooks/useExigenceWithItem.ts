@@ -25,23 +25,6 @@ export function useExigenceWithItem(exigenceId: string) {
     if (exigence && checklistItem) {
       const enriched = enrichExigencesWithItems([exigence], [checklistItem])[0];
       setExigenceWithItem(enriched);
-    } else if (exigence) {
-      // Si l'item n'est pas trouvé, on crée quand même l'exigence enrichie avec un item undefined
-      setExigenceWithItem({
-        ...exigence,
-        checklistItem: {
-          id: exigence.itemId,
-          consigne: 'Item inconnu',
-          description: 'Cet item n\'existe plus dans la checklist',
-          category: 'Non catégorisé',
-          subcategory: 'Non catégorisé',
-          reference: [],
-          profil: [],
-          phase: [],
-          effort: 0,
-          priority: 0
-        }
-      });
     }
   }, [exigence, checklistItem]);
 

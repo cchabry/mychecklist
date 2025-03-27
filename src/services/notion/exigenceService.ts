@@ -5,7 +5,8 @@
 
 import { notionClient } from './notionClient';
 import { NotionResponse } from './types';
-import { Exigence, ImportanceLevel } from '@/types/domain';
+import { Exigence } from '@/types/domain';
+import { ImportanceLevel } from '@/types/enums';
 
 /**
  * Service de gestion des exigences

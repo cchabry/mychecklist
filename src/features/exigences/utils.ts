@@ -1,3 +1,4 @@
+
 /**
  * Utilitaires pour la gestion des exigences
  */
@@ -47,7 +48,7 @@ export function filterExigences(
   filters: ExigenceFilters
 ): ExigenceWithItem[] {
   return exigences.filter(exigence => {
-    const { importance, category, subcategory, search } = filters;
+    const { importance, category, subCategory, search } = filters;
     
     // Filtrer par importance
     if (importance && exigence.importance !== importance) {
@@ -60,7 +61,7 @@ export function filterExigences(
     }
     
     // Filtrer par sous-catégorie
-    if (subcategory && exigence.checklistItem?.subcategory !== subcategory) {
+    if (subCategory && exigence.checklistItem?.subcategory !== subCategory) {
       return false;
     }
     

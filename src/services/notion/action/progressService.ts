@@ -1,4 +1,3 @@
-
 /**
  * Service pour la gestion des suivis de progrès
  */
@@ -11,7 +10,13 @@ import {
   ProgressListResponse,
   ProgressDeleteResponse
 } from './types';
-import { ComplianceStatus, ActionStatus, ActionProgress } from '@/types/domain';
+import { 
+  ComplianceStatus, 
+  ActionStatus, 
+  ActionProgress,
+  complianceStatusToLevel,
+  actionStatusToType
+} from '@/types/domain';
 
 /**
  * Service de gestion des suivis de progrès
@@ -69,8 +74,8 @@ class ProgressService {
         date: new Date().toISOString(),
         responsible: 'Jane Smith',
         comment: "Première phase des corrections effectuée",
-        score: ComplianceStatus.PartiallyCompliant,
-        status: ActionStatus.InProgress
+        score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
+        status: actionStatusToType[ActionStatus.InProgress]
       }
     };
   }

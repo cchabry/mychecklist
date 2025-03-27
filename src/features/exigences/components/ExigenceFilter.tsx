@@ -56,7 +56,7 @@ export function ExigenceFilter({
   
   const hasActiveFilters = !!(
     filters.category || 
-    filters.subcategory ||
+    filters.subCategory ||
     filters.importance
   );
   
@@ -129,8 +129,8 @@ export function ExigenceFilter({
                 <div className="space-y-2">
                   <h4 className="font-medium">Sous-catégorie</h4>
                   <Select
-                    value={filters.subcategory || ''}
-                    onValueChange={(value) => updateFilter('subcategory', value || undefined)}
+                    value={filters.subCategory || ''}
+                    onValueChange={(value) => updateFilter('subCategory', value || undefined)}
                     disabled={!filters.category}
                   >
                     <SelectTrigger>

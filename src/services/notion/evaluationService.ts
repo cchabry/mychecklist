@@ -1,55 +1,43 @@
-
 /**
- * Service pour la gestion des évaluations via Notion
+ * Service pour la gestion des évaluations
  */
 
 import { notionClient } from './notionClient';
 import { NotionResponse } from './types';
-import { Evaluation, ComplianceStatus } from '@/types/domain';
+import { Evaluation } from '@/types/domain';
+import { ComplianceLevel } from '@/types/enums';
+import { complianceStatusToLevel, ComplianceStatus } from '@/types/domain';
 
 /**
  * Service de gestion des évaluations
  */
 class EvaluationService {
   /**
-   * Récupère toutes les évaluations d'un audit, filtrées optionnellement par page et/ou exigence
+   * Récupère toutes les évaluations d'un audit
    */
-  async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
+  async getEvaluations(auditId: string): Promise<NotionResponse<Evaluation[]>> {
+    const config = notionClient.getConfig();
+    
+    if (!config.evaluationsDbId) {
+      return { 
+        success: false, 
+        error: { message: "Base de données des évaluations non configurée" } 
+      };
+    }
+    
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
-      let evaluations = this.getMockEvaluations(auditId);
-      
-      // Appliquer les filtres si spécifiés
-      if (pageId) {
-        evaluations = evaluations.filter(e => e.pageId === pageId);
-      }
-      
-      if (exigenceId) {
-        evaluations = evaluations.filter(e => e.exigenceId === exigenceId);
-      }
-      
       return {
         success: true,
-        data: evaluations
+        data: this.getMockEvaluations(auditId)
       };
     }
     
     // TODO: Implémenter la récupération des évaluations depuis Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
-    let evaluations = this.getMockEvaluations(auditId);
-    
-    // Appliquer les filtres si spécifiés
-    if (pageId) {
-      evaluations = evaluations.filter(e => e.pageId === pageId);
-    }
-    
-    if (exigenceId) {
-      evaluations = evaluations.filter(e => e.exigenceId === exigenceId);
-    }
-    
     return {
       success: true,
-      data: evaluations
+      data: this.getMockEvaluations(auditId)
     };
   }
   
@@ -84,8 +72,9 @@ class EvaluationService {
         auditId: 'mock-audit',
         pageId: 'mock-page',
         exigenceId: 'mock-exigence',
-        score: ComplianceStatus.PartiallyCompliant,
-        comment: "Partiellement conforme, des améliorations requises",
+        score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
+        comment: "Évaluation partielle",
+        attachments: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -186,9 +175,9 @@ class EvaluationService {
         auditId,
         pageId: 'page-1',
         exigenceId: 'exig-1',
-        score: ComplianceStatus.Compliant,
-        comment: "Toutes les images ont des attributs alt appropriés",
-        attachments: ["screenshot1.png"],
+        score: complianceStatusToLevel[ComplianceStatus.Compliant],
+        comment: "Toutes les images ont des attributs alt",
+        attachments: [],
         createdAt: now,
         updatedAt: now
       },
@@ -197,19 +186,20 @@ class EvaluationService {
         auditId,
         pageId: 'page-1',
         exigenceId: 'exig-2',
-        score: ComplianceStatus.PartiallyCompliant,
-        comment: "Certaines images ne sont pas optimisées",
-        attachments: ["screenshot2.png", "report.pdf"],
+        score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
+        comment: "Certaines images nécessitent une optimisation",
+        attachments: [],
         createdAt: now,
         updatedAt: now
       },
       {
         id: 'eval-3',
         auditId,
-        pageId: 'page-2',
-        exigenceId: 'exig-1',
-        score: ComplianceStatus.NonCompliant,
-        comment: "Plusieurs images sans attributs alt",
+        pageId: 'page-1',
+        exigenceId: 'exig-3',
+        score: complianceStatusToLevel[ComplianceStatus.NonCompliant],
+        comment: "Aucun contraste suffisant pour les textes",
+        attachments: [],
         createdAt: now,
         updatedAt: now
       }

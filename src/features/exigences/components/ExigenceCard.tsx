@@ -97,7 +97,7 @@ export function ExigenceCard({ exigence, onEdit, onClick, className }: ExigenceC
       
       <CardFooter className="pt-0">
         <div className="flex gap-2 flex-wrap">
-          {checklistItem.reference?.map((ref, index) => (
+          {checklistItem.reference?.map((ref: string, index: number) => (
             <Badge key={index} variant="secondary" className="text-xs">
               {ref}
             </Badge>

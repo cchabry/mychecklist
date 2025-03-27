@@ -40,7 +40,7 @@ const ProjectExigencesPage = () => {
   const { data: checklistItems = [], isLoading: isLoadingChecklist } = useChecklistItems();
   
   // État des filtres et du tri
-  const [filters, setFilters] = useState<{ search: string }>({ search: '' });
+  const [filters, setFilters] = useState<{ search: string, category?: string, subCategory?: string, importance?: ImportanceLevel }>({ search: '' });
   const [sortOption, setSortOption] = useState<ExigenceSortOption>('importance_desc');
   
   // Enrichir les exigences avec les informations des items de checklist
@@ -84,8 +84,8 @@ const ProjectExigencesPage = () => {
   // Déterminer si les données sont en cours de chargement
   const isLoading = isLoadingProject || isLoadingExigences || isLoadingChecklist;
   
-  // Gestionnaire de changement de filtre adapté pour le type ExigenceFilters
-  const handleFilterChange = (newFilters: Partial<{ search: string; importance?: ImportanceLevel; category?: string; subcategory?: string }>) => {
+  // Gestionnaire de changement de filtre
+  const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters({ ...filters, ...newFilters });
   };
   

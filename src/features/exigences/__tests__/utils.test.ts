@@ -11,7 +11,7 @@ import {
 } from '../utils';
 import { ExigenceWithItem } from '../types';
 import { ImportanceLevel } from '@/types/enums';
-import { ChecklistItem } from '@/types/domain';
+import { ChecklistItem, Exigence } from '@/types/domain';
 
 describe('Exigence Utils', () => {
   // Exemples d'items pour les tests
@@ -54,63 +54,49 @@ describe('Exigence Utils', () => {
     }
   ];
 
-  // Exemples d'exigences pour les tests
-  const exigences: ExigenceWithItem[] = [
+  // Exemples d'exigences simples pour les tests
+  const basicExigences: Exigence[] = [
     {
       id: 'exig-1',
       projectId: 'project-1',
       itemId: 'item-1',
       importance: ImportanceLevel.Major,
-      comment: "Crucial pour l'accessibilité",
-      checklistItem: checklistItems[0]
+      comment: "Crucial pour l'accessibilité"
     },
     {
       id: 'exig-2',
       projectId: 'project-1',
       itemId: 'item-2',
       importance: ImportanceLevel.Medium,
-      comment: "Important pour les performances",
-      checklistItem: checklistItems[1]
+      comment: "Important pour les performances"
     },
     {
       id: 'exig-3',
       projectId: 'project-1',
       itemId: 'item-3',
       importance: ImportanceLevel.Important,
-      comment: "Nécessaire pour l'accessibilité",
-      checklistItem: checklistItems[2]
+      comment: "Nécessaire pour l'accessibilité"
     }
   ];
 
+  // Exemples d'exigences enrichies pour les tests
+  const exigences: ExigenceWithItem[] = basicExigences.map((exigence, index) => ({
+    ...exigence,
+    checklistItem: checklistItems[index]
+  }));
+
   describe('enrichExigencesWithItems', () => {
     it('devrait enrichir les exigences avec les informations des items', () => {
-      const basicExigences = [
-        {
-          id: 'exig-1',
-          projectId: 'project-1',
-          itemId: 'item-1',
-          importance: ImportanceLevel.Major,
-          comment: "Crucial pour l'accessibilité"
-        },
-        {
-          id: 'exig-2',
-          projectId: 'project-1',
-          itemId: 'item-2',
-          importance: ImportanceLevel.Medium,
-          comment: "Important pour les performances"
-        }
-      ];
-
       const result = enrichExigencesWithItems(basicExigences, checklistItems);
       
-      expect(result).toHaveLength(2);
+      expect(result).toHaveLength(3);
       expect(result[0].checklistItem).toBeDefined();
       expect(result[0].checklistItem.consigne).toBe('Utiliser des textes alternatifs');
       expect(result[1].checklistItem.consigne).toBe('Optimiser les images');
     });
 
     it('devrait gérer les items manquants', () => {
-      const basicExigences = [
+      const testExigences = [
         {
           id: 'exig-1',
           projectId: 'project-1',
@@ -120,7 +106,7 @@ describe('Exigence Utils', () => {
         }
       ];
 
-      const result = enrichExigencesWithItems(basicExigences, checklistItems);
+      const result = enrichExigencesWithItems(testExigences, checklistItems);
       
       expect(result).toHaveLength(1);
       expect(result[0].checklistItem).toBeDefined();
@@ -148,7 +134,7 @@ describe('Exigence Utils', () => {
     });
 
     it('devrait filtrer par sous-catégorie', () => {
-      const result = filterExigences(exigences, { subcategory: 'Images' });
+      const result = filterExigences(exigences, { subCategory: 'Images' });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('exig-1');
     });

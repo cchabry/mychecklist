@@ -3,7 +3,16 @@
  * Utilitaires pour les actions correctives
  */
 
-import { CorrectiveAction, ActionProgress, ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
+import { 
+  CorrectiveAction, 
+  ActionProgress, 
+  ComplianceStatus, 
+  ActionPriority, 
+  ActionStatus,
+  complianceStatusToLevel,
+  actionPriorityToLevel,
+  actionStatusToType
+} from '@/types/domain';
 
 /**
  * Génère des actions correctives fictives pour le mode démo
@@ -13,22 +22,22 @@ export function generateMockActions(evaluationId: string): CorrectiveAction[] {
     {
       id: 'action-1',
       evaluationId,
-      targetScore: ComplianceStatus.Compliant,
-      priority: ActionPriority.High,
+      targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
+      priority: actionPriorityToLevel[ActionPriority.High],
       dueDate: getFutureDateString(7), // dans 1 semaine
       responsible: 'John Doe',
       comment: "Ajouter des attributs alt à toutes les images",
-      status: ActionStatus.InProgress
+      status: actionStatusToType[ActionStatus.InProgress]
     },
     {
       id: 'action-2',
       evaluationId,
-      targetScore: ComplianceStatus.Compliant,
-      priority: ActionPriority.Medium,
+      targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
+      priority: actionPriorityToLevel[ActionPriority.Medium],
       dueDate: getFutureDateString(14), // dans 2 semaines
       responsible: 'Jane Smith',
       comment: "Optimiser les images pour le web",
-      status: ActionStatus.Todo
+      status: actionStatusToType[ActionStatus.Todo]
     }
   ];
 }
@@ -50,8 +59,8 @@ export function generateMockActionProgress(actionId: string): ActionProgress[] {
       date: lastWeek.toISOString(),
       responsible: 'John Doe',
       comment: "Début des corrections",
-      score: ComplianceStatus.PartiallyCompliant,
-      status: ActionStatus.InProgress
+      score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
+      status: actionStatusToType[ActionStatus.InProgress]
     },
     {
       id: 'progress-2',
@@ -59,8 +68,8 @@ export function generateMockActionProgress(actionId: string): ActionProgress[] {
       date: yesterday.toISOString(),
       responsible: 'John Doe',
       comment: "50% des images corrigées",
-      score: ComplianceStatus.PartiallyCompliant,
-      status: ActionStatus.InProgress
+      score: complianceStatusToLevel[ComplianceStatus.PartiallyCompliant],
+      status: actionStatusToType[ActionStatus.InProgress]
     }
   ];
 }

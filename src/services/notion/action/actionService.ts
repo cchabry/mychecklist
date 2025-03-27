@@ -1,4 +1,3 @@
-
 /**
  * Service pour la gestion des actions correctives
  */
@@ -7,24 +6,26 @@ import { notionClient } from '../notionClient';
 import { generateMockActions } from './utils';
 import { 
   CreateActionInput, 
-  ActionResponse,
+  ActionResponse, 
   ActionsResponse,
-  ActionDeleteResponse,
-  ProgressResponse,
-  ProgressListResponse,
-  ProgressDeleteResponse,
-  CreateProgressInput
+  ActionDeleteResponse
 } from './types';
-import { ComplianceStatus, ActionPriority, ActionStatus, CorrectiveAction, ActionProgress } from '@/types/domain';
-import { getFutureDateString } from './utils';
-import { progressService } from './progressService';
+import { 
+  CorrectiveAction, 
+  ComplianceStatus, 
+  ActionPriority, 
+  ActionStatus,
+  complianceStatusToLevel,
+  actionPriorityToLevel,
+  actionStatusToType
+} from '@/types/domain';
 
 /**
  * Service de gestion des actions correctives
  */
 class ActionService {
   /**
-   * Récupère toutes les actions correctives liées à une évaluation
+   * Récupère toutes les actions liées à une évaluation
    */
   async getActions(evaluationId: string): Promise<ActionsResponse> {
     // Si en mode démo, renvoyer des données simulées
@@ -44,18 +45,18 @@ class ActionService {
   }
   
   /**
-   * Récupère une action corrective par son ID
+   * Récupère une action par son ID
    */
   async getActionById(id: string): Promise<ActionResponse> {
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
-      const mockActions = generateMockActions('mock-eval');
+      const mockActions = generateMockActions('mock-evaluation');
       const action = mockActions.find(a => a.id === id);
       
       if (!action) {
         return { 
           success: false, 
-          error: { message: `Action corrective #${id} non trouvée` } 
+          error: { message: `Action #${id} non trouvée` } 
         };
       }
       
@@ -71,13 +72,13 @@ class ActionService {
       success: true,
       data: {
         id,
-        evaluationId: 'mock-eval',
-        targetScore: ComplianceStatus.Compliant,
-        priority: ActionPriority.High,
-        dueDate: getFutureDateString(14), // dans 2 semaines
+        evaluationId: 'mock-evaluation',
+        targetScore: complianceStatusToLevel[ComplianceStatus.Compliant],
+        priority: actionPriorityToLevel[ActionPriority.High],
+        dueDate: new Date().toISOString(),
         responsible: 'John Doe',
-        comment: "Ajouter des attributs alt à toutes les images",
-        status: ActionStatus.InProgress
+        comment: "Action corrective prioritaire",
+        status: actionStatusToType[ActionStatus.InProgress]
       }
     };
   }
