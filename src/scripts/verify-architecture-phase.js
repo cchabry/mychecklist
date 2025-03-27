@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de vérification des phases d'architecture
@@ -12,11 +13,16 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { spawn, spawnSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import pkg from 'glob';
 const { glob } = pkg;
 
+// Obtenir l'équivalent de __dirname pour les modules ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Chemins principaux
-const ROOT_DIR = path.resolve(process.cwd());
+const ROOT_DIR = path.resolve(__dirname, '../..');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 const FEATURES_DIR = path.join(SRC_DIR, 'features');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');

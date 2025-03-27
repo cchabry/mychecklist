@@ -27,7 +27,7 @@ try {
   console.log('Exécution de la vérification de la phase 2...');
   execSync('node src/scripts/verify-architecture-phase.js --phase=2', { 
     stdio: 'inherit',
-    cwd: path.resolve(__dirname, '../..')
+    cwd: ROOT_DIR
   });
   console.log('Vérification terminée avec succès!');
   

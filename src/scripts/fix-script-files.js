@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// Importer glob correctement en tant que module CommonJS
+// Importer glob correctement en tant que module ES
 import pkg from 'glob';
 const { glob } = pkg;
 
@@ -58,8 +58,8 @@ function removeLeadingEmptyLines(filePath) {
         return `export ${exportName}`;
       });
     
-    // Remplacer fileURLToPath\(import\.meta\.url\)
-    content = content.replace(/fileURLToPath\(import\.meta\.url\)/g, "fileURLToPath(import.meta.url)");
+    // Ne pas remplacer l'expression fileURLToPath car on l'utilise déjà correctement
+    // content = content.replace(/fileURLToPath\(import\.meta\.url\)/g, "fileURLToPath(import.meta.url)");
     
     // Ajouter import { fileURLToPath } from 'url' si nécessaire
     if (content.includes('fileURLToPath(import.meta.url)') && !content.includes("import { fileURLToPath }")) {
@@ -67,17 +67,46 @@ function removeLeadingEmptyLines(filePath) {
     }
     
     // Gérer spécifiquement l'import de glob (problématique)
-    if (content.includes("import pkg from 'glob';") && content.includes("const { glob } = pkg;")) {
+    if (content.includes("from 'glob';") && !content.includes("const { glob } = pkg;")) {
       content = content.replace(
         "import { glob } from 'glob';", 
         "import pkg from 'glob';\nconst { glob } = pkg;"
       );
     }
     
+    // Corriger les references à __dirname
+    if (content.includes("__dirname") && !content.includes("const __dirname = path.dirname(__filename);")) {
+      // S'assurer que nous avons les imports nécessaires
+      if (!content.includes("import { fileURLToPath } from 'url';")) {
+        content = "import { fileURLToPath } from 'url';\n" + content;
+      }
+      if (!content.includes("import path from 'path';")) {
+        content = "import path from 'path';\n" + content;
+      }
+      
+      // Ajouter la déclaration de __dirname
+      const dirnameDeclaration = "const __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n";
+      
+      // Si le fichier a un shebang, l'insérer après
+      if (content.includes("#!/usr/bin/env node")) {
+        content = content.replace("#!/usr/bin/env node\n", "#!/usr/bin/env node\n" + dirnameDeclaration);
+      } else {
+        // Sinon, insérer après les imports
+        const lastImportIndex = content.lastIndexOf("import ");
+        const lastImportLineEnd = content.indexOf("\n", lastImportIndex);
+        if (lastImportIndex !== -1 && lastImportLineEnd !== -1) {
+          content = content.substring(0, lastImportLineEnd + 1) + "\n" + dirnameDeclaration + content.substring(lastImportLineEnd + 1);
+        } else {
+          content = dirnameDeclaration + content;
+        }
+      }
+    }
+    
     // Assurer que le shebang est en première ligne sans ligne vide avant
     if (content.includes('#!/usr/bin/env node')) {
       content = content.replace(/^([\s\S]*?)(#!\/usr\/bin\/env node)/, '$2\n$1');
       content = content.replace(/(#!\/usr\/bin\/env node)\n\n/, '$1\n');
+      content = content.replace(/(#!\/usr\/bin\/env node\n)(import[\s\S]*?)(\n\n)(const __filename)/, '$1$2\n$4');
     }
     
     fs.writeFileSync(filePath, content);

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script d'exécution de l'analyse architecturale complète
@@ -11,8 +12,10 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-const fileURLToPath(import.meta.url) = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Obtenir l'équivalent de __dirname pour les modules ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
