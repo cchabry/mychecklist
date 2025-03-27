@@ -5,15 +5,18 @@
  * 
  * Ce script va:
  * 1. Supprimer les lignes vides au début des fichiers
- * 2. Convertir tous les scripts en CommonJS (retirer import/export ES modules)
+ * 2. Convertir tous les scripts en ES Modules (utiliser import/export)
  * 3. Ajouter le script build:dev manquant
  */
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { glob } from 'glob';
 
 // Chemins principaux
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const SCRIPTS_DIR = path.join(ROOT_DIR, 'src/scripts');
 
@@ -29,38 +32,37 @@ function removeLeadingEmptyLines(filePath) {
     // Supprimer les lignes vides au début
     content = content.replace(/^\s*\n+/, '');
     
-    // Convertir les imports ES Module en require CommonJS
-    content = content.replace(/import\s+\{\s*([^}]+)\s*\}\s+from\s+['"]([^'"]+)['"]/g, 
+    // Convertir les requires CommonJS en import ES Module
+    content = content.replace(/const\s*\{\s*([^}]+)\s*\}\s*=\s*require\(['"]([^'"]+)['"]\);?/g, 
       (match, imports, source) => {
         const importNames = imports.split(',').map(i => i.trim());
-        return `const { ${importNames.join(', ')} } = require('${source}');`;
+        return `import { ${importNames.join(', ')} } from '${source}';`;
       });
     
-    content = content.replace(/import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g, 
+    content = content.replace(/const\s*(\w+)\s*=\s*require\(['"]([^'"]+)['"]\);?/g, 
       (match, importName, source) => {
-        return `const ${importName} = require('${source}');`;
+        return `import ${importName} from '${source}';`;
       });
     
-    // Convertir les export ES Module en exports CommonJS
-    content = content.replace(/export\s+\{\s*([^}]+)\s*\}/g, 
+    // Convertir les module.exports CommonJS en export ES Module
+    content = content.replace(/module\.exports\s*=\s*\{\s*([^}]+)\s*\};?/g, 
       (match, exports) => {
         const exportNames = exports.split(',').map(e => e.trim());
-        return `module.exports = { ${exportNames.join(', ')} };`;
+        return `export { ${exportNames.join(', ')} };`;
       });
     
-    content = content.replace(/export\s+(\w+)/g, 
+    content = content.replace(/module\.exports\.(\w+)/g, 
       (match, exportName) => {
-        return `module.exports.${exportName}`;
+        return `export ${exportName}`;
       });
     
-    // Remplacer import.meta.url
-    content = content.replace(/import\.meta\.url/g, '__filename');
+    // Remplacer __filename
+    content = content.replace(/__filename/g, "fileURLToPath(import.meta.url)");
     
-    // Remplacer fileURLToPath
-    content = content.replace(/fileURLToPath\([^)]+\)/g, '__filename');
-    
-    // Supprimer les import { fileURLToPath } from 'url';
-    content = content.replace(/const\s*\{\s*fileURLToPath\s*\}\s*=\s*require\(['"]url['"]\);?/g, '');
+    // Ajouter import { fileURLToPath } from 'url' si nécessaire
+    if (content.includes('fileURLToPath(import.meta.url)') && !content.includes("import { fileURLToPath }")) {
+      content = "import { fileURLToPath } from 'url';\n" + content;
+    }
     
     // Assurer que le shebang est en première ligne sans ligne vide avant
     if (content.includes('#!/usr/bin/env node')) {
@@ -152,13 +154,5 @@ function main() {
   }
 }
 
-// Vérifier si le module glob est installé
-try {
-  require.resolve('glob');
-} catch (error) {
-  console.error('Le module "glob" est requis mais n\'est pas installé.');
-  console.error('Installez-le avec: npm install glob');
-  process.exit(1);
-}
-
+// Exécuter le script
 main();

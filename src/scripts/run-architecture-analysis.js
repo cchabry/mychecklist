@@ -7,11 +7,13 @@
  * Il est conçu pour être utilisé dans un environnement CI/CD.
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { execSync } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Chemins principaux
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 

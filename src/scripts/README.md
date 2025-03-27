@@ -7,7 +7,7 @@ Ce dossier contient tous les scripts utilisés pour l'analyse et la vérificatio
 
 Tous les scripts dans ce dossier suivent les conventions suivantes:
 
-1. **Format CommonJS**: Tous les scripts utilisent la syntaxe CommonJS (`require()` et `module.exports`), **pas** la syntaxe ES Modules (`import` et `export`).
+1. **Format ES Modules**: Tous les scripts utilisent la syntaxe ES Modules (`import` et `export`), **pas** la syntaxe CommonJS (`require()` et `module.exports`).
 2. **Pas de lignes vides** au début des fichiers.
 3. **Shebang** en première ligne pour les scripts exécutables: `#!/usr/bin/env node`
 
@@ -53,5 +53,5 @@ npm run architecture:full
 Si vous rencontrez des problèmes avec les scripts:
 
 1. Exécutez `node src/scripts/fix-script-files.js` pour corriger les problèmes courants.
-2. Assurez-vous que tous les fichiers sont au format CommonJS.
+2. Assurez-vous que tous les fichiers sont au format ES Modules (import/export).
 3. Vérifiez qu'il n'y a pas de lignes vides au début des fichiers.

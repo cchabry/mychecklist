@@ -5,10 +5,13 @@
  * Script utilitaire pour faciliter l'exécution de la vérification de phase 2
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { execSync } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
@@ -20,7 +23,6 @@ if (!fs.existsSync(REPORTS_DIR)) {
 
 try {
   console.log('Exécution de la vérification de la phase 2...');
-  // Utiliser node au lieu de ts-node
   execSync('node src/scripts/verify-architecture-phase.js --phase=2', { 
     stdio: 'inherit',
     cwd: path.resolve(__dirname, '../..')
