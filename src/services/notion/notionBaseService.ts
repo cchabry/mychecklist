@@ -1,51 +1,58 @@
 
 /**
- * Service de base pour Notion
+ * Service de base Notion
  * 
- * Ce service fournit les fonctionnalités de base pour interagir avec l'API Notion.
+ * Ce service fournit une interface simplifiée pour configurer et interagir
+ * avec l'API Notion. Il sert de couche d'abstraction au-dessus du client Notion.
  */
 
-import { notionClient } from './client/notionClient';
-import { ConnectionTestResult, NotionConfig } from './types';
-import { operationModeService } from '@/services/operationMode/operationModeService';
+import { notionClient } from './client';
+import { ConnectionTestResult } from './types';
 
 /**
- * Service de base pour Notion
+ * Service de base pour l'API Notion
+ * 
+ * Fournit des fonctionnalités de base pour configurer et interagir
+ * avec l'API Notion.
  */
 class NotionBaseService {
   /**
-   * Configure le service Notion
+   * Configure le service Notion avec les informations nécessaires
+   * 
+   * @param apiKey Clé d'API Notion
+   * @param projectsDbId ID de la base de données projets
+   * @param checklistsDbId ID de la base de données checklist (optionnel)
    */
   configure(apiKey: string, projectsDbId: string, checklistsDbId?: string): void {
-    const config: NotionConfig = {
+    notionClient.configure({
       apiKey,
       projectsDbId,
-      checklistsDbId,
-      mockMode: operationModeService.isDemoMode()
-    };
-    
-    notionClient.configure(config);
-    
-    // Sauvegarder la configuration dans le localStorage
-    this.saveConfig(config);
+      checklistsDbId
+    });
   }
   
   /**
-   * Vérifie si le service est configuré
+   * Vérifie si le service est correctement configuré
+   * 
+   * @returns true si le service est configuré avec les informations minimales
    */
   isConfigured(): boolean {
-    return notionClient.isConfigured() || operationModeService.isDemoMode();
+    return notionClient.isConfigured();
   }
   
   /**
    * Récupère la configuration actuelle
+   * 
+   * @returns Copie de la configuration actuelle
    */
-  getConfig(): NotionConfig {
+  getConfig() {
     return notionClient.getConfig();
   }
   
   /**
    * Active ou désactive le mode mock
+   * 
+   * @param enabled État souhaité du mode mock
    */
   setMockMode(enabled: boolean): void {
     notionClient.setMockMode(enabled);
@@ -53,61 +60,20 @@ class NotionBaseService {
   
   /**
    * Vérifie si le mode mock est actif
+   * 
+   * @returns true si le client est en mode mock/démo
    */
   isMockMode(): boolean {
-    return notionClient.isMockMode() || operationModeService.isDemoMode();
+    return notionClient.isMockMode();
   }
   
   /**
    * Teste la connexion à l'API Notion
+   * 
+   * @returns Résultat du test
    */
   async testConnection(): Promise<ConnectionTestResult> {
     return notionClient.testConnection();
-  }
-  
-  /**
-   * Sauvegarde la configuration dans le localStorage
-   */
-  private saveConfig(config: NotionConfig): void {
-    try {
-      const { apiKey, projectsDbId, checklistsDbId } = config;
-      
-      // Créer un objet de configuration pour le stockage
-      const storageConfig = {
-        apiKey,
-        projectsDbId,
-        checklistsDbId
-      };
-      
-      // Stocker la configuration
-      localStorage.setItem('notion_config', JSON.stringify(storageConfig));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la configuration Notion:', error);
-    }
-  }
-  
-  /**
-   * Charge la configuration depuis le localStorage
-   */
-  loadConfig(): NotionConfig | null {
-    try {
-      const configStr = localStorage.getItem('notion_config');
-      
-      if (!configStr) {
-        return null;
-      }
-      
-      const config = JSON.parse(configStr) as Partial<NotionConfig>;
-      
-      if (!config.apiKey || !config.projectsDbId) {
-        return null;
-      }
-      
-      return config as NotionConfig;
-    } catch (error) {
-      console.error('Erreur lors du chargement de la configuration Notion:', error);
-      return null;
-    }
   }
 }
 

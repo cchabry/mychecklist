@@ -2,31 +2,31 @@
 /**
  * Testeur de connexion Notion
  * 
- * Module responsable de tester la connexion à l'API Notion et
- * de vérifier l'accès aux bases de données configurées.
+ * Ce module fournit des fonctionnalités pour tester la connexion avec l'API Notion
+ * et récupérer des informations sur la connexion actuelle.
  */
 
-import { NotionConfig, ConnectionTestResult } from '../types';
 import { notionHttpClient } from './notionHttpClient';
-import { notionMockClient } from './notionMockClient';
+import { notionMockClient } from './mock/notionMockClient';
+import { NotionConfig, ConnectionTestResult } from '../types';
 
 /**
- * Teste la connexion à l'API Notion et l'accès aux bases de données configurées
+ * Teste la connexion à l'API Notion
  * 
- * @param config Configuration du client Notion
- * @param isMockMode Si le client est en mode mock
+ * @param config Configuration Notion à utiliser pour le test
+ * @param mockMode Indique si le test doit être effectué en mode mock
  * @returns Résultat du test de connexion
  */
 export async function testConnection(
-  config: NotionConfig, 
-  isMockMode: boolean
+  config: NotionConfig,
+  mockMode: boolean = false
 ): Promise<ConnectionTestResult> {
-  // En mode mock, utiliser le mock client
-  if (isMockMode) {
+  // En mode mock, utiliser le client mock pour simuler un test de connexion
+  if (mockMode) {
     return notionMockClient.testConnection();
   }
   
-  // Vérifier que le client est configuré
+  // S'assurer que la configuration contient au moins une clé API
   if (!config.apiKey) {
     return {
       success: false,
@@ -35,59 +35,58 @@ export async function testConnection(
   }
   
   try {
-    // Tester l'API Notion en récupérant l'utilisateur
-    const userResponse = await notionHttpClient.get<any>('/users/me');
+    // Récupérer les informations sur l'utilisateur actuel
+    const userResponse = await notionHttpClient.get('/users/me');
     
     if (!userResponse.success) {
       return {
         success: false,
-        error: userResponse.error?.message || 'Erreur lors de la connexion à Notion'
+        error: userResponse.error?.message || 'Erreur lors de la récupération des informations utilisateur'
       };
     }
     
-    // Tester l'accès à la base de données des projets
+    const user = userResponse.data;
+    
+    // Déterminer le nom d'utilisateur et l'espace de travail
+    const userName = user.name || user.person?.email || 'Utilisateur inconnu';
+    const workspace = user.bot?.workspace_name || '';
+    
+    // Si des IDs de base de données sont fournis, essayer de récupérer leur nom
     let projectsDbName = '';
-    if (config.projectsDbId) {
-      const projectsDbResponse = await notionHttpClient.get<any>(`/databases/${config.projectsDbId}`);
-      
-      if (projectsDbResponse.success) {
-        projectsDbName = projectsDbResponse.data?.title?.[0]?.plain_text || config.projectsDbId;
-      } else {
-        return {
-          success: false,
-          error: `Impossible d'accéder à la base de données des projets: ${projectsDbResponse.error?.message}`
-        };
-      }
-    } else {
-      return {
-        success: false,
-        error: 'ID de la base de données des projets non configuré'
-      };
-    }
-    
-    // Tester l'accès à la base de données des checklists si configurée
     let checklistsDbName = '';
-    if (config.checklistsDbId) {
-      const checklistsDbResponse = await notionHttpClient.get<any>(`/databases/${config.checklistsDbId}`);
-      
-      if (checklistsDbResponse.success) {
-        checklistsDbName = checklistsDbResponse.data?.title?.[0]?.plain_text || config.checklistsDbId;
+    
+    if (config.projectsDbId) {
+      const projectsDbResponse = await notionHttpClient.get(`/databases/${config.projectsDbId}`);
+      if (projectsDbResponse.success) {
+        projectsDbName = projectsDbResponse.data.title[0]?.plain_text || 'Base de données projets';
       }
     }
     
-    // Retourner le résultat du test
+    if (config.checklistsDbId) {
+      const checklistsDbResponse = await notionHttpClient.get(`/databases/${config.checklistsDbId}`);
+      if (checklistsDbResponse.success) {
+        checklistsDbName = checklistsDbResponse.data.title[0]?.plain_text || 'Base de données checklist';
+      }
+    }
+    
+    // Retourner le résultat du test réussi
     return {
       success: true,
-      user: userResponse.data?.name || userResponse.data?.id,
-      workspaceName: userResponse.data?.workspace_name || 'Workspace inconnu',
+      user: userName,
+      workspaceName: workspace,
       projectsDbName,
-      checklistsDbName: checklistsDbName || undefined
+      checklistsDbName
     };
   } catch (error) {
-    // Retourner une erreur
+    // Gérer les erreurs réseau ou les exceptions
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Erreur inconnue lors du test de connexion';
+    
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Erreur inconnue lors du test de connexion'
+      error: errorMessage,
+      details: error
     };
   }
 }

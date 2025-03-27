@@ -2,114 +2,117 @@
 /**
  * Générateurs de données mock pour l'API Notion
  * 
- * Ce module contient des fonctions pour générer des données
- * simulées qui imitent les réponses de l'API Notion.
+ * Ce module fournit des fonctions pour générer des données simulées
+ * pour les différentes entités Notion (utilisateurs, bases de données, pages, etc.).
  */
-
-import { MockDataOptions } from './types';
 
 /**
  * Générateur de données mock pour l'API Notion
  */
-export class MockDataGenerator {
-  private options: MockDataOptions;
-
-  constructor(options: MockDataOptions = {}) {
-    this.options = {
-      delay: 300,
-      defaultCount: 5,
-      ...options
+class MockDataGenerator {
+  /**
+   * Génère un délai aléatoire pour simuler la latence réseau
+   * @param min Délai minimum en ms (défaut: 100ms)
+   * @param max Délai maximum en ms (défaut: 500ms)
+   * @returns Promise qui se résout après le délai
+   */
+  async simulateDelay(min: number = 100, max: number = 500): Promise<void> {
+    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+    return new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+  /**
+   * Génère un ID mock unique
+   * @param prefix Préfixe pour l'ID (défaut: 'mock')
+   * @returns ID unique au format 'prefix-timestamp-random'
+   */
+  generateMockId(prefix: string = 'mock'): string {
+    return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  }
+  
+  /**
+   * Génère un utilisateur mock
+   * @returns Objet représentant un utilisateur Notion
+   */
+  generateMockUser() {
+    return {
+      id: 'mock-user-id',
+      name: 'Utilisateur Démo',
+      avatar_url: 'https://via.placeholder.com/150',
+      type: 'person',
+      person: {
+        email: 'demo@example.com'
+      }
     };
   }
-
+  
   /**
-   * Simule un délai pour mieux représenter les requêtes réseau
-   * @returns Promise résolue après le délai
+   * Génère des propriétés pour une base de données mock
+   * @returns Objet représentant les propriétés d'une base Notion
    */
-  async simulateDelay(): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, this.options.delay));
-  }
-
-  /**
-   * Génère des propriétés fictives pour une base de données
-   */
-  generateMockDatabaseProperties(): Record<string, any> {
+  generateMockDatabaseProperties() {
     return {
-      Name: {
+      'Nom': {
         id: 'title',
-        name: 'Name',
+        name: 'Nom',
         type: 'title'
       },
-      Status: {
+      'Statut': {
         id: 'status',
-        name: 'Status',
+        name: 'Statut',
         type: 'select',
         select: {
           options: [
-            { name: 'À faire', color: 'blue' },
-            { name: 'En cours', color: 'yellow' },
-            { name: 'Terminé', color: 'green' }
+            { id: 'option-1', name: 'À faire', color: 'red' },
+            { id: 'option-2', name: 'En cours', color: 'yellow' },
+            { id: 'option-3', name: 'Terminé', color: 'green' }
           ]
         }
       },
-      Date: {
+      'Date': {
         id: 'date',
         name: 'Date',
         type: 'date'
-      },
-      Category: {
-        id: 'category',
-        name: 'Category',
-        type: 'multi_select',
-        multi_select: {
-          options: [
-            { name: 'Technique', color: 'red' },
-            { name: 'Design', color: 'purple' },
-            { name: 'Contenu', color: 'green' }
-          ]
-        }
       }
     };
   }
-
+  
   /**
-   * Génère des propriétés fictives pour une page
+   * Génère des propriétés pour une page mock
+   * @returns Objet représentant les propriétés d'une page Notion
    */
-  generateMockPageProperties(): Record<string, any> {
+  generateMockPageProperties() {
     return {
-      Name: {
+      'Nom': {
         id: 'title',
         type: 'title',
-        title: [{ plain_text: `Élément démo ${Date.now()}` }]
+        title: [{ type: 'text', text: { content: 'Élément démo' } }]
       },
-      Status: {
+      'Statut': {
         id: 'status',
         type: 'select',
-        select: { name: 'À faire', color: 'blue' }
+        select: { id: 'option-1', name: 'À faire', color: 'red' }
       },
-      Date: {
+      'Date': {
         id: 'date',
         type: 'date',
         date: { start: new Date().toISOString() }
-      },
-      Category: {
-        id: 'category',
-        type: 'multi_select',
-        multi_select: [{ name: 'Technique', color: 'red' }]
       }
     };
   }
-
+  
   /**
-   * Génère un nombre spécifié de résultats fictifs
+   * Génère une liste de résultats mock
+   * @param count Nombre de résultats à générer
+   * @returns Tableau d'objets simulant des résultats Notion
    */
-  generateMockResults(count: number = this.options.defaultCount || 5): any[] {
+  generateMockResults(count: number = 5) {
     const results = [];
     
     for (let i = 0; i < count; i++) {
       results.push({
-        id: `mock-result-${i}-${Date.now()}`,
-        created_time: new Date().toISOString(),
+        id: this.generateMockId('page'),
+        created_time: new Date(Date.now() - 86400000 * i).toISOString(),
         last_edited_time: new Date().toISOString(),
         properties: this.generateMockPageProperties()
       });
@@ -117,20 +120,63 @@ export class MockDataGenerator {
     
     return results;
   }
-
+  
   /**
-   * Génère un utilisateur fictif
+   * Génère un projet mock
+   * @returns Objet représentant un projet
    */
-  generateMockUser(): any {
+  generateMockProject() {
     return {
-      id: 'mock-user-id',
-      name: 'Utilisateur Démo',
-      avatar_url: 'https://via.placeholder.com/150',
-      workspace_name: 'Workspace Démo'
+      id: this.generateMockId('project'),
+      name: `Projet démo ${Math.floor(Math.random() * 100)}`,
+      url: 'https://example.com',
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: Math.floor(Math.random() * 100)
+    };
+  }
+  
+  /**
+   * Génère un audit mock
+   * @param projectId ID du projet parent (optionnel)
+   * @returns Objet représentant un audit
+   */
+  generateMockAudit(projectId?: string) {
+    return {
+      id: this.generateMockId('audit'),
+      projectId: projectId || this.generateMockId('project'),
+      name: `Audit ${new Date().toLocaleDateString()}`,
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'in_progress'
+    };
+  }
+  
+  /**
+   * Génère un item de checklist mock
+   * @returns Objet représentant un item de checklist
+   */
+  generateMockChecklistItem() {
+    const categories = ['Technique', 'Design', 'Contenu', 'Performance', 'Accessibilité'];
+    const subcategories = ['Images', 'Navigation', 'Formulaires', 'Texte', 'Structure'];
+    
+    return {
+      id: this.generateMockId('item'),
+      consigne: `Consigne démo ${Math.floor(Math.random() * 100)}`,
+      description: 'Description détaillée de la consigne à respecter pour garantir la conformité.',
+      category: categories[Math.floor(Math.random() * categories.length)],
+      subcategory: subcategories[Math.floor(Math.random() * subcategories.length)],
+      reference: ['RGAA 1.2', 'OPQUAST 42'],
+      profil: ['Développeur', 'Designer'],
+      phase: ['Conception', 'Développement'],
+      effort: Math.floor(Math.random() * 5) + 1,
+      priority: Math.floor(Math.random() * 5) + 1
     };
   }
 }
 
-// Exporter une instance par défaut
+// Exporter une instance singleton
 export const mockDataGenerator = new MockDataGenerator();
+
+// Export par défaut
 export default mockDataGenerator;
