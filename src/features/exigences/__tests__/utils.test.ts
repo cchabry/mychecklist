@@ -192,7 +192,7 @@ describe('Exigence Utils', () => {
       expect(stats.byImportance[ImportanceLevel.Important]).toBe(1);
       expect(stats.byImportance[ImportanceLevel.Medium]).toBe(1);
       expect(stats.byImportance[ImportanceLevel.Minor]).toBe(0);
-      expect(stats.byImportance[ImportanceLevel.NA]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.NotApplicable]).toBe(0);
     });
     
     it('devrait gérer un tableau vide', () => {
@@ -203,7 +203,7 @@ describe('Exigence Utils', () => {
       expect(stats.byImportance[ImportanceLevel.Important]).toBe(0);
       expect(stats.byImportance[ImportanceLevel.Medium]).toBe(0);
       expect(stats.byImportance[ImportanceLevel.Minor]).toBe(0);
-      expect(stats.byImportance[ImportanceLevel.NA]).toBe(0);
+      expect(stats.byImportance[ImportanceLevel.NotApplicable]).toBe(0);
     });
   });
 });

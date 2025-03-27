@@ -119,7 +119,7 @@ export function calculateExigenceStats(exigences: ExigenceWithItem[]): ExigenceS
   const stats: ExigenceStat = {
     total: exigences.length,
     byImportance: {
-      [ImportanceLevel.NA]: 0,
+      [ImportanceLevel.NotApplicable]: 0,
       [ImportanceLevel.Minor]: 0,
       [ImportanceLevel.Medium]: 0,
       [ImportanceLevel.Important]: 0,
@@ -143,7 +143,7 @@ export function calculateExigenceStats(exigences: ExigenceWithItem[]): ExigenceS
  */
 function importanceToValue(importance: ImportanceLevel): number {
   switch (importance) {
-    case ImportanceLevel.NA:
+    case ImportanceLevel.NotApplicable:
       return 0;
     case ImportanceLevel.Minor:
       return 1;
