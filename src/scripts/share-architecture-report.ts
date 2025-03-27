@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de partage des rapports d'architecture
@@ -137,7 +138,7 @@ function shareByEmail(reportPath: string, config: ShareConfig): void {
 /**
  * Configure le partage Slack
  */
-function configureSlackSharing(args: string[]): void {
+function configureSlackSharing(): void {
   const config = loadShareConfig();
   
   // Traitement des arguments pour configurer Slack
@@ -156,7 +157,7 @@ function configureSlackSharing(args: string[]): void {
 /**
  * Partage le rapport via Slack
  */
-function shareBySlack(reportPath: string, config: ShareConfig): void {
+function shareBySlack(reportPath: string): void {
   console.log(chalk.yellow('Partage Slack à implémenter selon les besoins spécifiques.'));
   console.log(chalk.yellow(`Rapport à partager: ${reportPath}`));
 }
@@ -164,7 +165,7 @@ function shareBySlack(reportPath: string, config: ShareConfig): void {
 /**
  * Configure le partage Teams
  */
-function configureTeamsSharing(args: string[]): void {
+function configureTeamsSharing(): void {
   const config = loadShareConfig();
   
   // Traitement des arguments pour configurer Teams
@@ -183,7 +184,7 @@ function configureTeamsSharing(args: string[]): void {
 /**
  * Partage le rapport via Teams
  */
-function shareByTeams(reportPath: string, config: ShareConfig): void {
+function shareByTeams(reportPath: string): void {
   console.log(chalk.yellow('Partage Teams à implémenter selon les besoins spécifiques.'));
   console.log(chalk.yellow(`Rapport à partager: ${reportPath}`));
 }
@@ -197,11 +198,11 @@ function shareReport(reportPath: string, config: ShareConfig): void {
   }
   
   if (config.channels.includes('slack')) {
-    shareBySlack(reportPath, config);
+    shareBySlack(reportPath);
   }
   
   if (config.channels.includes('teams')) {
-    shareByTeams(reportPath, config);
+    shareByTeams(reportPath);
   }
 }
 
@@ -250,12 +251,12 @@ function main() {
   }
   
   if (args.includes('--configure-slack')) {
-    configureSlackSharing(args);
+    configureSlackSharing();
     return;
   }
   
   if (args.includes('--configure-teams')) {
-    configureTeamsSharing(args);
+    configureTeamsSharing();
     return;
   }
   

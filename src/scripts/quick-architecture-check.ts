@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script d'analyse rapide de l'architecture
@@ -19,8 +20,8 @@ import {
   checkFeatureStructure
 } from '../utils/architecture/rules';
 
-// Chemins principaux
-const ROOT_DIR = path.resolve(__dirname, '../..');
+// Utilisation du chemin root retirée car non utilisée
+// const ROOT_DIR = path.resolve(__dirname, '../..');
 
 /**
  * Récupère la liste des fichiers modifiés dans la staging area

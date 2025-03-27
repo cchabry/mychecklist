@@ -43,7 +43,7 @@ export function checkFileSize(filePath: string, content: string): string | null 
 /**
  * Vérifie si un fichier utilise le type 'any'
  */
-export function checkForAnyType(filePath: string, content: string): string[] {
+export function checkForAnyType(_filePath: string, content: string): string[] {
   const issues: string[] = [];
   const anyTypeRegex = /: any($|[,)\s;])/g;
   const anyTypeMatches = content.match(anyTypeRegex);
