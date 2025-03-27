@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import glob from 'glob';
+import { glob } from 'glob';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -86,7 +86,7 @@ const phases: PhaseIndicators[] = [
           if (!fs.existsSync(errorHookPath)) return false;
           
           // Vérifier l'utilisation dans au moins un service
-          const serviceFiles = glob.sync(path.join(__dirname, '../services/**/*.ts'));
+          const serviceFiles = glob(path.join(__dirname, '../services/**/*.ts'));
           let usageCount = 0;
           
           for (const file of serviceFiles) {
@@ -106,7 +106,7 @@ const phases: PhaseIndicators[] = [
         check: async () => {
           // Compter le nombre de fichiers dans le dossier services/notion
           const notionDir = path.join(__dirname, '../services/notion');
-          const fileCount = glob.sync(path.join(notionDir, '**/*.ts')).length;
+          const fileCount = glob(path.join(notionDir, '**/*.ts')).length;
           
           // Une bonne architecture ne devrait pas avoir trop de fichiers pour le même domaine
           return fileCount <= 15; // Seuil à ajuster selon l'objectif précis

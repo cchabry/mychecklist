@@ -9,7 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pkg from 'glob';
+import { glob } from 'glob';
 import chalk from 'chalk';
 import { saveCurrentMetrics } from '../utils/tracking/architecture-tracker';
 import { 
@@ -25,7 +25,6 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const { glob } = pkg;
 
 // Chemins principaux
 const ROOT_DIR = path.resolve(__dirname, '..');
