@@ -1,4 +1,5 @@
 
+
 # Audit Checklist Application
 
 Cette application permet de réaliser des audits de sites web en vérifiant leur conformité par rapport à une checklist de bonnes pratiques. Chaque projet possède son propre échantillon de pages et ses propres exigences.
@@ -57,4 +58,5 @@ Nous avons terminé la mise en place des fondations du projet et commencé le d�
 - 🔄 Implémentation des interfaces de gestion de projets (en cours)
 
 <!-- Version de build actuelle: 2023-11-10 -->
+<!-- Version de contrôle: 2023-11-22 -->
 
