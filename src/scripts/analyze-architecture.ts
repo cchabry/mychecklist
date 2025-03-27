@@ -2,7 +2,7 @@
 /**
 * Script d'analyse architecturale
 * 
-* Ce script analyse la structure du code et v��rifie sa conformité
+* Ce script analyse la structure du code et vérifie sa conformité
 * avec l'architecture définie. Il identifie les écarts et génère
 * un rapport détaillé.
 */
