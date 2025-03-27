@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script de serveur pour le tableau de bord d'architecture
@@ -60,18 +61,11 @@ function startServer() {
           return;
         }
         
-        // Ajouter un script pour rafraîchir automatiquement la page
-        const refreshScript = `
-          <script>
-            // Rafraîchir la page toutes les 60 secondes
-            setTimeout(() => location.reload(), 60000);
-          </script>
-        `;
-        
-        const htmlWithRefresh = data.toString().replace('</body>', `${refreshScript}</body>`);
+        // Ne pas ajouter de script de rafraîchissement automatique car nous avons
+        // maintenant des interactions utilisateur qui seraient perdues à chaque rafraîchissement
         
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(htmlWithRefresh);
+        res.end(data);
       });
       return;
     }
