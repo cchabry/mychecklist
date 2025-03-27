@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
 * Script de correction globale des fichiers de scripts
@@ -20,7 +19,8 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const SCRIPTS_DIR = path.join(ROOT_DIR, 'src/scripts');
 /**
-* Supprime les lignes vides et caractères invisibles au début d'un fichier et normalise le shebang
+* Supprime les lignes vides et caractères invisibles au début d'un fichier et
+* supprime complètement les shebangs
 */
 function removeLeadingEmptyLines(filePath) {
 console.log(`Traitement du fichier: ${filePath}`);
@@ -32,17 +32,10 @@ return false;
 let content = fs.readFileSync(filePath, 'utf8');
 // Supprimer le BOM si présent
 content = content.replace(/^\uFEFF/, '');
-// Vérifier si le fichier contient un shebang
-const hasShebang = content.includes('#!/usr/bin/env node');
 // Supprimer tous les caractères invisibles, espaces et lignes vides au début du fichier
 content = content.replace(/^[\s\u200B\u200C\u200D\uFEFF\xA0\r\n]+/gm, '');
-// Si le fichier avait un shebang, s'assurer qu'il est en première ligne
-if (hasShebang) {
-// Retirer le shebang existant où qu'il soit
+// Supprimer les shebangs complètement
 content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
-// Ajouter le shebang en première ligne
-content = '#!/usr/bin/env node\n\n' + content;
-}
 // Convertir les requires CommonJS en import ES Module
 content = content.replace(/const\s*\{\s*([^}]+)\s*\}\s*=\s*require\(['"]([^'"]+)['"]\);?/g, 
 (match, imports, source) => {
@@ -81,11 +74,7 @@ content = "import path from 'path';\n" + content;
 }
 // Ajouter la déclaration de __dirname
 const dirnameDeclaration = "const __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n";
-// Si le fichier a un shebang, l'insérer après
-if (content.includes("#!/usr/bin/env node")) {
-content = content.replace("#!/usr/bin/env node\n", "#!/usr/bin/env node\n\n" + dirnameDeclaration);
-} else {
-// Sinon, insérer après les imports
+// Insérer après les imports
 const lastImportIndex = content.lastIndexOf("import ");
 const lastImportLineEnd = content.indexOf("\n", lastImportIndex);
 if (lastImportIndex !== -1 && lastImportLineEnd !== -1) {
@@ -94,15 +83,10 @@ content = content.substring(0, lastImportLineEnd + 1) + "\n" + dirnameDeclaratio
 content = dirnameDeclaration + content;
 }
 }
-}
-// Assurer une structure cohérente: shebang, imports, puis __dirname, puis reste du code
+// Assurer une structure cohérente: imports, puis __dirname, puis reste du code
 // avec une ligne vide entre chaque section
-if (content.includes('#!/usr/bin/env node')) {
-// Assurer une ligne vide après le shebang
-content = content.replace(/(#!\/usr\/bin\/env node)\s*\n/g, '$1\n\n');
 // S'assurer qu'il n'y a pas trop de lignes vides
 content = content.replace(/\n{3,}/g, '\n\n');
-}
 fs.writeFileSync(filePath, content);
 console.log(`✓ Fichier nettoyé: ${filePath}`);
 return true;

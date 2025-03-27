@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * Script d'installation des sauvegardes contre les problèmes d'en-tête
  * 

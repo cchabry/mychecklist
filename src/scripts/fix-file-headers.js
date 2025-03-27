@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * Script de correction des en-têtes de fichiers
  * 
@@ -19,26 +17,18 @@ const ROOT_DIR = path.resolve(__dirname, '../..');
 
 /**
  * Corrige l'en-tête d'un fichier en supprimant les lignes vides au début
- * et en s'assurant que le shebang (si présent) est en première ligne
+ * et en supprimant complètement les shebangs
  */
 function fixFileHeader(filePath) {
   try {
     let content = fs.readFileSync(filePath, 'utf8');
     const originalSize = content.length;
     
-    // Vérifier si le fichier contient un shebang
-    const hasShebang = content.includes('#!/usr/bin/env node');
-    
     // Supprimer tous les caractères invisibles et lignes vides au début du fichier
     content = content.replace(/^[\s\u200B\u200C\u200D\uFEFF\xA0\r\n]+/g, '');
     
-    // Si le fichier avait un shebang, s'assurer qu'il est en première ligne
-    if (hasShebang) {
-      // Retirer le shebang existant où qu'il soit
-      content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
-      // Ajouter le shebang en première ligne
-      content = '#!/usr/bin/env node\n\n' + content;
-    }
+    // Supprimer les shebangs, peu importe leur position
+    content = content.replace(/^\s*#!\/usr\/bin\/env node\s*[\r\n]*/m, '');
     
     // Éviter les opérations inutiles d'écriture sur disque
     const newSize = content.length;

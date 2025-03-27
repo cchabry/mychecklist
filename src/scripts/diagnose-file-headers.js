@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * Script de diagnostic des en-têtes de fichiers
  * 
@@ -98,11 +96,11 @@ function testFileWriting() {
   console.log('\nTest 1: Écriture simple');
   examineFileHeader(test1Path);
   
-  // Test 2: Écriture avec préfixe shebang
+  // Test 2: Écriture avec préfixe commentaire
   const test2Path = path.join(testDir, 'test2.txt');
-  const content2 = '#!/usr/bin/env node\nPremière ligne';
+  const content2 = '/**\n* Premier commentaire\n*/\nPremière ligne';
   fs.writeFileSync(test2Path, content2);
-  console.log('\nTest 2: Écriture avec shebang');
+  console.log('\nTest 2: Écriture avec commentaire');
   examineFileHeader(test2Path);
   
   // Test 3: Lecture puis écriture

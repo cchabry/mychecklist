@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * Script d'ajout des scripts de sauvegarde à package.json
  * 

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
 * Script pour ajouter les commandes de vérification des phases dans package.json
