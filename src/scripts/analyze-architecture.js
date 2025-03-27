@@ -1,0 +1,132 @@
+
+#!/usr/bin/env node
+/**
+ * Script d'analyse architecturale
+ * 
+ * Ce script analyse la structure du code et vérifie sa conformité
+ * avec l'architecture définie. Il identifie les écarts et génère
+ * un rapport détaillé.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Chemin principal pour les features
+const FEATURES_DIR = path.resolve(__dirname, '../features');
+
+// Structure attendue pour une feature
+const EXPECTED_FEATURE_STRUCTURE = [
+  'components/index.ts',
+  'hooks/index.ts',
+  'types.ts',
+  'utils.ts',
+  'constants.ts',
+  'index.ts'
+];
+
+// Patterns d'export attendus
+const EXPECTED_EXPORTS = {
+  feature: [
+    /export \* from ['"]\.\/components['"]/,
+    /export \* from ['"]\.\/hooks['"]/,
+    /export \* from ['"]\.\/types['"]/,
+    /export \* from ['"]\.\/utils['"]/,
+    /export \* from ['"]\.\/constants['"]/
+  ],
+  componentIndex: [/export \* from/],
+  hookIndex: [/export \{ .+ \} from/]
+};
+
+// Statistiques globales
+const stats = {
+  totalFeatures: 0,
+  compliantFeatures: 0,
+  issues: []
+};
+
+/**
+ * Analyse une feature et vérifie sa conformité
+ */
+function analyzeFeature(featurePath, featureName) {
+  console.log(`\nAnalysant la feature: ${featureName}`);
+  stats.totalFeatures++;
+  
+  let isCompliant = true;
+  const missingFiles = [];
+  
+  // Vérifier la présence des fichiers requis
+  for (const file of EXPECTED_FEATURE_STRUCTURE) {
+    const filePath = path.join(featurePath, file);
+    if (!fs.existsSync(filePath)) {
+      console.log(`  ⚠️ Fichier manquant: ${file}`);
+      missingFiles.push(file);
+      isCompliant = false;
+    } else {
+      console.log(`  ✓ Fichier présent: ${file}`);
+    }
+  }
+  
+  // Vérifier le contenu du fichier index.ts
+  const indexPath = path.join(featurePath, 'index.ts');
+  if (fs.existsSync(indexPath)) {
+    const content = fs.readFileSync(indexPath, 'utf8');
+    
+    for (const pattern of EXPECTED_EXPORTS.feature) {
+      if (!pattern.test(content)) {
+        const exportStatement = pattern.toString().replace(/\//g, '');
+        console.log(`  ⚠️ Export manquant dans index.ts: ${exportStatement}`);
+        isCompliant = false;
+        stats.issues.push(`${featureName}: Export manquant dans index.ts - ${exportStatement}`);
+      }
+    }
+  }
+  
+  // Résultat
+  if (isCompliant) {
+    console.log(`  ✓ La feature ${featureName} est conforme à l'architecture`);
+    stats.compliantFeatures++;
+  } else {
+    console.log(`  ✗ La feature ${featureName} n'est pas conforme à l'architecture`);
+    stats.issues.push(`${featureName}: ${missingFiles.length} fichiers manquants`);
+  }
+  
+  return isCompliant;
+}
+
+/**
+ * Point d'entrée principal
+ */
+function main() {
+  console.log('Analyse de conformité architecturale');
+  console.log('==========================================');
+  
+  if (!fs.existsSync(FEATURES_DIR)) {
+    console.error('Erreur: Le dossier features n\'existe pas.');
+    process.exit(1);
+  }
+  
+  // Analyser chaque feature
+  const features = fs.readdirSync(FEATURES_DIR).filter(f => 
+    fs.statSync(path.join(FEATURES_DIR, f)).isDirectory()
+  );
+  
+  for (const feature of features) {
+    analyzeFeature(path.join(FEATURES_DIR, feature), feature);
+  }
+  
+  // Rapport final
+  console.log('\n==========================================');
+  console.log('Rapport de conformité architecturale:');
+  console.log(`Total des features: ${stats.totalFeatures}`);
+  console.log(`Features conformes: ${stats.compliantFeatures}`);
+  console.log(`Taux de conformité: ${Math.round((stats.compliantFeatures / stats.totalFeatures) * 100)}%`);
+  
+  if (stats.issues.length > 0) {
+    console.log('\nProblèmes identifiés:');
+    stats.issues.forEach((issue, index) => {
+      console.log(`${index + 1}. ${issue}`);
+    });
+  }
+}
+
+main();

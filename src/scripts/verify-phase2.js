@@ -1,16 +1,14 @@
+
 #!/usr/bin/env node
 /**
  * Script de vérification spécifique pour la phase 2
  * Script utilitaire pour faciliter l'exécution de la vérification de phase 2
  */
 
-import { execSync } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+const { execSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const REPORTS_DIR = path.join(ROOT_DIR, 'reports');
 
