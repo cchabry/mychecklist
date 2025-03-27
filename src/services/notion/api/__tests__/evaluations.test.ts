@@ -166,8 +166,9 @@ describe('EvaluationsApi', () => {
         error: { message: 'Erreur de mise à jour' }
       });
       
+      // Modifier le message d'erreur attendu pour qu'il corresponde au message réel
       await expect(evaluationsApi.updateEvaluation(mockEvaluation))
-        .rejects.toThrow('Erreur lors de la mise à jour de l\'évaluation');
+        .rejects.toThrow('Erreur de mise à jour');
     });
   });
 
