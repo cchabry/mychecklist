@@ -1,0 +1,83 @@
+
+name: Architecture Analysis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Possibilité de lancer manuellement
+  workflow_dispatch:
+  # Exécution programmée hebdomadaire (tous les lundis à 9h00)
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze Architecture
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run architecture analysis
+        run: npx ts-node src/scripts/run-architecture-analysis.ts
+      
+      - name: Check for analysis success
+        id: check_status
+        run: |
+          if [ -f "reports/analysis-status.json" ]; then
+            SUCCESS=$(cat reports/analysis-status.json | jq -r '.success')
+            echo "success=$SUCCESS" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload architecture report
+        if: steps.check_status.outputs.success == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: architecture-reports
+          path: reports/
+          retention-days: 14
+      
+      - name: Post analysis status comment (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const statusData = JSON.parse(fs.readFileSync('reports/analysis-status.json', 'utf8'));
+              
+              let commentBody = `## Architecture Analysis Results\n\n`;
+              
+              if (statusData.success) {
+                commentBody += `✅ **Success**: Architecture analysis completed successfully.\n\n`;
+                commentBody += `Reports are available as build artifacts.\n`;
+              } else {
+                commentBody += `❌ **Failed**: Architecture analysis failed.\n\n`;
+                commentBody += `Please check the workflow logs for more details.\n`;
+              }
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+            } catch (error) {
+              console.error('Error posting analysis comment:', error);
+            }

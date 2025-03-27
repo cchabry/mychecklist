@@ -39,6 +39,7 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-prettier": "^5.2.5",
     "eslint-plugin-react": "^7.37.4",
+    "glob": "^10.3.10",
     "jsdom": "^26.0.0",
     "lucide-react": "^0.331.0",
     "prettier": "^3.5.3",

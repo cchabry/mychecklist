@@ -9,6 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
+import { getArchitectureTrends, getMetricsVariations } from '../utils/tracking/architecture-tracker';
 
 // Chemins principaux
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -183,9 +184,143 @@ function createIssuesSummary(issues: IssueMetric[]): string {
 }
 
 /**
+ * Crée un graphique de tendance
+ */
+function createTrendChart(trend: any): string {
+  if (!trend.dates || trend.dates.length === 0) {
+    return '<div class="no-data">Données de tendance insuffisantes</div>';
+  }
+  
+  // Créer le contenu SVG du graphique
+  const width = 600;
+  const height = 200;
+  const padding = 40;
+  const availableWidth = width - (padding * 2);
+  const availableHeight = height - (padding * 2);
+  
+  // Calculer les valeurs min/max pour l'échelle
+  const maxCompliance = Math.max(...trend.complianceRates, 100);
+  const minCompliance = Math.min(...trend.complianceRates, 0);
+  
+  // Calculer les points du graphique
+  const points = trend.complianceRates.map((rate: number, index: number) => {
+    const x = padding + (index * (availableWidth / (trend.dates.length - 1 || 1)));
+    const y = height - padding - ((rate - minCompliance) / (maxCompliance - minCompliance) * availableHeight);
+    return `${x},${y}`;
+  }).join(' ');
+  
+  // Générer les étiquettes de l'axe X (dates)
+  const xLabels = trend.dates.map((date: string, index: number) => {
+    // N'afficher que quelques étiquettes pour éviter l'encombrement
+    if (trend.dates.length > 10 && index % Math.ceil(trend.dates.length / 5) !== 0) {
+      return '';
+    }
+    
+    const x = padding + (index * (availableWidth / (trend.dates.length - 1 || 1)));
+    return `
+      <text x="${x}" y="${height - 10}" text-anchor="middle" class="chart-label">
+        ${date}
+      </text>
+    `;
+  }).join('');
+  
+  // Générer les lignes de grille
+  const gridLines = [];
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (i * (availableHeight / 4));
+    const value = Math.round(maxCompliance - (i * ((maxCompliance - minCompliance) / 4)));
+    gridLines.push(`
+      <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" class="grid-line" />
+      <text x="${padding - 10}" y="${y + 5}" text-anchor="end" class="chart-label">
+        ${value}%
+      </text>
+    `);
+  }
+  
+  // Créer le SVG complet
+  return `
+    <div class="trend-chart">
+      <h3>Évolution du taux de conformité</h3>
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <!-- Lignes de grille -->
+        ${gridLines.join('')}
+        
+        <!-- Ligne de tendance -->
+        <polyline
+          points="${points}"
+          class="trend-line"
+        />
+        
+        <!-- Points de données -->
+        ${trend.complianceRates.map((rate: number, index: number) => {
+          const x = padding + (index * (availableWidth / (trend.dates.length - 1 || 1)));
+          const y = height - padding - ((rate - minCompliance) / (maxCompliance - minCompliance) * availableHeight);
+          return `
+            <circle cx="${x}" cy="${y}" r="4" class="data-point" />
+            <title>Date: ${trend.dates[index]}, Valeur: ${rate}%</title>
+          `;
+        }).join('')}
+        
+        <!-- Étiquettes de l'axe X -->
+        ${xLabels}
+      </svg>
+    </div>
+  `;
+}
+
+/**
+ * Crée une carte de variation des métriques
+ */
+function createVariationCard(variations: any): string {
+  const getVariationClass = (value: number) => {
+    if (value > 0) return 'positive';
+    if (value < 0) return 'negative';
+    return 'neutral';
+  };
+  
+  const getVariationIndicator = (value: number) => {
+    if (value > 0) return '↑';
+    if (value < 0) return '↓';
+    return '→';
+  };
+  
+  return `
+    <div class="variations-container">
+      <div class="variation-card ${getVariationClass(variations.complianceChange)}">
+        <div class="variation-title">Conformité</div>
+        <div class="variation-value">
+          ${getVariationIndicator(variations.complianceChange)} 
+          ${Math.abs(variations.complianceChange).toFixed(2)}%
+        </div>
+      </div>
+      
+      <div class="variation-card ${getVariationClass(-variations.issuesChange)}">
+        <div class="variation-title">Problèmes</div>
+        <div class="variation-value">
+          ${getVariationIndicator(-variations.issuesChange)} 
+          ${Math.abs(variations.issuesChange)}
+        </div>
+      </div>
+      
+      <div class="variation-card ${getVariationClass(variations.featuresChange)}">
+        <div class="variation-title">Features</div>
+        <div class="variation-value">
+          ${getVariationIndicator(variations.featuresChange)} 
+          ${Math.abs(variations.featuresChange)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Génère le contenu HTML du tableau de bord
  */
 function generateDashboardContent(metrics: ArchitectureMetrics): string {
+  // Récupérer les données de tendance et les variations
+  const trends = getArchitectureTrends();
+  const variations = getMetricsVariations();
+  
   // Section résumé
   const summaryContent = `
     ${createGauge(metrics.summary.complianceRate, 'Taux de conformité')}
@@ -202,6 +337,15 @@ function generateDashboardContent(metrics: ArchitectureMetrics): string {
         <span class="stat-value">${metrics.summary.issuesTotal}</span>
         <span class="stat-label">Problèmes détectés</span>
       </div>
+    </div>
+  `;
+  
+  // Section tendances
+  const trendsContent = `
+    ${createTrendChart(trends)}
+    <div class="variations-section">
+      <h3>Variations depuis la dernière analyse</h3>
+      ${createVariationCard(variations)}
     </div>
   `;
   
@@ -248,6 +392,7 @@ function generateDashboardContent(metrics: ArchitectureMetrics): string {
       
       <div class="dashboard-grid">
         ${createDashboardSection('Résumé', summaryContent)}
+        ${createDashboardSection('Tendances', trendsContent)}
         ${createDashboardSection('Répartition des fichiers', filesDistributionContent)}
         ${createDashboardSection('État des features', featuresContent)}
         ${createDashboardSection('Problèmes détectés', issuesContent)}
@@ -504,15 +649,96 @@ function generateDashboardStyles(): string {
         background-color: var(--success-color);
       }
       
-      /* Responsive */
-      @media (max-width: 768px) {
-        .dashboard-grid {
-          grid-template-columns: 1fr;
-        }
-        
-        .bar-container {
-          grid-template-columns: 80px 1fr 60px;
-        }
+      /* Trend chart styles */
+      .trend-chart {
+        margin-bottom: 20px;
+      }
+      
+      .trend-chart h3 {
+        text-align: center;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+      }
+      
+      .trend-line {
+        fill: none;
+        stroke: var(--primary-color);
+        stroke-width: 2;
+      }
+      
+      .data-point {
+        fill: var(--primary-color);
+      }
+      
+      .grid-line {
+        stroke: #eee;
+        stroke-width: 1;
+      }
+      
+      .chart-label {
+        font-size: 12px;
+        fill: #666;
+      }
+      
+      .no-data {
+        padding: 30px;
+        text-align: center;
+        color: #666;
+        font-style: italic;
+      }
+      
+      /* Variations styles */
+      .variations-container {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+      }
+      
+      .variation-card {
+        width: 120px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      
+      .variation-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      
+      .variation-value {
+        font-size: 18px;
+        font-weight: bold;
+      }
+      
+      .variation-card.positive {
+        background-color: #e8f5e9;
+      }
+      
+      .variation-card.positive .variation-value {
+        color: var(--success-color);
+      }
+      
+      .variation-card.negative {
+        background-color: #ffebee;
+      }
+      
+      .variation-card.negative .variation-value {
+        color: var(--danger-color);
+      }
+      
+      .variation-card.neutral {
+        background-color: #f5f5f5;
+      }
+      
+      .variation-card.neutral .variation-value {
+        color: #666;
+      }
+      
+      .variations-section h3 {
+        text-align: center;
+        margin: 20px 0;
+        color: var(--primary-color);
       }
     </style>
   `;

@@ -2,24 +2,19 @@
 /**
  * Script de génération de métriques d'architecture
  * 
- * Ce script analyse la base de code et génère des métriques
- * de conformité architecturale. Les résultats sont exportés
- * au format JSON pour être utilisés par le tableau de bord.
+ * Ce script analyse la structure du code et calcule des métriques
+ * de conformité architecturale selon les standards du projet.
  */
 
 import fs from 'fs';
 import path from 'path';
+import glob from 'glob';
 import chalk from 'chalk';
+import { saveCurrentMetrics } from '../utils/tracking/architecture-tracker';
 
 // Chemins principaux
 const ROOT_DIR = path.resolve(__dirname, '..');
-const FEATURES_DIR = path.join(ROOT_DIR, 'features');
-const COMPONENTS_DIR = path.join(ROOT_DIR, 'components');
-const HOOKS_DIR = path.join(ROOT_DIR, 'hooks');
-const SERVICES_DIR = path.join(ROOT_DIR, 'services');
-const TYPES_DIR = path.join(ROOT_DIR, 'types');
-const OUTPUT_DIR = path.join(ROOT_DIR, '..', 'reports');
-const OUTPUT_FILE = path.join(OUTPUT_DIR, 'architecture-metrics.json');
+const REPORTS_DIR = path.join(ROOT_DIR, '..', 'reports');
 
 // Structure attendue pour une feature
 const EXPECTED_FEATURE_STRUCTURE = [
@@ -44,7 +39,7 @@ const EXPECTED_EXPORTS = {
   hookIndex: [/export \{ .+ \} from/]
 };
 
-// Métriques globales
+// Interface pour les métriques
 interface ArchitectureMetrics {
   timestamp: string;
   summary: {
@@ -95,55 +90,18 @@ interface IssueMetric {
   description: string;
 }
 
-// Initialisation des métriques
-const metrics: ArchitectureMetrics = {
-  timestamp: new Date().toISOString(),
-  summary: {
-    featuresTotal: 0,
-    featuresCompliant: 0,
-    complianceRate: 0,
-    issuesTotal: 0,
-    filesByCategory: {
-      features: 0,
-      services: 0,
-      hooks: 0,
-      components: 0,
-      types: 0,
-      utils: 0
-    }
-  },
-  domainDetails: {
-    features: [],
-    services: [],
-    hooks: [],
-    components: []
-  },
-  issues: []
-};
-
 /**
- * Analyse une feature et collecte les métriques
+ * Analyse une feature et vérifie sa conformité
  */
 function analyzeFeature(featurePath: string, featureName: string): FeatureMetric {
-  console.log(chalk.blue(`\nAnalysant la feature: ${featureName}`));
-  
-  metrics.summary.featuresTotal++;
-  const featureMetric: FeatureMetric = {
-    name: featureName,
-    compliant: true,
-    missingFiles: [],
-    missingExports: []
-  };
+  const missingFiles = [];
+  const missingExports = [];
   
   // Vérifier la présence des fichiers requis
   for (const file of EXPECTED_FEATURE_STRUCTURE) {
     const filePath = path.join(featurePath, file);
     if (!fs.existsSync(filePath)) {
-      console.log(chalk.yellow(`  ⚠️ Fichier manquant: ${file}`));
-      featureMetric.missingFiles.push(file);
-      featureMetric.compliant = false;
-    } else {
-      console.log(chalk.green(`  ✓ Fichier présent: ${file}`));
+      missingFiles.push(file);
     }
   }
   
@@ -155,271 +113,277 @@ function analyzeFeature(featurePath: string, featureName: string): FeatureMetric
     for (const pattern of EXPECTED_EXPORTS.feature) {
       if (!pattern.test(content)) {
         const exportStatement = pattern.toString().replace(/\//g, '');
-        console.log(chalk.yellow(`  ⚠️ Export manquant dans index.ts: ${exportStatement}`));
-        featureMetric.missingExports.push(exportStatement);
-        featureMetric.compliant = false;
-        
-        // Ajouter un problème aux issues
-        metrics.issues.push({
-          domain: featureName,
-          category: 'export',
-          severity: 'medium',
-          description: `Export manquant dans index.ts: ${exportStatement}`
-        });
-        metrics.summary.issuesTotal++;
+        missingExports.push(exportStatement);
       }
     }
   }
   
-  // Résultat
-  if (featureMetric.compliant) {
-    console.log(chalk.green(`  ✓ La feature ${featureName} est conforme à l'architecture`));
-    metrics.summary.featuresCompliant++;
-  } else {
-    console.log(chalk.red(`  ✗ La feature ${featureName} n'est pas conforme à l'architecture`));
-    
-    // Ajouter un problème aux issues pour les fichiers manquants
-    if (featureMetric.missingFiles.length > 0) {
-      metrics.issues.push({
-        domain: featureName,
-        category: 'structure',
-        severity: 'high',
-        description: `${featureMetric.missingFiles.length} fichiers manquants: ${featureMetric.missingFiles.join(', ')}`
-      });
-      metrics.summary.issuesTotal++;
-    }
-  }
-  
-  return featureMetric;
+  return {
+    name: featureName,
+    compliant: missingFiles.length === 0 && missingExports.length === 0,
+    missingFiles,
+    missingExports
+  };
 }
 
 /**
- * Compte les fichiers par catégorie
+ * Analyse un service et vérifie sa conformité
  */
-function countFilesByCategory() {
-  const countFilesInDir = (dir: string, category: string) => {
-    if (!fs.existsSync(dir)) return 0;
-    
-    let count = 0;
-    const items = fs.readdirSync(dir);
-    
-    for (const item of items) {
-      const itemPath = path.join(dir, item);
-      if (fs.statSync(itemPath).isDirectory()) {
-        // Récursion pour les sous-dossiers
-        count += countFilesInDir(itemPath, category);
-      } else if (itemPath.endsWith('.ts') || itemPath.endsWith('.tsx')) {
-        count++;
-      }
-    }
-    
-    return count;
+function analyzeService(servicePath: string, serviceName: string): ServiceMetric {
+  const content = fs.existsSync(servicePath) ? fs.readFileSync(servicePath, 'utf8') : '';
+  
+  // Vérifier si le service a une interface claire (exports nommés)
+  const hasClearInterface = /export const \w+ =/.test(content) || /export function \w+/.test(content);
+  
+  // Vérifier si le service a des définitions de types
+  const hasTypeDefs = /interface \w+/.test(content) || /type \w+ =/.test(content);
+  
+  return {
+    name: serviceName,
+    hasClearInterface,
+    hasTypeDefs
+  };
+}
+
+/**
+ * Analyse un hook et vérifie sa conformité
+ */
+function analyzeHook(hookPath: string, hookName: string): HookMetric {
+  const issues = [];
+  
+  if (!fs.existsSync(hookPath)) {
+    return {
+      name: hookName,
+      compliant: false,
+      issues: ['Le fichier n\'existe pas']
+    };
+  }
+  
+  const content = fs.readFileSync(hookPath, 'utf8');
+  
+  // Vérifier si le hook commence par "use"
+  if (!hookName.startsWith('use')) {
+    issues.push('Le nom du hook ne commence pas par "use"');
+  }
+  
+  // Vérifier si le hook est exporté
+  if (!content.includes(`export function ${hookName}`)) {
+    issues.push('Le hook n\'est pas exporté correctement');
+  }
+  
+  // Vérifier si le hook a une documentation
+  if (!content.includes('/**') || !content.includes('*/')) {
+    issues.push('Le hook n\'a pas de documentation JSDoc');
+  }
+  
+  return {
+    name: hookName,
+    compliant: issues.length === 0,
+    issues
+  };
+}
+
+/**
+ * Analyse un composant et vérifie sa conformité
+ */
+function analyzeComponent(componentPath: string, componentName: string): ComponentMetric {
+  if (!fs.existsSync(componentPath)) {
+    return {
+      name: componentName,
+      hasPropsType: false,
+      isExported: false
+    };
+  }
+  
+  const content = fs.readFileSync(componentPath, 'utf8');
+  
+  // Vérifier si le composant a un type pour ses props
+  const hasPropsType = content.includes(`interface ${componentName}Props`) || 
+                       content.includes(`type ${componentName}Props =`) ||
+                       content.includes(': React.FC<');
+  
+  // Vérifier si le composant est exporté
+  const isExported = content.includes(`export function ${componentName}`) || 
+                     content.includes(`export const ${componentName}`);
+  
+  return {
+    name: componentName,
+    hasPropsType,
+    isExported
+  };
+}
+
+/**
+ * Analyse la base de code complète
+ */
+function analyzeCodebase(): ArchitectureMetrics {
+  const metrics: ArchitectureMetrics = {
+    timestamp: new Date().toISOString(),
+    summary: {
+      featuresTotal: 0,
+      featuresCompliant: 0,
+      complianceRate: 0,
+      issuesTotal: 0,
+      filesByCategory: {}
+    },
+    domainDetails: {
+      features: [],
+      services: [],
+      hooks: [],
+      components: []
+    },
+    issues: []
   };
   
-  metrics.summary.filesByCategory.features = countFilesInDir(FEATURES_DIR, 'features');
-  metrics.summary.filesByCategory.services = countFilesInDir(SERVICES_DIR, 'services');
-  metrics.summary.filesByCategory.hooks = countFilesInDir(HOOKS_DIR, 'hooks');
-  metrics.summary.filesByCategory.components = countFilesInDir(COMPONENTS_DIR, 'components');
-  metrics.summary.filesByCategory.types = countFilesInDir(TYPES_DIR, 'types');
-  
-  console.log(chalk.blue('\nStatistiques par catégorie:'));
-  console.log(`  Features: ${metrics.summary.filesByCategory.features} fichiers`);
-  console.log(`  Services: ${metrics.summary.filesByCategory.services} fichiers`);
-  console.log(`  Hooks: ${metrics.summary.filesByCategory.hooks} fichiers`);
-  console.log(`  Components: ${metrics.summary.filesByCategory.components} fichiers`);
-  console.log(`  Types: ${metrics.summary.filesByCategory.types} fichiers`);
-}
-
-/**
- * Analyse les services et collecte des métriques
- */
-function analyzeServices() {
-  if (!fs.existsSync(SERVICES_DIR)) return;
-  
-  console.log(chalk.blue('\nAnalyse des services:'));
-  
-  const analyzeServiceDir = (dir: string, parentPath = '') => {
-    const items = fs.readdirSync(dir);
+  // Analyser les features
+  const featuresDir = path.join(ROOT_DIR, 'features');
+  if (fs.existsSync(featuresDir)) {
+    const features = fs.readdirSync(featuresDir).filter(f => 
+      fs.statSync(path.join(featuresDir, f)).isDirectory()
+    );
     
-    for (const item of items) {
-      const itemPath = path.join(dir, item);
-      const relativePath = parentPath ? `${parentPath}/${item}` : item;
+    metrics.summary.featuresTotal = features.length;
+    
+    for (const feature of features) {
+      const featureMetric = analyzeFeature(path.join(featuresDir, feature), feature);
+      metrics.domainDetails.features.push(featureMetric);
       
-      if (fs.statSync(itemPath).isDirectory()) {
-        // Récursion pour les sous-dossiers
-        analyzeServiceDir(itemPath, relativePath);
-      } else if (item.endsWith('Service.ts') || item.includes('service')) {
-        // Analyser le service
-        const serviceName = relativePath.replace('.ts', '');
-        console.log(chalk.gray(`  Analysant le service: ${serviceName}`));
-        
-        const content = fs.readFileSync(itemPath, 'utf8');
-        const hasInterface = content.includes('interface') || content.includes('type ');
-        const hasTypeDefs = content.includes('import type {') || content.includes('import {') && content.includes('} from');
-        
-        metrics.domainDetails.services.push({
-          name: serviceName,
-          hasClearInterface: hasInterface,
-          hasTypeDefs: hasTypeDefs
-        });
-        
-        if (!hasInterface || !hasTypeDefs) {
+      if (featureMetric.compliant) {
+        metrics.summary.featuresCompliant++;
+      } else {
+        // Ajouter des problèmes pour les fichiers manquants
+        for (const missingFile of featureMetric.missingFiles) {
           metrics.issues.push({
-            domain: 'services',
-            category: 'types',
+            domain: feature,
+            category: 'structure',
             severity: 'medium',
-            description: `Le service ${serviceName} ${!hasInterface ? "n'a pas d'interface claire" : "n'a pas de définitions de types importées"}`
+            description: `Fichier manquant: ${missingFile}`
           });
-          metrics.summary.issuesTotal++;
+        }
+        
+        // Ajouter des problèmes pour les exports manquants
+        for (const missingExport of featureMetric.missingExports) {
+          metrics.issues.push({
+            domain: feature,
+            category: 'exports',
+            severity: 'low',
+            description: `Export manquant: ${missingExport}`
+          });
         }
       }
     }
-  };
-  
-  analyzeServiceDir(SERVICES_DIR);
-}
-
-/**
- * Analyse les hooks et collecte des métriques
- */
-function analyzeHooks() {
-  if (!fs.existsSync(HOOKS_DIR)) return;
-  
-  console.log(chalk.blue('\nAnalyse des hooks:'));
-  
-  const analyzeHookDir = (dir: string, parentPath = '') => {
-    const items = fs.readdirSync(dir);
     
-    for (const item of items) {
-      const itemPath = path.join(dir, item);
-      const relativePath = parentPath ? `${parentPath}/${item}` : item;
+    // Calculer le taux de conformité
+    metrics.summary.complianceRate = features.length > 0
+      ? Math.round((metrics.summary.featuresCompliant / metrics.summary.featuresTotal) * 100)
+      : 0;
+  }
+  
+  // Analyser les services
+  const servicesDir = path.join(ROOT_DIR, 'services');
+  if (fs.existsSync(servicesDir)) {
+    const serviceFiles = glob.sync('**/*.ts', { cwd: servicesDir });
+    
+    for (const serviceFile of serviceFiles) {
+      const serviceName = path.basename(serviceFile, '.ts');
+      const serviceMetric = analyzeService(path.join(servicesDir, serviceFile), serviceName);
+      metrics.domainDetails.services.push(serviceMetric);
       
-      if (fs.statSync(itemPath).isDirectory()) {
-        // Récursion pour les sous-dossiers
-        analyzeHookDir(itemPath, relativePath);
-      } else if (item.startsWith('use') && (item.endsWith('.ts') || item.endsWith('.tsx'))) {
-        // Analyser le hook
-        const hookName = relativePath.replace('.ts', '').replace('.tsx', '');
-        console.log(chalk.gray(`  Analysant le hook: ${hookName}`));
-        
-        const content = fs.readFileSync(itemPath, 'utf8');
-        const issues: string[] = [];
-        
-        // Vérifier l'utilisation de useQuery
-        const usesReactQuery = content.includes('useQuery') || content.includes('useMutation');
-        const hasQueryKey = content.includes('queryKey:');
-        
-        if (usesReactQuery && !hasQueryKey) {
-          issues.push("Utilise React Query sans queryKey explicite");
-        }
-        
-        // Vérifier le nommage de la fonction
-        const functionNameMatches = content.match(/function\s+(use[A-Z][a-zA-Z0-9]*)/);
-        const functionName = functionNameMatches ? functionNameMatches[1] : null;
-        
-        if (!functionName || functionName !== hookName) {
-          issues.push("Le nom de la fonction ne correspond pas au nom du fichier");
-        }
-        
-        // Ajouter les métriques
-        metrics.domainDetails.hooks.push({
-          name: hookName,
-          compliant: issues.length === 0,
-          issues
+      if (!serviceMetric.hasClearInterface) {
+        metrics.issues.push({
+          domain: 'services',
+          category: 'interface',
+          severity: 'medium',
+          description: `Le service ${serviceName} n'a pas d'interface claire`
         });
-        
-        if (issues.length > 0) {
+      }
+      
+      if (!serviceMetric.hasTypeDefs) {
+        metrics.issues.push({
+          domain: 'services',
+          category: 'types',
+          severity: 'medium',
+          description: `Le service ${serviceName} n'a pas de définitions de types`
+        });
+      }
+    }
+  }
+  
+  // Analyser les hooks
+  const hooksDir = path.join(ROOT_DIR, 'hooks');
+  if (fs.existsSync(hooksDir)) {
+    const hookFiles = glob.sync('**/*.ts', { cwd: hooksDir });
+    
+    for (const hookFile of hookFiles) {
+      const hookName = path.basename(hookFile, '.ts');
+      const hookMetric = analyzeHook(path.join(hooksDir, hookFile), hookName);
+      metrics.domainDetails.hooks.push(hookMetric);
+      
+      if (!hookMetric.compliant) {
+        for (const issue of hookMetric.issues) {
           metrics.issues.push({
             domain: 'hooks',
-            category: 'pattern',
+            category: 'convention',
             severity: 'low',
-            description: `Le hook ${hookName} a des problèmes: ${issues.join(', ')}`
+            description: `Hook ${hookName}: ${issue}`
           });
-          metrics.summary.issuesTotal++;
         }
       }
     }
-  };
-  
-  analyzeHookDir(HOOKS_DIR);
-}
-
-/**
- * Analyse les composants et collecte des métriques
- */
-function analyzeComponents() {
-  if (!fs.existsSync(COMPONENTS_DIR)) return;
-  
-  console.log(chalk.blue('\nAnalyse des composants:'));
-  
-  const analyzeComponentDir = (dir: string, parentPath = '') => {
-    const items = fs.readdirSync(dir);
-    
-    for (const item of items) {
-      const itemPath = path.join(dir, item);
-      const relativePath = parentPath ? `${parentPath}/${item}` : item;
-      
-      if (fs.statSync(itemPath).isDirectory()) {
-        // Récursion pour les sous-dossiers
-        analyzeComponentDir(itemPath, relativePath);
-      } else if ((item.endsWith('.tsx') || item.endsWith('.jsx')) && !item.includes('index')) {
-        // Analyser le composant
-        const componentName = relativePath.replace('.tsx', '').replace('.jsx', '');
-        console.log(chalk.gray(`  Analysant le composant: ${componentName}`));
-        
-        const content = fs.readFileSync(itemPath, 'utf8');
-        const hasPropsType = content.includes('interface') || content.includes('type ') || content.includes('Props');
-        const isExported = content.includes('export default') || content.includes('export function') || content.includes('export const');
-        
-        metrics.domainDetails.components.push({
-          name: componentName,
-          hasPropsType,
-          isExported
-        });
-        
-        if (!hasPropsType) {
-          metrics.issues.push({
-            domain: 'components',
-            category: 'types',
-            severity: 'medium',
-            description: `Le composant ${componentName} n'a pas de type de props défini`
-          });
-          metrics.summary.issuesTotal++;
-        }
-        
-        if (!isExported) {
-          metrics.issues.push({
-            domain: 'components',
-            category: 'export',
-            severity: 'low',
-            description: `Le composant ${componentName} n'est pas exporté`
-          });
-          metrics.summary.issuesTotal++;
-        }
-      }
-    }
-  };
-  
-  analyzeComponentDir(COMPONENTS_DIR);
-}
-
-/**
- * Sauvegarde les métriques dans un fichier JSON
- */
-function saveMetrics() {
-  // Créer le répertoire de sortie s'il n'existe pas
-  if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
   
-  // Calculer le taux de conformité
-  metrics.summary.complianceRate = metrics.summary.featuresTotal > 0 
-    ? Math.round((metrics.summary.featuresCompliant / metrics.summary.featuresTotal) * 100) 
-    : 0;
+  // Analyser les composants
+  const componentsDir = path.join(ROOT_DIR, 'components');
+  if (fs.existsSync(componentsDir)) {
+    const componentFiles = glob.sync('**/*.tsx', { cwd: componentsDir });
+    
+    for (const componentFile of componentFiles) {
+      const componentName = path.basename(componentFile, '.tsx');
+      const componentMetric = analyzeComponent(path.join(componentsDir, componentFile), componentName);
+      metrics.domainDetails.components.push(componentMetric);
+      
+      if (!componentMetric.hasPropsType) {
+        metrics.issues.push({
+          domain: 'components',
+          category: 'types',
+          severity: 'medium',
+          description: `Le composant ${componentName} n'a pas de type pour ses props`
+        });
+      }
+      
+      if (!componentMetric.isExported) {
+        metrics.issues.push({
+          domain: 'components',
+          category: 'exports',
+          severity: 'low',
+          description: `Le composant ${componentName} n'est pas exporté correctement`
+        });
+      }
+    }
+  }
   
-  // Écrire le fichier JSON
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(metrics, null, 2));
-  console.log(chalk.green(`\nMétriques sauvegardées dans ${OUTPUT_FILE}`));
+  // Compter les fichiers par catégorie
+  const filePatterns = {
+    'Composants': ['components/**/*.tsx', 'features/*/components/**/*.tsx'],
+    'Hooks': ['hooks/**/*.ts', 'features/*/hooks/**/*.ts'],
+    'Services': ['services/**/*.ts'],
+    'Types': ['types/**/*.ts', 'features/*/types.ts'],
+    'Utilitaires': ['utils/**/*.ts', 'features/*/utils.ts'],
+    'Tests': ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx']
+  };
+  
+  for (const [category, patterns] of Object.entries(filePatterns)) {
+    let count = 0;
+    for (const pattern of patterns) {
+      count += glob.sync(pattern, { cwd: ROOT_DIR }).length;
+    }
+    metrics.summary.filesByCategory[category] = count;
+  }
+  
+  // Calculer le nombre total de problèmes
+  metrics.summary.issuesTotal = metrics.issues.length;
+  
+  return metrics;
 }
 
 /**
@@ -429,36 +393,32 @@ function main() {
   console.log(chalk.bold('Génération des métriques d\'architecture'));
   console.log(chalk.gray('=========================================='));
   
-  // Analyser les dossiers features
-  if (fs.existsSync(FEATURES_DIR)) {
-    const features = fs.readdirSync(FEATURES_DIR).filter(f => 
-      fs.statSync(path.join(FEATURES_DIR, f)).isDirectory()
-    );
-    
-    for (const feature of features) {
-      const featureMetric = analyzeFeature(path.join(FEATURES_DIR, feature), feature);
-      metrics.domainDetails.features.push(featureMetric);
-    }
-  } else {
-    console.error(chalk.red('Erreur: Le dossier features n\'existe pas.'));
+  // Analyser la base de code
+  const metrics = analyzeCodebase();
+  
+  // Sauvegarder les métriques au format JSON
+  const outputFile = path.join(REPORTS_DIR, 'architecture-metrics.json');
+  const outputDir = path.dirname(outputFile);
+  
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
   
-  // Collecter des métriques additionnelles
-  countFilesByCategory();
-  analyzeServices();
-  analyzeHooks();
-  analyzeComponents();
+  fs.writeFileSync(outputFile, JSON.stringify(metrics, null, 2));
   
-  // Sauvegarder les métriques
-  saveMetrics();
+  // Sauvegarder les métriques dans l'historique pour le suivi des tendances
+  saveCurrentMetrics(
+    metrics.summary.complianceRate,
+    metrics.summary.issuesTotal,
+    metrics.summary.featuresTotal
+  );
   
-  // Rapport final
-  console.log(chalk.gray('\n=========================================='));
-  console.log(chalk.bold('Rapport des métriques d\'architecture:'));
-  console.log(`Total des features: ${metrics.summary.featuresTotal}`);
-  console.log(`Features conformes: ${metrics.summary.featuresCompliant}`);
-  console.log(`Taux de conformité: ${metrics.summary.complianceRate}%`);
-  console.log(`Total des problèmes détectés: ${metrics.summary.issuesTotal}`);
+  // Afficher le résumé
+  console.log(chalk.green(`\nMétriques générées avec succès dans ${outputFile}`));
+  console.log(`Taux de conformité global: ${metrics.summary.complianceRate}%`);
+  console.log(`Nombre total de features: ${metrics.summary.featuresTotal}`);
+  console.log(`Nombre de features conformes: ${metrics.summary.featuresCompliant}`);
+  console.log(`Nombre total de problèmes: ${metrics.summary.issuesTotal}`);
 }
 
 main();
