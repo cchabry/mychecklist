@@ -4,9 +4,10 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { createAction } from '..';
 import { CreateActionData } from '../types';
 import { StatusType } from '@/types/enums';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour créer une nouvelle action corrective
@@ -23,11 +24,17 @@ export function useCreateAction() {
         ...data,
         status: data.status || StatusType.Todo
       };
-      return await notionApi.createAction(actionData);
+      return await createAction(actionData);
     },
     onSuccess: (_, variables) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['actions', variables.evaluationId] });
+      handleMutationSuccess('Action corrective', 'create');
+      
+      return _; // Retourner les données pour chaîner les appels
+    },
+    onError: (error) => {
+      handleMutationError(error, 'action corrective', 'create');
     }
   });
 }

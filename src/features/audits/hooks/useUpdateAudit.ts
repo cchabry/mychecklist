@@ -6,8 +6,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateAudit } from '..';
 import { UpdateAuditData } from '../types';
-import { toast } from 'sonner';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
+/**
+ * Hook pour mettre à jour un audit existant
+ * 
+ * @param auditId - Identifiant de l'audit à mettre à jour
+ * @returns Mutation pour mettre à jour un audit
+ */
 export function useUpdateAudit(auditId: string) {
   const queryClient = useQueryClient();
   
@@ -20,14 +26,12 @@ export function useUpdateAudit(auditId: string) {
       queryClient.invalidateQueries({ queryKey: ['audit', auditId] });
       queryClient.invalidateQueries({ queryKey: ['audits'] });
       
-      // Notifier l'utilisateur
-      toast.success('Audit mis à jour avec succès');
+      handleMutationSuccess('Audit', 'update');
       
       return data;
     },
     onError: (error) => {
-      console.error(`Erreur lors de la mise à jour de l'audit ${auditId}:`, error);
-      toast.error(`Impossible de mettre à jour l'audit: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'audit', 'update');
     }
   });
 }

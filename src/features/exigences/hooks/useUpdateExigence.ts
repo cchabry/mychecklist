@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateExigence } from '..';
 import { UpdateExigenceData } from '../types';
-import { toast } from 'sonner';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour mettre à jour une exigence existante
@@ -38,18 +38,18 @@ export function useUpdateExigence(projectId: string) {
     mutationFn: async ({ id, data }: { id: string, data: UpdateExigenceData }) => {
       return await updateExigence(id, data);
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (data, { id }) => {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['exigence', id] });
       queryClient.invalidateQueries({ queryKey: ['exigences', projectId] });
       queryClient.invalidateQueries({ queryKey: ['exigencesWithItems', projectId] });
       
-      // Notifier l'utilisateur
-      toast.success('Exigence mise à jour avec succès');
+      handleMutationSuccess('Exigence', 'update');
+      
+      return data;
     },
     onError: (error) => {
-      console.error(`Erreur lors de la mise à jour de l'exigence:`, error);
-      toast.error(`Impossible de mettre à jour l'exigence: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'exigence', 'update');
     }
   });
 }

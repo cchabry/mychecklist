@@ -17,5 +17,8 @@ export * from './format';
 // Utilitaires de validation
 export * from './validation';
 
+// Utilitaires de requête React Query
+export * from './query-helpers';
+
 // Utilitaires génériques
 export * from '../lib/utils';

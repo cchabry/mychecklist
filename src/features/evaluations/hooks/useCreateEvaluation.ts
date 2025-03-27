@@ -4,8 +4,9 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { createEvaluation } from '..';
 import { CreateEvaluationData } from '../types';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour créer une nouvelle évaluation
@@ -25,11 +26,17 @@ export function useCreateEvaluation() {
         updatedAt: currentTime
       };
       
-      return await notionApi.createEvaluation(evaluationInput);
+      return await createEvaluation(evaluationInput);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['evaluations', variables.auditId] });
+      handleMutationSuccess('Évaluation', 'create');
+      
+      return data;
+    },
+    onError: (error) => {
+      handleMutationError(error, 'évaluation', 'create');
     }
   });
 }

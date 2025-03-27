@@ -4,13 +4,15 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { updateAction } from '..';
 import { UpdateActionData } from '../types';
 import { useActionById } from './useActionById';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour mettre à jour une action corrective
  * 
+ * @param id - Identifiant de l'action à mettre à jour
  * @returns Mutation pour mettre à jour une action
  */
 export function useUpdateAction(id: string) {
@@ -23,17 +25,19 @@ export function useUpdateAction(id: string) {
         throw new Error("Action non trouvée");
       }
       
-      const updatedAction = {
-        ...currentAction,
-        ...data,
-      };
-      
-      return await notionApi.updateAction(updatedAction);
+      return await updateAction(id, data);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['action', id] });
       queryClient.invalidateQueries({ queryKey: ['actions'] });
+      
+      handleMutationSuccess('Action corrective', 'update');
+      
+      return data;
+    },
+    onError: (error) => {
+      handleMutationError(error, 'action corrective', 'update');
     }
   });
 }

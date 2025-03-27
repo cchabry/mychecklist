@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createExigence } from '..';
 import { CreateExigenceData } from '../types';
-import { toast } from 'sonner';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour créer une nouvelle exigence
@@ -43,17 +43,17 @@ export function useCreateExigence() {
     mutationFn: async (data: CreateExigenceData) => {
       return await createExigence(data);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['exigences', variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ['exigencesWithItems', variables.projectId] });
       
-      // Notifier l'utilisateur
-      toast.success('Exigence créée avec succès');
+      handleMutationSuccess('Exigence', 'create');
+      
+      return data;
     },
     onError: (error) => {
-      console.error('Erreur lors de la création de l\'exigence:', error);
-      toast.error(`Impossible de créer l'exigence: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'exigence', 'create');
     }
   });
 }

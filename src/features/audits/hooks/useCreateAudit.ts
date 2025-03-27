@@ -6,7 +6,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createAudit } from '..';
 import { CreateAuditData } from '../types';
-import { toast } from 'sonner';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 export function useCreateAudit() {
   const queryClient = useQueryClient();
@@ -20,14 +20,12 @@ export function useCreateAudit() {
       queryClient.invalidateQueries({ queryKey: ['audits', variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       
-      // Notifier l'utilisateur
-      toast.success('Audit créé avec succès');
+      handleMutationSuccess('Audit', 'create');
       
       return data;
     },
     onError: (error) => {
-      console.error('Erreur lors de la création de l\'audit:', error);
-      toast.error(`Impossible de créer l'audit: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'audit', 'create');
     }
   });
 }

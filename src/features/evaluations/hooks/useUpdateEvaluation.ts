@@ -9,8 +9,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateEvaluation } from '..';
 import { UpdateEvaluationData } from '../types';
-import { toast } from 'sonner';
 import { useEvaluationById } from './useEvaluationById';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour mettre à jour une évaluation existante
@@ -43,7 +43,7 @@ export function useUpdateEvaluation(evaluationId: string) {
       }
       return await updateEvaluation(id, data);
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (data, { id }) => {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['evaluation', id] });
       
@@ -51,12 +51,12 @@ export function useUpdateEvaluation(evaluationId: string) {
         queryClient.invalidateQueries({ queryKey: ['evaluations', evaluation.auditId] });
       }
       
-      // Notifier l'utilisateur
-      toast.success('Évaluation mise à jour avec succès');
+      handleMutationSuccess('Évaluation', 'update');
+      
+      return data;
     },
     onError: (error) => {
-      console.error(`Erreur lors de la mise à jour de l'évaluation:`, error);
-      toast.error(`Impossible de mettre à jour l'évaluation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'évaluation', 'update');
     }
   });
 }

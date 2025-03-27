@@ -4,8 +4,9 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { createSamplePage } from '..';
 import { CreateSamplePageData } from '../types';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour créer une nouvelle page d'échantillon
@@ -17,11 +18,18 @@ export function useCreateSamplePage() {
   
   return useMutation({
     mutationFn: async (data: CreateSamplePageData) => {
-      return await notionApi.createSamplePage(data);
+      return await createSamplePage(data);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['samplePages', variables.projectId] });
+      
+      handleMutationSuccess('Page d\'échantillon', 'create');
+      
+      return data;
+    },
+    onError: (error) => {
+      handleMutationError(error, 'page d\'échantillon', 'create');
     }
   });
 }

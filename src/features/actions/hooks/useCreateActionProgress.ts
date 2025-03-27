@@ -4,8 +4,9 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { createActionProgress } from '..';
 import { CreateProgressData } from '../types';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour créer un nouveau suivi de progrès d'action
@@ -17,12 +18,19 @@ export function useCreateActionProgress() {
   
   return useMutation({
     mutationFn: async (data: CreateProgressData) => {
-      return await notionApi.createActionProgress(data);
+      return await createActionProgress(data);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['actionProgress', variables.actionId] });
       queryClient.invalidateQueries({ queryKey: ['action', variables.actionId] });
+      
+      handleMutationSuccess('Progrès d\'action', 'create');
+      
+      return data;
+    },
+    onError: (error) => {
+      handleMutationError(error, 'progrès d\'action', 'create');
     }
   });
 }

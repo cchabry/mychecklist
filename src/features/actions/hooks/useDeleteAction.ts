@@ -4,12 +4,14 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { deleteAction } from '..';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour supprimer une action corrective
  * 
  * @param id - Identifiant de l'action à supprimer
+ * @param evaluationId - Identifiant de l'évaluation parent (pour l'invalidation du cache)
  * @returns Mutation pour supprimer une action
  */
 export function useDeleteAction(id: string, evaluationId: string) {
@@ -17,11 +19,16 @@ export function useDeleteAction(id: string, evaluationId: string) {
   
   return useMutation({
     mutationFn: async () => {
-      return await notionApi.deleteAction(id);
+      return await deleteAction(id);
     },
     onSuccess: () => {
       // Invalider les requêtes associées
       queryClient.invalidateQueries({ queryKey: ['actions', evaluationId] });
+      
+      handleMutationSuccess('Action corrective', 'delete');
+    },
+    onError: (error) => {
+      handleMutationError(error, 'action corrective', 'delete');
     }
   });
 }

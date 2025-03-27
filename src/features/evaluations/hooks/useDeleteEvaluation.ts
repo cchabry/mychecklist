@@ -8,7 +8,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteEvaluation } from '..';
-import { toast } from 'sonner';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour supprimer une évaluation
@@ -43,12 +43,10 @@ export function useDeleteEvaluation(auditId: string) {
       // Invalider les requêtes associées pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['evaluations', auditId] });
       
-      // Notifier l'utilisateur
-      toast.success('Évaluation supprimée avec succès');
+      handleMutationSuccess('Évaluation', 'delete');
     },
     onError: (error) => {
-      console.error(`Erreur lors de la suppression de l'évaluation:`, error);
-      toast.error(`Impossible de supprimer l'évaluation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'évaluation', 'delete');
     }
   });
 }

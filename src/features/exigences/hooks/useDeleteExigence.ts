@@ -8,7 +8,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteExigence } from '..';
-import { toast } from 'sonner';
+import { handleMutationSuccess, handleMutationError } from '@/utils/query-helpers';
 
 /**
  * Hook pour supprimer une exigence
@@ -44,12 +44,10 @@ export function useDeleteExigence(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['exigences', projectId] });
       queryClient.invalidateQueries({ queryKey: ['exigencesWithItems', projectId] });
       
-      // Notifier l'utilisateur
-      toast.success('Exigence supprimée avec succès');
+      handleMutationSuccess('Exigence', 'delete');
     },
     onError: (error) => {
-      console.error(`Erreur lors de la suppression de l'exigence:`, error);
-      toast.error(`Impossible de supprimer l'exigence: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      handleMutationError(error, 'exigence', 'delete');
     }
   });
 }
