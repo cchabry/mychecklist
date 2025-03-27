@@ -15,7 +15,9 @@
     "architecture:check": "ts-node src/scripts/analyze-architecture.ts",
     "architecture:metrics": "ts-node src/scripts/architecture-metrics.ts",
     "architecture:dashboard": "ts-node src/scripts/generate-metrics-dashboard.ts",
-    "feature:generate": "ts-node src/scripts/generate-feature.ts"
+    "feature:generate": "ts-node src/scripts/generate-feature.ts",
+    "test:architecture": "vitest run src/scripts/__tests__",
+    "test:architecture:coverage": "vitest run src/scripts/__tests__ --coverage"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
