@@ -5,6 +5,7 @@ import { notionClient } from '../../notionClient';
 import { ActionPriority, ActionStatus, ComplianceStatus } from '@/types/domain';
 import { CorrectiveAction } from '@/types/domain';
 import { NotionConfig } from '../../types';
+import { ComplianceLevel, PriorityLevel, StatusType } from '@/types/enums';
 
 // Mock du notionClient
 vi.mock('../../notionClient', () => ({
@@ -18,12 +19,12 @@ describe('ActionService', () => {
   const mockAction: CorrectiveAction = {
     id: 'action-1',
     evaluationId: 'eval-123',
-    targetScore: 'Conforme',
-    priority: 'haute',
+    targetScore: ComplianceLevel.Compliant,
+    priority: PriorityLevel.High,
     dueDate: '2023-01-01T00:00:00.000Z',
     responsible: 'John Doe',
     comment: 'Test comment',
-    status: 'à faire'
+    status: StatusType.Todo
   };
 
   beforeEach(() => {

@@ -5,6 +5,7 @@ import { notionClient } from '../../notionClient';
 import { ActionStatus, ComplianceStatus } from '@/types/domain';
 import { ActionProgress } from '@/types/domain';
 import { NotionConfig } from '../../types';
+import { ComplianceLevel, StatusType } from '@/types/enums';
 
 // Mock du notionClient
 vi.mock('../../notionClient', () => ({
@@ -21,8 +22,8 @@ describe('ProgressService', () => {
     date: '2023-01-01T00:00:00.000Z',
     responsible: 'Jane Doe',
     comment: 'Test progress',
-    score: 'Partiellement conforme',
-    status: 'en cours'
+    score: ComplianceLevel.PartiallyCompliant,
+    status: StatusType.InProgress
   };
 
   beforeEach(() => {
