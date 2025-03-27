@@ -202,11 +202,11 @@ class EvaluationService {
     ];
     
     // Filtrer selon pageId et exigenceId si fournis
-    return mockEvaluations.filter(eval => {
-      if (pageId && eval.pageId !== pageId) {
+    return mockEvaluations.filter(evaluation => {
+      if (pageId && evaluation.pageId !== pageId) {
         return false;
       }
-      if (exigenceId && eval.exigenceId !== exigenceId) {
+      if (exigenceId && evaluation.exigenceId !== exigenceId) {
         return false;
       }
       return true;
