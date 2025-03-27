@@ -1,4 +1,3 @@
-
 import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 
 /**
@@ -126,12 +125,11 @@ class OperationModeServiceImpl implements OperationModeService {
   
   reset(): void {
     console.log(`[OperationMode] Réinitialisation au mode par défaut: ${DEFAULT_MODE}`);
-    // Ne pas effacer la raison existante lors d'une réinitialisation si c'est pour un test
+    // Conserver la raison existante lors d'une réinitialisation
     const currentReason = this.state.reason;
     this.updateState({
       mode: DEFAULT_MODE,
-      // Conserver la raison si elle existe déjà pour éviter des problèmes dans les tests
-      reason: currentReason || 'Réinitialisation du mode',
+      reason: currentReason, // Ne pas remplacer la raison existante
       source: 'system'
     });
   }

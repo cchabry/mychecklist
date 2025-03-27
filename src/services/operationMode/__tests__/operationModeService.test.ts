@@ -64,6 +64,10 @@ describe('OperationModeService', () => {
     // Activer le mode démo
     operationModeService.enableDemoMode('Test persistance');
     
+    // Vérifier que le mode a été sauvegardé
+    expect(operationModeService.getMode()).toBe('demo');
+    expect(operationModeService.getState().reason).toBe('Test persistance');
+    
     // Créer une nouvelle instance du service pour simuler un rechargement de page
     const newService = operationModeService;
     
