@@ -9,3 +9,5 @@ export * from './notion/notionService';
 export * from './notion/notionClient';
 export * from './notion/types';
 export * from './cache/cacheService';
+export * from './notion';
+export * from './api';
