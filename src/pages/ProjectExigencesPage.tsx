@@ -3,28 +3,19 @@ import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   useExigences, 
-  ExigenceFilter, 
-  ExigenceCard,
+  ExigenceFilter,
+  ExigenceStats,
+  ExigenceSortBar,
+  ExigenceList,
   filterExigences,
   sortExigences,
   enrichExigencesWithItems,
-  ExigenceWithItem,
   ExigenceSortOption
 } from '@/features/exigences';
 import { useChecklistItems } from '@/features/checklist';
 import { useProjectById } from '@/hooks/useProjectById';
 import { PageHeader } from '@/components/layout';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { PlusCircle, List, Tag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { PlusCircle, Tag } from 'lucide-react';
 import { ImportanceLevel } from '@/types/enums';
 import { extractUniqueCategories, extractUniqueSubcategories } from '@/features/checklist';
 
@@ -44,7 +35,7 @@ const ProjectExigencesPage = () => {
   const [sortOption, setSortOption] = useState<ExigenceSortOption>('importance_desc');
   
   // Enrichir les exigences avec les informations des items de checklist
-  const exigencesWithItems = useMemo<ExigenceWithItem[]>(() => {
+  const exigencesWithItems = useMemo(() => {
     if (exigences.length === 0 || checklistItems.length === 0) return [];
     return enrichExigencesWithItems(exigences, checklistItems);
   }, [exigences, checklistItems]);
@@ -112,29 +103,7 @@ const ProjectExigencesPage = () => {
       
       {/* Statistiques des exigences */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white shadow rounded-lg p-4 md:col-span-5">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Répartition des exigences par niveau d'importance</h3>
-          <div className="flex flex-wrap gap-3">
-            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-              Majeur: {stats.byImportance[ImportanceLevel.Major]}
-            </Badge>
-            <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
-              Important: {stats.byImportance[ImportanceLevel.Important]}
-            </Badge>
-            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-              Moyen: {stats.byImportance[ImportanceLevel.Medium]}
-            </Badge>
-            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-              Mineur: {stats.byImportance[ImportanceLevel.Minor]}
-            </Badge>
-            <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
-              Non applicable: {stats.byImportance[ImportanceLevel.NotApplicable]}
-            </Badge>
-            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
-              Total: {stats.total}
-            </Badge>
-          </div>
-        </div>
+        <ExigenceStats stats={stats} />
       </div>
       
       {/* Filtres et tri */}
@@ -146,67 +115,21 @@ const ProjectExigencesPage = () => {
           subcategories={subcategories}
         />
         
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Select
-              value={sortOption}
-              onValueChange={(value) => setSortOption(value as ExigenceSortOption)}
-            >
-              <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Trier par" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="importance_desc">Importance (haute → basse)</SelectItem>
-                <SelectItem value="importance_asc">Importance (basse → haute)</SelectItem>
-                <SelectItem value="category_asc">Catégorie (A-Z)</SelectItem>
-                <SelectItem value="category_desc">Catégorie (Z-A)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <List className="h-4 w-4" />
-            <span>
-              {isLoading 
-                ? 'Chargement des exigences...' 
-                : `${filteredExigences.length} exigences sur ${exigences.length} au total`
-              }
-            </span>
-          </div>
-        </div>
+        <ExigenceSortBar
+          isLoading={isLoading}
+          sortOption={sortOption}
+          onSortChange={(value) => setSortOption(value)}
+          totalCount={exigences.length}
+          filteredCount={filteredExigences.length}
+        />
       </div>
       
       {/* Liste des exigences */}
-      {isLoading ? (
-        <div className="grid gap-4">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-32 w-full" />
-          ))}
-        </div>
-      ) : filteredExigences.length === 0 ? (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune exigence définie</h3>
-          <p className="text-gray-500 mb-6">
-            Commencez par définir les exigences pour ce projet en sélectionnant des items du référentiel.
-          </p>
-          <Button asChild>
-            <a href={`/projects/${projectId}/exigences/create`}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Ajouter une exigence
-            </a>
-          </Button>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filteredExigences.map((exigence) => (
-            <ExigenceCard 
-              key={exigence.id} 
-              exigence={exigence} 
-              onClick={() => window.location.href = `/projects/${projectId}/exigences/${exigence.id}`}
-            />
-          ))}
-        </div>
-      )}
+      <ExigenceList 
+        isLoading={isLoading}
+        exigences={filteredExigences}
+        projectId={projectId || ''}
+      />
     </div>
   );
 };
