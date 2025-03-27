@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 /**
  * Script pour ajouter les commandes de vérification des phases dans package.json
@@ -15,7 +16,7 @@ const packageJson = require(packageJsonPath);
 packageJson.scripts = {
   ...packageJson.scripts,
   "verify:phase1": "ts-node src/scripts/verify-architecture-phase.ts --phase=1",
-  "verify:phase2": "node src/scripts/verify-phase2.js",
+  "verify:phase2": "ts-node src/scripts/verify-phase2.ts",
   "verify:phase3": "ts-node src/scripts/verify-architecture-phase.ts --phase=3",
   "verify:current": "ts-node src/scripts/verify-architecture-phase.ts",
   "precommit": "npm run verify:current"
@@ -31,4 +32,3 @@ console.log('  npm run verify:phase2');
 console.log('  npm run verify:phase3');
 console.log('  npm run verify:current');
 console.log('\nDe plus, le script precommit a été configuré pour exécuter la vérification avant chaque commit.');
-
