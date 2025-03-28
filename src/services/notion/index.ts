@@ -6,7 +6,7 @@
  */
 
 // Exporter le client
-export { notionClient, resetNotionClient } from './client/notionClient';
+export { notionClient } from './client/notionClient';
 
 // Exporter les types communs
 export * from './types';

@@ -10,6 +10,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/services/notion/project/projectService';
 import { Project } from '@/types/domain';
+import { ApiResponse } from '@/services/notion/base/types';
 import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
@@ -31,10 +32,12 @@ export function useProjects() {
     queryFn: async () => {
       try {
         const response = await projectService.getAll();
-        if (!response.success) {
+        // Gérer le cas où la réponse est une ApiResponse
+        if ('success' in response && !response.success) {
           throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
         }
-        return response.data || [];
+        // Si c'est directement un tableau, retourner le tableau
+        return 'data' in response ? (response.data || []) : response;
       } catch (error) {
         handleNotionError(error, {
           endpoint: '/databases/query',
@@ -52,10 +55,12 @@ export function useProjects() {
     setIsLoading(true);
     try {
       const response = await projectService.getById(id);
-      if (!response.success) {
+      // Gérer le cas où la réponse est une ApiResponse
+      if (response && 'success' in response && !response.success) {
         throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
-      return response.data || null;
+      // Si c'est directement un objet Project ou null, le retourner
+      return response && 'data' in response ? (response.data || null) : response;
     } catch (error) {
       handleNotionError(error, {
         endpoint: `/pages/${id}`,
@@ -73,10 +78,12 @@ export function useProjects() {
     mutationFn: async (data: CreateProjectData): Promise<Project> => {
       try {
         const response = await projectService.create(data);
-        if (!response.success || !response.data) {
+        // Gérer le cas où la réponse est une ApiResponse
+        if ('success' in response && !response.success || !('success' in response && response.data)) {
           throw new Error(response.error?.message || 'Erreur lors de la création du projet');
         }
-        return response.data;
+        // Retourner l'objet Project
+        return 'data' in response ? response.data : response;
       } catch (error) {
         handleNotionError(error, {
           endpoint: '/pages',
@@ -98,11 +105,13 @@ export function useProjects() {
   const updateProjectMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateProjectData }): Promise<Project> => {
       try {
-        const response = await projectService.update(id, data);
-        if (!response.success || !response.data) {
+        const response = await projectService.update(data);
+        // Gérer le cas où la réponse est une ApiResponse
+        if ('success' in response && !response.success || !('success' in response && response.data)) {
           throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
         }
-        return response.data;
+        // Retourner l'objet Project
+        return 'data' in response ? response.data : response;
       } catch (error) {
         handleNotionError(error, {
           endpoint: `/pages/${id}`,
@@ -126,10 +135,12 @@ export function useProjects() {
     mutationFn: async (id: string): Promise<boolean> => {
       try {
         const response = await projectService.delete(id);
-        if (!response.success) {
+        // Gérer le cas où la réponse est une ApiResponse
+        if ('success' in response && !response.success) {
           throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
         }
-        return true;
+        // Retourner true pour indiquer le succès
+        return 'data' in response ? !!response.data : true;
       } catch (error) {
         handleNotionError(error, {
           endpoint: `/pages/${id}`,
