@@ -1,4 +1,3 @@
-
 /**
  * Point d'entrée pour le service de projets
  * 
@@ -17,15 +16,4 @@ export {
   notionPageToProject
 } from './utils';
 
-// Exporter les implémentations API
-export {
-  getAllProjectsNotionImplementation,
-  getProjectByIdNotionImplementation,
-  createProjectNotionImplementation,
-  updateProjectNotionImplementation,
-  deleteProjectNotionImplementation,
-  mockGetProjects,
-  mockCreateProject,
-  mockUpdateProject,
-  mockDeleteProject
-} from './apiImplementations';
+// Note: Nous avons supprimé les exportations manquantes qui causaient des erreurs

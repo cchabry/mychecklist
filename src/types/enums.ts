@@ -1,58 +1,53 @@
 
 /**
  * Énumérations utilisées dans l'application
- * 
- * Ce fichier centralise toutes les énumérations utilisées par l'application
- * pour garantir la cohérence et éviter les duplications.
  */
 
 /**
- * Niveaux d'importance pour les exigences
+ * Statut d'un projet
  */
-export enum ImportanceLevel {
-  NA = "N/A",
-  Minor = "Mineur",
-  Medium = "Moyen",
-  Important = "Important",
-  Major = "Majeur",
-  NotApplicable = "N/A" // Alias pour la compatibilité
-}
+export type ProjectStatus = 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
 
 /**
- * Niveaux de conformité pour les évaluations
+ * Niveau de conformité d'une évaluation
  */
 export enum ComplianceLevel {
-  Compliant = "Conforme",
-  PartiallyCompliant = "Partiellement conforme",
-  NonCompliant = "Non conforme",
-  NotApplicable = "Non applicable"
+  /** Conforme aux exigences */
+  Compliant = 'COMPLIANT',
+  /** Partiellement conforme */
+  PartiallyCompliant = 'PARTIALLY_COMPLIANT',
+  /** Non conforme */
+  NonCompliant = 'NON_COMPLIANT',
+  /** Non applicable */
+  NotApplicable = 'NOT_APPLICABLE'
 }
 
 /**
- * Niveaux de priorité pour les actions
+ * Priorité d'une action corrective
  */
-export enum PriorityLevel {
-  Low = "Faible",
-  Medium = "Moyenne",
-  High = "Haute",
-  Critical = "Critique"
+export enum ActionPriority {
+  /** Priorité basse */
+  Low = 'LOW',
+  /** Priorité moyenne */
+  Medium = 'MEDIUM',
+  /** Priorité haute */
+  High = 'HIGH',
+  /** Priorité critique */
+  Critical = 'CRITICAL'
 }
 
 /**
- * Types de statut pour les actions et les progrès
+ * Statut d'une action corrective
  */
-export enum StatusType {
-  Todo = "À faire",
-  InProgress = "En cours",
-  Done = "Terminée"
-}
-
-/**
- * Statuts des projets
- */
-export enum ProjectStatus {
-  Active = "active",
-  Pending = "pending",
-  Completed = "completed",
-  Archived = "archived"
+export enum ActionStatus {
+  /** À faire */
+  Todo = 'TODO',
+  /** En cours */
+  InProgress = 'IN_PROGRESS',
+  /** Terminée */
+  Done = 'DONE',
+  /** Bloquée */
+  Blocked = 'BLOCKED',
+  /** Annulée */
+  Cancelled = 'CANCELLED'
 }

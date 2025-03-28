@@ -28,9 +28,19 @@ export interface NotionClient {
   configure(config: NotionConfig): void;
   
   /**
+   * Vérifie si le client est correctement configuré
+   */
+  isConfigured(): boolean;
+  
+  /**
    * Vérifie si le mode mock est activé
    */
   isMockMode(): boolean;
+  
+  /**
+   * Active ou désactive explicitement le mode mock
+   */
+  setMockMode(enabled: boolean): void;
   
   /**
    * Récupère la configuration actuelle
@@ -41,6 +51,31 @@ export interface NotionClient {
    * Effectue une requête à l'API Notion
    */
   query(options: NotionQueryOptions): Promise<NotionResponse<any>>;
+  
+  /**
+   * Effectue une requête GET vers l'API Notion
+   */
+  get<T>(endpoint: string): Promise<NotionResponse<T>>;
+  
+  /**
+   * Effectue une requête POST vers l'API Notion
+   */
+  post<T>(endpoint: string, data?: any): Promise<NotionResponse<T>>;
+  
+  /**
+   * Effectue une requête PATCH vers l'API Notion
+   */
+  patch<T>(endpoint: string, data?: any): Promise<NotionResponse<T>>;
+  
+  /**
+   * Effectue une requête DELETE vers l'API Notion
+   */
+  delete<T>(endpoint: string): Promise<NotionResponse<T>>;
+  
+  /**
+   * Effectue une requête générique vers l'API Notion
+   */
+  request<T>(method: string, endpoint: string, data?: any): Promise<NotionResponse<T>>;
 }
 
 /**
@@ -55,7 +90,14 @@ class NotionClientImpl implements NotionClient {
    */
   configure(config: NotionConfig): void {
     this.config = config;
-    this.mockMode = config.useMockData || false;
+    this.mockMode = config.mockMode || false;
+  }
+  
+  /**
+   * Vérifie si le client est correctement configuré
+   */
+  isConfigured(): boolean {
+    return !!this.config && !!this.config.apiKey;
   }
   
   /**
@@ -63,6 +105,13 @@ class NotionClientImpl implements NotionClient {
    */
   isMockMode(): boolean {
     return this.mockMode || !this.config || !this.config.apiKey;
+  }
+  
+  /**
+   * Active ou désactive explicitement le mode mock
+   */
+  setMockMode(enabled: boolean): void {
+    this.mockMode = enabled;
   }
   
   /**
@@ -129,6 +178,71 @@ class NotionClientImpl implements NotionClient {
           details: error
         }
       };
+    }
+  }
+  
+  /**
+   * Effectue une requête GET vers l'API Notion
+   */
+  async get<T>(endpoint: string): Promise<NotionResponse<T>> {
+    return this.query({
+      method: 'GET',
+      path: endpoint
+    });
+  }
+  
+  /**
+   * Effectue une requête POST vers l'API Notion
+   */
+  async post<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
+    return this.query({
+      method: 'POST',
+      path: endpoint,
+      body: data
+    });
+  }
+  
+  /**
+   * Effectue une requête PATCH vers l'API Notion
+   */
+  async patch<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
+    return this.query({
+      method: 'PATCH',
+      path: endpoint,
+      body: data
+    });
+  }
+  
+  /**
+   * Effectue une requête DELETE vers l'API Notion
+   */
+  async delete<T>(endpoint: string): Promise<NotionResponse<T>> {
+    return this.query({
+      method: 'DELETE',
+      path: endpoint
+    });
+  }
+  
+  /**
+   * Effectue une requête générique vers l'API Notion
+   */
+  async request<T>(method: string, endpoint: string, data?: any): Promise<NotionResponse<T>> {
+    switch (method.toUpperCase()) {
+      case 'GET':
+        return this.get<T>(endpoint);
+      case 'POST':
+        return this.post<T>(endpoint, data);
+      case 'PATCH':
+        return this.patch<T>(endpoint, data);
+      case 'DELETE':
+        return this.delete<T>(endpoint);
+      default:
+        return {
+          success: false,
+          error: {
+            message: `Méthode HTTP non supportée: ${method}`
+          }
+        };
     }
   }
 }

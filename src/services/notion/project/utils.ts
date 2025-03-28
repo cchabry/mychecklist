@@ -1,45 +1,66 @@
 
 /**
- * Utilitaires pour le service de projets
+ * Utilitaires pour les projets
  */
 
 import { Project } from '@/types/domain';
+import { formatDate } from '@/utils/date';
 
 /**
- * Extrait le texte d'une propriété Notion
- * @param property Propriété Notion
- * @returns Texte extrait ou chaîne vide
- */
-export function extractTextProperty(property: any): string {
-  if (!property) return '';
-  
-  if (property.title && Array.isArray(property.title)) {
-    return property.title.map((t: any) => t.plain_text || '').join('');
-  }
-  
-  if (property.rich_text && Array.isArray(property.rich_text)) {
-    return property.rich_text.map((t: any) => t.plain_text || '').join('');
-  }
-  
-  return '';
-}
-
-/**
- * Transforme une page Notion en projet
- * @param page Page Notion
- * @returns Objet projet
+ * Convertit une page Notion en projet
  */
 export function notionPageToProject(page: any): Project {
-  const properties = page.properties;
+  const properties = page.properties || {};
   
   return {
     id: page.id,
-    name: extractTextProperty(properties.Name),
-    url: extractTextProperty(properties.URL) || '',
-    description: extractTextProperty(properties.Description) || '',
-    createdAt: page.created_time,
-    updatedAt: page.last_edited_time,
-    progress: properties.Progress?.number || 0
+    name: getPropertyValue(properties.Name, 'title') || '',
+    url: getPropertyValue(properties.URL, 'url') || '',
+    description: getPropertyValue(properties.Description, 'rich_text') || '',
+    progress: getPropertyValue(properties.Progress, 'number') || 0,
+    status: mapStringToProjectStatus(getPropertyValue(properties.Status, 'select') || 'NEW'),
+    createdAt: formatDate(page.created_time) || '',
+    updatedAt: formatDate(page.last_edited_time) || ''
   };
 }
 
+/**
+ * Récupère la valeur d'une propriété Notion
+ */
+function getPropertyValue(property: any, type: string): any {
+  if (!property) return null;
+
+  switch (type) {
+    case 'title':
+    case 'rich_text':
+      return property[type]?.[0]?.plain_text || '';
+    case 'url':
+      return property[type] || '';
+    case 'number':
+      return property[type] !== undefined ? property[type] : null;
+    case 'select':
+      return property[type]?.name || '';
+    default:
+      return null;
+  }
+}
+
+/**
+ * Transforme une chaîne de statut en enum ProjectStatus
+ */
+function mapStringToProjectStatus(status: string): 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'CANCELLED' {
+  const statusMap: Record<string, 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'CANCELLED'> = {
+    'Nouveau': 'NEW',
+    'En cours': 'IN_PROGRESS',
+    'Terminé': 'COMPLETED',
+    'En pause': 'PAUSED',
+    'Annulé': 'CANCELLED',
+    'NEW': 'NEW',
+    'IN_PROGRESS': 'IN_PROGRESS',
+    'COMPLETED': 'COMPLETED',
+    'PAUSED': 'PAUSED',
+    'CANCELLED': 'CANCELLED'
+  };
+
+  return statusMap[status] || 'NEW';
+}

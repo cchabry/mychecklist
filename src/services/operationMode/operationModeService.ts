@@ -1,169 +1,161 @@
+/**
+ * Service de gestion du mode opérationnel (démo/réel)
+ * 
+ * Ce service permet de basculer entre le mode démo (données simulées)
+ * et le mode réel (données provenant de l'API Notion).
+ * 
+ * L'état est persisté dans le localStorage pour conserver le mode
+ * même après un rechargement de la page.
+ */
 
-import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
-import { OPERATION_MODE_RESET } from '@/constants/errorMessages';
-import { STORAGE_KEYS } from '@/constants/appConstants';
+import { BehaviorSubject } from 'rxjs';
+import { notionClient } from '../notion/notionClient';
 
 /**
- * Valeur par défaut du mode opérationnel
- * En environnement de production: 'real'
- * En environnement de développement: 'demo'
+ * Interface pour l'état du mode opérationnel
  */
-const DEFAULT_MODE: OperationModeType = 
-  process.env.NODE_ENV === 'production' ? 'real' : 'demo';
+export interface OperationModeState {
+  /** Indique si l'application est en mode démo */
+  isDemoMode: boolean;
+  /** Raison du basculement en mode démo */
+  reason?: string;
+}
 
 /**
- * Service de gestion du mode opérationnel (réel vs démo)
- * 
- * Ce service permet de contrôler si l'application utilise:
- * - L'API Notion réelle (mode 'real')
- * - Des données simulées (mode 'demo')
- * 
- * Il maintient l'état global du mode et notifie les abonnés des changements.
+ * Service de gestion du mode opérationnel
  */
-class OperationModeServiceImpl implements OperationModeService {
-  private state: OperationModeState;
-  private listeners: Array<(state: OperationModeState) => void> = [];
+class OperationModeService {
+  /** Clé pour stocker l'état dans le localStorage */
+  private readonly STORAGE_KEY = 'operationModeState';
+  
+  /** État actuel du mode opérationnel */
+  private state: OperationModeState = { isDemoMode: false };
+  
+  /** Subject RxJS pour notifier les changements d'état */
+  private stateSubject = new BehaviorSubject<OperationModeState>(this.state);
+  
+  /** Observable pour s'abonner aux changements d'état */
+  public state$ = this.stateSubject.asObservable();
   
   constructor() {
-    // Récupération du mode depuis le localStorage
-    const savedState = this.getSavedState();
-    
-    this.state = savedState || {
-      mode: DEFAULT_MODE,
-      timestamp: Date.now(),
-      source: 'system'
-    };
-    
-    console.log(`[OperationMode] Initialisation en mode: ${this.state.mode}`);
-  }
-  
-  private getSavedState(): OperationModeState | null {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.OPERATION_MODE);
-      if (saved) {
-        try {
-          return JSON.parse(saved) as OperationModeState;
-        } catch (error) {
-          console.error('Erreur lors de la récupération du mode opérationnel :', error);
-          // Si l'analyse JSON échoue, supprimer la valeur corrompue
-          localStorage.removeItem(STORAGE_KEYS.OPERATION_MODE);
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'accès au localStorage :', error);
-    }
-    return null;
-  }
-  
-  private saveState(): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.OPERATION_MODE, JSON.stringify(this.state));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde du mode opérationnel :', error);
-    }
-  }
-  
-  private updateState(newState: Partial<OperationModeState>): void {
-    // Préserver la raison si elle n'est pas spécifiée dans le nouveau state
-    if (newState.reason === undefined && this.state.reason) {
-      newState.reason = this.state.reason;
-    }
-    
-    this.state = { ...this.state, ...newState, timestamp: Date.now() };
-    this.saveState();
-    this.notifyListeners();
-    
-    // Synchroniser avec Notion client si nécessaire
-    this.syncWithNotionClient();
-  }
-  
-  private notifyListeners(): void {
-    this.listeners.forEach(listener => listener(this.state));
+    // Charger l'état depuis le localStorage lors de la création du service
+    this._loadState();
   }
   
   /**
-   * Synchronise le mode opérationnel avec le client Notion
-   * Cette méthode est utilisée pour s'assurer que le client Notion
-   * utilise le même mode que le service de mode opérationnel
+   * Active le mode démo
+   * 
+   * @param reason Raison du basculement en mode démo
    */
-  private syncWithNotionClient(): void {
-    // Import dynamique pour éviter les dépendances cycliques
-    import('@/services/notion/notionClient').then(({ notionClient }) => {
-      if (this.isDemoMode()) {
-        notionClient.setMockMode(true);
-      } else {
-        notionClient.setMockMode(false);
-      }
-    }).catch(err => {
-      console.error('Erreur lors de la synchronisation avec le client Notion:', err);
-    });
+  enableDemoMode(reason: string) {
+    this._enableDemoMode(reason);
   }
   
-  // Méthodes publiques
-  getMode(): OperationModeType {
-    return this.state.mode;
+  /**
+   * Active le mode réel
+   * 
+   * @param reason Raison du basculement en mode réel
+   */
+  enableRealMode(reason: string) {
+    this._enableRealMode(reason);
   }
   
-  getState(): OperationModeState {
-    return { ...this.state };
-  }
-  
-  enableRealMode(reason?: string): void {
-    if (this.state.mode === 'real') return;
-    
-    console.log(`[OperationMode] Activation du mode réel${reason ? ` (${reason})` : ''}`);
-    this.updateState({
-      mode: 'real',
-      reason,
-      source: reason ? 'user' : 'system'
-    });
-  }
-  
-  enableDemoMode(reason?: string): void {
-    if (this.state.mode === 'demo') return;
-    
-    console.log(`[OperationMode] Activation du mode démo${reason ? ` (${reason})` : ''}`);
-    this.updateState({
-      mode: 'demo',
-      reason,
-      source: reason ? 'user' : 'system'
-    });
-  }
-  
-  reset(): void {
-    console.log(`[OperationMode] Réinitialisation au mode par défaut: ${DEFAULT_MODE}`);
-    // Réinitialiser complètement l'état lors d'un reset
-    this.state = {
-      mode: DEFAULT_MODE,
-      reason: OPERATION_MODE_RESET,
-      timestamp: Date.now(),
-      source: 'system'
-    };
-    this.saveState();
-    this.notifyListeners();
-    this.syncWithNotionClient();
-  }
-  
+  /**
+   * Vérifie si l'application est en mode démo
+   * 
+   * @returns true si l'application est en mode démo
+   */
   isDemoMode(): boolean {
-    return this.state.mode === 'demo';
+    return this.state.isDemoMode;
   }
   
+  /**
+   * Vérifie si l'application est en mode réel
+   * 
+   * @returns true si l'application est en mode réel
+   */
   isRealMode(): boolean {
-    return this.state.mode === 'real';
+    return !this.state.isDemoMode;
   }
   
-  subscribe(listener: (state: OperationModeState) => void): () => void {
-    this.listeners.push(listener);
-    
-    // Appeler immédiatement le listener avec l'état actuel
-    listener(this.state);
-    
-    // Retourne une fonction de désinscription
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+  /**
+   * Méthode privée pour charger l'état depuis le localStorage
+   */
+  private _loadState() {
+    try {
+      const storedState = localStorage.getItem(this.STORAGE_KEY);
+      
+      if (storedState) {
+        this.state = JSON.parse(storedState);
+        this.stateSubject.next(this.state);
+        
+        // Configurer les services en fonction de l'état chargé
+        if (this.state.isDemoMode) {
+          notionClient.setMockMode(true);
+        } else {
+          notionClient.setMockMode(false);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'état du mode opérationnel depuis le localStorage', error);
+    }
+  }
+  
+  /**
+   * Méthode privée pour sauvegarder l'état dans le localStorage
+   */
+  private _saveState() {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+      this.stateSubject.next(this.state);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'état du mode opérationnel dans le localStorage', error);
+    }
+  }
+
+  /**
+   * Méthode privée pour configurer le mode démo
+   * 
+   * @param reason Raison du basculement en mode démo
+   */
+  private _enableDemoMode(reason: string) {
+    this.state = {
+      isDemoMode: true,
+      reason
     };
+    
+    // Sauvegarder l'état dans localStorage
+    this._saveState();
+    
+    // Configurer les services pour utiliser le mode démo
+    if (notionClient.setMockMode) {
+      notionClient.setMockMode(true);
+    }
+  }
+
+  /**
+   * Méthode privée pour configurer le mode réel
+   * 
+   * @param reason Raison du basculement en mode réel
+   */
+  private _enableRealMode(reason: string) {
+    this.state = {
+      isDemoMode: false,
+      reason
+    };
+    
+    // Sauvegarder l'état dans localStorage
+    this._saveState();
+    
+    // Configurer les services pour utiliser le mode réel
+    if (notionClient.setMockMode) {
+      notionClient.setMockMode(false);
+    }
   }
 }
 
-// Créer une instance unique du service
-export const operationModeService = new OperationModeServiceImpl();
+// Créer et exporter une instance singleton
+export const operationModeService = new OperationModeService();
+
+// Export par défaut
+export default operationModeService;
