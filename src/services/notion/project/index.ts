@@ -8,10 +8,28 @@
 // Exporter les services
 export { projectService } from './projectService';
 export { projectServiceImpl } from './ProjectServiceImpl';
-export type { CreateProjectInput, UpdateProjectInput } from './ProjectServiceImpl';
 
-// Exporter les utilitaires (si nécessaire)
-// export * from './utils';
+// Exporter les types
+export type { CreateProjectInput, UpdateProjectInput } from './types';
 
-// Exporter les types (si nécessaire)
-// export * from './types';
+// Exporter les utilitaires
+export { 
+  extractTextProperty,
+  notionPageToProject
+} from './utils';
+
+// Exporter les implémentations API
+export {
+  getAllProjects,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject
+} from './apiImplementations';
+
+// Exporter les implémentations mock
+export {
+  getMockProjects,
+  mockCreateProject,
+  mockUpdateProject
+} from './mockImplementations';

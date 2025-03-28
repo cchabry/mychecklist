@@ -110,3 +110,4 @@ export abstract class BaseNotionServiceMethods<
       };
     }
   }
+}
