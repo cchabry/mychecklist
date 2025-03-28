@@ -1,4 +1,3 @@
-
 /**
  * Hook pour utiliser le service Notion
  * 
@@ -8,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionService } from '@/services/notion/notionService';
-import { ConnectionStatus, ConnectionTestResult } from '@/services/notion/types';
+import { ConnectionStatus } from '@/services/notion/types';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
