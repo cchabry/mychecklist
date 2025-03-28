@@ -9,6 +9,9 @@
 // Exporter le service principal d'évaluation
 export { evaluationService } from './evaluationService';
 
+// Exporter l'implémentation standardisée
+export { evaluationServiceImpl } from './EvaluationServiceImpl';
+
 // Exporter les utilitaires pour la génération et manipulation des évaluations
 export * from './utils';
 
