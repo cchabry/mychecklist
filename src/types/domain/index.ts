@@ -1,20 +1,21 @@
 
 /**
- * Types de domaine pour l'application
+ * Point d'entrée pour les types du domaine
  * 
- * Ce module exporte tous les types de domaine pour assurer la cohérence
- * des données dans toute l'application.
+ * Ce fichier exporte tous les types du domaine de manière centralisée
+ * pour faciliter les imports et éviter les problèmes de référence circulaire.
  */
 
-// Exporter tous les types de domaine
+// Exporter tous les types du domaine
 export * from './action';
-export * from './actionStatus';
 export * from './attachment';
 export * from './audit';
 export * from './checklist';
 export * from './evaluation';
 export * from './exigence';
-export * from './progress';
 export * from './project';
+export * from './progress';
 export * from './samplePage';
 
+// Types qui n'ont pas encore leur propre fichier
+export * from './user';

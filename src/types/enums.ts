@@ -1,80 +1,57 @@
 
 /**
- * Énumérations pour l'application
+ * Énumérations utilisées dans l'application
+ * 
+ * Ce fichier centralise toutes les énumérations utilisées par l'application
+ * pour garantir la cohérence et éviter les duplications.
  */
 
 /**
  * Niveaux d'importance pour les exigences
  */
 export enum ImportanceLevel {
-  NotApplicable = 'N/A',
-  Minor = 'mineur',
-  Medium = 'moyen',
-  Important = 'important',
-  Major = 'majeur',
-  // Alias pour assurer la compatibilité avec le code existant
-  N_A = 'N/A',
-  MINOR = 'mineur',
-  MEDIUM = 'moyen',
-  IMPORTANT = 'important',
-  MAJOR = 'majeur'
+  NA = "N/A",
+  Minor = "Mineur",
+  Medium = "Moyen",
+  Important = "Important",
+  Major = "Majeur"
 }
 
 /**
  * Niveaux de conformité pour les évaluations
  */
-export enum ComplianceLevel {
-  Compliant = 'Conforme',
-  PartiallyCompliant = 'Partiellement conforme',
-  NonCompliant = 'Non conforme',
-  NotApplicable = 'Non Applicable'
+export enum ConformityLevel {
+  Compliant = "Conforme",
+  PartiallyCompliant = "Partiellement conforme",
+  NonCompliant = "Non conforme",
+  NotApplicable = "Non applicable"
 }
 
 /**
- * Priorités pour les actions correctives
+ * Niveaux de priorité pour les actions
  */
-export enum PriorityLevel {
-  Low = 'faible',
-  Medium = 'moyenne',
-  High = 'haute',
-  Critical = 'critique'
+export enum Priority {
+  Low = "Faible",
+  Medium = "Moyenne",
+  High = "Haute",
+  Critical = "Critique"
 }
 
 /**
- * Statuts pour les actions et progrès
+ * Types de statut pour les actions et les progrès
  */
 export enum StatusType {
-  Todo = 'à faire',
-  InProgress = 'en cours',
-  Done = 'terminée'
+  Todo = "À faire",
+  InProgress = "En cours",
+  Done = "Terminée"
 }
 
 /**
- * Profils utilisateurs
+ * Statuts des projets
  */
-export enum UserProfile {
-  ProductOwner = 'Product Owner',
-  UXDesigner = 'UX designer',
-  UIDesigner = 'UI designer',
-  Developer = 'Développeur',
-  Contributor = 'Contributeur'
-}
-
-/**
- * Phases de projet
- */
-export enum ProjectPhase {
-  Design = 'Design',
-  Development = 'Développement',
-  Testing = 'Tests',
-  Production = 'Production'
-}
-
-/**
- * Types de référence
- */
-export enum ReferenceType {
-  RGAA = 'RGAA',
-  RGESN = 'RGESN',
-  OPQUAST = 'OPQUAST'
+export enum ProjectStatus {
+  Active = "active",
+  Pending = "pending",
+  Completed = "completed",
+  Archived = "archived"
 }

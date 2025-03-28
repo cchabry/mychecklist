@@ -1,102 +1,59 @@
 
 /**
- * Utilitaires pour les hooks de requêtes
+ * Utilitaires pour les opérations React Query
+ * 
+ * Ce fichier fournit des fonctions réutilisables pour gérer les succès
+ * et les erreurs des mutations React Query de manière cohérente.
  */
 
 import { toast } from 'sonner';
 
-// Type pour les opérations possibles
-export type MutationOperation = 
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'import'
-  | 'export'
-  | 'validate'
-  | 'complete'
-  | 'publish'
-  | 'archive'
-  | 'restore';
+type MutationContext = {
+  entity: string;
+  action: 'create' | 'update' | 'delete';
+};
 
 /**
- * Gère le succès d'une mutation en affichant un toast de confirmation
+ * Gère le succès d'une mutation de manière standardisée
  * 
- * @param params - Paramètres pour le message de succès
+ * @param context Contexte de la mutation (entité et action)
  */
-export function handleMutationSuccess(params: { 
-  entity: string; 
-  action: 'create' | 'update' | 'delete'; 
-  options?: { 
-    title?: string; 
-    description?: string; 
-    showToast?: boolean;
-  }
-}) {
-  const { entity, action, options = {} } = params;
-  const { title, description, showToast = true } = options;
+export function handleMutationSuccess(context: MutationContext): void {
+  const { entity, action } = context;
   
-  if (!showToast) return;
+  const actionFr = action === 'create' 
+    ? 'créé' 
+    : action === 'update' 
+      ? 'mis à jour' 
+      : 'supprimé';
   
-  const defaultTitles = {
-    create: `${entity} créé`,
-    update: `${entity} mis à jour`,
-    delete: `${entity} supprimé`
-  };
-  
-  const defaultDescriptions = {
-    create: `Le ${entity.toLowerCase()} a été créé avec succès`,
-    update: `Le ${entity.toLowerCase()} a été mis à jour avec succès`,
-    delete: `Le ${entity.toLowerCase()} a été supprimé avec succès`
-  };
-  
-  toast.success(title || defaultTitles[action], {
-    description: description || defaultDescriptions[action]
+  toast.success(`${entity} ${actionFr}`, {
+    description: `${entity} ${actionFr} avec succès.`
   });
 }
 
 /**
- * Gère l'erreur d'une mutation en affichant un toast d'erreur
+ * Gère les erreurs de mutation de manière standardisée
  * 
- * @param error - L'erreur survenue
- * @param params - Paramètres pour le message d'erreur
+ * @param error Erreur survenue
+ * @param context Contexte de la mutation (entité et action)
  */
-export function handleMutationError(error: unknown, params: {
-  entity: string;
-  action: 'create' | 'update' | 'delete';
-  options?: {
-    title?: string;
-    description?: string;
-    showToast?: boolean;
-    logToConsole?: boolean;
-  }
-}) {
-  const { entity, action, options = {} } = params;
-  const { 
-    title, 
-    description, 
-    showToast = true,
-    logToConsole = true
-  } = options;
+export function handleMutationError(error: unknown, context: MutationContext): void {
+  const { entity, action } = context;
   
-  if (logToConsole) {
-    console.error(`Erreur lors de l'action '${action}' sur ${entity}:`, error);
-  }
+  const actionFr = action === 'create' 
+    ? 'créer' 
+    : action === 'update' 
+      ? 'mettre à jour' 
+      : 'supprimer';
   
-  if (!showToast) return;
+  const errorMessage = error instanceof Error 
+    ? error.message 
+    : 'Une erreur inconnue est survenue';
   
-  const defaultTitles = {
-    create: `Erreur de création`,
-    update: `Erreur de mise à jour`,
-    delete: `Erreur de suppression`
-  };
+  console.error(`Erreur lors de l'action ${action} sur ${entity}:`, error);
   
-  const defaultDescriptions = {
-    create: `Impossible de créer ${entity.toLowerCase()}`,
-    update: `Impossible de mettre à jour ${entity.toLowerCase()}`,
-    delete: `Impossible de supprimer ${entity.toLowerCase()}`
-  };
-  
-  toast.error(title || defaultTitles[action], {
-    description: description || defaultDescriptions[action]
+  toast.error(`Impossible de ${actionFr} ${entity}`, {
+    description: errorMessage
   });
 }

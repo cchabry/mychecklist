@@ -1,22 +1,26 @@
 
+/**
+ * Hook pour récupérer les audits d'un projet
+ */
+
 import { useQuery } from '@tanstack/react-query';
-import { notionApi } from '@/services/api';
+import { getProjectAudits } from '@/features/audits';
 import { toast } from 'sonner';
 
 /**
- * Hook pour récupérer les audits d'un projet
+ * Hook pour récupérer tous les audits d'un projet
  * 
  * @param projectId - Identifiant du projet
  * @returns Résultat de la requête contenant les audits
  */
-export function useProjectAudits(projectId: string) {
-  const result = useQuery({
-    queryKey: ['audits', 'project', projectId],
+export function useProjectAudits(projectId?: string) {
+  return useQuery({
+    queryKey: ['projectAudits', projectId],
     queryFn: async () => {
       if (!projectId) return [];
       
       try {
-        return await notionApi.getAudits(projectId);
+        return await getProjectAudits(projectId);
       } catch (error) {
         console.error(`Erreur lors de la récupération des audits du projet ${projectId}:`, error);
         toast.error('Erreur de chargement', {
@@ -27,12 +31,4 @@ export function useProjectAudits(projectId: string) {
     },
     enabled: !!projectId
   });
-  
-  return {
-    audits: result.data || [],
-    isLoading: result.isLoading,
-    error: result.error
-  };
 }
-
-export default useProjectAudits;
