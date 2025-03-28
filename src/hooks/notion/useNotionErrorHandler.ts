@@ -7,24 +7,27 @@
  */
 
 import { useCallback } from 'react';
-import { useErrorHandler, ErrorHandlerOptions } from '@/hooks/error';
-import { handleNotionError } from '@/services/notion/client';
+import { useErrorHandler } from '@/hooks/error';
+import { handleNotionError as convertNotionError } from '@/services/notion/client';
 import { AppError } from '@/types/error';
 import { useOperationMode } from '@/hooks/useOperationMode';
+import { toast } from 'sonner';
 
 /**
- * Options spécifiques au gestionnaire d'erreurs Notion
+ * Options pour le gestionnaire d'erreurs Notion
  */
-export interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
-  /** Point d'entrée API concerné (pour le contexte) */
+export interface NotionErrorOptions {
+  /** Point d'entrée API concerné */
   endpoint?: string;
-  /** Basculer automatiquement en mode démo en cas d'erreur */
+  /** Basculer en mode démo */
   switchToDemo?: boolean;
-  /** Raison du basculement en mode démo */
+  /** Raison du basculement */
   demoReason?: string;
-  /** Titre du toast d'erreur */
+  /** Afficher un toast d'erreur */
+  showToast?: boolean;
+  /** Titre du toast */
   toastTitle?: string;
-  /** Message du toast d'erreur */
+  /** Message du toast */
   toastMessage?: string;
 }
 
@@ -32,85 +35,63 @@ export interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
  * Résultat du hook useNotionErrorHandler
  */
 export interface NotionErrorHandlerResult {
-  /** Gère une erreur Notion avec les options spécifiées */
-  handleNotionError: (error: unknown, options?: NotionErrorHandlerOptions) => AppError;
+  /** Gère une erreur Notion */
+  handleNotionError: (error: unknown, options?: NotionErrorOptions) => AppError;
   /** Efface la dernière erreur */
   clearError: () => void;
   /** Dernière erreur survenue */
   lastError?: AppError;
-  /** Indique si une erreur est actuellement présente */
+  /** Indique si une erreur est présente */
   isError: boolean;
 }
 
 /**
  * Hook pour gérer les erreurs spécifiques à l'API Notion
  * 
- * @returns Interface standardisée pour la gestion des erreurs Notion
- * 
- * @example
- * ```tsx
- * const { handleNotionError } = useNotionErrorHandler();
- * 
- * try {
- *   const result = await fetchFromNotion();
- *   return result;
- * } catch (error) {
- *   handleNotionError(error, {
- *     endpoint: '/databases/query',
- *     switchToDemo: true
- *   });
- * }
- * ```
+ * @returns Interface pour la gestion des erreurs Notion
  */
 export function useNotionErrorHandler(): NotionErrorHandlerResult {
-  const { handleError, clearError, lastError, isError } = useErrorHandler();
+  const { clearError, lastError, isError } = useErrorHandler();
   const { enableDemoMode } = useOperationMode();
   
   /**
    * Gère une erreur spécifique à Notion
    */
-  const handleNotionApiError = useCallback((
+  const handleNotionError = useCallback((
     error: unknown,
-    options: NotionErrorHandlerOptions = {}
+    options: NotionErrorOptions = {}
   ): AppError => {
     const {
       endpoint,
       switchToDemo = false,
       demoReason = 'Erreur API Notion',
-      toastTitle,
-      toastMessage,
-      ...errorOptions
+      showToast = true,
+      toastTitle = 'Erreur Notion',
+      toastMessage
     } = options;
     
-    // Convertir en AppError standardisée
-    const appError = handleNotionError(error, endpoint);
+    // Convertir l'erreur en AppError standardisée
+    const appError = convertNotionError(error, endpoint);
     
     // Basculer en mode démo si demandé
     if (switchToDemo) {
       enableDemoMode(`${demoReason}: ${appError.message}`);
     }
     
-    // Déléguer au gestionnaire d'erreurs général avec les options mises à jour
-    const updatedOptions: ErrorHandlerOptions = {
-      ...errorOptions,
-      showToast: options.showToast !== false,
-    };
-    
-    if (toastTitle) {
-      updatedOptions.toastTitle = toastTitle;
+    // Afficher un toast si demandé
+    if (showToast) {
+      toast.error(toastTitle, {
+        description: toastMessage || appError.message
+      });
     }
     
-    if (toastMessage) {
-      updatedOptions.toastDescription = toastMessage;
-    }
-    
-    return handleError(appError, updatedOptions);
-  }, [handleError, enableDemoMode]);
+    return appError;
+  }, [enableDemoMode]);
   
   return {
-    handleNotionError: handleNotionApiError,
+    handleNotionError,
     clearError,
-    lastError: lastError || undefined, // Convert null to undefined to match the expected return type
+    lastError,
     isError
   };
 }

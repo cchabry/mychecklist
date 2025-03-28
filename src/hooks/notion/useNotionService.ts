@@ -18,7 +18,7 @@ import { NotionTestResponse } from '@/types/api/notionApi';
 /**
  * Hook principal pour accéder au service Notion
  * 
- * @returns Interface standardisée pour interagir avec le service Notion
+ * @returns Interface pour interagir avec le service Notion
  */
 export function useNotionService(): NotionServiceHookResult {
   const [isConfigured, setIsConfigured] = useState(false);
@@ -52,8 +52,8 @@ export function useNotionService(): NotionServiceHookResult {
       return true;
     } catch (error) {
       handleNotionError(error, {
-        toastTitle: 'Erreur de configuration',
-        endpoint: 'configuration'
+        endpoint: 'configuration',
+        toastTitle: 'Erreur de configuration'
       });
       return false;
     }
@@ -73,7 +73,7 @@ export function useNotionService(): NotionServiceHookResult {
       
       if (!result.success) {
         handleNotionError(new Error(result.error || 'Erreur de connexion'), {
-          showToast: false, // On gère l'affichage nous-mêmes ci-dessous
+          showToast: false,
           endpoint: 'test-connection'
         });
         
@@ -86,7 +86,6 @@ export function useNotionService(): NotionServiceHookResult {
         });
       }
       
-      // Convertir ConnectionTestResult en NotionTestResponse
       return {
         user: result.user ? { 
           id: 'user-id', 
@@ -101,14 +100,13 @@ export function useNotionService(): NotionServiceHookResult {
       
       handleNotionError(error, {
         toastTitle: 'Erreur de connexion à Notion',
-        showToast: true,
         endpoint: 'test-connection',
         switchToDemo: true,
         demoReason: 'Erreur de connexion'
       });
       
       return {
-        timestamp: Date.now() // Assurer qu'on renvoie toujours un timestamp
+        timestamp: Date.now()
       };
     } finally {
       setIsLoading(false);
@@ -129,7 +127,7 @@ export function useNotionService(): NotionServiceHookResult {
     testConnection,
     getConfig: notionService.getConfig,
     
-    // Exposer le service directement
+    // Service
     notion: notionService
   };
 }
