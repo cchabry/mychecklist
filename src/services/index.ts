@@ -24,10 +24,11 @@ export {
   notionApi,
   checklistService,
   exigenceService,
+  exigenceServiceImpl,
   samplePageService,
+  samplePageServiceImpl,
   auditService,
   evaluationService,
   actionService,
   progressService
 } from './notion';
-

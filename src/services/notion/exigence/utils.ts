@@ -5,7 +5,6 @@
 
 import { Exigence } from '@/types/domain';
 import { ImportanceLevel } from '@/types/enums';
-import { generateMockId } from '../base';
 
 /**
  * Génère des exigences fictives pour le mode mock
@@ -38,4 +37,3 @@ export function generateMockExigences(projectId: string): Exigence[] {
     }
   ];
 }
-
