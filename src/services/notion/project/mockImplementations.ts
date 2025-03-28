@@ -53,7 +53,9 @@ export async function mockCreateProject(data: CreateProjectInput): Promise<Proje
     id: generateMockId('proj'),
     createdAt: now,
     updatedAt: now,
-    progress: data.progress || 0
+    progress: data.progress || 0,
+    url: data.url || '',
+    description: data.description || ''
   };
 }
 
@@ -78,3 +80,4 @@ export async function mockUpdateProject(entity: UpdateProjectInput): Promise<Pro
     updatedAt: new Date().toISOString()
   };
 }
+

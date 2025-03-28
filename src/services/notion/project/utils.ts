@@ -3,6 +3,8 @@
  * Utilitaires pour le service de projets
  */
 
+import { Project } from '@/types/domain';
+
 /**
  * Extrait le texte d'une propriété Notion
  * @param property Propriété Notion
@@ -33,10 +35,11 @@ export function notionPageToProject(page: any): Project {
   return {
     id: page.id,
     name: extractTextProperty(properties.Name),
-    url: extractTextProperty(properties.URL),
+    url: extractTextProperty(properties.URL) || '',
     description: extractTextProperty(properties.Description) || '',
     createdAt: page.created_time,
     updatedAt: page.last_edited_time,
     progress: properties.Progress?.number || 0
   };
 }
+

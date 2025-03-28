@@ -1,9 +1,14 @@
 
 /**
- * Utilitaire pour générer un ID mock
- * @param prefix Préfixe pour l'ID
- * @returns ID unique basé sur un timestamp
+ * Utilitaires pour les services de base
  */
-export function generateMockId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+/**
+ * Génère un ID pour les entités mock
+ * @param prefix Préfixe pour l'ID (ex: "proj" pour "proj_123456")
+ * @returns ID généré
+ */
+export function generateMockId(prefix: string = 'mock'): string {
+  return `${prefix}_${Math.random().toString(36).substring(2, 9)}`;
 }
+

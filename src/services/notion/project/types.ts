@@ -25,3 +25,4 @@ export interface UpdateProjectInput {
   description?: string;
   progress?: number;
 }
+

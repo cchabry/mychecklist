@@ -11,8 +11,8 @@ import { BaseNotionServiceAbstract } from './BaseNotionServiceAbstract';
 /**
  * Classe finale BaseNotionService
  * 
- * Pour la compatibilité avec le code existant, nous exportons la classe
- * complète sous le nom BaseNotionService.
+ * Pour la compatibilité avec le code existant, nous exportons directement
+ * BaseNotionServiceAbstract sous le nom BaseNotionService.
  */
 export class BaseNotionService<
   T extends { id: ID },
@@ -20,3 +20,4 @@ export class BaseNotionService<
   U = T,
   ID = string
 > extends BaseNotionServiceAbstract<T, C, U, ID> {}
+

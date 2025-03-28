@@ -6,9 +6,10 @@
  * tout en utilisant l'implémentation standardisée sous-jacente.
  */
 
-import { projectServiceImpl, CreateProjectInput, UpdateProjectInput } from './ProjectServiceImpl';
+import { projectServiceImpl } from './ProjectServiceImpl';
 import { NotionResponse } from '../types';
 import { Project } from '@/types/domain';
+import { CreateProjectInput, UpdateProjectInput } from './types';
 
 /**
  * Service de gestion des projets
@@ -55,3 +56,4 @@ export const projectService = new ProjectService();
 
 // Export par défaut
 export default projectService;
+

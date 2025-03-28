@@ -1,195 +1,149 @@
+
 /**
- * Implémentation standardisée du service d'évaluation
- * basée sur la classe BaseNotionService
+ * Implémentation standardisée du service d'évaluations
  */
 
-import { BaseNotionService, generateMockId } from '../base/BaseServiceCombined';
+import { BaseNotionService } from '../base';
 import { NotionResponse } from '../types';
 import { Evaluation } from '@/types/domain';
-import { CreateEvaluationInput } from './types';
-import { generateMockEvaluations } from './utils';
+import { CreateEvaluationData, UpdateEvaluationData } from './types';
+import { generateMockId } from '../base/utils';
 
 /**
- * Implémentation standardisée du service d'évaluation
+ * Implémentation standardisée du service d'évaluations
  */
-export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateEvaluationInput> {
+export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateEvaluationData, UpdateEvaluationData> {
   constructor() {
     super('Evaluation', 'evaluationsDbId');
   }
-  
-  /**
-   * Récupère les évaluations correspondant aux critères fournis
-   * 
-   * @param auditId - Identifiant de l'audit
-   * @param pageId - Identifiant de la page (optionnel)
-   * @param exigenceId - Identifiant de l'exigence (optionnel)
-   * @returns Réponse contenant les évaluations ou une erreur
-   */
-  async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
-    return this.getAll({ auditId, pageId, exigenceId });
-  }
-  
+
   /**
    * Génère des évaluations fictives pour le mode mock
    */
-  protected async getMockEntities(filter?: Record<string, any>): Promise<Evaluation[]> {
-    const auditId = filter?.auditId || 'mock-audit';
-    const pageId = filter?.pageId;
-    const exigenceId = filter?.exigenceId;
-    
-    return generateMockEvaluations(auditId, pageId, exigenceId);
+  protected async getMockEntities(): Promise<Evaluation[]> {
+    const now = new Date().toISOString();
+    return [
+      {
+        id: 'eval_1',
+        auditId: 'audit_1',
+        pageId: 'page_1',
+        exigenceId: 'exigence_1',
+        score: 'conformant',
+        comment: 'Conforme aux exigences',
+        attachments: [],
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: 'eval_2',
+        auditId: 'audit_1',
+        pageId: 'page_2',
+        exigenceId: 'exigence_2',
+        score: 'non_conformant',
+        comment: 'Ne respecte pas les exigences',
+        attachments: [],
+        createdAt: now,
+        updatedAt: now
+      }
+    ];
   }
-  
+
   /**
    * Crée une évaluation fictive en mode mock
    */
-  protected async mockCreate(data: CreateEvaluationInput): Promise<Evaluation> {
+  protected async mockCreate(data: CreateEvaluationData): Promise<Evaluation> {
     const now = new Date().toISOString();
     return {
-      ...data,
       id: generateMockId('eval'),
-      createdAt: data.createdAt || now,
-      updatedAt: data.updatedAt || now
+      auditId: data.auditId,
+      pageId: data.pageId,
+      exigenceId: data.exigenceId,
+      score: data.score,
+      comment: data.comment || '',
+      attachments: data.attachments || [],
+      createdAt: now,
+      updatedAt: now
     };
   }
-  
+
   /**
    * Met à jour une évaluation fictive en mode mock
    */
-  protected async mockUpdate(entity: Evaluation): Promise<Evaluation> {
+  protected async mockUpdate(entity: UpdateEvaluationData): Promise<Evaluation> {
+    const mockEvaluations = await this.getMockEntities();
+    const existingEvaluation = mockEvaluations.find(e => e.id === entity.id);
+    
+    if (!existingEvaluation) {
+      throw new Error(`Evaluation #${entity.id} non trouvée`);
+    }
+    
     return {
-      ...entity,
+      ...existingEvaluation,
+      score: entity.score !== undefined ? entity.score : existingEvaluation.score,
+      comment: entity.comment !== undefined ? entity.comment : existingEvaluation.comment,
+      attachments: entity.attachments !== undefined ? entity.attachments : existingEvaluation.attachments,
       updatedAt: new Date().toISOString()
     };
   }
-  
+
   /**
    * Implémentation de la récupération des évaluations
    */
-  protected async getAllImpl(filter?: Record<string, any>): Promise<NotionResponse<Evaluation[]>> {
-    const auditId = filter?.auditId;
-    const pageId = filter?.pageId;
-    const exigenceId = filter?.exigenceId;
-    
-    if (!auditId) {
-      return {
-        success: false,
-        error: { message: "ID d'audit requis pour récupérer les évaluations" }
-      };
-    }
-    
-    try {
-      // Pour l'instant, utilisons des données mock même en mode réel
-      return {
-        success: true,
-        data: await this.getMockEntities(filter)
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la récupération des évaluations: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
+  protected async getAllImpl(): Promise<NotionResponse<Evaluation[]>> {
+    return {
+      success: false,
+      error: {
+        message: "Non implémenté - Utilisez getEvaluationsByAudit"
+      }
+    };
   }
-  
+
   /**
    * Implémentation de la récupération d'une évaluation par son ID
    */
   protected async getByIdImpl(id: string): Promise<NotionResponse<Evaluation>> {
-    try {
-      // Pour l'instant, simulons avec des données mock
-      const mockEvaluations = await this.getMockEntities();
-      const evaluation = mockEvaluations.find(e => e.id === id);
-      
-      if (!evaluation) {
-        return { 
-          success: false, 
-          error: { message: `Évaluation #${id} non trouvée` } 
-        };
+    return {
+      success: false,
+      error: {
+        message: "Non implémenté"
       }
-      
-      return {
-        success: true,
-        data: evaluation
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la récupération de l'évaluation: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
+    };
   }
-  
+
   /**
    * Implémentation de la création d'une évaluation
    */
-  protected async createImpl(data: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
-    try {
-      // Pour l'instant, utilisons une donnée mock
-      return {
-        success: true,
-        data: await this.mockCreate(data)
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la création de l'évaluation: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
+  protected async createImpl(data: CreateEvaluationData): Promise<NotionResponse<Evaluation>> {
+    return {
+      success: false,
+      error: {
+        message: "Non implémenté"
+      }
+    };
   }
-  
+
   /**
    * Implémentation de la mise à jour d'une évaluation
    */
-  protected async updateImpl(entity: Evaluation): Promise<NotionResponse<Evaluation>> {
-    try {
-      // Pour l'instant, utilisons une donnée mock
-      return {
-        success: true,
-        data: await this.mockUpdate(entity)
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la mise à jour de l'évaluation: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
+  protected async updateImpl(entity: UpdateEvaluationData): Promise<NotionResponse<Evaluation>> {
+    return {
+      success: false,
+      error: {
+        message: "Non implémenté"
+      }
+    };
   }
-  
+
   /**
    * Implémentation de la suppression d'une évaluation
    */
   protected async deleteImpl(id: string): Promise<NotionResponse<boolean>> {
-    try {
-      // Utilisons l'ID dans l'implémentation pour éviter l'erreur TS6133
-      console.log(`Suppression de l'évaluation avec l'ID: ${id}`);
-      
-      // Pour l'instant, simulons un succès
-      return {
-        success: true,
-        data: true
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la suppression de l'évaluation: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
+    return {
+      success: false,
+      error: {
+        message: "Non implémenté"
+      }
+    };
   }
 }
 
@@ -198,3 +152,4 @@ export const evaluationServiceImpl = new EvaluationServiceImpl();
 
 // Export par défaut
 export default evaluationServiceImpl;
+

@@ -1,70 +1,255 @@
 
 /**
- * Définition des méthodes abstraites pour BaseNotionService
+ * Classe abstraite de base pour les services Notion
  * 
- * Cette classe contient les définitions des méthodes abstraites que les services
- * qui étendent BaseNotionService doivent implémenter.
+ * Cette classe fournit le squelette des services standardisés,
+ * avec des méthodes abstraites que les implémentations doivent définir.
  */
 
+import { notionClient } from '../notionClient';
 import { NotionResponse } from '../types';
-import { BaseNotionServiceMethods } from './BaseNotionServiceMethods';
+import { CrudService, StandardFilterOptions } from './types';
 
 /**
- * Extension finale du BaseNotionService avec les méthodes abstraites
+ * Classe abstraite pour les services Notion
  */
 export abstract class BaseNotionServiceAbstract<
   T extends { id: ID },
   C extends Partial<Omit<T, 'id'>>,
   U = T,
   ID = string
-> extends BaseNotionServiceMethods<T, C, U, ID> {
-  // Méthodes abstraites à implémenter par les services spécifiques
-  
+> implements CrudService<T, C, U, ID> {
   /**
-   * Génère des entités fictives pour le mode mock
-   * @param filter Filtre(s) optionnel(s)
+   * Nom de l'entité pour les messages d'erreur
    */
-  protected abstract getMockEntities(filter?: Record<string, any>): Promise<T[]>;
+  protected readonly entityName: string;
   
   /**
-   * Crée une entité fictive en mode mock
-   * @param data Données pour la création
+   * Clé de configuration pour l'ID de la base de données
+   */
+  protected readonly dbConfigKey: string;
+  
+  /**
+   * Constructeur
+   * @param entityName Nom de l'entité pour les messages d'erreur
+   * @param dbConfigKey Clé de configuration pour l'ID de la base de données
+   */
+  constructor(entityName: string, dbConfigKey: string) {
+    this.entityName = entityName;
+    this.dbConfigKey = dbConfigKey;
+  }
+  
+  /**
+   * Vérifie si le service est en mode mock
+   */
+  public isMockMode(): boolean {
+    return notionClient.isMockMode();
+  }
+  
+  /**
+   * Méthode abstraite pour générer des entités fictives
+   * Doit être implémentée par les sous-classes
+   */
+  protected abstract getMockEntities(): Promise<T[]>;
+  
+  /**
+   * Méthode abstraite pour créer une entité fictive
+   * Doit être implémentée par les sous-classes
    */
   protected abstract mockCreate(data: C): Promise<T>;
   
   /**
-   * Met à jour une entité fictive en mode mock
-   * @param entity Entité avec les modifications
+   * Méthode abstraite pour mettre à jour une entité fictive
+   * Doit être implémentée par les sous-classes
    */
   protected abstract mockUpdate(entity: U): Promise<T>;
   
   /**
-   * Implémentation de la récupération des entités
-   * @param filter Filtre(s) optionnel(s)
+   * Méthode abstraite pour l'implémentation de la récupération des entités
+   * Doit être implémentée par les sous-classes
    */
-  protected abstract getAllImpl(filter?: Record<string, any>): Promise<NotionResponse<T[]>>;
+  protected abstract getAllImpl(): Promise<NotionResponse<T[]>>;
   
   /**
-   * Implémentation de la récupération d'une entité par son identifiant
-   * @param id Identifiant de l'entité
+   * Méthode abstraite pour l'implémentation de la récupération d'une entité par ID
+   * Doit être implémentée par les sous-classes
    */
   protected abstract getByIdImpl(id: ID): Promise<NotionResponse<T>>;
   
   /**
-   * Implémentation de la création d'une entité
-   * @param data Données pour la création
+   * Méthode abstraite pour l'implémentation de la création d'une entité
+   * Doit être implémentée par les sous-classes
    */
   protected abstract createImpl(data: C): Promise<NotionResponse<T>>;
   
   /**
-   * Implémentation de la mise à jour d'une entité
-   * @param entity Entité avec les modifications
+   * Méthode abstraite pour l'implémentation de la mise à jour d'une entité
+   * Doit être implémentée par les sous-classes
    */
   protected abstract updateImpl(entity: U): Promise<NotionResponse<T>>;
   
   /**
-   * Implémentation de la suppression d'une entité
-   * @param id Identifiant de l'entité
+   * Méthode abstraite pour l'implémentation de la suppression d'une entité
+   * Doit être implémentée par les sous-classes
    */
   protected abstract deleteImpl(id: ID): Promise<NotionResponse<boolean>>;
+  
+  /**
+   * Méthodes CRUD implémentées dans BaseNotionServiceMethods
+   */
+  public async getAll(options?: StandardFilterOptions): Promise<NotionResponse<T[]>> {
+    try {
+      if (this.isMockMode()) {
+        // Mode mock
+        const entities = await this.getMockEntities();
+        
+        // Appliquer le filtrage si des options sont fournies
+        const filteredEntities = options?.filter
+          ? entities.filter(options.filter)
+          : entities;
+        
+        return {
+          success: true,
+          data: filteredEntities
+        };
+      } else {
+        // Mode API
+        return await this.getAllImpl();
+      }
+    } catch (e) {
+      console.error(`Erreur lors de la récupération des ${this.entityName}s:`, e);
+      return {
+        success: false,
+        error: {
+          message: `Erreur lors de la récupération des ${this.entityName}s: ${e instanceof Error ? e.message : String(e)}`,
+          details: e
+        }
+      };
+    }
+  }
+  
+  /**
+   * Récupère une entité par son ID
+   */
+  public async getById(id: ID): Promise<NotionResponse<T>> {
+    try {
+      if (this.isMockMode()) {
+        // Mode mock
+        const entities = await this.getMockEntities();
+        const entity = entities.find(e => e.id === id);
+        
+        if (!entity) {
+          return {
+            success: false,
+            error: {
+              message: `${this.entityName} avec l'ID ${String(id)} non trouvé`
+            }
+          };
+        }
+        
+        return {
+          success: true,
+          data: entity
+        };
+      } else {
+        // Mode API
+        return await this.getByIdImpl(id);
+      }
+    } catch (e) {
+      console.error(`Erreur lors de la récupération du ${this.entityName} #${String(id)}:`, e);
+      return {
+        success: false,
+        error: {
+          message: `Erreur lors de la récupération du ${this.entityName} #${String(id)}: ${e instanceof Error ? e.message : String(e)}`,
+          details: e
+        }
+      };
+    }
+  }
+  
+  /**
+   * Crée une nouvelle entité
+   */
+  public async create(data: C): Promise<NotionResponse<T>> {
+    try {
+      if (this.isMockMode()) {
+        // Mode mock
+        const newEntity = await this.mockCreate(data);
+        
+        return {
+          success: true,
+          data: newEntity
+        };
+      } else {
+        // Mode API
+        return await this.createImpl(data);
+      }
+    } catch (e) {
+      console.error(`Erreur lors de la création du ${this.entityName}:`, e);
+      return {
+        success: false,
+        error: {
+          message: `Erreur lors de la création du ${this.entityName}: ${e instanceof Error ? e.message : String(e)}`,
+          details: e
+        }
+      };
+    }
+  }
+  
+  /**
+   * Met à jour une entité existante
+   */
+  public async update(entity: U): Promise<NotionResponse<T>> {
+    try {
+      if (this.isMockMode()) {
+        // Mode mock
+        const updatedEntity = await this.mockUpdate(entity);
+        
+        return {
+          success: true,
+          data: updatedEntity
+        };
+      } else {
+        // Mode API
+        return await this.updateImpl(entity);
+      }
+    } catch (e) {
+      console.error(`Erreur lors de la mise à jour du ${this.entityName}:`, e);
+      return {
+        success: false,
+        error: {
+          message: `Erreur lors de la mise à jour du ${this.entityName}: ${e instanceof Error ? e.message : String(e)}`,
+          details: e
+        }
+      };
+    }
+  }
+  
+  /**
+   * Supprime une entité
+   */
+  public async delete(id: ID): Promise<NotionResponse<boolean>> {
+    try {
+      if (this.isMockMode()) {
+        // Mode mock - simuler une suppression réussie
+        return {
+          success: true,
+          data: true
+        };
+      } else {
+        // Mode API
+        return await this.deleteImpl(id);
+      }
+    } catch (e) {
+      console.error(`Erreur lors de la suppression du ${this.entityName} #${String(id)}:`, e);
+      return {
+        success: false,
+        error: {
+          message: `Erreur lors de la suppression du ${this.entityName} #${String(id)}: ${e instanceof Error ? e.message : String(e)}`,
+          details: e
+        }
+      };
+    }
+  }
 }
+
