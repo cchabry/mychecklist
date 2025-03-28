@@ -46,19 +46,19 @@ export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> implements
   }
   
   /**
-   * Méthode abstraite pour générer des entités fictives
+   * Méthode pour générer des entités fictives
    * Doit être implémentée par les sous-classes
    */
   protected abstract getMockEntities(): Promise<T[]>;
   
   /**
-   * Méthode abstraite pour créer une entité fictive
+   * Méthode pour créer une entité fictive
    * Doit être implémentée par les sous-classes
    */
   protected abstract mockCreate(data: C): Promise<T>;
   
   /**
-   * Méthode abstraite pour mettre à jour une entité fictive
+   * Méthode pour mettre à jour une entité fictive
    * Doit être implémentée par les sous-classes
    */
   protected abstract mockUpdate(entity: U): Promise<T>;
@@ -67,7 +67,7 @@ export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> implements
    * Méthode abstraite pour l'implémentation de la récupération des entités
    * Doit être implémentée par les sous-classes
    */
-  protected abstract getAllImpl(): Promise<NotionResponse<T[]>>;
+  protected abstract getAllImpl(options?: StandardFilterOptions<T>): Promise<NotionResponse<T[]>>;
   
   /**
    * Méthode abstraite pour l'implémentation de la récupération d'une entité par ID
@@ -113,7 +113,7 @@ export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> implements
         };
       } else {
         // Mode API
-        return await this.getAllImpl();
+        return await this.getAllImpl(options);
       }
     } catch (e) {
       console.error(`Erreur lors de la récupération des ${this.entityName}s:`, e);

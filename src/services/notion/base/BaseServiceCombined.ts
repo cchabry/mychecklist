@@ -28,7 +28,7 @@ export abstract class BaseServiceCombined<T, C, U, ID = string>
     // En mode mock, utiliser les entités fictives
     if (this.isMockMode()) {
       try {
-        const mockEntities = await this.getMockEntities(options);
+        const mockEntities = await this.getMockEntities();
         return {
           success: true,
           data: mockEntities
@@ -196,6 +196,3 @@ export abstract class BaseServiceCombined<T, C, U, ID = string>
    */
   protected abstract deleteImpl(id: ID): Promise<NotionResponse<boolean>>;
 }
-
-// Créer et exporter la classe BaseNotionService comme alias pour maintenir la compatibilité
-export const BaseNotionService = BaseServiceCombined;

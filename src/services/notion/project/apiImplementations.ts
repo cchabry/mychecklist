@@ -4,7 +4,7 @@
  */
 
 import { NotionResponse } from '../types';
-import { notionClient } from '../notionClient';
+import { notionClient } from '../client/notionClient';
 import { Project } from '@/types/domain';
 import { CreateProjectInput, UpdateProjectInput } from './types';
 import { notionPageToProject } from './utils';
@@ -28,7 +28,6 @@ export async function getAllProjectsNotionImplementation(): Promise<NotionRespon
     
     // Simulation de la récupération des projets
     // Remplacer par l'appel réel à l'API Notion
-    const mockResults: any[] = [];
     
     // Traitement des résultats
     const projects: Project[] = [];

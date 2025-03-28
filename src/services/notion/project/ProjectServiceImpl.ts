@@ -4,10 +4,11 @@
  * basée sur la classe BaseNotionService
  */
 
-import { BaseServiceCombined } from '../base';
+import { BaseNotionService } from '../base';
 import { NotionResponse } from '../types';
 import { Project } from '@/types/domain';
 import { CreateProjectInput, UpdateProjectInput } from './types';
+import { StandardFilterOptions } from '../base/types';
 import { 
   getMockProjects, 
   mockCreateProject, 
@@ -24,7 +25,7 @@ import {
 /**
  * Implémentation standardisée du service de projets
  */
-export class ProjectServiceImpl extends BaseServiceCombined<Project, CreateProjectInput, UpdateProjectInput> {
+export class ProjectServiceImpl extends BaseNotionService<Project, CreateProjectInput, UpdateProjectInput> {
   constructor() {
     super('Projet', 'projectsDbId');
   }
@@ -53,7 +54,7 @@ export class ProjectServiceImpl extends BaseServiceCombined<Project, CreateProje
   /**
    * Implémentation de la récupération des projets
    */
-  protected async getAllImpl(): Promise<NotionResponse<Project[]>> {
+  protected async getAllImpl(options?: StandardFilterOptions<Project>): Promise<NotionResponse<Project[]>> {
     return getAllProjectsNotionImplementation();
   }
   

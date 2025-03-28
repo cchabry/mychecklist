@@ -27,13 +27,16 @@ export interface StandardFilterOptions<T = any> {
  */
 export interface CrudService<T, C, U, ID = string> {
   /** Récupère toutes les entités */
-  getAll(options?: StandardFilterOptions<T>): Promise<T[]>;
+  getAll(options?: StandardFilterOptions<T>): Promise<NotionResponse<T[]>>;
   /** Récupère une entité par son ID */
-  getById(id: ID): Promise<T>;
+  getById(id: ID): Promise<NotionResponse<T>>;
   /** Crée une nouvelle entité */
-  create(data: C): Promise<T>;
+  create(data: C): Promise<NotionResponse<T>>;
   /** Met à jour une entité existante */
-  update(entity: U): Promise<T>;
+  update(entity: U): Promise<NotionResponse<T>>;
   /** Supprime une entité */
-  delete(id: ID): Promise<boolean>;
+  delete(id: ID): Promise<NotionResponse<boolean>>;
 }
+
+// Import nécessaire pour NotionResponse
+import { NotionResponse } from '../types';
