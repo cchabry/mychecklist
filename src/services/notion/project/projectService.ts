@@ -9,7 +9,6 @@ import { NotionResponse } from '../base/types';
 import { Project } from '@/types/domain';
 import { generateMockProjects } from './utils';
 import { BaseNotionService, StandardFilterOptions } from '../base';
-import { generateMockId } from '../base/types';
 
 /**
  * Service pour gérer les projets
@@ -22,8 +21,7 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    * Récupère tous les projets
    */
   async getProjects(): Promise<NotionResponse<Project[]>> {
-    const response = await this.getAll();
-    return response;
+    return this.getAll();
   }
   
   /**
@@ -75,7 +73,7 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
     const now = new Date().toISOString();
     
     return {
-      id: generateMockId('project'),
+      id: this.generateMockId('project'),
       name: data.name || 'Nouveau projet',
       url: data.url || 'https://example.com',
       description: data.description || '',
@@ -144,12 +142,7 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    * Récupère un projet par son ID
    */
   async getProjectById(id: string): Promise<NotionResponse<Project>> {
-    const response = await this.getById(id);
-    return {
-      success: response.success,
-      data: response.data as Project,
-      error: response.error
-    };
+    return this.getById(id);
   }
   
   /**
@@ -171,6 +164,13 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    */
   async deleteProject(id: string): Promise<NotionResponse<boolean>> {
     return this.delete(id);
+  }
+  
+  /**
+   * Génération d'un ID mock
+   */
+  protected generateMockId(prefix = 'mock'): string {
+    return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   }
 }
 

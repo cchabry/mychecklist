@@ -6,6 +6,7 @@ import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
+import { NotionResponse } from '@/services/notion/base/types';
 
 /**
  * Hook pour gérer les projets via l'API Notion
@@ -24,8 +25,8 @@ export function useNotionProjects() {
     queryFn: async () => {
       try {
         const response = await notionService.getProjects();
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || 'Erreur lors de la récupération des projets');
+        if (!response.success) {
+          throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
         }
         return response.data || [];
       } catch (error) {
@@ -45,8 +46,8 @@ export function useNotionProjects() {
     setIsLoading(true);
     try {
       const response = await notionService.getProjectById(id);
-      if (!response || !response.success) {
-        throw new Error(response?.error?.message || `Projet #${id} non trouvé`);
+      if (!response.success) {
+        throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
       return response.data || null;
     } catch (error) {
@@ -66,8 +67,8 @@ export function useNotionProjects() {
     mutationFn: async (data: CreateProjectData): Promise<Project> => {
       try {
         const response = await notionService.createProject(data);
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || 'Erreur lors de la création du projet');
+        if (!response.success) {
+          throw new Error(response.error?.message || 'Erreur lors de la création du projet');
         }
         return response.data as Project;
       } catch (error) {
@@ -103,8 +104,8 @@ export function useNotionProjects() {
         };
         
         const response = await notionService.updateProjectStd(updatedProject);
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
+        if (!response.success) {
+          throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
         }
         return response.data as Project;
       } catch (error) {
@@ -130,8 +131,8 @@ export function useNotionProjects() {
     mutationFn: async (id: string): Promise<boolean> => {
       try {
         const response = await notionService.deleteProject(id);
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || `Erreur lors de la suppression du projet #${id}`);
+        if (!response.success) {
+          throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
         }
         return Boolean(response.data);
       } catch (error) {

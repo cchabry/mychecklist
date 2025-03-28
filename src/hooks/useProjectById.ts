@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Project } from '@/types/domain';
 import { getProjectById } from '@/features/projects';
-import { useLoadingState } from '@/hooks/form';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useErrorHandler } from '@/hooks/error';
+import { toast } from 'sonner';
 
 /**
  * Hook personnalisé pour récupérer et gérer un projet spécifique
@@ -19,43 +19,34 @@ import { useErrorHandler } from '@/hooks/error';
  *   - error: Erreur potentielle survenue lors du chargement
  */
 const useProjectById = (id: string) => {
-  const [project, setProject] = useState<Project | null>(null);
-  const { isLoading, startLoading, stopLoading } = useLoadingState();
-  const { handleError, clearError, lastError } = useErrorHandler();
+  const { handleError, lastError } = useErrorHandler();
   const { isDemoMode } = useOperationMode();
   
-  useEffect(() => {
-    /**
-     * Fonction asynchrone pour récupérer le projet
-     */
-    const fetchProject = async () => {
-      if (!id) return;
-      
-      clearError();
-      startLoading();
+  const { data: project, isLoading, error } = useQuery({
+    queryKey: ['project', id],
+    queryFn: async () => {
+      if (!id) return null;
       
       try {
-        const data = await getProjectById(id);
-        setProject(data);
+        return await getProjectById(id);
       } catch (error) {
+        toast.error('Erreur de chargement', {
+          description: `Impossible de récupérer le projet #${id}`
+        });
         handleError(error, {
-          showToast: true,
-          toastTitle: 'Erreur de chargement',
-          toastDescription: `Impossible de récupérer le projet #${id}`,
+          showToast: false, // Déjà affiché ci-dessus
           logToConsole: true
         });
-      } finally {
-        stopLoading();
+        return null;
       }
-    };
-    
-    fetchProject();
-  }, [id, clearError, startLoading, stopLoading, handleError]);
+    },
+    enabled: !!id
+  });
   
   return {
     project,
     isLoading,
-    error: lastError,
+    error: error || lastError,
     isDemoMode
   };
 };

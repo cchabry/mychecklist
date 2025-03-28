@@ -31,8 +31,8 @@ export function useProjects() {
     queryFn: async () => {
       try {
         const response = await projectService.getAll();
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || 'Erreur lors de la récupération des projets');
+        if (!response.success) {
+          throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
         }
         return response.data || [];
       } catch (error) {
@@ -52,8 +52,8 @@ export function useProjects() {
     setIsLoading(true);
     try {
       const response = await projectService.getById(id);
-      if (!response || !response.success) {
-        throw new Error(response?.error?.message || `Projet #${id} non trouvé`);
+      if (!response.success) {
+        throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
       return response.data || null;
     } catch (error) {
@@ -80,8 +80,8 @@ export function useProjects() {
         };
         
         const response = await projectService.create(projectData);
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || 'Erreur lors de la création du projet');
+        if (!response.success) {
+          throw new Error(response.error?.message || 'Erreur lors de la création du projet');
         }
         return response.data as Project;
       } catch (error) {
@@ -118,8 +118,8 @@ export function useProjects() {
         };
         
         const response = await projectService.update(updatedProject);
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
+        if (!response.success) {
+          throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
         }
         return response.data as Project;
       } catch (error) {
@@ -145,8 +145,8 @@ export function useProjects() {
     mutationFn: async (id: string): Promise<boolean> => {
       try {
         const response = await projectService.delete(id);
-        if (!response || !response.success) {
-          throw new Error(response?.error?.message || `Erreur lors de la suppression du projet #${id}`);
+        if (!response.success) {
+          throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
         }
         return Boolean(response.data);
       } catch (error) {
