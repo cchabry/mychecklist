@@ -49,7 +49,8 @@ class NotionEvaluationApi implements EvaluationApi {
       return null;
     }
     
-    return response.data;
+    // Explicitement convertir `undefined` en `null` pour respecter le type de retour
+    return response.data || null;
   }
   
   /**
