@@ -64,6 +64,7 @@ export interface NotionConfig {
   evaluationsDbId?: string;
   actionsDbId?: string;
   progressDbId?: string;
+  pagesDbId?: string;
   mode?: 'real' | 'mock' | 'auto';
   debug?: boolean;
 }

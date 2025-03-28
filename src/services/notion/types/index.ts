@@ -14,11 +14,11 @@ export * from './EntityTypes';
 // Re-export explicite pour éviter les ambiguïtés
 import { NotionResponse as BasicNotionResponse } from './BasicTypes';
 import { NotionResponse as ResponseNotionResponse } from './ResponseTypes';
-import { StandardFilterOptions as BasicFilterOptions } from './BasicTypes';
+import { StandardFilterOptions as BasicFilterOptions } from './ResponseTypes';
 import { StandardFilterOptions as ResponseFilterOptions } from './ResponseTypes';
 
 // Exporter avec des noms explicites pour éviter les ambiguïtés
-export { 
+export type { 
   BasicNotionResponse,
   ResponseNotionResponse,
   // Utiliser une définition explicite

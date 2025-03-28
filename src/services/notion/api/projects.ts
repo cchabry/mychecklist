@@ -34,11 +34,7 @@ export class NotionProjectApi implements ProjectApi {
   }
   
   async updateProject(project: Project): Promise<Project> {
-    const response = await notionService.updateProject(project.id, {
-      name: project.name,
-      url: project.url,
-      description: project.description
-    });
+    const response = await notionService.updateProjectStd(project);
     if (!response.success) {
       throw new Error(response.error?.message || UPDATE_ERROR);
     }

@@ -91,7 +91,18 @@ export function useNotionProjects() {
   const updateProjectMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateProjectData }): Promise<Project> => {
       try {
-        const response = await notionService.updateProject(id, data);
+        // Récupérer le projet existant et fusionner avec les nouvelles données
+        const existingProject = await getProjectById(id);
+        if (!existingProject) {
+          throw new Error(`Projet #${id} non trouvé`);
+        }
+        
+        const updatedProject = {
+          ...existingProject,
+          ...data
+        };
+        
+        const response = await notionService.updateProjectStd(updatedProject);
         if (!response.success || !response.data) {
           throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
         }

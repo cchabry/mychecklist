@@ -78,7 +78,10 @@ export async function createProject(data: CreateProjectData): Promise<Project> {
  * @throws Error si la mise à jour échoue
  */
 export async function updateProject(id: string, data: UpdateProjectData): Promise<Project> {
-  const response = await notionService.updateProject(id, data);
+  const response = await notionService.updateProjectStd({
+    ...data,
+    id
+  } as Project);
   
   if (response.success && response.data) {
     return response.data;
@@ -97,7 +100,7 @@ export async function updateProject(id: string, data: UpdateProjectData): Promis
 export async function deleteProject(id: string): Promise<boolean> {
   const response = await notionService.deleteProject(id);
   
-  if (response.success && response.data) {
+  if (response.success) {
     return true;
   }
   
