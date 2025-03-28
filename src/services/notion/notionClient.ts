@@ -1,125 +1,140 @@
 
 /**
- * Client Notion unifié
+ * Client standardisé pour l'API Notion
  * 
- * Ce module fournit un client unifié pour l'API Notion qui délègue
- * les requêtes réelles au client HTTP ou au client mock selon le mode.
+ * Ce module fournit une interface simplifiée pour interagir avec l'API Notion,
+ * gérant à la fois le mode réel et le mode mock.
  */
 
-import { notionClient as notionUnifiedClient } from './client/notionClient';
-import type { NotionResponse } from './types';
+import { NotionConfig, NotionResponse } from './types';
 
 /**
- * Façade pour le client Notion unifié
- * 
- * Cette classe est conservée pour la compatibilité avec le code existant.
- * Elle délègue toutes les opérations au client unifié implémenté dans client/notionClient.ts.
+ * Options pour une requête à l'API Notion
  */
-class NotionClient {
+export interface NotionQueryOptions {
+  path: string;
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: any;
+}
+
+/**
+ * Interface minimale pour le client Notion
+ */
+export interface NotionClient {
   /**
    * Configure le client Notion
-   * @param config Configuration du client
    */
-  configure = notionUnifiedClient.configure.bind(notionUnifiedClient);
+  configure(config: NotionConfig): void;
   
   /**
-   * Vérifie si le client est correctement configuré pour fonctionner
-   * @returns true si la configuration minimale est présente
+   * Vérifie si le mode mock est activé
    */
-  isConfigured = notionUnifiedClient.isConfigured.bind(notionUnifiedClient);
+  isMockMode(): boolean;
   
   /**
    * Récupère la configuration actuelle
-   * @returns Copie de la configuration actuelle
    */
-  getConfig = notionUnifiedClient.getConfig.bind(notionUnifiedClient);
+  getConfig(): NotionConfig | undefined;
   
   /**
-   * Active ou désactive le mode mock
-   * @param enabled État souhaité du mode mock
+   * Effectue une requête à l'API Notion
    */
-  setMockMode = notionUnifiedClient.setMockMode.bind(notionUnifiedClient);
+  query(options: NotionQueryOptions): Promise<NotionResponse<any>>;
+}
+
+/**
+ * Client pour l'API Notion
+ */
+class NotionClientImpl implements NotionClient {
+  private config?: NotionConfig;
+  private mockMode: boolean = false;
   
   /**
-   * Vérifie si le mode mock est actif
-   * @returns true si le client est en mode mock/démo
+   * Configure le client Notion
    */
-  isMockMode = notionUnifiedClient.isMockMode.bind(notionUnifiedClient);
+  configure(config: NotionConfig): void {
+    this.config = config;
+    this.mockMode = config.useMockData || false;
+  }
   
   /**
-   * Active ou désactive le mode debug
-   * @param enabled État souhaité du mode debug
+   * Vérifie si le mode mock est activé
    */
-  setDebugMode = notionUnifiedClient.setDebugMode.bind(notionUnifiedClient);
+  isMockMode(): boolean {
+    return this.mockMode || !this.config || !this.config.apiKey;
+  }
   
   /**
-   * Effectue une requête GET vers l'API Notion
-   * @param endpoint Point d'entrée API
-   * @returns Promise avec le résultat de la requête
+   * Récupère la configuration actuelle
    */
-  get = notionUnifiedClient.get.bind(notionUnifiedClient);
+  getConfig(): NotionConfig | undefined {
+    return this.config;
+  }
   
   /**
-   * Effectue une requête POST vers l'API Notion
-   * @param endpoint Point d'entrée API
-   * @param data Données à envoyer
-   * @returns Promise avec le résultat de la requête
+   * Effectue une requête à l'API Notion
    */
-  post = notionUnifiedClient.post.bind(notionUnifiedClient);
-  
-  /**
-   * Effectue une requête PATCH vers l'API Notion
-   * @param endpoint Point d'entrée API
-   * @param data Données à envoyer
-   * @returns Promise avec le résultat de la requête
-   */
-  patch = notionUnifiedClient.patch.bind(notionUnifiedClient);
-  
-  /**
-   * Effectue une requête DELETE vers l'API Notion
-   * @param endpoint Point d'entrée API
-   * @returns Promise avec le résultat de la requête
-   */
-  delete = notionUnifiedClient.delete.bind(notionUnifiedClient);
-  
-  /**
-   * Teste la connexion à l'API Notion
-   * @returns Résultat du test de connexion
-   */
-  testConnection = notionUnifiedClient.testConnection.bind(notionUnifiedClient);
-  
-  /**
-   * Effectue une requête vers l'API Notion
-   * 
-   * @param method Méthode HTTP (GET, POST, etc.)
-   * @param endpoint Point d'entrée API
-   * @param data Données à envoyer (optionnel)
-   * @returns Promise avec le résultat de la requête
-   * @deprecated Utilisez plutôt les méthodes spécifiques (get, post, etc.)
-   */
-  async request<T>(method: string, endpoint: string, data?: unknown): Promise<NotionResponse<T>> {
-    switch (method.toUpperCase()) {
-      case 'GET':
-        return this.get<T>(endpoint);
-      case 'POST':
-        return this.post<T>(endpoint, data);
-      case 'PATCH':
-        return this.patch<T>(endpoint, data);
-      case 'DELETE':
-        return this.delete<T>(endpoint);
-      default:
+  async query(options: NotionQueryOptions): Promise<NotionResponse<any>> {
+    try {
+      if (!this.config) {
+        return { success: false, error: { message: 'Configuration Notion non disponible' } };
+      }
+      
+      if (this.isMockMode()) {
+        console.log('[Notion Mock]', options.method, options.path);
+        return { success: false, error: { message: 'Mode mock activé, utilisez les méthodes de mock dédiées' } };
+      }
+      
+      // Préparer les headers
+      const headers = {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+      
+      // Construire l'URL
+      const baseUrl = 'https://api.notion.com/v1';
+      const url = `${baseUrl}${options.path}`;
+      
+      // Exécuter la requête
+      const response = await fetch(url, {
+        method: options.method,
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+      
+      // Traiter la réponse
+      const data = await response.json();
+      
+      if (!response.ok) {
         return {
           success: false,
           error: {
-            message: `Méthode HTTP non supportée: ${method}`
+            message: data.message || `Erreur API Notion: ${response.status}`,
+            status: response.status,
+            code: data.code,
+            details: data
           }
         };
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          details: error
+        }
+      };
     }
   }
 }
 
-// Exporter une instance singleton
-export const notionClient = new NotionClient();
+// Créer et exporter une instance singleton
+export const notionClient: NotionClient = new NotionClientImpl();
 
 // Export par défaut
 export default notionClient;

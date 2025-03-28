@@ -19,7 +19,7 @@ class EvaluationService {
    * Récupère les évaluations d'un audit
    */
   async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
-    return evaluationServiceImpl.getEvaluations(auditId, pageId, exigenceId);
+    return evaluationServiceImpl.getEvaluationsByAudit(auditId, pageId, exigenceId);
   }
   
   /**

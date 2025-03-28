@@ -1,3 +1,4 @@
+
 /**
  * Implémentation standardisée du service d'évaluations
  * basée sur la classe BaseNotionService
@@ -5,7 +6,7 @@
 
 import { BaseNotionService } from '../base';
 import { NotionResponse } from '../types';
-import { Evaluation, Attachment } from '@/types/domain';
+import { Evaluation } from '@/types/domain';
 import { CreateEvaluationInput, UpdateEvaluationInput } from './types';
 import { StandardFilterOptions } from '../base/types';
 import { ComplianceLevel } from '@/types/enums';
@@ -138,39 +139,39 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
    * Implémentation de la récupération des évaluations
    */
   protected async getAllImpl(_options?: StandardFilterOptions<Evaluation>): Promise<NotionResponse<Evaluation[]>> {
-    // TODO: Implémenter la récupération des évaluations depuis Notion
+    // Implémentation non disponible pour le moment
     return Promise.resolve({ success: false, error: { message: 'Non implémenté' } });
   }
 
   /**
    * Implémentation de la récupération d'une évaluation par son ID
    */
-  protected async getByIdImpl(id: string): Promise<NotionResponse<Evaluation>> {
-    // TODO: Implémenter la récupération d'une évaluation par son ID depuis Notion
+  protected async getByIdImpl(_id: string): Promise<NotionResponse<Evaluation>> {
+    // Implémentation non disponible pour le moment
     return Promise.resolve({ success: false, error: { message: 'Non implémenté' } });
   }
 
   /**
    * Implémentation de la création d'une évaluation
    */
-  protected async createImpl(data: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
-    // TODO: Implémenter la création d'une évaluation dans Notion
+  protected async createImpl(_data: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
+    // Implémentation non disponible pour le moment
     return Promise.resolve({ success: false, error: { message: 'Non implémenté' } });
   }
 
   /**
    * Implémentation de la mise à jour d'une évaluation
    */
-  protected async updateImpl(entity: UpdateEvaluationInput): Promise<NotionResponse<Evaluation>> {
-    // TODO: Implémenter la mise à jour d'une évaluation dans Notion
+  protected async updateImpl(_entity: UpdateEvaluationInput): Promise<NotionResponse<Evaluation>> {
+    // Implémentation non disponible pour le moment
     return Promise.resolve({ success: false, error: { message: 'Non implémenté' } });
   }
 
   /**
    * Implémentation de la suppression d'une évaluation
    */
-  protected async deleteImpl(id: string): Promise<NotionResponse<boolean>> {
-    // TODO: Implémenter la suppression d'une évaluation dans Notion
+  protected async deleteImpl(_id: string): Promise<NotionResponse<boolean>> {
+    // Implémentation non disponible pour le moment
     return Promise.resolve({ success: false, error: { message: 'Non implémenté' } });
   }
 
