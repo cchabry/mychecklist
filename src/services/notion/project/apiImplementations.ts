@@ -1,150 +1,272 @@
-
 /**
- * Implémentations API pour les projets Notion
+ * Implémentations des API pour les projets (mode réel)
  */
 
-// Ajout des imports nécessaires
 import { Project } from '@/types/domain';
-import { NotionResponse } from '../types';
-import { CreateProjectInput, UpdateProjectInput } from './types';
-import { notionPageToProject } from './utils';
+import { NotionQueryResponse, NotionPageObjectResponse } from '@/types/api/notionApi';
+import { notionClient } from '../client/notionClient';
+import { generateId } from '@/utils';
+import { v4 as uuidv4 } from 'uuid';
+import { ProjectStatus } from '@/types/enums';
 
 /**
- * Récupère tous les projets depuis Notion
+ * Convertit un objet page Notion en objet projet
  */
-export function getAllProjectsNotionImplementation(): Promise<NotionResponse<Project[]>> {
-  // Cette méthode sera implémentée une fois l'API Notion correctement configurée
-  return Promise.resolve({ 
-    success: true, 
-    data: mockGetProjects() 
-  });
-}
+const notionPageToProject = (page: NotionPageObjectResponse): Project => {
+  const titleProperty = page.properties['Name'];
+  const urlProperty = page.properties['URL'];
+  const descriptionProperty = page.properties['Description'];
+  const statusProperty = page.properties['Status'];
+  const progressProperty = page.properties['Progress'];
+  const lastAuditDateProperty = page.properties['Last Audit Date'];
 
-/**
- * Récupère un projet par son ID depuis Notion
- */
-export function getProjectByIdNotionImplementation(id: string): Promise<NotionResponse<Project>> {
-  const project = mockGetProjects().find(p => p.id === id);
+  const titleValue = titleProperty?.type === 'title' ? titleProperty.title.map(t => t.plain_text).join('') : '';
+  const urlValue = urlProperty?.type === 'url' ? urlProperty.url : '';
+  const descriptionValue = descriptionProperty?.type === 'rich_text' ? descriptionProperty.rich_text.map(t => t.plain_text).join('') : '';
+  const statusValue = statusProperty?.type === 'select' ? statusProperty.select?.name : ProjectStatus.InProgress;
+  const progressValue = progressProperty?.type === 'number' ? progressProperty.number : 0;
+  const lastAuditDateValue = lastAuditDateProperty?.type === 'date' && lastAuditDateProperty.date ? lastAuditDateProperty.date.start : undefined;
   
-  if (!project) {
-    return Promise.resolve({ 
-      success: false, 
-      error: { message: `Projet non trouvé: ${id}` } 
-    });
+  return {
+    id: page.id,
+    name: titleValue,
+    url: urlValue,
+    description: descriptionValue,
+    status: statusValue as ProjectStatus, // Cast explicite vers ProjectStatus
+    progress: progressValue,
+    createdAt: page.created_time,
+    updatedAt: page.last_edited_time,
+    lastAuditDate: lastAuditDateValue
+  };
+};
+
+/**
+ * Implémentation de l'API pour récupérer tous les projets
+ */
+export const apiGetProjects = async (): Promise<Project[]> => {
+  const config = notionClient.getConfig();
+  if (!config?.projectsDbId) {
+    throw new Error("ID de base de données des projets non configuré");
   }
   
-  return Promise.resolve({ success: true, data: project });
-}
-
-/**
- * Crée un nouveau projet dans Notion
- */
-export function createProjectNotionImplementation(data: CreateProjectInput): Promise<NotionResponse<Project>> {
-  return Promise.resolve({ 
-    success: true, 
-    data: mockCreateProject(data) 
-  });
-}
-
-/**
- * Met à jour un projet existant dans Notion
- */
-export function updateProjectNotionImplementation(entity: UpdateProjectInput): Promise<NotionResponse<Project>> {
   try {
-    const project = mockUpdateProject(entity);
-    return Promise.resolve({ success: true, data: project });
-  } catch (error) {
-    return Promise.resolve({ 
-      success: false, 
-      error: { message: error instanceof Error ? error.message : 'Erreur inconnue' } 
+    const response = await notionClient.request<NotionQueryResponse>({
+      method: 'POST',
+      path: `databases/${config.projectsDbId}/query`,
+      body: {}
     });
-  }
-}
-
-/**
- * Supprime un projet dans Notion
- */
-export function deleteProjectNotionImplementation(id: string): Promise<NotionResponse<boolean>> {
-  const exists = mockGetProjects().some(p => p.id === id);
-  
-  if (!exists) {
-    return Promise.resolve({ 
-      success: false, 
-      error: { message: `Projet non trouvé: ${id}` } 
-    });
-  }
-  
-  return Promise.resolve({ success: true, data: true });
-}
-
-/**
- * Génère des projets fictifs pour le mode mock
- */
-export function mockGetProjects(): Project[] {
-  return [
-    {
-      id: 'project-1',
-      name: 'Site E-commerce',
-      url: 'https://ecommerce.example.com',
-      description: 'Refonte du site e-commerce',
-      progress: 25,
-      status: 'IN_PROGRESS',
-      createdAt: '2023-01-15T10:00:00Z',
-      updatedAt: '2023-01-20T14:30:00Z'
-    },
-    {
-      id: 'project-2',
-      name: 'Application mobile',
-      url: 'https://mobile.example.com',
-      description: 'Nouvelle application mobile',
-      progress: 50,
-      status: 'IN_PROGRESS',
-      createdAt: '2023-02-01T09:15:00Z',
-      updatedAt: '2023-02-10T16:45:00Z'
+    
+    if (!response.results) {
+      console.warn("Aucun résultat trouvé lors de la récupération des projets.");
+      return [];
     }
-  ];
-}
-
-/**
- * Crée un projet fictif en mode mock
- */
-export function mockCreateProject(data: CreateProjectInput): Project {
-  const now = new Date().toISOString();
-  return {
-    id: `project-${Date.now()}`,
-    name: data.name,
-    url: data.url || '',
-    description: data.description || '',
-    progress: data.progress || 0,
-    status: data.status || 'NEW',
-    createdAt: now,
-    updatedAt: now
-  };
-}
-
-/**
- * Met à jour un projet fictif en mode mock
- */
-export function mockUpdateProject(entity: UpdateProjectInput): Project {
-  const existingProject = mockGetProjects().find(p => p.id === entity.id);
-  if (!existingProject) {
-    throw new Error(`Project not found: ${entity.id}`);
+    
+    // Convertir les résultats en objets Project
+    const projects: Project[] = response.results.map(page => notionPageToProject(page as NotionPageObjectResponse));
+    return projects;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des projets:", error);
+    throw error;
   }
-  
-  return {
-    ...existingProject,
-    name: entity.name || existingProject.name,
-    url: entity.url !== undefined ? entity.url : existingProject.url,
-    description: entity.description !== undefined ? entity.description : existingProject.description,
-    progress: entity.progress !== undefined ? entity.progress : existingProject.progress,
-    status: entity.status || existingProject.status,
-    updatedAt: new Date().toISOString()
-  };
-}
+};
 
 /**
- * Supprime un projet fictif en mode mock
+ * Implémentation de l'API pour récupérer un projet par son ID
  */
-export function mockDeleteProject(id: string): boolean {
-  return mockGetProjects().some(p => p.id === id);
-}
+export const apiGetProjectById = async (id: string): Promise<Project | null> => {
+  try {
+    const response = await notionClient.request<NotionPageObjectResponse>({
+      method: 'GET',
+      path: `pages/${id}`
+    });
+    
+    // Convertir la réponse en objet Project
+    const project: Project = notionPageToProject(response);
+    return project;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération du projet avec l'ID ${id}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Implémentation de l'API pour créer un nouveau projet
+ */
+export const apiCreateProject = async (project: Omit<Project, 'id'>): Promise<Project> => {
+  const config = notionClient.getConfig();
+  if (!config?.projectsDbId) {
+    throw new Error("ID de base de données des projets non configuré");
+  }
+
+  const now = new Date().toISOString();
+  const newId = generateId();
+  
+  try {
+    const response = await notionClient.request({
+      method: 'POST',
+      path: 'pages',
+      body: {
+        parent: { database_id: config.projectsDbId },
+        properties: {
+          Name: {
+            title: [
+              {
+                type: 'text',
+                text: { content: project.name || 'Nouveau projet' }
+              }
+            ]
+          },
+          URL: {
+            url: project.url || null
+          },
+          Description: {
+            rich_text: [
+              {
+                type: 'text',
+                text: { content: project.description || '' }
+              }
+            ]
+          },
+          Status: {
+            select: {
+              name: project.status || ProjectStatus.InProgress
+            }
+          },
+          Progress: {
+            number: project.progress || 0
+          },
+          'Last Audit Date': {
+            date: project.lastAuditDate ? { start: project.lastAuditDate } : null
+          }
+        }
+      }
+    });
+
+    // Convertir la réponse en objet Project
+    const createdProject: Project = {
+      id: response.id,
+      name: project.name || 'Nouveau projet',
+      url: project.url,
+      description: project.description,
+      status: project.status || ProjectStatus.InProgress,
+      progress: project.progress || 0,
+      createdAt: response.created_time || now,
+      updatedAt: response.last_edited_time || now,
+      lastAuditDate: project.lastAuditDate
+    };
+
+    return createdProject;
+  } catch (error) {
+    console.error("Erreur lors de la création du projet:", error);
+    throw error;
+  }
+};
+
+/**
+ * Implémentation de l'API pour mettre à jour un projet existant
+ */
+export const apiUpdateProject = async (id: string, project: Partial<Project>): Promise<Project> => {
+  try {
+    const existingProject = await apiGetProjectById(id);
+    if (!existingProject) {
+      throw new Error(`Projet avec l'ID ${id} non trouvé`);
+    }
+    
+    const config = notionClient.getConfig();
+    if (!config?.projectsDbId) {
+      throw new Error("ID de base de données des projets non configuré");
+    }
+    
+    const updatedTime = new Date().toISOString();
+    
+    const properties: any = {};
+    
+    if (project.name !== undefined) {
+      properties.Name = {
+        title: [
+          {
+            type: 'text',
+            text: { content: project.name }
+          }
+        ]
+      };
+    }
+    
+    if (project.url !== undefined) {
+      properties.URL = {
+        url: project.url
+      };
+    }
+    
+    if (project.description !== undefined) {
+      properties.Description = {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: project.description }
+          }
+        ]
+      };
+    }
+    
+    if (project.status !== undefined) {
+      properties.Status = {
+        select: {
+          name: project.status
+        }
+      };
+    }
+    
+    if (project.progress !== undefined) {
+      properties.Progress = {
+        number: project.progress
+      };
+    }
+    
+    if (project.lastAuditDate !== undefined) {
+      properties['Last Audit Date'] = {
+        date: project.lastAuditDate ? { start: project.lastAuditDate } : null
+      };
+    }
+    
+    const response = await notionClient.request({
+      method: 'PATCH',
+      path: `pages/${id}`,
+      body: {
+        properties,
+        last_edited_time: updatedTime
+      }
+    });
+    
+    // Convertir la réponse en objet Project
+    const updatedProject: Project = {
+      ...existingProject,
+      ...project,
+      updatedAt: updatedTime
+    };
+    
+    return updatedProject;
+  } catch (error) {
+    console.error(`Erreur lors de la mise à jour du projet avec l'ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Implémentation de l'API pour supprimer un projet
+ */
+export const apiDeleteProject = async (id: string): Promise<boolean> => {
+  try {
+    await notionClient.request({
+      method: 'PATCH',
+      path: `pages/${id}`,
+      body: {
+        archived: true
+      }
+    });
+    return true;
+  } catch (error) {
+    console.error(`Erreur lors de la suppression du projet avec l'ID ${id}:`, error);
+    return false;
+  }
+};

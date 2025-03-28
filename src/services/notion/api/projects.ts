@@ -1,19 +1,25 @@
 
 /**
- * API Notion pour les projets
- * 
- * Ce module fournit l'implémentation de l'interface ProjectApi
- * pour accéder aux données de projets via l'API Notion ou en mode mock.
+ * API pour les projets utilisant le service Notion
  */
 
 import { ProjectApi } from '@/types/api/domain/projectApi';
 import { projectService } from '../project';
 import { Project } from '@/types/domain';
-import { CreateProjectData, UpdateProjectData } from '@/types/api/domain/projectApi';
-import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constants/errorMessages';
+import { ProjectStatus } from '@/types/enums';
+import { 
+  CreateProjectData,
+  UpdateProjectData
+} from '@/features/projects/types';
+import { 
+  DELETE_ERROR, 
+  FETCH_ERROR, 
+  CREATE_ERROR, 
+  UPDATE_ERROR 
+} from '@/constants/errorMessages';
 
 /**
- * Implémentation de l'API de projets utilisant le service Notion
+ * Implémentation de l'API des projets utilisant le service Notion
  */
 class NotionProjectApi implements ProjectApi {
   /**
@@ -46,7 +52,15 @@ class NotionProjectApi implements ProjectApi {
    * Crée un nouveau projet
    */
   async createProject(data: CreateProjectData): Promise<Project> {
-    const response = await projectService.createProject(data);
+    // Convertir le status en ProjectStatus
+    const projectData = {
+      ...data,
+      status: data.status as ProjectStatus,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    const response = await projectService.createProject(projectData);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || CREATE_ERROR);
@@ -59,7 +73,13 @@ class NotionProjectApi implements ProjectApi {
    * Met à jour un projet existant
    */
   async updateProject(id: string, data: UpdateProjectData): Promise<Project> {
-    const response = await projectService.updateProject(id, data);
+    // Convertir explicitement le status en ProjectStatus si défini
+    const updateData = {
+      ...data,
+      status: data.status as ProjectStatus | undefined
+    };
+    
+    const response = await projectService.updateProject(id, updateData);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || UPDATE_ERROR);

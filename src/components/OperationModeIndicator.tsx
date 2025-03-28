@@ -1,57 +1,29 @@
 
-import React from 'react';
+// Note: React est automatiquement importé par le compilateur JSX, pas besoin de l'importer explicitement
 import { useOperationMode } from '@/hooks/useOperationMode';
-import { Database, Cloud } from 'lucide-react';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 /**
- * Indicateur du mode d'opération (démo ou réel)
+ * Indicateur visuel du mode d'opération courant (demo/real)
+ * 
+ * Ce composant affiche un badge indiquant si l'application fonctionne en mode réel
+ * (avec l'API Notion) ou en mode démo (avec des données simulées).
  */
 export function OperationModeIndicator() {
-  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
+  const { mode, isRealMode } = useOperationMode();
   
-  const toggleMode = () => {
-    if (isDemoMode) {
-      enableRealMode('Changement manuel via indicateur');
-    } else {
-      enableDemoMode('Changement manuel via indicateur');
-    }
-  };
+  if (isRealMode) {
+    return (
+      <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+        Mode Réel
+      </Badge>
+    );
+  }
   
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-9 px-2"
-            onClick={toggleMode}
-          >
-            {isDemoMode ? (
-              <>
-                <Database className="h-4 w-4 mr-1.5" />
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">DÉMO</Badge>
-              </>
-            ) : (
-              <>
-                <Cloud className="h-4 w-4 mr-1.5" />
-                <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">PROD</Badge>
-              </>
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p>{isDemoMode 
-            ? "Mode démonstration (données simulées)" 
-            : "Mode réel (API Notion)"}
-          </p>
-          <p className="text-xs text-muted-foreground">Cliquer pour changer</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Badge variant="outline" className="border-amber-500 text-amber-600">
+      Mode Démo
+    </Badge>
   );
 }
 

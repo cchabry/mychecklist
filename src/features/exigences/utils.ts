@@ -1,161 +1,62 @@
-
 /**
- * Utilitaires pour les exigences
+ * Utilitaires pour la feature Exigences
+ * 
+ * Ce module fournit des fonctions utilitaires pour manipuler et
+ * enrichir les données des exigences.
  */
 
-import { ImportanceLevel } from '@/types/enums';
-import { ChecklistItem } from '@/types/domain';
-import { Exigence, ExigenceWithItem, ExigenceSortOption, ExigenceFilters, ExigenceStat } from './types';
+import { Exigence, ChecklistItem } from '@/types/domain';
+import { ExigenceWithItem } from './types';
 
 /**
- * Enrichit les exigences avec les informations des items de checklist associés
+ * Enrichit les exigences avec leurs items de checklist correspondants
  * 
  * @param exigences - Liste des exigences
  * @param checklistItems - Liste des items de checklist
- * @returns Liste des exigences enrichies
+ * @returns Exigences enrichies avec leurs items de checklist
  */
 export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: ChecklistItem[]): ExigenceWithItem[] {
-  const result: ExigenceWithItem[] = exigences.map(exigence => {
-    const item = checklistItems.find(item => item.id === exigence.itemId);
+  return exigences.map(exigence => {
+    const checklistItem = checklistItems.find(item => item.id === exigence.itemId);
     
     return {
       ...exigence,
-      checklistItem: item || {
-        id: exigence.itemId,
-        consigne: 'Item inconnu',
-        description: 'Cet item de checklist n\'existe plus ou n\'est pas accessible',
-        category: 'Non catégorisé',
-        subcategory: 'Non catégorisé',
-        reference: [],
-        profil: [],
-        phase: [],
-        effort: 0,
-        priority: 0
-      }
-    };
-  });
-  
-  return result;
-}
-
-/**
- * Filtre une liste d'exigences selon différents critères
- * 
- * @param exigences - Liste des exigences à filtrer
- * @param filters - Critères de filtrage
- * @returns Liste des exigences filtrées
- */
-export function filterExigences(
-  exigences: ExigenceWithItem[], 
-  filters: ExigenceFilters
-): ExigenceWithItem[] {
-  return exigences.filter(exigence => {
-    // Filtre par recherche textuelle (titre, description ou commentaire)
-    const searchMatch = !filters.search || [
-      exigence.checklistItem?.consigne,
-      exigence.checklistItem?.description,
-      exigence.comment
-    ].some(text => 
-      text && text.toLowerCase().includes(filters.search?.toLowerCase() || '')
-    );
-    
-    // Filtre par importance
-    const importanceMatch = !filters.importance || exigence.importance === filters.importance;
-    
-    // Filtre par catégorie
-    const categoryMatch = !filters.category || exigence.checklistItem?.category === filters.category;
-    
-    // Filtre par sous-catégorie
-    const subCategoryMatch = !filters.subCategory || exigence.checklistItem?.subcategory === filters.subCategory;
-    
-    return searchMatch && importanceMatch && categoryMatch && subCategoryMatch;
+      checklistItem: checklistItem
+    } as ExigenceWithItem;
   });
 }
 
 /**
- * Trie une liste d'exigences selon différents critères
+ * Formatte un commentaire d'exigence pour l'affichage
  * 
- * @param exigences - Liste des exigences à trier
- * @param sortOption - Option de tri
- * @returns Liste des exigences triées
+ * @param comment - Commentaire à formater
+ * @returns Commentaire formaté
  */
-export function sortExigences(
-  exigences: ExigenceWithItem[], 
-  sortOption: ExigenceSortOption
-): ExigenceWithItem[] {
-  const sorted = [...exigences];
-  
-  switch (sortOption) {
-    case 'importance_desc':
-      return sorted.sort((a, b) => importanceToValue(b.importance) - importanceToValue(a.importance));
-    
-    case 'importance_asc':
-      return sorted.sort((a, b) => importanceToValue(a.importance) - importanceToValue(b.importance));
-    
-    case 'category_asc':
-      return sorted.sort((a, b) => {
-        const catA = a.checklistItem?.category || '';
-        const catB = b.checklistItem?.category || '';
-        return catA.localeCompare(catB);
-      });
-    
-    case 'category_desc':
-      return sorted.sort((a, b) => {
-        const catA = a.checklistItem?.category || '';
-        const catB = b.checklistItem?.category || '';
-        return catB.localeCompare(catA);
-      });
-    
-    default:
-      return sorted;
+export function formatExigenceComment(comment: string | undefined): string {
+  if (!comment) {
+    return "Aucun commentaire";
   }
+  
+  // Ajouter une logique de formatage plus complexe si nécessaire
+  return comment;
 }
 
 /**
- * Calcule les statistiques pour un ensemble d'exigences
+ * Génère une chaîne de recherche à partir des filtres d'exigence
  * 
- * @param exigences - Liste des exigences
- * @returns Statistiques calculées
+ * @param filters - Filtres à appliquer
+ * @returns Chaîne de recherche
  */
-export function calculateExigenceStats(exigences: ExigenceWithItem[]): ExigenceStat {
-  const stats: ExigenceStat = {
-    total: exigences.length,
-    byImportance: {
-      [ImportanceLevel.NotApplicable]: 0,
-      [ImportanceLevel.Minor]: 0,
-      [ImportanceLevel.Medium]: 0,
-      [ImportanceLevel.Important]: 0,
-      [ImportanceLevel.Major]: 0
-    }
-  };
+export function generateExigenceSearchString(filters: any): string {
+  let searchString = '';
   
-  // Compter les exigences par niveau d'importance
-  exigences.forEach(exigence => {
-    stats.byImportance[exigence.importance]++;
-  });
-  
-  return stats;
-}
-
-/**
- * Convertit un niveau d'importance en valeur numérique pour le tri
- * 
- * @param importance - Niveau d'importance
- * @returns Valeur numérique correspondante
- */
-function importanceToValue(importance: ImportanceLevel): number {
-  switch (importance) {
-    case ImportanceLevel.NotApplicable:
-      return 0;
-    case ImportanceLevel.Minor:
-      return 1;
-    case ImportanceLevel.Medium:
-      return 2;
-    case ImportanceLevel.Important:
-      return 3;
-    case ImportanceLevel.Major:
-      return 4;
-    default:
-      return -1;
+  if (filters.search) {
+    searchString += `search=${filters.search}&`;
   }
+  
+  if (filters.importance) {
+    searchString += `importance=${filters.importance}&`;
+  }
+  
+  return searchString.slice(0, -1); // Retirer le dernier '&'
 }

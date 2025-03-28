@@ -3,6 +3,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { ProjectCard } from '@/components/data-display';
 import { PageHeader } from '@/components/layout';
 import { Project } from '@/types/domain';
+import { ProjectStatus } from '@/types/enums';
 
 /**
  * Page de tableau de bord
@@ -17,11 +18,6 @@ export function Dashboard() {
   if (error) {
     return <div>Erreur: {error.message}</div>;
   }
-
-  // Filtrer les projets par statut
-  const completedProjects = projects.filter((p) => p.status === 'COMPLETED');
-  const activeProjects = projects.filter((p) => p.status === 'IN_PROGRESS');
-  const pendingProjects = projects.filter((p) => p.status === 'PENDING');
 
   return (
     <div className="container mx-auto py-6">

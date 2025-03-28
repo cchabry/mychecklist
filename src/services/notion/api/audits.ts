@@ -51,7 +51,17 @@ class NotionAuditApi implements AuditApi {
    * Crée un nouvel audit
    */
   async createAudit(data: CreateAuditData): Promise<Audit> {
-    const response = await auditService.createAudit(data);
+    const currentTime = new Date().toISOString();
+    
+    // Ajouter les propriétés manquantes requises par l'API Notion
+    const auditData = {
+      ...data,
+      progress: 0,
+      createdAt: currentTime,
+      updatedAt: currentTime
+    };
+    
+    const response = await auditService.createAudit(auditData);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || CREATE_ERROR);
