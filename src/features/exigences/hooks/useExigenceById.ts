@@ -1,43 +1,25 @@
 
 /**
- * Hook pour récupérer une exigence par son identifiant
- * 
- * Ce hook utilise React Query pour récupérer et mettre en cache les données
- * d'une exigence spécifique identifiée par son ID.
+ * Hook pour accéder à une exigence spécifique par son ID
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { getExigenceById } from '..';
+import { useEntityQuery } from '@/hooks/api/useGenericQuery';
+import { exigenceService } from '@/services/notion';
+import { Exigence } from '@/types/domain';
 
 /**
- * Hook pour récupérer une exigence par son identifiant
+ * Hook pour récupérer une exigence par son ID
  * 
- * @param id - Identifiant de l'exigence à récupérer
+ * @param id ID de l'exigence
  * @returns Résultat de la requête contenant l'exigence
- * 
- * @example
- * ```tsx
- * const { data: exigence, isLoading, error } = useExigenceById('exigence-123');
- * 
- * if (isLoading) return <Loader />;
- * if (error) return <ErrorDisplay error={error} />;
- * if (!exigence) return <NotFound />;
- * 
- * return (
- *   <div>
- *     <h1>Exigence pour l'item {exigence.itemId}</h1>
- *     <p>Importance: {exigence.importance}</p>
- *   </div>
- * );
- * ```
  */
-export function useExigenceById(id?: string) {
-  return useQuery({
-    queryKey: ['exigence', id],
-    queryFn: async () => {
-      if (!id) return null;
-      return await getExigenceById(id);
-    },
-    enabled: !!id
-  });
+export function useExigenceById(id: string | undefined) {
+  return useEntityQuery<Exigence>(
+    'exigence',
+    id,
+    (exigenceId) => exigenceService.getExigenceById(exigenceId),
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes de fraîcheur
+    }
+  );
 }

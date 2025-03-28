@@ -1,47 +1,29 @@
 
 /**
- * Hook pour récupérer toutes les exigences d'un projet
- * 
- * Ce hook utilise React Query pour récupérer et mettre en cache la liste
- * des exigences définies pour un projet spécifique.
+ * Hook pour accéder aux exigences d'un projet
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { getExigences } from '..';
+import { useGenericQuery } from '@/hooks/api/useGenericQuery';
+import { exigenceService } from '@/services/notion';
+import { Exigence } from '@/types/domain';
 
 /**
- * Hook pour récupérer toutes les exigences d'un projet
+ * Hook pour récupérer les exigences d'un projet
  * 
- * @param projectId - Identifiant du projet
+ * @param projectId ID du projet
  * @returns Résultat de la requête contenant les exigences
- * 
- * @example
- * ```tsx
- * const { data: exigences, isLoading, error } = useExigences('project-123');
- * 
- * if (isLoading) return <Loader />;
- * if (error) return <ErrorDisplay error={error} />;
- * 
- * return (
- *   <div>
- *     <h1>Exigences du projet</h1>
- *     <ul>
- *       {exigences?.map(exigence => (
- *         <li key={exigence.id}>
- *           Item: {exigence.itemId} - Importance: {exigence.importance}
- *         </li>
- *       ))}
- *     </ul>
- *   </div>
- * );
- * ```
  */
-export function useExigences(projectId: string) {
-  return useQuery({
-    queryKey: ['exigences', projectId],
-    queryFn: async () => {
-      return await getExigences(projectId);
+export function useExigences(projectId: string | undefined) {
+  return useGenericQuery<Exigence[]>(
+    ['exigences', projectId],
+    async () => {
+      if (!projectId) {
+        return { success: false, error: { message: 'ID de projet non défini' } };
+      }
+      return exigenceService.getExigences(projectId);
     },
-    enabled: !!projectId
-  });
+    {
+      enabled: !!projectId,
+    }
+  );
 }
