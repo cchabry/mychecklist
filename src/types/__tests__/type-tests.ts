@@ -229,10 +229,17 @@ export function testEvaluation() {
   };
   
   // Avec propriétés optionnelles
+  const mockAttachment: Attachment = {
+    id: 'attach-1',
+    name: 'screenshot.png',
+    url: 'https://example.com/screenshot.png',
+    type: 'image/png'
+  };
+  
   const fullEvaluation: Evaluation = {
     ...validEvaluation,
     comment: 'La page respecte bien cette exigence',
-    attachments: ['screenshot1.png', 'evidence.pdf']
+    attachments: [mockAttachment]
   };
   
   // Vérification que les objets sont bien de type Evaluation

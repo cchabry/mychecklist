@@ -1,24 +1,23 @@
 
 /**
- * Classe abstraite de base pour les services Notion
- * 
- * Cette classe fournit le squelette des services standardisés,
- * avec des méthodes abstraites que les implémentations doivent définir.
+ * Classe abstraite définissant les méthodes requises
+ * pour l'implémentation d'un service Notion
  */
 
-import { notionClient } from '../notionClient';
 import { NotionResponse } from '../types';
 import { CrudService, StandardFilterOptions } from './types';
+import { notionClient } from '../client/notionClient';
 
 /**
- * Classe abstraite pour les services Notion
+ * Classe abstraite définissant les méthodes requises
+ * pour l'implémentation d'un service Notion
+ * 
+ * @template T - Type d'entité principale
+ * @template C - Type pour la création (Create)
+ * @template U - Type pour la mise à jour (Update)
+ * @template ID - Type d'identifiant
  */
-export abstract class BaseNotionServiceAbstract<
-  T extends { id: ID },
-  C extends Partial<Omit<T, 'id'>>,
-  U = T,
-  ID = string
-> implements CrudService<T, C, U, ID> {
+export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> implements CrudService<T, C, U, ID> {
   /**
    * Nom de l'entité pour les messages d'erreur
    */
@@ -95,9 +94,9 @@ export abstract class BaseNotionServiceAbstract<
   protected abstract deleteImpl(id: ID): Promise<NotionResponse<boolean>>;
   
   /**
-   * Méthodes CRUD implémentées dans BaseNotionServiceMethods
+   * Récupère toutes les entités
    */
-  public async getAll(options?: StandardFilterOptions): Promise<NotionResponse<T[]>> {
+  public async getAll(options?: StandardFilterOptions<T>): Promise<NotionResponse<T[]>> {
     try {
       if (this.isMockMode()) {
         // Mode mock
@@ -136,7 +135,7 @@ export abstract class BaseNotionServiceAbstract<
       if (this.isMockMode()) {
         // Mode mock
         const entities = await this.getMockEntities();
-        const entity = entities.find(e => e.id === id);
+        const entity = entities.find(e => (e as any).id === id);
         
         if (!entity) {
           return {
@@ -252,4 +251,3 @@ export abstract class BaseNotionServiceAbstract<
     }
   }
 }
-

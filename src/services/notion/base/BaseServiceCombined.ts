@@ -4,59 +4,8 @@
  * pour faciliter l'implémentation des services spécifiques
  */
 
-import { BaseNotionService } from './BaseNotionService';
+import { BaseNotionServiceAbstract } from './BaseNotionServiceAbstract';
 import { NotionResponse } from '../types';
-
-/**
- * Classe abstraite définissant les méthodes requises
- * pour l'implémentation d'un service Notion
- * 
- * @template T - Type d'entité principale
- * @template C - Type pour la création (Create)
- * @template U - Type pour la mise à jour (Update)
- * @template ID - Type d'identifiant
- */
-export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> {
-  /**
-   * Génère des entités fictives pour le mode mock
-   */
-  abstract getMockEntities(): Promise<T[]>;
-  
-  /**
-   * Crée une entité fictive en mode mock
-   */
-  abstract mockCreate(data: C): Promise<T>;
-  
-  /**
-   * Met à jour une entité fictive en mode mock
-   */
-  abstract mockUpdate(entity: U): Promise<T>;
-  
-  /**
-   * Implémentation de la récupération des entités
-   */
-  abstract getAllImpl(): Promise<NotionResponse<T[]>>;
-  
-  /**
-   * Implémentation de la récupération d'une entité par son ID
-   */
-  abstract getByIdImpl(id: ID): Promise<NotionResponse<T>>;
-  
-  /**
-   * Implémentation de la création d'une entité
-   */
-  abstract createImpl(data: C): Promise<NotionResponse<T>>;
-  
-  /**
-   * Implémentation de la mise à jour d'une entité
-   */
-  abstract updateImpl(entity: U): Promise<NotionResponse<T>>;
-  
-  /**
-   * Implémentation de la suppression d'une entité
-   */
-  abstract deleteImpl(id: ID): Promise<NotionResponse<boolean>>;
-}
 
 /**
  * Service Notion combiné avec l'implémentation abstraite et l'interface opérationnelle
@@ -69,8 +18,7 @@ export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> {
  * @template ID - Type d'identifiant
  */
 export abstract class BaseServiceCombined<T, C, U, ID = string> 
-  extends BaseNotionService<T, C, U, ID> 
-  implements BaseNotionServiceAbstract<T, C, U, ID> {
+  extends BaseNotionServiceAbstract<T, C, U, ID> {
   
   /**
    * Implémentation de la récupération des entités

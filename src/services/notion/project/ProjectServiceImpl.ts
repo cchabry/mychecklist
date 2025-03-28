@@ -14,11 +14,11 @@ import {
   mockUpdateProject 
 } from './mockImplementations';
 import { 
-  getAllProjects, 
-  getProjectById, 
-  createProject, 
-  updateProject, 
-  deleteProject 
+  createProjectNotionImplementation,
+  updateProjectNotionImplementation,
+  getAllProjectsNotionImplementation, 
+  getProjectByIdNotionImplementation, 
+  deleteProjectNotionImplementation 
 } from './apiImplementations';
 
 /**
@@ -54,35 +54,35 @@ export class ProjectServiceImpl extends BaseNotionService<Project, CreateProject
    * Implémentation de la récupération des projets
    */
   protected async getAllImpl(): Promise<NotionResponse<Project[]>> {
-    return getAllProjects();
+    return getAllProjectsNotionImplementation();
   }
   
   /**
    * Implémentation de la récupération d'un projet par son ID
    */
   protected async getByIdImpl(id: string): Promise<NotionResponse<Project>> {
-    return getProjectById(id);
+    return getProjectByIdNotionImplementation(id);
   }
   
   /**
    * Implémentation de la création d'un projet
    */
   protected async createImpl(data: CreateProjectInput): Promise<NotionResponse<Project>> {
-    return createProject(data);
+    return createProjectNotionImplementation(data);
   }
   
   /**
    * Implémentation de la mise à jour d'un projet
    */
   protected async updateImpl(entity: UpdateProjectInput): Promise<NotionResponse<Project>> {
-    return updateProject(entity);
+    return updateProjectNotionImplementation(entity);
   }
   
   /**
    * Implémentation de la suppression d'un projet
    */
   protected async deleteImpl(id: string): Promise<NotionResponse<boolean>> {
-    return deleteProject(id);
+    return deleteProjectNotionImplementation(id);
   }
 }
 
@@ -91,4 +91,3 @@ export const projectServiceImpl = new ProjectServiceImpl();
 
 // Export par défaut
 export default projectServiceImpl;
-

@@ -24,7 +24,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
    */
   async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
     return this.getAll({
-      filter: (evaluation) => {
+      filter: (evaluation: Evaluation) => {
         return evaluation.auditId === auditId && 
           (!pageId || evaluation.pageId === pageId) &&
           (!exigenceId || evaluation.exigenceId === exigenceId);
@@ -123,7 +123,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la récupération d'une évaluation par son ID
    */
-  protected async getByIdImpl(_id: string): Promise<NotionResponse<Evaluation>> {
+  protected async getByIdImpl(id: string): Promise<NotionResponse<Evaluation>> {
     return {
       success: false,
       error: {
@@ -135,7 +135,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la création d'une évaluation
    */
-  protected async createImpl(_data: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
+  protected async createImpl(data: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     return {
       success: false,
       error: {
@@ -147,7 +147,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la mise à jour d'une évaluation
    */
-  protected async updateImpl(_entity: UpdateEvaluationInput): Promise<NotionResponse<Evaluation>> {
+  protected async updateImpl(entity: UpdateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     return {
       success: false,
       error: {
@@ -159,7 +159,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la suppression d'une évaluation
    */
-  protected async deleteImpl(_id: string): Promise<NotionResponse<boolean>> {
+  protected async deleteImpl(id: string): Promise<NotionResponse<boolean>> {
     return {
       success: false,
       error: {

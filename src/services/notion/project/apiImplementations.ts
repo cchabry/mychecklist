@@ -7,7 +7,7 @@ import { Project } from '@/types/domain';
 import { notionClient } from '../client';
 import { CreateProjectInput, UpdateProjectInput } from './types';
 import { NotionResponse } from '../types';
-import { extractNumberProperty, extractTextProperty, mapNotionPageToProject } from './utils';
+import { notionPageToProject } from './utils';
 
 /**
  * Création d'un projet dans Notion
@@ -27,8 +27,6 @@ export async function createProjectNotionImplementation(
   }
   
   try {
-    let createdProject: Project;
-    
     const response = await notionClient.post('/pages', {
       parent: { database_id: dbId },
       properties: {
@@ -68,7 +66,7 @@ export async function createProjectNotionImplementation(
       };
     }
     
-    createdProject = mapNotionPageToProject(response.data);
+    const createdProject = notionPageToProject(response.data);
     
     return {
       success: true,
@@ -151,7 +149,7 @@ export async function updateProjectNotionImplementation(
       };
     }
     
-    const updatedProject = mapNotionPageToProject(response.data);
+    const updatedProject = notionPageToProject(response.data);
     
     return {
       success: true,
@@ -195,7 +193,7 @@ export async function getAllProjectsNotionImplementation(): Promise<NotionRespon
     }
     
     const results = response.data.results || [];
-    const projects = results.map(mapNotionPageToProject);
+    const projects = results.map(notionPageToProject);
     
     return {
       success: true,
@@ -227,7 +225,7 @@ export async function getProjectByIdNotionImplementation(id: string): Promise<No
       };
     }
     
-    const project = mapNotionPageToProject(response.data);
+    const project = notionPageToProject(response.data);
     
     return {
       success: true,

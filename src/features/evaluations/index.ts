@@ -1,4 +1,3 @@
-
 /**
  * Point d'entrée pour la feature Evaluations
  */
@@ -13,7 +12,6 @@ export * from './components';
 // Services et API
 import { evaluationsApi } from '@/services/notion/api/evaluations';
 import { Evaluation, CreateEvaluationData, UpdateEvaluationData } from './types';
-import { Attachment } from '@/types/domain';
 
 /**
  * Récupère toutes les évaluations d'un audit

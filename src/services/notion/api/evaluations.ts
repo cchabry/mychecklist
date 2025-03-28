@@ -18,12 +18,6 @@ import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constan
 class NotionEvaluationApi implements EvaluationApi {
   /**
    * Récupère les évaluations correspondant aux critères fournis
-   * 
-   * @param auditId - Identifiant de l'audit
-   * @param pageId - Identifiant de la page (optionnel)
-   * @param exigenceId - Identifiant de l'exigence (optionnel)
-   * @returns Promise résolvant vers un tableau d'évaluations
-   * @throws Error si la récupération échoue
    */
   async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<Evaluation[]> {
     const response = await evaluationService.getEvaluations(auditId, pageId, exigenceId);
@@ -37,10 +31,6 @@ class NotionEvaluationApi implements EvaluationApi {
   
   /**
    * Récupère une évaluation par son ID
-   * 
-   * @param id - Identifiant unique de l'évaluation
-   * @returns Promise résolvant vers l'évaluation ou null si non trouvée
-   * @throws Error si la récupération échoue de manière inattendue
    */
   async getEvaluationById(id: string): Promise<Evaluation | null> {
     const response = await evaluationService.getEvaluationById(id);
@@ -49,16 +39,11 @@ class NotionEvaluationApi implements EvaluationApi {
       return null;
     }
     
-    // Explicitement convertir `undefined` en `null` pour respecter le type de retour
     return response.data || null;
   }
   
   /**
    * Crée une nouvelle évaluation
-   * 
-   * @param evaluation - Données de l'évaluation à créer
-   * @returns Promise résolvant vers l'évaluation créée
-   * @throws Error si la création échoue
    */
   async createEvaluation(evaluation: Omit<Evaluation, "id" | "createdAt" | "updatedAt">): Promise<Evaluation> {
     const createInput: CreateEvaluationInput = {
@@ -81,10 +66,6 @@ class NotionEvaluationApi implements EvaluationApi {
   
   /**
    * Met à jour une évaluation existante
-   * 
-   * @param evaluation - Données complètes de l'évaluation avec les modifications
-   * @returns Promise résolvant vers l'évaluation mise à jour
-   * @throws Error si la mise à jour échoue
    */
   async updateEvaluation(evaluation: Evaluation): Promise<Evaluation> {
     const updateInput: UpdateEvaluationInput = {
@@ -105,10 +86,6 @@ class NotionEvaluationApi implements EvaluationApi {
   
   /**
    * Supprime une évaluation
-   * 
-   * @param id - Identifiant unique de l'évaluation à supprimer
-   * @returns Promise résolvant vers true si la suppression a réussi
-   * @throws Error si la suppression échoue
    */
   async deleteEvaluation(id: string): Promise<boolean> {
     const response = await evaluationService.deleteEvaluation(id);

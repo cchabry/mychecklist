@@ -56,4 +56,3 @@ export const projectService = new ProjectService();
 
 // Export par défaut
 export default projectService;
-
