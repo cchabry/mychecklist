@@ -7,9 +7,7 @@ import { NotionResponse } from '../types';
 import { notionClient } from '../notionClient';
 import { Project } from '@/types/domain';
 import { CreateProjectInput, UpdateProjectInput } from './types';
-import { 
-  notionPageToProject
-} from './utils';
+import { notionPageToProject } from './utils';
 
 /**
  * Récupère tous les projets depuis Notion
@@ -29,7 +27,8 @@ export async function getAllProjectsNotionImplementation(): Promise<NotionRespon
     }
     
     // Simulation de la récupération des projets
-    const response = { results: [] };  // Remplacer par l'appel réel à l'API Notion
+    // Remplacer par l'appel réel à l'API Notion
+    const mockResults: any[] = [];
     
     // Traitement des résultats
     const projects: Project[] = [];
@@ -117,7 +116,7 @@ export async function createProjectNotionImplementation(input: CreateProjectInpu
       id: `project_${Date.now()}`,
       name: input.name,
       description: input.description || "",
-      url: input.url,
+      url: input.url || "",
       createdAt: now,
       updatedAt: now,
       progress: 0
@@ -168,11 +167,12 @@ export async function updateProjectNotionImplementation(input: UpdateProjectInpu
     }
     
     // Mettre à jour le projet
+    const currentProject = projectResult.data;
     const updatedProject: Project = {
-      ...projectResult.data,
-      name: input.name !== undefined ? input.name : projectResult.data.name,
-      description: input.description !== undefined ? input.description : projectResult.data.description,
-      url: input.url !== undefined ? input.url : projectResult.data.url,
+      ...currentProject,
+      name: input.name !== undefined ? input.name : currentProject.name,
+      description: input.description !== undefined ? input.description : currentProject.description,
+      url: input.url !== undefined ? input.url : currentProject.url,
       updatedAt: new Date().toISOString()
     };
     

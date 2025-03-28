@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluationService } from '../evaluationService';
 import { notionClient } from '../../notionClient';
@@ -22,11 +21,11 @@ vi.mock('../../notionClient', () => ({
 // Réactivation des tests précédemment désactivés
 describe('EvaluationService', () => {
   const mockAttachment: Attachment = {
-    id: 'attach-1',
-    name: 'test.pdf',
-    url: 'https://example.com/test.pdf',
-    type: 'application/pdf',
-    size: 12345
+    id: 'att1',
+    name: 'screenshot.png',
+    url: 'https://example.com/screenshot.png',
+    type: 'image/png',
+    // Pas de propriété size
   };
 
   const mockEvaluation: Evaluation = {

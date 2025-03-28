@@ -4,7 +4,7 @@
  * basée sur la classe BaseNotionService
  */
 
-import { BaseNotionService } from '../base';
+import { BaseServiceCombined } from '../base';
 import { NotionResponse } from '../types';
 import { Project } from '@/types/domain';
 import { CreateProjectInput, UpdateProjectInput } from './types';
@@ -14,17 +14,17 @@ import {
   mockUpdateProject 
 } from './mockImplementations';
 import { 
-  createProjectNotionImplementation,
-  updateProjectNotionImplementation,
   getAllProjectsNotionImplementation, 
   getProjectByIdNotionImplementation, 
+  createProjectNotionImplementation,
+  updateProjectNotionImplementation,
   deleteProjectNotionImplementation 
 } from './apiImplementations';
 
 /**
  * Implémentation standardisée du service de projets
  */
-export class ProjectServiceImpl extends BaseNotionService<Project, CreateProjectInput, UpdateProjectInput> {
+export class ProjectServiceImpl extends BaseServiceCombined<Project, CreateProjectInput, UpdateProjectInput> {
   constructor() {
     super('Projet', 'projectsDbId');
   }

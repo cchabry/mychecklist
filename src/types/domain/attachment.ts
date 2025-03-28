@@ -11,4 +11,6 @@ export interface Attachment {
   url: string;
   /** Type MIME */
   type: string;
+  /** Taille du fichier en octets (optionnel) */
+  size?: number;
 }

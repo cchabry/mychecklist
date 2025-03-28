@@ -3,7 +3,7 @@
  * Implémentation du service d'audit
  */
 
-import { BaseNotionService } from '../base';
+import { BaseServiceCombined } from '../base';
 import { NotionResponse } from '../types';
 import { Audit } from '@/types/domain';
 import { generateMockId } from '../base/utils';
@@ -30,7 +30,7 @@ interface UpdateAuditInput {
 /**
  * Implémentation standardisée du service d'audits
  */
-export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput, UpdateAuditInput> {
+export class AuditServiceImpl extends BaseServiceCombined<Audit, CreateAuditInput, UpdateAuditInput> {
   constructor() {
     super('Audit', 'auditsDbId');
   }

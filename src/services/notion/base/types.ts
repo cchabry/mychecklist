@@ -1,30 +1,39 @@
 
 /**
- * Types pour les services de base
- */
-
-/**
- * Options standard pour le filtrage des entités
+ * Options de filtrage standard pour les requêtes
+ * 
+ * @template T - Type d'entité à filtrer
  */
 export interface StandardFilterOptions<T = any> {
-  filter?: (entity: T) => boolean;
-  sort?: (a: T, b: T) => number;
+  /** Fonction de filtrage personnalisée */
+  filter?: (item: T) => boolean;
+  /** ID du projet pour filtrer les entités liées à un projet spécifique */
+  projectId?: string;
+  /** Nombre maximal d'éléments à retourner */
   limit?: number;
-  projectId?: string; // Support pour les filtrages par projet
+  /** Trier les résultats par cette propriété */
+  sortBy?: keyof T;
+  /** Ordre de tri (ascendant ou descendant) */
+  sortOrder?: 'asc' | 'desc';
 }
 
 /**
- * Interface CRUD commune pour tous les services
+ * Interface CRUD de base pour les services
  * 
  * @template T - Type d'entité principale
- * @template C - Type pour la création (Create)
- * @template U - Type pour la mise à jour (Update)
+ * @template C - Type pour la création
+ * @template U - Type pour la mise à jour
  * @template ID - Type d'identifiant
  */
 export interface CrudService<T, C, U, ID = string> {
-  getAll(options?: StandardFilterOptions<T>): Promise<any>;
-  getById(id: ID): Promise<any>;
-  create(data: C): Promise<any>;
-  update(entity: U): Promise<any>;
-  delete(id: ID): Promise<any>;
+  /** Récupère toutes les entités */
+  getAll(options?: StandardFilterOptions<T>): Promise<T[]>;
+  /** Récupère une entité par son ID */
+  getById(id: ID): Promise<T>;
+  /** Crée une nouvelle entité */
+  create(data: C): Promise<T>;
+  /** Met à jour une entité existante */
+  update(entity: U): Promise<T>;
+  /** Supprime une entité */
+  delete(id: ID): Promise<boolean>;
 }
