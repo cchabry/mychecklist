@@ -1,3 +1,4 @@
+
 /**
  * Service pour la gestion des items de checklist via Notion
  * 
@@ -5,7 +6,7 @@
  * les données de checklist, soit via l'API Notion, soit en mode simulation.
  */
 
-import { notionClient } from './notionClient';
+import { notionClient } from './client/notionClient';
 import { NotionResponse } from './types';
 import { ChecklistItem } from '@/types/domain';
 import { generateMockChecklistItems } from './utils';
@@ -60,13 +61,15 @@ class ChecklistService {
     
     // En mode réel, interroger l'API Notion
     try {
-      const response = await notionClient.request({
-        method: 'POST',
-        path: `databases/${config.checklistsDbId}/query`,
-        body: {}
-      });
+      const response = await notionClient.post(`databases/${config.checklistsDbId}/query`, {});
       
-      const items = (response.results || []).map(page => this.notionPageToChecklistItem(page));
+      if (!response.success) {
+        return response as NotionResponse<ChecklistItem[]>;
+      }
+      
+      const responseData = response.data || {};
+      const results = responseData.results || [];
+      const items = results.map((page: any) => this.notionPageToChecklistItem(page));
       
       return {
         success: true,
@@ -103,27 +106,30 @@ class ChecklistService {
     
     // En mode réel, interroger l'API Notion
     try {
-      const response = await notionClient.request({
-        method: 'GET',
-        path: `databases/${config.checklistsDbId}/query`,
-        body: {
-          filter: {
-            property: 'ID',
-            rich_text: {
-              equals: itemId
-            }
+      const response = await notionClient.post(`databases/${config.checklistsDbId}/query`, {
+        filter: {
+          property: 'ID',
+          rich_text: {
+            equals: itemId
           }
         }
       });
       
-      if (!response.results || response.results.length === 0) {
+      if (!response.success) {
+        return response as NotionResponse<ChecklistItem>;
+      }
+      
+      const responseData = response.data || {};
+      const results = responseData.results || [];
+      
+      if (results.length === 0) {
         return {
           success: false,
           error: { message: `Item de checklist #${itemId} non trouvé` }
         };
       }
       
-      const page = response.results[0];
+      const page = results[0];
       const item = this.notionPageToChecklistItem(page);
       
       return {
