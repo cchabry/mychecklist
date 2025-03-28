@@ -95,7 +95,7 @@ export function useNotionErrorHandler(): NotionErrorHandlerResult {
   return {
     handleNotionError,
     clearError,
-    lastError,
+    lastError, // Le type est maintenant AppError | undefined, compatible avec l'interface NotionErrorHandlerResult
     isError
   };
 }
