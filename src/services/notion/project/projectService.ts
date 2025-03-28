@@ -21,7 +21,21 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    * Récupère tous les projets
    */
   async getProjects(): Promise<NotionResponse<Project[]>> {
-    return this.getAll();
+    try {
+      const result = await this.getAll();
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          details: error
+        }
+      };
+    }
   }
   
   /**
@@ -142,28 +156,92 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    * Récupère un projet par son ID
    */
   async getProjectById(id: string): Promise<NotionResponse<Project>> {
-    return this.getById(id);
+    try {
+      const result = await this.getById(id);
+      if (!result) {
+        return {
+          success: false,
+          error: {
+            message: `Projet #${id} non trouvé`,
+          }
+        };
+      }
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          details: error
+        }
+      };
+    }
   }
   
   /**
    * Crée un nouveau projet
    */
   async createProject(projectData: Partial<Project>): Promise<NotionResponse<Project>> {
-    return this.create(projectData);
+    try {
+      const result = await this.create(projectData);
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          details: error
+        }
+      };
+    }
   }
   
   /**
    * Met à jour un projet existant
    */
   async updateProject(project: Project): Promise<NotionResponse<Project>> {
-    return this.update(project);
+    try {
+      const result = await this.update(project);
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          details: error
+        }
+      };
+    }
   }
   
   /**
    * Supprime un projet
    */
   async deleteProject(id: string): Promise<NotionResponse<boolean>> {
-    return this.delete(id);
+    try {
+      const result = await this.delete(id);
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Erreur inconnue',
+          details: error
+        }
+      };
+    }
   }
   
   /**
