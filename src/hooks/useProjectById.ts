@@ -41,7 +41,7 @@ const useProjectById = (id: string) => {
         handleError(error, {
           showToast: true,
           toastTitle: 'Erreur de chargement',
-          toastMessage: `Impossible de récupérer le projet #${id}`,
+          toastDescription: `Impossible de récupérer le projet #${id}`,
           logToConsole: true
         });
       } finally {

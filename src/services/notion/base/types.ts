@@ -18,11 +18,11 @@ export interface StandardFilterOptions {
 /**
  * Interface de base pour un service CRUD
  */
-export interface CrudService<T, CreateDataType = Omit<T, 'id'>> {
+export interface CrudService<T, CreateDataType = Omit<T, 'id'>, UpdateDataType = Partial<T>> {
   getAll(filter?: StandardFilterOptions): Promise<NotionResponse<T[]>>;
   getById(id: string): Promise<NotionResponse<T | null>>;
   create(data: CreateDataType): Promise<NotionResponse<T>>;
-  update(data: T): Promise<NotionResponse<T>>;
+  update(data: UpdateDataType): Promise<NotionResponse<T>>;
   delete(id: string): Promise<NotionResponse<boolean>>;
 }
 

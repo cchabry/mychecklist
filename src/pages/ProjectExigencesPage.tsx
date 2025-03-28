@@ -13,7 +13,7 @@ import {
   ExigenceSortOption
 } from '@/features/exigences';
 import { useChecklistItems } from '@/features/checklist';
-import { useProjectById } from '@/hooks/useProjectById';
+import { useProjectById } from '@/features/projects/hooks';
 import { PageHeader } from '@/components/layout';
 import { PlusCircle, Tag } from 'lucide-react';
 import { ImportanceLevel } from '@/types/enums';

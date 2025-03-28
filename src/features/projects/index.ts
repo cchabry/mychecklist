@@ -7,7 +7,6 @@
  * les erreurs.
  */
 
-import { notionService } from '@/services/notion/notionService';
 import { Project, CreateProjectData, UpdateProjectData } from './types';
 import { projectsApi } from '@/services/notion/api/projects';
 
@@ -59,7 +58,14 @@ export async function getProjectById(id: string): Promise<Project | null> {
  */
 export async function createProject(data: CreateProjectData): Promise<Project> {
   try {
-    return await projectsApi.createProject(data);
+    // S'assurer que tous les champs obligatoires sont présents
+    const projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> = {
+      name: data.name,
+      url: data.url || '',
+      description: data.description || ''
+    };
+    
+    return await projectsApi.createProject(projectData);
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : 'Erreur lors de la création du projet');
   }

@@ -5,7 +5,7 @@
  * Ce service fournit des méthodes pour gérer les projets via l'API Notion
  */
 
-import { NotionResponse, ApiResponse } from '../base/types';
+import { NotionResponse } from '../base/types';
 import { Project } from '@/types/domain';
 import { generateMockProjects } from './utils';
 import { BaseNotionService, StandardFilterOptions } from '../base';
@@ -28,7 +28,7 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
   /**
    * Génération de données mock pour les tests
    */
-  protected async generateMockData(options?: StandardFilterOptions): Promise<NotionResponse<Project[]>> {
+  protected generateMockData(count: number, options?: StandardFilterOptions): Project[] {
     const projects = generateMockProjects();
     
     // Si des options de filtrage sont fournies, appliquer les filtres
@@ -50,42 +50,30 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
       }
     }
     
-    return {
-      success: true,
-      data: filteredProjects
-    };
+    return filteredProjects;
   }
   
   /**
    * Génération d'un item mock pour les tests
    */
-  protected async generateMockItem(id: string): Promise<NotionResponse<Project | null>> {
+  protected generateMockItem(id: string): Project | null {
     const mockProjects = generateMockProjects();
     const project = mockProjects.find(p => p.id === id);
     
     if (project) {
-      return {
-        success: true,
-        data: project
-      };
+      return project;
     }
     
-    return {
-      success: false,
-      error: {
-        message: `Projet avec l'ID ${id} non trouvé`,
-        code: 'NOT_FOUND'
-      }
-    };
+    return null;
   }
   
   /**
    * Crée une entité fictive en mode mock
    */
-  protected async mockCreate(data: Partial<Project>): Promise<NotionResponse<Project>> {
+  protected async mockCreate(data: Partial<Project>): Promise<Project> {
     const now = new Date().toISOString();
     
-    const newProject: Project = {
+    return {
       id: generateMockId('project'),
       name: data.name || 'Nouveau projet',
       url: data.url || 'https://example.com',
@@ -95,23 +83,15 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
       progress: data.progress || 0,
       status: data.status || 'active'
     };
-    
-    return {
-      success: true,
-      data: newProject
-    };
   }
   
   /**
    * Met à jour une entité fictive en mode mock
    */
-  protected async mockUpdate(entity: Project): Promise<NotionResponse<Project>> {
+  protected async mockUpdate(entity: Project): Promise<Project> {
     return {
-      success: true,
-      data: {
-        ...entity,
-        updatedAt: new Date().toISOString()
-      }
+      ...entity,
+      updatedAt: new Date().toISOString()
     };
   }
 

@@ -4,7 +4,7 @@ import { OperationModeIndicator } from '../OperationModeIndicator';
 import { Navbar } from '../index';
 import { cn } from '@/lib/utils';
 import { FileText, LayoutList, CheckSquare, ListTodo } from 'lucide-react';
-import { useProjectById } from '@/hooks/useProjectById';
+import { useProjectById } from '@/features/projects/hooks';
 import { Skeleton } from '@/components/ui';
 
 /**
