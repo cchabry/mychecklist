@@ -51,7 +51,7 @@ export interface NotionErrorHandlerResult {
  * @returns Interface pour la gestion des erreurs Notion
  */
 export function useNotionErrorHandler(): NotionErrorHandlerResult {
-  const { handleError, clearError, lastError, isError } = useErrorHandler();
+  const { handleError: baseHandleError, clearError, lastError, isError } = useErrorHandler();
   const { enableDemoMode } = useOperationMode();
   
   /**
@@ -85,8 +85,12 @@ export function useNotionErrorHandler(): NotionErrorHandlerResult {
       });
     }
     
+    // Utiliser baseHandleError pour gérer l'erreur de manière standardisée
+    // mais sans afficher de toast supplémentaire
+    baseHandleError(appError, { showToast: false });
+    
     return appError;
-  }, [enableDemoMode]);
+  }, [enableDemoMode, baseHandleError]);
   
   return {
     handleNotionError,
