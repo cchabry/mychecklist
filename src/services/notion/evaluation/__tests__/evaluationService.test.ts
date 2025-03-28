@@ -1,34 +1,35 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { evaluationService } from '../evaluationService';
-import { notionClient } from '../../notionClient';
-import { ComplianceLevel } from '@/types/enums';
-import { Evaluation, Attachment } from '@/types/domain';
-import { NotionConfig } from '../../types';
-import { UpdateEvaluationInput } from '../types';
+/**
+ * Tests pour le service d'évaluations
+ * 
+ * Ce fichier contient des tests unitaires pour le service d'évaluations
+ * qui permet de manipuler les évaluations dans Notion.
+ */
 
-// Mock du notionClient
-vi.mock('../../notionClient', () => ({
-  notionClient: {
-    getConfig: vi.fn(),
-    isMockMode: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn()
-  }
+import { evaluationService } from '../evaluationService';
+import { mockNotionClient, resetMocks } from '../../client/__mocks__/notionClient';
+import { ComplianceLevel } from '@/types/enums';
+
+// Mock du client Notion
+jest.mock('../../notionClient', () => ({
+  notionClient: mockNotionClient
 }));
 
-// Réactivation des tests précédemment désactivés
 describe('EvaluationService', () => {
-  const mockAttachment: Attachment = {
-    id: 'att1',
-    name: 'screenshot.png',
-    url: 'https://example.com/screenshot.png',
+  beforeEach(() => {
+    resetMocks();
+  });
+
+  const mockAttachment = {
+    id: 'attach-1',
+    fileName: 'capture.png',
+    name: 'capture.png',
+    url: 'https://example.com/files/capture.png',
+    contentType: 'image/png',
     type: 'image/png',
-    // Pas de propriété size
+    size: 1024
   };
 
-  const mockEvaluation: Evaluation = {
+  const mockEvaluation = {
     id: 'eval-1',
     auditId: 'audit-123',
     pageId: 'page-123',
@@ -39,19 +40,6 @@ describe('EvaluationService', () => {
     createdAt: '2023-01-01T00:00:00.000Z',
     updatedAt: '2023-01-01T00:00:00.000Z'
   };
-
-  beforeEach(() => {
-    // Réinitialiser tous les mocks avant chaque test
-    vi.resetAllMocks();
-    
-    // Configuration par défaut pour les tests
-    vi.mocked(notionClient.getConfig).mockReturnValue({ 
-      apiKey: 'fake-key',
-      evaluationsDbId: 'evaluations-db'
-    } as NotionConfig);
-    
-    vi.mocked(notionClient.isMockMode).mockReturnValue(true);
-  });
 
   describe('getEvaluations', () => {
     it('devrait retourner une erreur si la configuration est manquante', async () => {

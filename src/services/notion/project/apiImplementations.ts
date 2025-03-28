@@ -17,10 +17,10 @@ class ProjectNotionService {
   private databaseId: string;
 
   constructor(config: NotionConfig) {
-    if (!config?.apiKey || !config?.databases?.projects) {
+    if (!config?.apiKey || !config?.projectsDbId) {
       throw new Error("Missing Notion configuration");
     }
-    this.databaseId = config.databases.projects;
+    this.databaseId = config.projectsDbId;
   }
 
   /**
@@ -28,7 +28,7 @@ class ProjectNotionService {
    */
   async getProjects(): Promise<NotionResponse<Project[]>> {
     try {
-      const response = await notionClient.queryDatabase({
+      const response = await notionClient.databases.query({
         database_id: this.databaseId,
       });
 
@@ -50,7 +50,7 @@ class ProjectNotionService {
         throw new Error("ID de projet manquant");
       }
 
-      const response = await notionClient.getPage({
+      const response = await notionClient.pages.retrieve({
         page_id: id,
       });
 
@@ -68,7 +68,7 @@ class ProjectNotionService {
    */
   async createProject(data: CreateProjectData): Promise<NotionResponse<Project>> {
     try {
-      const response = await notionClient.createPage({
+      const response = await notionClient.pages.create({
         parent: { database_id: this.databaseId },
         properties: {
           Name: {
@@ -113,7 +113,7 @@ class ProjectNotionService {
    */
   async updateProject(project: Project, data: UpdateProjectData): Promise<NotionResponse<Project>> {
     try {
-      const response = await notionClient.updatePage({
+      const response = await notionClient.pages.update({
         page_id: project.id,
         properties: {
           ...(data.name ? {
@@ -166,7 +166,7 @@ class ProjectNotionService {
    */
   async deleteProject(id: string): Promise<NotionResponse<boolean>> {
     try {
-      await notionClient.deleteBlock({
+      await notionClient.blocks.delete({
         block_id: id,
       });
 
@@ -316,11 +316,14 @@ export function mockUpdateProject(entity: { id: string } & UpdateProjectData): P
     throw new Error(`Projet non trouvé: ${id}`);
   }
 
-  return {
+  const updatedProject: Project = {
     ...existingProject,
     ...data,
+    status: data.status as ProjectStatus | undefined,
     updatedAt: new Date().toISOString(),
   };
+  
+  return updatedProject;
 }
 
 export function mockDeleteProject(id: string): boolean {
