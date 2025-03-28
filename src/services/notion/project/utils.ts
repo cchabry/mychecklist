@@ -1,70 +1,73 @@
 
 /**
  * Utilitaires pour le service de projets
- * 
- * Ce module fournit des fonctions utilitaires pour le service de projets,
- * notamment pour la génération de données mock.
  */
 
 import { Project } from '@/types/domain';
-import { generateMockId } from '../base/BaseNotionService';
 
 /**
- * Génère un projet mock avec des données aléatoires
- * 
- * @param id - Identifiant optionnel du projet
- * @returns Un projet avec des données aléatoires
+ * Génère un ID mock pour les tests
  */
-export function generateMockProject(id?: string): Project {
-  const projectId = id || generateMockId('project');
-  const createdDate = new Date(Date.now() - Math.random() * 10000000000);
-  const updatedDate = new Date(createdDate.getTime() + Math.random() * 1000000000);
-  
-  const websites = [
-    'example.com',
-    'acme-corp.com',
-    'testsite.org',
-    'mywebapp.io',
-    'awesomeproject.net',
-    'samplesite.dev'
-  ];
-  
-  const names = [
-    'Refonte site vitrine',
-    'Transformation digitale',
-    'Audit technique',
-    'Refactoring UX',
-    'Optimisation SEO',
-    'Migration de plateforme',
-    'Audit d\'accessibilité'
-  ];
-  
-  const descriptions = [
-    'Projet d\'amélioration technique et ergonomique.',
-    'Audit complet et plan d\'action pour améliorer l\'accessibilité.',
-    'Refonte complète avec nouveau design et fonctionnalités.',
-    'Migration vers une nouvelle plateforme technique.',
-    'Optimisation des performances et du référencement.',
-    'Analyse de l\'expérience utilisateur et recommandations.'
-  ];
-  
-  return {
-    id: projectId,
-    name: names[Math.floor(Math.random() * names.length)],
-    url: `https://${websites[Math.floor(Math.random() * websites.length)]}`,
-    description: descriptions[Math.floor(Math.random() * descriptions.length)],
-    createdAt: createdDate.toISOString(),
-    updatedAt: updatedDate.toISOString(),
-    progress: Math.floor(Math.random() * 100)
-  };
+export function generateMockId(prefix = 'mock'): string {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
 /**
- * Génère une liste de projets mock
- * 
- * @param count - Nombre de projets à générer
- * @returns Une liste de projets mock
+ * Génère des projets fictifs pour les tests
  */
-export function generateMockProjects(count: number = 10): Project[] {
-  return Array.from({ length: count }, () => generateMockProject());
+export function generateMockProjects(): Project[] {
+  const mockProjects: Project[] = [
+    {
+      id: 'project-1',
+      name: 'Site vitrine',
+      url: 'https://example.com',
+      description: 'Site vitrine pour une entreprise de conseil',
+      createdAt: '2023-01-15T08:30:00Z',
+      updatedAt: '2023-03-22T14:15:00Z',
+      status: 'active',
+      progress: 75
+    },
+    {
+      id: 'project-2',
+      name: 'Boutique en ligne',
+      url: 'https://eshop-example.com',
+      description: 'Boutique de vente en ligne de produits artisanaux',
+      createdAt: '2023-02-10T10:45:00Z',
+      updatedAt: '2023-03-20T16:30:00Z',
+      status: 'active',
+      progress: 60
+    },
+    {
+      id: 'project-3',
+      name: 'Application mobile',
+      url: 'https://mobile-app.example.com',
+      description: 'Application mobile de gestion de tâches',
+      createdAt: '2023-03-05T09:20:00Z',
+      updatedAt: '2023-03-15T11:10:00Z',
+      status: 'pending',
+      progress: 30
+    },
+    {
+      id: 'project-4',
+      name: 'Plateforme de blog',
+      url: 'https://blog-platform.example.com',
+      description: 'Plateforme de publication pour blogueurs',
+      createdAt: '2022-11-18T13:40:00Z',
+      updatedAt: '2023-01-05T09:25:00Z',
+      status: 'completed',
+      progress: 100
+    },
+    {
+      id: 'project-5',
+      name: 'Portail intranet',
+      url: 'https://intranet.example.com',
+      description: 'Portail intranet pour une entreprise de 200 employés',
+      createdAt: '2022-12-20T08:15:00Z',
+      updatedAt: '2023-02-28T15:50:00Z',
+      status: 'archived',
+      progress: 90
+    }
+  ];
+
+  return mockProjects;
 }

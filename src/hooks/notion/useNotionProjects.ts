@@ -6,6 +6,7 @@ import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
+import { NotionResponse } from '@/services/notion/base/types';
 
 /**
  * Hook pour gérer les projets via l'API Notion

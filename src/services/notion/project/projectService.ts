@@ -32,7 +32,8 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
         success: false,
         error: {
           message: error instanceof Error ? error.message : 'Erreur inconnue',
-          details: error
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+          code: error instanceof Error && 'code' in error ? (error as any).code : undefined
         }
       };
     }
@@ -175,7 +176,8 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
         success: false,
         error: {
           message: error instanceof Error ? error.message : 'Erreur inconnue',
-          details: error
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+          code: error instanceof Error && 'code' in error ? (error as any).code : undefined
         }
       };
     }
@@ -196,7 +198,8 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
         success: false,
         error: {
           message: error instanceof Error ? error.message : 'Erreur inconnue',
-          details: error
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+          code: error instanceof Error && 'code' in error ? (error as any).code : undefined
         }
       };
     }
@@ -217,7 +220,8 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
         success: false,
         error: {
           message: error instanceof Error ? error.message : 'Erreur inconnue',
-          details: error
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+          code: error instanceof Error && 'code' in error ? (error as any).code : undefined
         }
       };
     }
@@ -238,7 +242,8 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
         success: false,
         error: {
           message: error instanceof Error ? error.message : 'Erreur inconnue',
-          details: error
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+          code: error instanceof Error && 'code' in error ? (error as any).code : undefined
         }
       };
     }
