@@ -51,7 +51,7 @@ export interface NotionErrorHandlerResult {
  * @returns Interface pour la gestion des erreurs Notion
  */
 export function useNotionErrorHandler(): NotionErrorHandlerResult {
-  const { clearError, lastError, isError } = useErrorHandler();
+  const { handleError, clearError, lastError, isError } = useErrorHandler();
   const { enableDemoMode } = useOperationMode();
   
   /**
