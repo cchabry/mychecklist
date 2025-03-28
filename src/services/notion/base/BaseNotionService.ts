@@ -1,4 +1,3 @@
-
 /**
  * Classe de base pour les services Notion
  * 
@@ -11,13 +10,54 @@ import { NotionResponse, NotionConfig } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
+ * Options de filtrage standard pour les requêtes
+ */
+export interface StandardFilterOptions {
+  /** Identifiant du projet */
+  projectId?: string;
+  /** Identifiant de l'audit */
+  auditId?: string;
+  /** Identifiant de la page */
+  pageId?: string;
+  /** Identifiant de l'exigence */
+  exigenceId?: string;
+  /** Identifiant de l'item de checklist */
+  itemId?: string;
+  /** Statut */
+  status?: string;
+  /** Recherche textuelle */
+  search?: string;
+  /** Options de tri */
+  sort?: {
+    field: string;
+    direction: 'asc' | 'desc';
+  };
+  /** Options de pagination */
+  pagination?: {
+    page: number;
+    pageSize: number;
+  };
+}
+
+/**
+ * Interface de service CRUD standard
+ */
+export interface CrudService<T, C = Partial<T>, U = Partial<T>> {
+  getAll(filter?: StandardFilterOptions): Promise<NotionResponse<T[]>>;
+  getById(id: string): Promise<NotionResponse<T>>;
+  create(data: C): Promise<NotionResponse<T>>;
+  update(id: string, data: U): Promise<NotionResponse<T>>;
+  delete(id: string): Promise<NotionResponse<boolean>>;
+}
+
+/**
  * Génère un ID mock unique pour une entité
  * 
  * @param prefix - Préfixe pour l'ID (pour identifier le type d'entité)
  * @returns Un ID mock unique
  */
 export function generateMockId(prefix: string = 'entity'): string {
-  return `${prefix}-${Date.now()}-${uuidv4().substr(0, 8)}`;
+  return `${prefix}-${Date.now()}-${uuidv4().substring(0, 8)}`;
 }
 
 /**
@@ -27,7 +67,7 @@ export function generateMockId(prefix: string = 'entity'): string {
  * @typeparam C - Type des données pour la création
  * @typeparam U - Type des données pour la mise à jour
  */
-export abstract class BaseNotionService<T, C, U> {
+export abstract class BaseNotionService<T, C = Partial<T>, U = Partial<T>> implements CrudService<T, C, U> {
   /** Nom du service */
   protected readonly serviceName: string;
   
@@ -69,7 +109,7 @@ export abstract class BaseNotionService<T, C, U> {
    * @param filter - Filtre optionnel pour les entités
    * @returns Promise résolvant vers un tableau d'entités
    */
-  protected abstract getMockEntities(filter?: Record<string, any>): Promise<T[]>;
+  protected abstract getMockEntities(filter?: StandardFilterOptions): Promise<T[]>;
   
   /**
    * Crée une entité fictive en mode mock
@@ -93,7 +133,7 @@ export abstract class BaseNotionService<T, C, U> {
    * @param filter - Filtre optionnel pour les entités
    * @returns Promise résolvant vers un tableau d'entités
    */
-  async getAll(filter?: Record<string, any>): Promise<NotionResponse<T[]>> {
+  async getAll(filter?: StandardFilterOptions): Promise<NotionResponse<T[]>> {
     if (this.isMockMode()) {
       try {
         const mockEntities = await this.getMockEntities(filter);
@@ -253,7 +293,7 @@ export abstract class BaseNotionService<T, C, U> {
    * @param filter - Filtre optionnel pour les entités
    * @returns Promise résolvant vers un tableau d'entités
    */
-  protected async getAllImpl(filter?: Record<string, any>): Promise<NotionResponse<T[]>> {
+  protected async getAllImpl(filter?: StandardFilterOptions): Promise<NotionResponse<T[]>> {
     console.log(`Utilisation de filter: ${JSON.stringify(filter)}`);
     // Implémentation par défaut: utiliser les données mock
     return {

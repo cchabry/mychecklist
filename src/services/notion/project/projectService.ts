@@ -9,11 +9,16 @@ import { notionClient } from '../client/notionClient';
 import { NotionResponse } from '../types';
 import { Project } from '@/types/domain';
 import { generateMockProjects } from './utils';
+import { BaseNotionService, StandardFilterOptions } from '../base';
 
 /**
  * Service pour gérer les projets
  */
-class ProjectService {
+class ProjectService extends BaseNotionService<Project, Partial<Project>, Partial<Project>> {
+  constructor() {
+    super('Projet', 'projectsDbId');
+  }
+
   /**
    * Récupère tous les projets
    */
@@ -22,45 +27,58 @@ class ProjectService {
   }
   
   /**
-   * Récupère tous les projets (nouvelle méthode normalisée)
+   * Implémentation de la méthode pour générer des projets fictifs
    */
-  async getAll(filter?: Record<string, any>): Promise<NotionResponse<Project[]>> {
-    // Si en mode mock, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: generateMockProjects()
-      };
+  protected async getMockEntities(options?: StandardFilterOptions): Promise<Project[]> {
+    const projects = generateMockProjects();
+    
+    // Si des options de filtrage sont fournies, appliquer les filtres
+    if (options) {
+      // Exemple de filtrage basique à implémenter selon les besoins
+      // Recherche textuelle
+      if (options.search) {
+        const searchLower = options.search.toLowerCase();
+        return projects.filter(p => 
+          p.name.toLowerCase().includes(searchLower) || 
+          (p.description && p.description.toLowerCase().includes(searchLower))
+        );
+      }
+      
+      // Filtrage par statut
+      if (options.status) {
+        return projects.filter(p => p.status === options.status);
+      }
     }
     
-    // Récupérer la configuration
-    const config = notionClient.getConfig();
-    if (!config.projectsDbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
+    return projects;
+  }
+  
+  /**
+   * Crée une entité fictive en mode mock
+   */
+  protected async mockCreate(data: Partial<Project>): Promise<Project> {
+    const now = new Date().toISOString();
     
-    try {
-      // En mode réel, nous interrogerions l'API Notion ici
-      // Pour l'instant, utilisons quand même des données mock
-      return {
-        success: true,
-        data: generateMockProjects()
-      };
-    } catch (error) {
-      console.error("Erreur lors de la récupération des projets:", error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la récupération des projets: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
+    return {
+      id: `project-${Date.now()}`,
+      name: data.name || 'Nouveau projet',
+      url: data.url || 'https://example.com',
+      description: data.description || '',
+      createdAt: now,
+      updatedAt: now,
+      progress: 0,
+      ...(data.status && { status: data.status })
+    };
+  }
+  
+  /**
+   * Met à jour une entité fictive en mode mock
+   */
+  protected async mockUpdate(entity: Project): Promise<Project> {
+    return {
+      ...entity,
+      updatedAt: new Date().toISOString()
+    };
   }
   
   /**
@@ -71,143 +89,10 @@ class ProjectService {
   }
   
   /**
-   * Récupère un projet par son ID (nouvelle méthode normalisée)
-   */
-  async getById(id: string): Promise<NotionResponse<Project>> {
-    // Si en mode mock, chercher dans les données simulées
-    if (notionClient.isMockMode()) {
-      const mockProjects = generateMockProjects();
-      const project = mockProjects.find(p => p.id === id);
-      
-      if (!project) {
-        return {
-          success: false,
-          error: {
-            message: `Projet avec l'ID ${id} non trouvé`
-          }
-        };
-      }
-      
-      return {
-        success: true,
-        data: project
-      };
-    }
-    
-    // Récupérer la configuration
-    const config = notionClient.getConfig();
-    if (!config.projectsDbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    try {
-      // En mode réel, nous interrogerions l'API Notion ici
-      // Pour l'instant, simulons un projet
-      const mockProjects = generateMockProjects();
-      const project = mockProjects.find(p => p.id === id);
-      
-      if (!project) {
-        return {
-          success: false,
-          error: {
-            message: `Projet avec l'ID ${id} non trouvé`
-          }
-        };
-      }
-      
-      return {
-        success: true,
-        data: project
-      };
-    } catch (error) {
-      console.error(`Erreur lors de la récupération du projet ${id}:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la récupération du projet: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
-  }
-  
-  /**
    * Crée un nouveau projet
    */
   async createProject(projectData: Partial<Project>): Promise<NotionResponse<Project>> {
     return this.create(projectData);
-  }
-  
-  /**
-   * Crée un nouveau projet (nouvelle méthode normalisée)
-   */
-  async create(projectData: Partial<Project>): Promise<NotionResponse<Project>> {
-    // Si en mode mock, créer un projet simulé
-    if (notionClient.isMockMode()) {
-      const now = new Date().toISOString();
-      
-      const newProject: Project = {
-        id: `project-${Date.now()}`,
-        name: projectData.name || 'Nouveau projet',
-        url: projectData.url || 'https://example.com',
-        description: projectData.description || '',
-        createdAt: now,
-        updatedAt: now,
-        progress: 0
-      };
-      
-      return {
-        success: true,
-        data: newProject
-      };
-    }
-    
-    // Récupérer la configuration
-    const config = notionClient.getConfig();
-    if (!config.projectsDbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    try {
-      // En mode réel, nous interrogerions l'API Notion ici
-      // Pour l'instant, simulons la création d'un projet
-      const now = new Date().toISOString();
-      
-      const newProject: Project = {
-        id: `project-${Date.now()}`,
-        name: projectData.name || 'Nouveau projet',
-        url: projectData.url || 'https://example.com',
-        description: projectData.description || '',
-        createdAt: now,
-        updatedAt: now,
-        progress: 0,
-        ...(projectData.status && { status: projectData.status })
-      };
-      
-      return {
-        success: true,
-        data: newProject
-      };
-    } catch (error) {
-      console.error("Erreur lors de la création du projet:", error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la création du projet: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
   }
   
   /**
@@ -218,127 +103,10 @@ class ProjectService {
   }
   
   /**
-   * Met à jour un projet existant (nouvelle méthode normalisée)
-   */
-  async update(id: string, projectData: Partial<Project>): Promise<NotionResponse<Project>> {
-    // Si en mode mock, mettre à jour un projet simulé
-    if (notionClient.isMockMode()) {
-      // Chercher le projet dans les données simulées
-      const mockProjects = generateMockProjects();
-      const existingProject = mockProjects.find(p => p.id === id);
-      
-      if (!existingProject) {
-        return {
-          success: false,
-          error: {
-            message: `Projet avec l'ID ${id} non trouvé`
-          }
-        };
-      }
-      
-      // Mettre à jour le projet
-      const updatedProject: Project = {
-        ...existingProject,
-        ...projectData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      return {
-        success: true,
-        data: updatedProject
-      };
-    }
-    
-    // Récupérer la configuration
-    const config = notionClient.getConfig();
-    if (!config.projectsDbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    try {
-      // D'abord, récupérer le projet existant
-      const existingProjectResponse = await this.getById(id);
-      if (!existingProjectResponse.success) {
-        return existingProjectResponse;
-      }
-      
-      // Mettre à jour le projet
-      const updatedProject: Project = {
-        ...existingProjectResponse.data as Project,
-        ...projectData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      // En mode réel, nous mettrions à jour le projet dans Notion ici
-      // Pour l'instant, simulons la mise à jour
-      return {
-        success: true,
-        data: updatedProject
-      };
-    } catch (error) {
-      console.error(`Erreur lors de la mise à jour du projet ${id}:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la mise à jour du projet: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
-  }
-  
-  /**
    * Supprime un projet
    */
   async deleteProject(id: string): Promise<NotionResponse<boolean>> {
     return this.delete(id);
-  }
-  
-  /**
-   * Supprime un projet (nouvelle méthode normalisée)
-   */
-  async delete(id: string): Promise<NotionResponse<boolean>> {
-    // Si en mode mock, simuler la suppression
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: true
-      };
-    }
-    
-    // Récupérer la configuration
-    const config = notionClient.getConfig();
-    if (!config.projectsDbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    try {
-      // En mode réel, nous supprimerions le projet dans Notion ici
-      // Pour l'instant, simulons la suppression
-      return {
-        success: true,
-        data: true
-      };
-    } catch (error) {
-      console.error(`Erreur lors de la suppression du projet ${id}:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la suppression du projet: ${error instanceof Error ? error.message : String(error)}`,
-          details: error
-        }
-      };
-    }
   }
 }
 
