@@ -40,6 +40,19 @@ export interface NotionResponse<T> {
 }
 
 /**
+ * Réponse d'API générique
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    message: string;
+    code?: string;
+    status?: number;
+  };
+}
+
+/**
  * Configuration de base pour Notion API
  */
 export interface NotionConfig {
@@ -53,4 +66,17 @@ export interface NotionConfig {
   progressDbId?: string;
   mode?: 'real' | 'mock' | 'auto';
   debug?: boolean;
+}
+
+/**
+ * Résultat du test de connexion
+ */
+export interface ConnectionTestResult {
+  success: boolean;
+  user?: string;
+  workspaceName?: string;
+  projectsDbName?: string;
+  checklistsDbName?: string;
+  error?: string;
+  details?: unknown;
 }

@@ -8,11 +8,10 @@
 // Exporter les types de base
 export * from './BasicTypes';
 export * from './ClientTypes';
-export { NotionConfig } from '../base/types';
+export type { NotionConfig } from '../base/types';
 export * from './EntityTypes';
 export * from './ResponseTypes';
 export * from './ServiceInterfaces';
 
 // Exporter les types spécifiques aux entités
 export * from './ConfigTypes';
-

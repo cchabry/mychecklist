@@ -163,7 +163,11 @@ class NotionClient {
         return await notionMockClient.testConnection();
       }
       
-      const response = await notionHttpClient.get('/users/me');
+      const response = await notionHttpClient.get<{
+        name?: string;
+        person?: { email?: string };
+        bot?: { workspace_name?: string };
+      }>('/users/me');
       
       if (!response.success) {
         return {
@@ -172,11 +176,22 @@ class NotionClient {
         };
       }
       
-      const user = response.data;
+      const userData = response.data;
+      if (!userData) {
+        return {
+          success: false,
+          error: 'Données utilisateur invalides'
+        };
+      }
+      
+      // Déterminer le nom d'utilisateur et l'espace de travail de façon sûre
+      const userName = userData.name || (userData.person?.email) || 'Utilisateur inconnu';
+      const workspace = userData.bot?.workspace_name || '';
+      
       return {
         success: true,
-        user: user.name,
-        workspaceName: user.workspace_name
+        user: userName,
+        workspaceName: workspace
       };
     } catch (error) {
       return {

@@ -8,7 +8,7 @@
 
 import { notionHttpClient } from './notionHttpClient';
 import { notionMockClient } from './mock/notionMockClient';
-import { NotionConfig, ConnectionTestResult } from '../types';
+import { NotionConfig, ConnectionTestResult } from '../base/types';
 
 /**
  * Teste la connexion à l'API Notion
@@ -36,7 +36,11 @@ export async function testConnection(
   
   try {
     // Récupérer les informations sur l'utilisateur actuel
-    const userResponse = await notionHttpClient.get('/users/me');
+    const userResponse = await notionHttpClient.get<{
+      name?: string;
+      person?: { email?: string };
+      bot?: { workspace_name?: string };
+    }>('/users/me');
     
     if (!userResponse.success) {
       return {
@@ -46,11 +50,13 @@ export async function testConnection(
     }
     
     // Typer explicitement les données de l'utilisateur
-    const userData = userResponse.data as {
-      name?: string;
-      person?: { email?: string };
-      bot?: { workspace_name?: string };
-    };
+    const userData = userResponse.data;
+    if (!userData) {
+      return {
+        success: false,
+        error: 'Données utilisateur invalides'
+      };
+    }
     
     // Déterminer le nom d'utilisateur et l'espace de travail
     const userName = userData.name || (userData.person?.email) || 'Utilisateur inconnu';
@@ -61,20 +67,22 @@ export async function testConnection(
     let checklistsDbName = '';
     
     if (config.projectsDbId) {
-      const projectsDbResponse = await notionHttpClient.get(`/databases/${config.projectsDbId}`);
-      if (projectsDbResponse.success) {
-        // Typer explicitement les données de la base de données
-        const dbData = projectsDbResponse.data as { title?: Array<{ plain_text?: string }> };
-        projectsDbName = dbData.title?.[0]?.plain_text || 'Base de données projets';
+      const projectsDbResponse = await notionHttpClient.get<{
+        title?: Array<{ plain_text?: string }>;
+      }>(`/databases/${config.projectsDbId}`);
+      
+      if (projectsDbResponse.success && projectsDbResponse.data) {
+        projectsDbName = projectsDbResponse.data.title?.[0]?.plain_text || 'Base de données projets';
       }
     }
     
-    if (config.checklistsDbId) {
-      const checklistsDbResponse = await notionHttpClient.get(`/databases/${config.checklistsDbId}`);
-      if (checklistsDbResponse.success) {
-        // Typer explicitement les données de la base de données
-        const dbData = checklistsDbResponse.data as { title?: Array<{ plain_text?: string }> };
-        checklistsDbName = dbData.title?.[0]?.plain_text || 'Base de données checklist';
+    if (config.checklistDbId) {
+      const checklistsDbResponse = await notionHttpClient.get<{
+        title?: Array<{ plain_text?: string }>;
+      }>(`/databases/${config.checklistDbId}`);
+      
+      if (checklistsDbResponse.success && checklistsDbResponse.data) {
+        checklistsDbName = checklistsDbResponse.data.title?.[0]?.plain_text || 'Base de données checklist';
       }
     }
     

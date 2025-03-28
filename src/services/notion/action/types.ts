@@ -5,6 +5,7 @@
 
 import { CorrectiveAction, ActionProgress } from '@/types/domain';
 import { StatusType, PriorityLevel, ComplianceLevel } from '@/types/enums';
+import { ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain/actionStatus';
 
 /**
  * Entrée pour la création d'une action
@@ -17,6 +18,19 @@ export interface CreateActionInput {
   responsible: string;
   comment?: string;
   status: StatusType;
+}
+
+/**
+ * Version interne du CreateActionInput pour la compatibilité avec les tests
+ */
+export interface CreateActionInputInternal {
+  evaluationId: string;
+  targetScore: ComplianceStatus | ComplianceLevel;
+  priority: ActionPriority | PriorityLevel;
+  dueDate: string;
+  responsible: string;
+  comment?: string;
+  status: ActionStatus | StatusType;
 }
 
 /**
