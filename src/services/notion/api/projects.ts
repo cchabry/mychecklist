@@ -11,7 +11,7 @@ import { projectService } from '../project';
 import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/types/api/domain/projectApi';
 import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constants/errorMessages';
-import { mapStringToProjectStatus } from '@/services/notion/project/utils';
+import { mapStringToProjectStatus } from '@/types/enums';
 
 /**
  * Implémentation de l'API de projets utilisant le service Notion

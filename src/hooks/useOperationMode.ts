@@ -1,83 +1,76 @@
 
+/**
+ * Hook pour utiliser et gérer le mode d'opération
+ * 
+ * Ce hook permet d'accéder au mode d'opération actuel (réel ou démo)
+ * et fournit des méthodes pour le modifier.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
-import { operationModeService } from '@/services/operationMode/operationModeService';
-import { OperationModeType, OperationModeState } from '@/services/operationMode/operationModeService';
+import { operationModeService } from '@/services/operationMode';
+import { OperationMode, OperationModeState } from '@/types/operation';
 
 /**
- * Interface du hook useOperationMode
+ * Interface pour le hook useOperationMode
  */
 export interface UseOperationMode {
-  mode: OperationModeType;
-  state: OperationModeState;
-  isDemoMode: boolean;
-  isRealMode: boolean;
-  enableDemoMode: (reason?: string) => void;
-  enableRealMode: (reason?: string) => void;
-  reset: (reason?: string) => void;
+  mode: OperationMode;           // Mode actuel (real ou demo)
+  state: OperationModeState;     // État complet
+  isRealMode: boolean;           // True si en mode réel (API Notion)
+  isDemoMode: boolean;           // True si en mode démo (données simulées)
+  enableRealMode: () => void;    // Passer en mode réel
+  enableDemoMode: (reason: string) => void; // Passer en mode démo avec une raison
+  resetMode: () => void;         // Réinitialiser le mode
 }
 
 /**
- * Hook pour accéder et modifier le mode opérationnel de l'application
+ * Hook pour gérer le mode d'opération
  * 
- * Ce hook permet d'interagir avec le service de mode opérationnel
- * depuis les composants React.
- * 
- * Exemple d'utilisation:
+ * @example
  * ```tsx
- * const { isDemoMode, enableRealMode } = useOperationMode();
+ * const { mode, isRealMode, enableDemoMode } = useOperationMode();
  * 
- * // Affichage conditionnel selon le mode
- * if (isDemoMode) {
- *   return <div>Mode démo actif</div>;
- * }
- * 
- * // Changer le mode
- * const handleSwitchToReal = () => {
- *   enableRealMode("Passage en production");
- * };
+ * // Pour passer en mode démo
+ * enableDemoMode('Choix utilisateur');
  * ```
  */
-export const useOperationMode = (): UseOperationMode => {
-  const [mode, setMode] = useState<OperationModeType>(operationModeService.getMode());
+export function useOperationMode(): UseOperationMode {
+  const [mode, setMode] = useState<OperationMode>(operationModeService.getMode());
   const [state, setState] = useState<OperationModeState>(operationModeService.getState());
-
-  // S'abonner aux changements d'état du service
+  
+  // S'abonner aux changements d'état
   useEffect(() => {
-    const unsubscribe = operationModeService.subscribe((newState: OperationModeState) => {
+    const unsubscribe = operationModeService.subscribe((newState) => {
       setMode(newState.mode);
       setState(newState);
     });
-    
-    // Se désabonner à la destruction du composant
     return unsubscribe;
   }, []);
-
-  // Fonctions pour changer le mode
-  const enableDemoMode = useCallback((reason?: string) => {
-    operationModeService.enableDemoMode(reason || "Changement en mode démo");
+  
+  // Passer en mode réel
+  const enableRealMode = useCallback(() => {
+    operationModeService.enableRealMode();
   }, []);
-
-  const enableRealMode = useCallback((reason?: string) => {
-    operationModeService.enableRealMode(reason || "Changement en mode réel");
+  
+  // Passer en mode démo
+  const enableDemoMode = useCallback((reason: string) => {
+    operationModeService.enableDemoMode(reason);
   }, []);
-
-  const reset = useCallback((reason?: string) => {
-    operationModeService.reset(reason);
+  
+  // Réinitialiser le mode
+  const resetMode = useCallback(() => {
+    operationModeService.reset();
   }, []);
-
-  // Valeurs dérivées
-  const isDemoMode = mode === 'demo';
-  const isRealMode = mode === 'real';
-
+  
   return {
     mode,
     state,
-    isDemoMode,
-    isRealMode,
-    enableDemoMode,
+    isRealMode: mode === 'real',
+    isDemoMode: mode === 'demo',
     enableRealMode,
-    reset
+    enableDemoMode,
+    resetMode
   };
-};
+}
 
 export default useOperationMode;

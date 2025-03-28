@@ -13,6 +13,8 @@ export interface ChecklistItem {
   id: string;
   /** Titre de l'item (règle ou consigne) */
   consigne: string;
+  /** Nom court de l'item */
+  name: string;
   /** Description détaillée de l'item */
   description: string;
   /** Catégorie principale (ex: médias, technique) */
@@ -29,4 +31,10 @@ export interface ChecklistItem {
   effort: number;
   /** Niveau de priorité (1-5) */
   priority: number;
+  /** Identifiant du projet associé (si applicable) */
+  projectId?: string;
+  /** Date de création */
+  createdAt?: string;
+  /** Date de dernière mise à jour */
+  updatedAt?: string;
 }

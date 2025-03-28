@@ -3,14 +3,14 @@
  * Point d'entrée pour la fonctionnalité projets
  */
 
-// Importer les services API
-import { projectsApi } from '@/services/notion/api/projects';
-
 // Exporter les types
 export * from './types';
 
 // Exporter les hooks
 export * from './hooks';
+
+// Importer les services API
+import { projectsApi } from '@/services/notion/api/projects';
 
 /**
  * Récupère tous les projets

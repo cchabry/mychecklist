@@ -14,13 +14,13 @@ class ExigenceService {
   /**
    * Récupère toutes les exigences d'un projet
    */
-  async getExigences(projectId: string): Promise<NotionResponse<Exigence[]>> {
+  async getProjectExigences(projectId: string): Promise<NotionResponse<Exigence[]>> {
     const config = notionClient.getConfig();
     
     if (!config?.exigencesDbId) {
       return { 
         success: false, 
-        error: { message: "Base de données des exigences non configurée" } 
+        error: { message: "Base de données d'exigences non configurée" } 
       };
     }
     

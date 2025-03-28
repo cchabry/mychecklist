@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
@@ -8,40 +7,18 @@ import { PageHeader } from '@/components/layout';
 import { ProjectCard } from '@/components/data-display/ProjectCard';
 import { Project } from '@/types/domain';
 import { ProjectStatus } from '@/types/enums';
+import { useProjects, useNavigate } from '@/hooks';
 
 /**
- * Page d'accueil affichant les projets et permettant d'en créer de nouveaux
+ * Page d'accueil de l'application
+ * 
+ * Cette page affiche le tableau de bord principal avec les projets et leurs statuts.
  */
 const Dashboard = () => {
+  const { data: projects, isLoading, error } = useProjects();
+  const navigate = useNavigate();
+  
   const [search, setSearch] = useState('');
-  const [projects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'Site Corporate',
-      url: 'www.example.com',
-      createdAt: '2023-01-01',
-      updatedAt: '2023-05-15',
-      status: 'IN_PROGRESS', // Utiliser la chaîne directement au lieu de enum
-      lastAuditDate: '2023-04-20'
-    },
-    {
-      id: '2',
-      name: 'Application Mobile',
-      url: 'app.example.org',
-      createdAt: '2023-02-10',
-      updatedAt: '2023-04-05',
-      status: 'NEW' // Utiliser la chaîne directement au lieu de enum
-    },
-    {
-      id: '3',
-      name: 'Plateforme E-commerce',
-      url: 'shop.example.net',
-      createdAt: '2022-11-15',
-      updatedAt: '2023-03-20',
-      status: 'COMPLETED', // Utiliser la chaîne directement au lieu de enum
-      lastAuditDate: '2023-03-10'
-    }
-  ]);
   
   // Filtrer les projets selon la recherche
   const filteredProjects = projects.filter(project => 
@@ -49,6 +26,17 @@ const Dashboard = () => {
     (project.url?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
+  // Fonction de regroupement des projets par statut
+  const getProjectsByStatus = (statusToFilter: string) => {
+    if (!projects) return [];
+    return projects.filter(project => project.status === statusToFilter);
+  };
+  
+  // Groupes de projets par statut
+  const activeProjects = projects ? getProjectsByStatus(ProjectStatus.ACTIVE) : [];
+  const pendingProjects = projects ? getProjectsByStatus(ProjectStatus.PENDING) : [];
+  const completedProjects = projects ? getProjectsByStatus(ProjectStatus.COMPLETED) : [];
+  
   return (
     <div className="p-6">
       <PageHeader 

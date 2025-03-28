@@ -1,89 +1,87 @@
 
 /**
- * Énumérations utilisées dans l'application
+ * Définitions des énumérations utilisées dans l'application
+ * 
+ * Ce fichier centralise toutes les énumérations pour garantir
+ * leur cohérence à travers l'application.
  */
-
-/**
- * Statut d'un projet
- */
-export type ProjectStatus = 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
 
 /**
  * Niveau d'importance d'une exigence
  */
 export enum ImportanceLevel {
-  /** Majeur - niveau le plus élevé */
-  Major = 'MAJOR',
-  /** Important */
-  Important = 'IMPORTANT',
-  /** Moyen */
-  Medium = 'MEDIUM',
-  /** Mineur */
-  Minor = 'MINOR',
-  /** Non applicable */
-  NotApplicable = 'NOT_APPLICABLE'
+  NotApplicable = "N/A", // Non applicable
+  Minor = "Mineur",      // Importance mineure
+  Medium = "Moyen",      // Importance moyenne
+  Important = "Important", // Importance élevée
+  Major = "Majeur"       // Importance majeure/critique
+}
+
+/**
+ * Niveau de priorité d'une action corrective
+ */
+export enum PriorityLevel {
+  Low = "Faible",       // Priorité basse
+  Medium = "Moyenne",   // Priorité moyenne
+  High = "Haute",       // Priorité élevée
+  Critical = "Critique" // Priorité critique
+}
+
+/**
+ * Statut d'une entité (action, tâche, etc.)
+ */
+export enum StatusType {
+  Todo = "À faire",     // À faire
+  InProgress = "En cours", // En cours de réalisation
+  Done = "Terminé",     // Terminé
+  Canceled = "Annulé"   // Annulé
 }
 
 /**
  * Niveau de conformité d'une évaluation
  */
 export enum ComplianceLevel {
-  /** Conforme aux exigences */
-  Compliant = 'COMPLIANT',
-  /** Partiellement conforme */
-  PartiallyCompliant = 'PARTIALLY_COMPLIANT',
-  /** Non conforme */
-  NonCompliant = 'NON_COMPLIANT',
-  /** Non applicable */
-  NotApplicable = 'NOT_APPLICABLE'
+  NotApplicable = "Non applicable", // Non applicable pour cette page
+  NonCompliant = "Non conforme",    // Ne respecte pas l'exigence
+  PartiallyCompliant = "Partiellement conforme", // Respecte partiellement l'exigence
+  Compliant = "Conforme"           // Respecte pleinement l'exigence
 }
 
 /**
- * Priorité d'une action corrective
+ * Statut d'un projet
  */
-export enum PriorityLevel {
-  /** Priorité basse */
-  Low = 'LOW',
-  /** Priorité moyenne */
-  Medium = 'MEDIUM',
-  /** Priorité haute */
-  High = 'HIGH',
-  /** Priorité critique */
-  Critical = 'CRITICAL'
+export enum ProjectStatus {
+  PENDING = "En attente",
+  ACTIVE = "En cours",
+  COMPLETED = "Terminé",
+  ARCHIVED = "Archivé"
 }
 
 /**
- * Statut d'une action corrective
- */
-export enum StatusType {
-  /** À faire */
-  Todo = 'TODO',
-  /** En cours */
-  InProgress = 'IN_PROGRESS',
-  /** Terminée */
-  Done = 'DONE',
-  /** Bloquée */
-  Blocked = 'BLOCKED',
-  /** Annulée */
-  Cancelled = 'CANCELLED'
-}
-
-/**
- * Mapping entre statuts de projet pour assurer la compatibilité
+ * Mapping des chaînes de caractères vers les statuts de projet
  */
 export const PROJECT_STATUS_MAPPING: Record<string, ProjectStatus> = {
-  'active': 'IN_PROGRESS',
-  'completed': 'COMPLETED',
-  'pending': 'NEW',
-  'archived': 'CANCELLED',
-  'En cours': 'IN_PROGRESS',
-  'Terminé': 'COMPLETED',
-  'Nouveau': 'NEW',
-  'En pause': 'PAUSED',
-  'Annulé': 'CANCELLED',
-  'NEW': 'NEW',
-  'IN_PROGRESS': 'IN_PROGRESS',
-  'COMPLETED': 'COMPLETED',
-  'PAUSED': 'PAUSED',
-  'CANCELLED': 'CANCELLED'
+  "En attente": ProjectStatus.PENDING,
+  "pending": ProjectStatus.PENDING,
+  "PENDING": ProjectStatus.PENDING,
+  
+  "En cours": ProjectStatus.ACTIVE,
+  "active": ProjectStatus.ACTIVE,
+  "ACTIVE": ProjectStatus.ACTIVE,
+  
+  "Terminé": ProjectStatus.COMPLETED,
+  "completed": ProjectStatus.COMPLETED,
+  "COMPLETED": ProjectStatus.COMPLETED,
+  
+  "Archivé": ProjectStatus.ARCHIVED,
+  "archived": ProjectStatus.ARCHIVED,
+  "ARCHIVED": ProjectStatus.ARCHIVED
 };
+
+/**
+ * Convertit une chaîne de caractères en ProjectStatus
+ */
+export function mapStringToProjectStatus(status: string): ProjectStatus {
+  const mappedStatus = PROJECT_STATUS_MAPPING[status];
+  return mappedStatus || ProjectStatus.ACTIVE; // Valeur par défaut
+}
