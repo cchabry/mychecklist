@@ -19,8 +19,8 @@ export function adaptDomainToFeature(item: DomainChecklistItem): FeatureChecklis
     reference: item.reference || [],
     profil: item.profil || [],
     phase: item.phase || [],
-    effort: getEffortNumber(item.effort),
-    priority: getPriorityNumber(item.priority)
+    effort: getEffortNumber(item.effort || 'MOYEN'),
+    priority: getPriorityNumber(item.priority || 'MOYENNE')
   };
 }
 

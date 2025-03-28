@@ -7,6 +7,7 @@
  */
 
 import { NotionConfig } from '../types/NotionConfig';
+import { NotionResponse } from '../types/ResponseTypes';
 
 /**
  * Configuration par défaut pour le client Notion en mode démonstration
@@ -87,14 +88,20 @@ class NotionClient {
    * @param endpoint Point de terminaison de l'API
    * @returns Promise résolvant vers la réponse
    */
-  public async get<T>(endpoint: string): Promise<T> {
+  public async get<T>(endpoint: string): Promise<NotionResponse<T>> {
     if (this.isMockMode()) {
       console.log(`[MOCK] GET request to ${endpoint}`);
-      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+      return {
+        success: false,
+        error: { message: 'Mock mode active, but no mock data provided for this endpoint' }
+      };
     }
     
     // Implémentation réelle à ajouter ultérieurement
-    throw new Error('Real API mode not yet implemented');
+    return {
+      success: false,
+      error: { message: 'Real API mode not yet implemented' }
+    };
   }
   
   /**
@@ -104,14 +111,20 @@ class NotionClient {
    * @param data Données à envoyer
    * @returns Promise résolvant vers la réponse
    */
-  public async post<T>(endpoint: string, data: unknown): Promise<T> {
+  public async post<T>(endpoint: string, data: unknown): Promise<NotionResponse<T>> {
     if (this.isMockMode()) {
       console.log(`[MOCK] POST request to ${endpoint} with data:`, data);
-      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+      return {
+        success: false,
+        error: { message: 'Mock mode active, but no mock data provided for this endpoint' }
+      };
     }
     
     // Implémentation réelle à ajouter ultérieurement
-    throw new Error('Real API mode not yet implemented');
+    return {
+      success: false,
+      error: { message: 'Real API mode not yet implemented' }
+    };
   }
   
   /**
@@ -121,14 +134,20 @@ class NotionClient {
    * @param data Données à envoyer
    * @returns Promise résolvant vers la réponse
    */
-  public async patch<T>(endpoint: string, data: unknown): Promise<T> {
+  public async patch<T>(endpoint: string, data: unknown): Promise<NotionResponse<T>> {
     if (this.isMockMode()) {
       console.log(`[MOCK] PATCH request to ${endpoint} with data:`, data);
-      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+      return {
+        success: false,
+        error: { message: 'Mock mode active, but no mock data provided for this endpoint' }
+      };
     }
     
     // Implémentation réelle à ajouter ultérieurement
-    throw new Error('Real API mode not yet implemented');
+    return {
+      success: false,
+      error: { message: 'Real API mode not yet implemented' }
+    };
   }
   
   /**
@@ -137,14 +156,20 @@ class NotionClient {
    * @param endpoint Point de terminaison de l'API
    * @returns Promise résolvant vers la réponse
    */
-  public async delete<T>(endpoint: string): Promise<T> {
+  public async delete<T>(endpoint: string): Promise<NotionResponse<T>> {
     if (this.isMockMode()) {
       console.log(`[MOCK] DELETE request to ${endpoint}`);
-      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+      return {
+        success: false,
+        error: { message: 'Mock mode active, but no mock data provided for this endpoint' }
+      };
     }
     
     // Implémentation réelle à ajouter ultérieurement
-    throw new Error('Real API mode not yet implemented');
+    return {
+      success: false,
+      error: { message: 'Real API mode not yet implemented' }
+    };
   }
 }
 

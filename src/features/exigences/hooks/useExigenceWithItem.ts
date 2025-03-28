@@ -10,7 +10,6 @@ import { useState, useEffect } from 'react';
 import { useExigenceById } from './useExigenceById';
 import { useChecklistItemById } from '@/features/checklist/hooks';
 import { ExigenceWithItem } from '../types';
-import { adaptFeatureToDomain } from '@/features/checklist/adapters';
 
 /**
  * Hook pour récupérer une exigence enrichie avec les informations de son item de checklist associé

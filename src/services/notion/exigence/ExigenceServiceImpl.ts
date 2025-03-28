@@ -9,11 +9,12 @@ import { NotionResponse } from '../types';
 import { Exigence } from '@/types/domain';
 import { CreateExigenceInput } from './types';
 import { generateMockExigences } from './utils';
+import { CrudService } from '../types/ServiceInterfaces';
 
 /**
  * Implémentation standardisée du service d'exigences
  */
-export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExigenceInput, Partial<Exigence>> {
+export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExigenceInput, Partial<Exigence>> implements CrudService<Exigence, CreateExigenceInput, Partial<Exigence>> {
   constructor() {
     super('Exigence', 'projectsDbId');
   }

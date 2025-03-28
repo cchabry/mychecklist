@@ -1,15 +1,13 @@
 
 /**
- * Point d'entrée pour les services de base
- * 
- * Ce module exporte les classes et interfaces de base pour les services Notion.
+ * Point d'entrée pour les classes et utilitaires de base
  */
 
-// Exporter la classe de base et les utilitaires
-export { BaseNotionService, generateMockId } from './BaseNotionService';
+// Exporter la classe de service de base
+export { BaseNotionService } from './BaseNotionService';
 
-// Exporter les interfaces de base
-export type { StandardFilterOptions } from './BaseNotionService';
+// Exporter les utilitaires
+export { generateMockId } from './utils';
 
-// Exporter les interfaces de service depuis le module de types
-export type { CrudService, ChildEntityService, BatchService } from '../types/ServiceInterfaces';
+// Exporter les types
+export * from './types';

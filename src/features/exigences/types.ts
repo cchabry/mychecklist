@@ -8,7 +8,7 @@
  */
 
 import { ImportanceLevel } from '@/types/enums';
-import { ChecklistItem } from '@/types/domain';
+import { ChecklistItem } from '@/features/checklist/types';
 
 /**
  * Options de tri pour les exigences

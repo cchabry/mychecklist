@@ -7,7 +7,7 @@
 // Exporter les services principaux
 export * from './operationMode';
 export { notionService } from './notion/notionService';
-export { notionClient } from './notion/notionClient';
+export { notionClient } from './notion/client/notionClient';
 
 // Export the cache service
 export * from './cache/cacheService';
@@ -20,15 +20,12 @@ export * from './api';
 export {
   // Types are exported via the notion module
   // Services
-  notionBaseService,
   notionApi,
   checklistService,
   exigenceService,
-  exigenceServiceImpl,
   samplePageService,
-  samplePageServiceImpl,
   auditService,
   evaluationService,
-  actionService,
-  progressService
+  actionService
 } from './notion';
+
