@@ -1,3 +1,4 @@
+
 /**
  * Classe de base pour les services Notion
  * 
@@ -6,7 +7,8 @@
  */
 
 import { notionClient } from '../client/notionClient';
-import { NotionResponse, NotionConfig, CrudService } from '../types';
+import { NotionResponse, NotionConfig } from '../types';
+import { CrudService } from '../types/ServiceInterfaces';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
