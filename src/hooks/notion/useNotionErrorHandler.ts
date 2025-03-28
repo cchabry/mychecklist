@@ -110,7 +110,7 @@ export function useNotionErrorHandler(): NotionErrorHandlerResult {
   return {
     handleNotionError: handleNotionApiError,
     clearError,
-    lastError,
+    lastError, // The type here needs to match the expected return type: AppError | undefined
     isError
   };
 }
