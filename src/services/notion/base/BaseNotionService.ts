@@ -6,7 +6,7 @@
  */
 
 import { notionClient } from '../client/notionClient';
-import { NotionResponse, NotionConfig } from '../types';
+import { NotionResponse, NotionConfig, CrudService } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -40,17 +40,6 @@ export interface StandardFilterOptions {
 }
 
 /**
- * Interface de service CRUD standard
- */
-export interface CrudService<T, C = Partial<T>, U = Partial<T>> {
-  getAll(filter?: StandardFilterOptions): Promise<NotionResponse<T[]>>;
-  getById(id: string): Promise<NotionResponse<T>>;
-  create(data: C): Promise<NotionResponse<T>>;
-  update(id: string, data: U): Promise<NotionResponse<T>>;
-  delete(id: string): Promise<NotionResponse<boolean>>;
-}
-
-/**
  * Génère un ID mock unique pour une entité
  * 
  * @param prefix - Préfixe pour l'ID (pour identifier le type d'entité)
@@ -67,7 +56,7 @@ export function generateMockId(prefix: string = 'entity'): string {
  * @typeparam C - Type des données pour la création
  * @typeparam U - Type des données pour la mise à jour
  */
-export abstract class BaseNotionService<T, C = Partial<T>, U = Partial<T>> implements CrudService<T, C, U> {
+export abstract class BaseNotionService<T, C = Partial<T>, U = Partial<T>> implements CrudService<T, StandardFilterOptions, C, U> {
   /** Nom du service */
   protected readonly serviceName: string;
   

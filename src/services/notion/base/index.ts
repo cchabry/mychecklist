@@ -9,4 +9,7 @@
 export { BaseNotionService, generateMockId } from './BaseNotionService';
 
 // Exporter les interfaces de base
-export type { StandardFilterOptions, CrudService } from './BaseNotionService';
+export type { StandardFilterOptions } from './BaseNotionService';
+
+// Exporter les interfaces de service depuis le module de types
+export { CrudService, ChildEntityService, BatchService } from '../types';

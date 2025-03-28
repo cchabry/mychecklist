@@ -1,3 +1,4 @@
+
 /**
  * Service de projets
  * 
@@ -32,7 +33,6 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
     
     // Si des options de filtrage sont fournies, appliquer les filtres
     if (options) {
-      // Exemple de filtrage basique à implémenter selon les besoins
       // Recherche textuelle
       if (options.search) {
         const searchLower = options.search.toLowerCase();
