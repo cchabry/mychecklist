@@ -3,10 +3,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
 import App from './App.tsx'
 import './index.css'
 
-// Création d'un client de requête
+// Create a React Query client with standardized configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,13 +18,13 @@ const queryClient = new QueryClient({
   },
 })
 
-// Point d'entrée de l'application
-// Rendu de l'application dans l'élément racine
+// Application entry point
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
+        <Toaster position="top-right" richColors />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>
