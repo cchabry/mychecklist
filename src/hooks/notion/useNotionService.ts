@@ -1,26 +1,19 @@
 
 /**
  * Hook pour utiliser le service Notion
- * 
- * Ce hook fournit une interface unifiée pour interagir avec le service Notion,
- * gérer la configuration et tester la connexion.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { notionService } from '@/services/notion/notionService';
-import { ConnectionStatus } from '@/services/notion/types';
+import { ConnectionStatus, ConnectionTestResult } from '@/services/notion/types';
 import { toast } from 'sonner';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
-import { NotionServiceHookResult } from './types';
-import { NotionTestResponse } from '@/types/api/notionApi';
 
 /**
  * Hook principal pour accéder au service Notion
- * 
- * @returns Interface pour interagir avec le service Notion
  */
-export function useNotionService(): NotionServiceHookResult {
+export function useNotionService() {
   const [isConfigured, setIsConfigured] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(ConnectionStatus.Disconnected);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,8 +45,8 @@ export function useNotionService(): NotionServiceHookResult {
       return true;
     } catch (error) {
       handleNotionError(error, {
-        endpoint: 'configuration',
-        toastTitle: 'Erreur de configuration'
+        toastTitle: 'Erreur de configuration',
+        endpoint: 'configuration'
       });
       return false;
     }
@@ -62,7 +55,7 @@ export function useNotionService(): NotionServiceHookResult {
   /**
    * Teste la connexion à l'API Notion
    */
-  const testConnection = useCallback(async (): Promise<NotionTestResponse> => {
+  const testConnection = useCallback(async (): Promise<ConnectionTestResult> => {
     setIsLoading(true);
     clearError();
     
@@ -73,7 +66,7 @@ export function useNotionService(): NotionServiceHookResult {
       
       if (!result.success) {
         handleNotionError(new Error(result.error || 'Erreur de connexion'), {
-          showToast: false,
+          showToast: false, // On gère l'affichage nous-mêmes ci-dessous
           endpoint: 'test-connection'
         });
         
@@ -86,27 +79,22 @@ export function useNotionService(): NotionServiceHookResult {
         });
       }
       
-      return {
-        user: result.user ? { 
-          id: 'user-id', 
-          name: result.user, 
-          type: 'person' 
-        } : undefined,
-        workspace: result.workspaceName,
-        timestamp: Date.now()
-      };
+      return result;
     } catch (error) {
       setConnectionStatus(ConnectionStatus.Error);
       
       handleNotionError(error, {
         toastTitle: 'Erreur de connexion à Notion',
+        showToast: true,
         endpoint: 'test-connection',
         switchToDemo: true,
         demoReason: 'Erreur de connexion'
       });
       
       return {
-        timestamp: Date.now()
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        details: error
       };
     } finally {
       setIsLoading(false);
@@ -114,7 +102,6 @@ export function useNotionService(): NotionServiceHookResult {
   }, [handleNotionError, clearError]);
   
   return {
-    // Données
     isConfigured,
     connectionStatus,
     isLoading,
@@ -122,12 +109,12 @@ export function useNotionService(): NotionServiceHookResult {
     isConnected: connectionStatus === ConnectionStatus.Connected,
     isMockMode: notionService.isMockMode() || isDemoMode,
     
-    // Méthodes
     setNotionConfig,
     testConnection,
     getConfig: notionService.getConfig,
     
-    // Service
+    // Exposer le service directement
     notion: notionService
   };
 }
+

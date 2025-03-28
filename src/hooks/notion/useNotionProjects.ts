@@ -1,11 +1,4 @@
 
-/**
- * Hook pour gérer les projets via l'API Notion
- * 
- * Ce hook fournit une interface unifiée pour accéder aux projets
- * et effectuer des opérations CRUD via le service Notion.
- */
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notionService } from '@/services/notion/notionService';
@@ -13,39 +6,14 @@ import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
-import { NotionHookResult } from './types';
-import { AppError } from '@/types/error';
-
-/**
- * Résultat du hook useNotionProjects
- */
-export interface NotionProjectsHookResult extends NotionHookResult<Project[]> {
-  /** Projets récupérés */
-  projects: Project[];
-  
-  /** Récupère un projet par son ID */
-  getProjectById: (id: string) => Promise<Project | null>;
-  /** Crée un nouveau projet */
-  createProject: (data: CreateProjectData) => void;
-  /** Met à jour un projet existant */
-  updateProject: (params: { id: string; data: UpdateProjectData }) => void;
-  /** Supprime un projet */
-  deleteProject: (id: string) => void;
-  
-  /** Indique si une création est en cours */
-  isCreating: boolean;
-  /** Indique si une mise à jour est en cours */
-  isUpdating: boolean;
-  /** Indique si une suppression est en cours */
-  isDeleting: boolean;
-}
 
 /**
  * Hook pour gérer les projets via l'API Notion
  * 
- * @returns Interface standardisée pour les opérations sur les projets
+ * Ce hook fournit des méthodes pour récupérer, créer, mettre à jour et supprimer
+ * des projets via le service Notion.
  */
-export function useNotionProjects(): NotionProjectsHookResult {
+export function useNotionProjects() {
   const [isLoading, setIsLoading] = useState(false);
   const { handleNotionError } = useNotionErrorHandler();
   const queryClient = useQueryClient();
@@ -175,10 +143,8 @@ export function useNotionProjects(): NotionProjectsHookResult {
   return {
     // Données
     projects,
-    data: projects,
     isLoading: isLoading || isLoadingProjects,
-    error: error as AppError | undefined,
-    isError: !!error,
+    error,
     
     // Méthodes
     getProjectById,
