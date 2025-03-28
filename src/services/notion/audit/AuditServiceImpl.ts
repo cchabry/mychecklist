@@ -7,7 +7,9 @@
 import { BaseNotionService, generateMockId } from '../base/BaseNotionService';
 import { NotionResponse } from '../types';
 import { Audit } from '@/types/domain';
-import { notionClient } from '../client/notionClient';
+
+// Import supprimé car non utilisé
+// import { notionClient } from '../client/notionClient';
 
 /**
  * Type pour la création d'un audit
