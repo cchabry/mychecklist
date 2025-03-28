@@ -4,7 +4,7 @@
  */
 
 import { ImportanceLevel } from '@/types/enums';
-import { ChecklistItem } from '@/types/domain';
+import { ChecklistItem as FeatureChecklistItem } from '@/features/checklist/types';
 import { Exigence, ExigenceWithItem, ExigenceSortOption, ExigenceFilters, ExigenceStat } from './types';
 
 /**
@@ -14,7 +14,7 @@ import { Exigence, ExigenceWithItem, ExigenceSortOption, ExigenceFilters, Exigen
  * @param checklistItems - Liste des items de checklist
  * @returns Liste des exigences enrichies
  */
-export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: ChecklistItem[]): ExigenceWithItem[] {
+export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: FeatureChecklistItem[]): ExigenceWithItem[] {
   const result: ExigenceWithItem[] = exigences.map(exigence => {
     const item = checklistItems.find(item => item.id === exigence.itemId);
     
@@ -29,8 +29,8 @@ export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: 
         reference: [],
         profil: [],
         phase: [],
-        effort: 0,
-        priority: 0
+        effort: 3,
+        priority: 3
       }
     };
   });

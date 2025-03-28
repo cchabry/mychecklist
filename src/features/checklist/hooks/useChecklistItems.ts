@@ -6,6 +6,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { checklistsApi } from '@/services/notion/api/checklists';
 import { ChecklistItemFilter } from '@/types/domain/checklist';
+import { adaptDomainListToFeature } from '../adapters';
 
 /**
  * Hook pour récupérer tous les items de checklist
@@ -17,7 +18,8 @@ export function useChecklistItems(filter?: ChecklistItemFilter) {
   return useQuery({
     queryKey: ['checklistItems', filter],
     queryFn: async () => {
-      return await checklistsApi.getChecklistItems(filter);
+      const domainItems = await checklistsApi.getChecklistItems(filter);
+      return adaptDomainListToFeature(domainItems);
     }
   });
 }

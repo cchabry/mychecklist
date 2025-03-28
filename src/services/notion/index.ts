@@ -1,3 +1,4 @@
+
 /**
  * Point d'entrée pour les services Notion
  * 
@@ -15,10 +16,14 @@ export * from './core/BaseService';
 
 // Exporter les services spécifiques à chaque domaine
 export { checklistService, checklistsApi } from './api/checklists';
-export { notionBaseService, notionApi } from './notionService';
-export { exigenceService, exigenceServiceImpl } from './exigenceService';
-export { samplePageService, samplePageServiceImpl } from './samplePageService';
+
+// Exporter les services existants pour rétrocompatibilité
+export { notionService } from './notionService';
+export { notionApi } from './notionApiImpl';
+export { exigenceService } from './exigenceService';
+export { samplePageService } from './samplePageService';
 export { auditService } from './auditService';
 export { evaluationService } from './evaluationService';
 export { actionService } from './actionService';
-export { progressService } from './progressService';
+
+// Note: progressService sera ajouté ultérieurement

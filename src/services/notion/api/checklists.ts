@@ -3,7 +3,7 @@
  * API pour les items de checklist
  */
 
-import { BaseService, StandardFilterOptions, generateMockId } from '../core/BaseService';
+import { BaseService } from '../core/BaseService';
 import { ChecklistItem, ChecklistItemFilter } from '@/types/domain/checklist';
 
 /**
@@ -15,6 +15,25 @@ export type CreateChecklistItemData = Omit<ChecklistItem, 'id'>;
  * Données pour la mise à jour d'un item de checklist
  */
 export type UpdateChecklistItemData = Partial<Omit<ChecklistItem, 'id'>>;
+
+/**
+ * Type pour les filtres standard
+ */
+export interface StandardFilterOptions {
+  limit?: number;
+  offset?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
+  [key: string]: any;
+}
+
+/**
+ * Génère un ID fictif pour les mocks
+ */
+export function generateMockId(prefix: string = ''): string {
+  return `${prefix}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
+}
 
 /**
  * Service pour les items de checklist
@@ -121,7 +140,7 @@ class ChecklistService extends BaseService<ChecklistItem, CreateChecklistItemDat
    * @param filter Filtre optionnel pour les entités
    * @returns Promise résolvant vers un tableau d'entités
    */
-  protected async getMockEntities(filter?: StandardFilterOptions): Promise<ChecklistItem[]> {
+  protected async getMockEntities(filter?: any): Promise<ChecklistItem[]> {
     const checklistFilter = filter as unknown as ChecklistItemFilter;
     return Promise.resolve(this.filterItems(this.mockItems, checklistFilter));
   }
@@ -182,7 +201,7 @@ class ChecklistService extends BaseService<ChecklistItem, CreateChecklistItemDat
    * @returns Promise résolvant vers un tableau d'items
    */
   public async getChecklistItems(filter?: ChecklistItemFilter): Promise<ChecklistItem[]> {
-    const response = await this.getAll(filter as unknown as StandardFilterOptions);
+    const response = await this.getAll(filter as any);
     
     if (!response.success || !response.data) {
       return [];

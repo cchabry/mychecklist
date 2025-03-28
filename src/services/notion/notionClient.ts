@@ -12,21 +12,24 @@ import type { NotionResponse } from './types';
 /**
  * Façade pour le client Notion unifié
  * 
- * Cette classe est conservée pour la compatibilité avec le code existant.
- * Elle délègue toutes les opérations au client unifié implémenté dans client/notionClient.ts.
+ * Cette classe délègue toutes les opérations au client unifié.
  */
 class NotionClient {
   /**
    * Configure le client Notion
    * @param config Configuration du client
    */
-  configure = notionUnifiedClient.configure.bind(notionUnifiedClient);
+  configure(config: any) {
+    return notionUnifiedClient.configure(config);
+  }
   
   /**
    * Vérifie si le client est correctement configuré pour fonctionner
    * @returns true si la configuration minimale est présente
    */
-  isConfigured = notionUnifiedClient.isConfigured.bind(notionUnifiedClient);
+  isConfigured() {
+    return notionUnifiedClient.isConfigured();
+  }
   
   /**
    * Récupère la configuration actuelle
@@ -38,7 +41,9 @@ class NotionClient {
    * Active ou désactive le mode mock
    * @param enabled État souhaité du mode mock
    */
-  setMockMode = notionUnifiedClient.setMockMode.bind(notionUnifiedClient);
+  setMockMode(enabled: boolean) {
+    return notionUnifiedClient.setMockMode(enabled);
+  }
   
   /**
    * Vérifie si le mode mock est actif
@@ -50,14 +55,18 @@ class NotionClient {
    * Active ou désactive le mode debug
    * @param enabled État souhaité du mode debug
    */
-  setDebugMode = notionUnifiedClient.setDebugMode.bind(notionUnifiedClient);
+  setDebugMode(enabled: boolean) {
+    return notionUnifiedClient.setDebugMode(enabled);
+  }
   
   /**
    * Effectue une requête GET vers l'API Notion
    * @param endpoint Point d'entrée API
    * @returns Promise avec le résultat de la requête
    */
-  get = notionUnifiedClient.get.bind(notionUnifiedClient);
+  get<T>(endpoint: string): Promise<NotionResponse<T>> {
+    return notionUnifiedClient.get<T>(endpoint);
+  }
   
   /**
    * Effectue une requête POST vers l'API Notion
@@ -65,7 +74,9 @@ class NotionClient {
    * @param data Données à envoyer
    * @returns Promise avec le résultat de la requête
    */
-  post = notionUnifiedClient.post.bind(notionUnifiedClient);
+  post<T>(endpoint: string, data: any): Promise<NotionResponse<T>> {
+    return notionUnifiedClient.post<T>(endpoint, data);
+  }
   
   /**
    * Effectue une requête PATCH vers l'API Notion
@@ -73,20 +84,26 @@ class NotionClient {
    * @param data Données à envoyer
    * @returns Promise avec le résultat de la requête
    */
-  patch = notionUnifiedClient.patch.bind(notionUnifiedClient);
+  patch<T>(endpoint: string, data: any): Promise<NotionResponse<T>> {
+    return notionUnifiedClient.patch<T>(endpoint, data);
+  }
   
   /**
    * Effectue une requête DELETE vers l'API Notion
    * @param endpoint Point d'entrée API
    * @returns Promise avec le résultat de la requête
    */
-  delete = notionUnifiedClient.delete.bind(notionUnifiedClient);
+  delete<T>(endpoint: string): Promise<NotionResponse<T>> {
+    return notionUnifiedClient.delete<T>(endpoint);
+  }
   
   /**
    * Teste la connexion à l'API Notion
    * @returns Résultat du test de connexion
    */
-  testConnection = notionUnifiedClient.testConnection.bind(notionUnifiedClient);
+  testConnection() {
+    return notionUnifiedClient.testConnection();
+  }
   
   /**
    * Effectue une requête vers l'API Notion

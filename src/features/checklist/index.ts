@@ -12,10 +12,12 @@ export * from './hooks';
 export * from './types';
 export * from './utils';
 export * from './constants';
+export * from './adapters';
 
 // Fonctions d'accès aux données
 import { checklistsApi } from '@/services/notion/api/checklists';
 import { ChecklistItem } from './types';
+import { adaptDomainToFeature, adaptFeatureToDomain } from './adapters';
 
 /**
  * Récupère tous les items de la checklist
@@ -25,7 +27,8 @@ import { ChecklistItem } from './types';
  */
 export async function getChecklistItems(): Promise<ChecklistItem[]> {
   try {
-    return await checklistsApi.getChecklistItems();
+    const domainItems = await checklistsApi.getChecklistItems();
+    return domainItems.map(adaptDomainToFeature);
   } catch (error) {
     console.error('Erreur lors de la récupération des items de checklist:', error);
     throw new Error(`Impossible de récupérer les items de checklist: ${error instanceof Error ? error.message : String(error)}`);
@@ -41,7 +44,8 @@ export async function getChecklistItems(): Promise<ChecklistItem[]> {
  */
 export async function getChecklistItemById(id: string): Promise<ChecklistItem | null> {
   try {
-    return await checklistsApi.getChecklistItemById(id);
+    const domainItem = await checklistsApi.getChecklistItemById(id);
+    return domainItem ? adaptDomainToFeature(domainItem) : null;
   } catch (error) {
     console.error(`Erreur lors de la récupération de l'item de checklist ${id}:`, error);
     return null;
@@ -57,7 +61,10 @@ export async function getChecklistItemById(id: string): Promise<ChecklistItem | 
  */
 export async function createChecklistItem(item: Omit<ChecklistItem, 'id'>): Promise<ChecklistItem> {
   try {
-    return await checklistsApi.createChecklistItem(item);
+    const domainItem = adaptFeatureToDomain({ ...item, id: 'temp-id' });
+    const { id, ...domainItemData } = domainItem;
+    const createdItem = await checklistsApi.createChecklistItem(domainItemData);
+    return adaptDomainToFeature(createdItem);
   } catch (error) {
     console.error(`Erreur lors de la création de l'item de checklist:`, error);
     throw new Error(`Impossible de créer l'item de checklist: ${error instanceof Error ? error.message : String(error)}`);
@@ -73,7 +80,9 @@ export async function createChecklistItem(item: Omit<ChecklistItem, 'id'>): Prom
  */
 export async function updateChecklistItem(item: ChecklistItem): Promise<ChecklistItem> {
   try {
-    return await checklistsApi.updateChecklistItem(item);
+    const domainItem = adaptFeatureToDomain(item);
+    const updatedItem = await checklistsApi.updateChecklistItem(domainItem);
+    return adaptDomainToFeature(updatedItem);
   } catch (error) {
     console.error(`Erreur lors de la mise à jour de l'item de checklist ${item.id}:`, error);
     throw new Error(`Impossible de mettre à jour l'item de checklist: ${error instanceof Error ? error.message : String(error)}`);
