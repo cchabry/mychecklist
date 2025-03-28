@@ -6,6 +6,8 @@
 
 import { notionBaseService } from './notionBaseService';
 import { projectService } from './project/projectService';
+import { exigenceServiceImpl } from './exigence/ExigenceServiceImpl';
+import { samplePageServiceImpl } from './samplePage/SamplePageServiceImpl';
 
 /**
  * Façade unifiant les différents services Notion
@@ -25,6 +27,29 @@ class NotionService {
   createProject = projectService.createProject.bind(projectService);
   updateProject = projectService.updateProject.bind(projectService);
   deleteProject = projectService.deleteProject.bind(projectService);
+  
+  // ---- Méthodes standardisées ----
+  
+  // Projets
+  getProjectsAll = projectService.getAll.bind(projectService);
+  getProjectByIdStd = projectService.getById.bind(projectService);
+  createProjectStd = projectService.create.bind(projectService);
+  updateProjectStd = projectService.update.bind(projectService);
+  deleteProjectStd = projectService.delete.bind(projectService);
+  
+  // Exigences
+  getExigences = exigenceServiceImpl.getExigences.bind(exigenceServiceImpl);
+  getExigenceById = exigenceServiceImpl.getExigenceById.bind(exigenceServiceImpl);
+  createExigence = exigenceServiceImpl.createExigence.bind(exigenceServiceImpl);
+  updateExigence = exigenceServiceImpl.updateExigence.bind(exigenceServiceImpl);
+  deleteExigence = exigenceServiceImpl.deleteExigence.bind(exigenceServiceImpl);
+  
+  // Pages d'échantillon
+  getSamplePages = samplePageServiceImpl.getSamplePages.bind(samplePageServiceImpl);
+  getSamplePageById = samplePageServiceImpl.getSamplePageById.bind(samplePageServiceImpl);
+  createSamplePage = samplePageServiceImpl.createSamplePage.bind(samplePageServiceImpl);
+  updateSamplePage = samplePageServiceImpl.updateSamplePage.bind(samplePageServiceImpl);
+  deleteSamplePage = samplePageServiceImpl.deleteSamplePage.bind(samplePageServiceImpl);
 }
 
 // Exporter une instance singleton

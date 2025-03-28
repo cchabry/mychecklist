@@ -18,6 +18,13 @@ class ProjectService {
    * Récupère tous les projets
    */
   async getProjects(): Promise<NotionResponse<Project[]>> {
+    return this.getAll();
+  }
+  
+  /**
+   * Récupère tous les projets (nouvelle méthode normalisée)
+   */
+  async getAll(filter?: Record<string, any>): Promise<NotionResponse<Project[]>> {
     // Si en mode mock, renvoyer des données simulées
     if (notionClient.isMockMode()) {
       return {
@@ -60,6 +67,13 @@ class ProjectService {
    * Récupère un projet par son ID
    */
   async getProjectById(id: string): Promise<NotionResponse<Project>> {
+    return this.getById(id);
+  }
+  
+  /**
+   * Récupère un projet par son ID (nouvelle méthode normalisée)
+   */
+  async getById(id: string): Promise<NotionResponse<Project>> {
     // Si en mode mock, chercher dans les données simulées
     if (notionClient.isMockMode()) {
       const mockProjects = generateMockProjects();
@@ -126,6 +140,13 @@ class ProjectService {
    * Crée un nouveau projet
    */
   async createProject(projectData: Partial<Project>): Promise<NotionResponse<Project>> {
+    return this.create(projectData);
+  }
+  
+  /**
+   * Crée un nouveau projet (nouvelle méthode normalisée)
+   */
+  async create(projectData: Partial<Project>): Promise<NotionResponse<Project>> {
     // Si en mode mock, créer un projet simulé
     if (notionClient.isMockMode()) {
       const now = new Date().toISOString();
@@ -193,6 +214,13 @@ class ProjectService {
    * Met à jour un projet existant
    */
   async updateProject(id: string, projectData: Partial<Project>): Promise<NotionResponse<Project>> {
+    return this.update(id, projectData);
+  }
+  
+  /**
+   * Met à jour un projet existant (nouvelle méthode normalisée)
+   */
+  async update(id: string, projectData: Partial<Project>): Promise<NotionResponse<Project>> {
     // Si en mode mock, mettre à jour un projet simulé
     if (notionClient.isMockMode()) {
       // Chercher le projet dans les données simulées
@@ -234,7 +262,7 @@ class ProjectService {
     
     try {
       // D'abord, récupérer le projet existant
-      const existingProjectResponse = await this.getProjectById(id);
+      const existingProjectResponse = await this.getById(id);
       if (!existingProjectResponse.success) {
         return existingProjectResponse;
       }
@@ -268,6 +296,13 @@ class ProjectService {
    * Supprime un projet
    */
   async deleteProject(id: string): Promise<NotionResponse<boolean>> {
+    return this.delete(id);
+  }
+  
+  /**
+   * Supprime un projet (nouvelle méthode normalisée)
+   */
+  async delete(id: string): Promise<NotionResponse<boolean>> {
     // Si en mode mock, simuler la suppression
     if (notionClient.isMockMode()) {
       return {
