@@ -16,7 +16,7 @@ export { notionApi } from './notionApiImpl';
 export { notionBaseService } from './notionBaseService';
 export { notionService } from './notionService';
 export { checklistService } from './checklistService';
-export { exigenceService } from './exigenceService';
+export { exigenceService } from './exigence';
 export { samplePageService } from './samplePageService';
 export { auditService } from './audit';
 export { evaluationService } from './evaluation';
@@ -24,4 +24,3 @@ export { actionService, progressService } from './action';
 
 // Exporter les types
 export * from './types';
-
