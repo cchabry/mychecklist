@@ -13,6 +13,7 @@ import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
+import { NotionResponse } from '@/services/notion/base/types';
 
 /**
  * Hook pour gérer les projets via l'API Notion
@@ -31,10 +32,10 @@ export function useProjects() {
     queryFn: async () => {
       try {
         const response = await projectService.getAll();
-        if (!response.success) {
+        if (response && !response.success) {
           throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
         }
-        return response.data || [];
+        return response?.data || [];
       } catch (error) {
         handleNotionError(error, {
           endpoint: '/databases/query',
@@ -52,10 +53,10 @@ export function useProjects() {
     setIsLoading(true);
     try {
       const response = await projectService.getById(id);
-      if (!response.success) {
+      if (response && !response.success) {
         throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
-      return response.data || null;
+      return response?.data || null;
     } catch (error) {
       handleNotionError(error, {
         endpoint: `/pages/${id}`,

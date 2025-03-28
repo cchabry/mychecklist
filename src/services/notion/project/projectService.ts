@@ -169,7 +169,7 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
   /**
    * Génération d'un ID mock
    */
-  protected generateMockId(prefix = 'mock'): string {
+  private generateMockId(prefix = 'mock'): string {
     return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   }
 }

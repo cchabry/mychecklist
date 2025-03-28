@@ -1,6 +1,5 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { Project } from '@/types/domain';
 import { getProjectById } from '@/features/projects';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useErrorHandler } from '@/hooks/error';
