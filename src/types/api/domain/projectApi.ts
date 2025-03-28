@@ -1,12 +1,34 @@
 
 /**
- * Types pour les API de projets
+ * Types pour l'API de projet
  */
 
 import { Project } from '@/types/domain';
+import { ProjectStatus } from '@/types/enums';
 
 /**
- * Interface pour l'API de projets
+ * Données pour créer un nouveau projet
+ */
+export interface CreateProjectData {
+  name: string;
+  url?: string;
+  description?: string;
+  status?: ProjectStatus;
+}
+
+/**
+ * Données pour mettre à jour un projet existant
+ */
+export interface UpdateProjectData {
+  name?: string;
+  url?: string;
+  description?: string;
+  status?: ProjectStatus;
+  progress?: number;
+}
+
+/**
+ * Interface pour l'API des projets
  */
 export interface ProjectApi {
   /**
@@ -33,25 +55,4 @@ export interface ProjectApi {
    * Supprime un projet
    */
   deleteProject(id: string): Promise<boolean>;
-}
-
-/**
- * Type pour la création d'un projet
- */
-export interface CreateProjectData {
-  name: string;
-  url?: string;
-  description?: string;
-  progress?: number;
-}
-
-/**
- * Type pour la mise à jour d'un projet
- */
-export interface UpdateProjectData {
-  name?: string;
-  url?: string;
-  description?: string;
-  progress?: number;
-  status?: string;
 }

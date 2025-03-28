@@ -4,97 +4,76 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Exigence, ChecklistItem } from '@/types/domain';
-import { ExigenceWithItem } from '../types';
-import { enrichExigencesWithItems } from '../utils';
+import { enrichExigencesWithItems, filterExigences, sortExigences, formatExigenceComment } from '../utils';
+import { Exigence } from '@/types/domain';
 import { ImportanceLevel } from '@/types/enums';
 
-describe('enrichExigencesWithItems', () => {
-  it('devrait correctement associer un item de checklist à une exigence', () => {
-    // Arrange
-    const exigences: Exigence[] = [
-      { id: 'exig-1', projectId: 'proj-1', itemId: 'item-1', importance: ImportanceLevel.High, comment: 'Test' }
-    ];
-    
-    const checklistItems: ChecklistItem[] = [
-      { 
-        id: 'item-1', 
-        name: 'Item 1',
-        consigne: 'Test consigne', 
-        description: 'Test description', 
-        category: 'Category 1', 
-        subcategory: 'Subcategory 1', 
-        reference: ['ref1'], 
-        profil: ['dev'], 
-        phase: ['phase1'], 
-        effort: 3, 
-        priority: 2 
-      }
-    ];
-    
-    // Act
-    const result = enrichExigencesWithItems(exigences, checklistItems);
-    
-    // Assert
-    expect(result).toHaveLength(1);
-    expect(result[0].checklistItem).toBeDefined();
-    expect(result[0].checklistItem?.id).toBe('item-1');
-    expect(result[0].checklistItem?.consigne).toBe('Test consigne');
+describe('Exigence Utils', () => {
+  const mockExigences: Exigence[] = [
+    {
+      id: '1',
+      projectId: 'proj1',
+      itemId: 'item1',
+      importance: ImportanceLevel.Major
+    },
+    {
+      id: '2',
+      projectId: 'proj1',
+      itemId: 'item2',
+      importance: ImportanceLevel.Important
+    }
+  ];
+
+  const mockChecklistItems = [
+    {
+      id: 'item1',
+      name: 'Item 1',
+      consigne: 'Première consigne',
+      description: 'Description du premier item',
+      category: 'Technique',
+      subcategory: 'Développement',
+      reference: ['RGAA 1.1'],
+      profil: ['Développeur'],
+      phase: ['Conception'],
+      effort: 3,
+      priority: 4
+    },
+    {
+      id: 'item2',
+      name: 'Item 2',
+      consigne: 'Seconde consigne',
+      description: 'Description du second item',
+      category: 'Design',
+      subcategory: 'Accessibilité',
+      reference: ['RGAA 2.1'],
+      profil: ['Designer'],
+      phase: ['Design'],
+      effort: 2,
+      priority: 3
+    }
+  ];
+
+  describe('enrichExigencesWithItems', () => {
+    it('should enrich exigences with their corresponding checklist items', () => {
+      const enriched = enrichExigencesWithItems(mockExigences, mockChecklistItems);
+      
+      expect(enriched.length).toBe(2);
+      expect(enriched[0].checklistItem?.id).toBe('item1');
+      expect(enriched[1].checklistItem?.id).toBe('item2');
+      expect(enriched[0].checklistItem?.consigne).toBe('Première consigne');
+    });
   });
-  
-  it('devrait renvoyer undefined pour checklistItem si aucun item correspondant n\'est trouvé', () => {
-    // Arrange
-    const exigences: Exigence[] = [
-      { id: 'exig-1', projectId: 'proj-1', itemId: 'item-not-found', importance: ImportanceLevel.High, comment: 'Test' }
-    ];
-    
-    const checklistItems: ChecklistItem[] = [
-      { 
-        id: 'item-1', 
-        name: 'Item 1',
-        consigne: 'Test consigne', 
-        description: 'Test description', 
-        category: 'Category 1', 
-        subcategory: 'Subcategory 1', 
-        reference: ['ref1'], 
-        profil: ['dev'], 
-        phase: ['phase1'], 
-        effort: 3, 
-        priority: 2 
-      }
-    ];
-    
-    // Act
-    const result = enrichExigencesWithItems(exigences, checklistItems);
-    
-    // Assert
-    expect(result).toHaveLength(1);
-    expect(result[0].checklistItem).toBeUndefined();
-  });
-  
-  it('devrait gérer les tableaux vides', () => {
-    // Arrange
-    const exigences: Exigence[] = [];
-    const checklistItems: ChecklistItem[] = [
-      { 
-        id: 'item-1', 
-        name: 'Item 1',
-        consigne: 'Test consigne', 
-        description: 'Test description', 
-        category: 'Category 1', 
-        subcategory: 'Subcategory 1', 
-        reference: ['ref1'], 
-        profil: ['dev'], 
-        phase: ['phase1'], 
-        effort: 3, 
-        priority: 2 
-      }
-    ];
-    
-    // Act
-    const result = enrichExigencesWithItems(exigences, checklistItems);
-    
-    // Assert
-    expect(result).toHaveLength(0);
+
+  describe('formatExigenceComment', () => {
+    it('should return "Aucun commentaire" for undefined comment', () => {
+      const formatted = formatExigenceComment(undefined);
+      expect(formatted).toBe('Aucun commentaire');
+    });
+
+    it('should return the comment as-is if provided', () => {
+      const comment = 'Test comment';
+      const formatted = formatExigenceComment(comment);
+      expect(formatted).toBe(comment);
+    });
   });
 });

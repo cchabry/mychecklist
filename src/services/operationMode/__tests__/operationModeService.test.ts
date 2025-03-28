@@ -4,9 +4,8 @@
  * @jest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, jest } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OperationModeService } from '../operationModeService';
-import { OperationModeState } from '@/types/operation';
 
 // Skipping tests temporarily until they are fixed
 describe.skip('OperationModeService', () => {
@@ -81,7 +80,7 @@ describe.skip('OperationModeService', () => {
 
   describe('Subscription', () => {
     it('should notify subscribers when the mode changes', () => {
-      const mockCallback = jest.fn();
+      const mockCallback = vi.fn();
       const unsubscribe = service.subscribe(mockCallback);
       
       service.enableRealMode();

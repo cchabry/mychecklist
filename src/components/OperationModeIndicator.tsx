@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
  * (avec l'API Notion) ou en mode démo (avec des données simulées).
  */
 export function OperationModeIndicator() {
-  const { mode, isRealMode } = useOperationMode();
+  const { isRealMode } = useOperationMode();
   
   if (isRealMode) {
     return (

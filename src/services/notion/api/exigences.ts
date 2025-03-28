@@ -3,10 +3,9 @@
  * API Notion pour les exigences
  */
 
-import { ExigenceApi } from '@/types/api/domain/exigenceApi';
+import { ExigenceApi, CreateExigenceData, UpdateExigenceData } from '@/types/api/domain/exigenceApi';
 import { exigenceService } from '../exigence';
 import { Exigence } from '@/types/domain';
-import { CreateExigenceData, UpdateExigenceData } from '@/types/api/domain/exigenceApi';
 import { 
   DELETE_ERROR, 
   FETCH_ERROR, 
@@ -22,7 +21,7 @@ class NotionExigenceApi implements ExigenceApi {
    * Récupère toutes les exigences d'un projet
    */
   async getExigences(projectId: string): Promise<Exigence[]> {
-    const response = await exigenceService.getExigencesByProjectId(projectId);
+    const response = await exigenceService.getExigencesByProject(projectId);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || FETCH_ERROR);
@@ -47,8 +46,8 @@ class NotionExigenceApi implements ExigenceApi {
   /**
    * Crée une nouvelle exigence
    */
-  async createExigence(data: Omit<Exigence, 'id'>): Promise<Exigence> {
-    const response = await exigenceService.createExigence(data);
+  async createExigence(data: CreateExigenceData): Promise<Exigence> {
+    const response = await exigenceService.createExigence(data as Omit<Exigence, 'id'>);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || CREATE_ERROR);

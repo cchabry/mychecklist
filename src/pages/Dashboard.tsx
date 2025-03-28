@@ -3,7 +3,6 @@ import { useProjects } from '@/hooks/useProjects';
 import { ProjectCard } from '@/components/data-display';
 import { PageHeader } from '@/components/layout';
 import { Project } from '@/types/domain';
-import { ProjectStatus } from '@/types/enums';
 
 /**
  * Page de tableau de bord

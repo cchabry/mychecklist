@@ -1,3 +1,4 @@
+
 /**
  * Utilitaires pour la feature Exigences
  * 
@@ -7,6 +8,7 @@
 
 import { Exigence, ChecklistItem } from '@/types/domain';
 import { ExigenceWithItem } from './types';
+import { ImportanceLevel } from '@/types/enums';
 
 /**
  * Enrichit les exigences avec leurs items de checklist correspondants
@@ -24,6 +26,100 @@ export function enrichExigencesWithItems(exigences: Exigence[], checklistItems: 
       checklistItem: checklistItem
     } as ExigenceWithItem;
   });
+}
+
+/**
+ * Filtre les exigences selon des critères spécifiques
+ * 
+ * @param exigences - Liste des exigences à filtrer
+ * @param filters - Critères de filtrage
+ * @returns Liste des exigences filtrées
+ */
+export function filterExigences(exigences: ExigenceWithItem[], filters: any): ExigenceWithItem[] {
+  if (!filters || Object.keys(filters).length === 0) {
+    return exigences;
+  }
+  
+  return exigences.filter(exigence => {
+    // Filtrer par terme de recherche
+    if (filters.search && exigence.checklistItem) {
+      const searchTerm = filters.search.toLowerCase();
+      const consigne = exigence.checklistItem.consigne?.toLowerCase() || '';
+      const description = exigence.checklistItem.description?.toLowerCase() || '';
+      
+      if (!consigne.includes(searchTerm) && !description.includes(searchTerm)) {
+        return false;
+      }
+    }
+    
+    // Filtrer par importance
+    if (filters.importance && exigence.importance !== filters.importance) {
+      return false;
+    }
+    
+    // Filtrer par catégorie
+    if (filters.category && exigence.checklistItem && exigence.checklistItem.category !== filters.category) {
+      return false;
+    }
+    
+    return true;
+  });
+}
+
+/**
+ * Trie les exigences selon un critère spécifique
+ * 
+ * @param exigences - Liste des exigences à trier
+ * @param sortBy - Critère de tri
+ * @param sortDirection - Direction du tri (asc ou desc)
+ * @returns Liste des exigences triées
+ */
+export function sortExigences(
+  exigences: ExigenceWithItem[], 
+  sortBy: string = 'importance', 
+  sortDirection: 'asc' | 'desc' = 'desc'
+): ExigenceWithItem[] {
+  const sortedExigences = [...exigences];
+  
+  sortedExigences.sort((a, b) => {
+    if (sortBy === 'importance') {
+      const importanceOrder = {
+        [ImportanceLevel.Major]: 5,
+        [ImportanceLevel.Important]: 4,
+        [ImportanceLevel.High]: 4, // Équivalent à Important
+        [ImportanceLevel.Medium]: 3,
+        [ImportanceLevel.Minor]: 2,
+        [ImportanceLevel.NotApplicable]: 1
+      };
+      
+      const valueA = importanceOrder[a.importance] || 0;
+      const valueB = importanceOrder[b.importance] || 0;
+      
+      return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+    }
+    
+    if (sortBy === 'consigne' && a.checklistItem && b.checklistItem) {
+      const valueA = a.checklistItem.consigne || '';
+      const valueB = b.checklistItem.consigne || '';
+      
+      return sortDirection === 'asc' 
+        ? valueA.localeCompare(valueB) 
+        : valueB.localeCompare(valueA);
+    }
+    
+    if (sortBy === 'category' && a.checklistItem && b.checklistItem) {
+      const valueA = a.checklistItem.category || '';
+      const valueB = b.checklistItem.category || '';
+      
+      return sortDirection === 'asc' 
+        ? valueA.localeCompare(valueB) 
+        : valueB.localeCompare(valueA);
+    }
+    
+    return 0;
+  });
+  
+  return sortedExigences;
 }
 
 /**

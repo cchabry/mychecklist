@@ -11,8 +11,9 @@ export * from './hooks';
 
 // Importer les services API
 import { projectsApi } from '@/services/notion/api/projects';
-import { CreateProjectData, UpdateProjectData } from '@/types/api/domain/projectApi';
+import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { Project } from '@/types/domain';
+import { mapStringToProjectStatus } from '@/types/enums';
 
 /**
  * Récupère tous les projets
@@ -39,6 +40,11 @@ export async function createProject(data: CreateProjectData): Promise<Project> {
  * Met à jour un projet existant
  */
 export async function updateProject(id: string, data: UpdateProjectData): Promise<Project> {
+  // Conversion du statut si c'est une chaîne
+  if (typeof data.status === 'string') {
+    data.status = mapStringToProjectStatus(data.status);
+  }
+  
   return projectsApi.updateProject(id, data);
 }
 

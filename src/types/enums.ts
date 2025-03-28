@@ -14,7 +14,8 @@ export enum ImportanceLevel {
   Minor = "Mineur",      // Importance mineure
   Medium = "Moyen",      // Importance moyenne
   Important = "Important", // Importance élevée
-  Major = "Majeur"       // Importance majeure/critique
+  Major = "Majeur",       // Importance majeure/critique
+  High = "Important"      // Alias pour Important (pour la rétrocompatibilité)
 }
 
 /**
@@ -54,7 +55,8 @@ export enum ProjectStatus {
   PENDING = "En attente",
   ACTIVE = "En cours",
   COMPLETED = "Terminé",
-  ARCHIVED = "Archivé"
+  ARCHIVED = "Archivé",
+  InProgress = "En cours"  // Alias pour ACTIVE (pour la rétrocompatibilité)
 }
 
 /**
@@ -68,6 +70,7 @@ export const PROJECT_STATUS_MAPPING: Record<string, ProjectStatus> = {
   "En cours": ProjectStatus.ACTIVE,
   "active": ProjectStatus.ACTIVE,
   "ACTIVE": ProjectStatus.ACTIVE,
+  "InProgress": ProjectStatus.InProgress,
   
   "Terminé": ProjectStatus.COMPLETED,
   "completed": ProjectStatus.COMPLETED,
