@@ -6,7 +6,7 @@
  * doivent respecter, afin d'assurer une cohérence dans l'application.
  */
 
-import { NotionResponse } from '../types';
+import { NotionResponse } from './BasicTypes';
 
 /**
  * Interface de base pour les services CRUD
