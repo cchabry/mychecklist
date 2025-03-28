@@ -10,8 +10,7 @@ export {
   BaseNotionService,
   generateMockId,
   type StandardFilterOptions,
-  type CrudService,
-  type ServiceResponse
+  type CrudService
 } from './BaseNotionService';
 
 /**
@@ -22,7 +21,7 @@ export {
  * @template U - Type pour la mise à jour d'une entité
  * @template F - Type pour les options de filtrage
  */
-export interface GenericCrudService<T, C = Omit<T, 'id'>, U = Partial<T>, F = StandardFilterOptions> {
+export interface GenericCrudService<T, C = Omit<T, 'id'>, U = Partial<T>, F = Record<string, any>> {
   /** Récupère toutes les entités */
   getAll(filters?: F): Promise<T[]>;
   /** Récupère une entité par son ID */

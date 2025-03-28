@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { NotionServiceHookResult } from './types';
+import { NotionTestResponse } from '@/types/api/notionApi';
 
 /**
  * Hook principal pour accéder au service Notion
@@ -61,7 +62,7 @@ export function useNotionService(): NotionServiceHookResult {
   /**
    * Teste la connexion à l'API Notion
    */
-  const testConnection = useCallback(async (): Promise<ConnectionTestResult> => {
+  const testConnection = useCallback(async (): Promise<NotionTestResponse> => {
     setIsLoading(true);
     clearError();
     
@@ -85,7 +86,16 @@ export function useNotionService(): NotionServiceHookResult {
         });
       }
       
-      return result;
+      // Convertir ConnectionTestResult en NotionTestResponse
+      return {
+        user: result.user ? { 
+          id: 'user-id', 
+          name: result.user, 
+          type: 'person' 
+        } : undefined,
+        workspace: result.workspaceName,
+        timestamp: Date.now()
+      };
     } catch (error) {
       setConnectionStatus(ConnectionStatus.Error);
       
@@ -98,9 +108,7 @@ export function useNotionService(): NotionServiceHookResult {
       });
       
       return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-        details: error
+        timestamp: Date.now() // Assurer qu'on renvoie toujours un timestamp
       };
     } finally {
       setIsLoading(false);

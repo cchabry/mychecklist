@@ -14,6 +14,7 @@ import { CreateProjectData, UpdateProjectData } from '@/features/projects/types'
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
 import { NotionHookResult } from './types';
+import { AppError } from '@/types/error';
 
 /**
  * Résultat du hook useNotionProjects
@@ -176,7 +177,7 @@ export function useNotionProjects(): NotionProjectsHookResult {
     projects,
     data: projects,
     isLoading: isLoading || isLoadingProjects,
-    error,
+    error: error as AppError | undefined,
     isError: !!error,
     
     // Méthodes
