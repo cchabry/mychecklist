@@ -4,6 +4,7 @@
  */
 
 import { Project } from '@/types/domain';
+import { ProjectStatus, PROJECT_STATUS_MAPPING } from '@/types/enums';
 import { formatDate } from '@/utils/date';
 
 /**
@@ -48,19 +49,13 @@ function getPropertyValue(property: any, type: string): any {
 /**
  * Transforme une chaîne de statut en enum ProjectStatus
  */
-function mapStringToProjectStatus(status: string): 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'CANCELLED' {
-  const statusMap: Record<string, 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'CANCELLED'> = {
-    'Nouveau': 'NEW',
-    'En cours': 'IN_PROGRESS',
-    'Terminé': 'COMPLETED',
-    'En pause': 'PAUSED',
-    'Annulé': 'CANCELLED',
-    'NEW': 'NEW',
-    'IN_PROGRESS': 'IN_PROGRESS',
-    'COMPLETED': 'COMPLETED',
-    'PAUSED': 'PAUSED',
-    'CANCELLED': 'CANCELLED'
-  };
+export function mapStringToProjectStatus(status: string): ProjectStatus {
+  return PROJECT_STATUS_MAPPING[status] || 'NEW';
+}
 
-  return statusMap[status] || 'NEW';
+/**
+ * Vérifie si un statut est valide pour ProjectStatus
+ */
+export function isValidProjectStatus(status: string): status is ProjectStatus {
+  return status in PROJECT_STATUS_MAPPING;
 }

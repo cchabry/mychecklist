@@ -1,3 +1,4 @@
+
 /**
  * Service de gestion du mode opérationnel (démo/réel)
  * 
@@ -12,12 +13,19 @@ import { BehaviorSubject } from 'rxjs';
 import { notionClient } from '../notion/notionClient';
 
 /**
+ * Type de mode opérationnel
+ */
+export type OperationModeType = 'demo' | 'real';
+
+/**
  * Interface pour l'état du mode opérationnel
  */
 export interface OperationModeState {
+  /** Mode actuel (démo ou réel) */
+  mode: OperationModeType;
   /** Indique si l'application est en mode démo */
   isDemoMode: boolean;
-  /** Raison du basculement en mode démo */
+  /** Raison du dernier changement de mode */
   reason?: string;
 }
 
@@ -29,7 +37,10 @@ class OperationModeService {
   private readonly STORAGE_KEY = 'operationModeState';
   
   /** État actuel du mode opérationnel */
-  private state: OperationModeState = { isDemoMode: false };
+  private state: OperationModeState = { 
+    mode: 'real', 
+    isDemoMode: false 
+  };
   
   /** Subject RxJS pour notifier les changements d'état */
   private stateSubject = new BehaviorSubject<OperationModeState>(this.state);
@@ -43,11 +54,37 @@ class OperationModeService {
   }
   
   /**
+   * Obtient le mode actuel
+   * @returns Le mode actuel (demo ou real)
+   */
+  getMode(): OperationModeType {
+    return this.state.mode;
+  }
+  
+  /**
+   * Obtient l'état complet actuel
+   * @returns L'état complet du mode d'opération
+   */
+  getState(): OperationModeState {
+    return { ...this.state };
+  }
+  
+  /**
+   * S'abonne aux changements d'état
+   * @param callback Fonction appelée lors d'un changement d'état
+   * @returns Fonction pour se désabonner
+   */
+  subscribe(callback: (state: OperationModeState) => void): () => void {
+    const subscription = this.stateSubject.subscribe(callback);
+    return () => subscription.unsubscribe();
+  }
+  
+  /**
    * Active le mode démo
    * 
    * @param reason Raison du basculement en mode démo
    */
-  enableDemoMode(reason: string) {
+  enableDemoMode(reason: string): void {
     this._enableDemoMode(reason);
   }
   
@@ -56,8 +93,17 @@ class OperationModeService {
    * 
    * @param reason Raison du basculement en mode réel
    */
-  enableRealMode(reason: string) {
+  enableRealMode(reason: string): void {
     this._enableRealMode(reason);
+  }
+
+  /**
+   * Réinitialise le mode à sa valeur par défaut (réel)
+   * 
+   * @param reason Raison de la réinitialisation
+   */
+  reset(reason: string = "Réinitialisation du mode"): void {
+    this.enableRealMode(reason);
   }
   
   /**
@@ -81,20 +127,20 @@ class OperationModeService {
   /**
    * Méthode privée pour charger l'état depuis le localStorage
    */
-  private _loadState() {
+  private _loadState(): void {
     try {
       const storedState = localStorage.getItem(this.STORAGE_KEY);
       
       if (storedState) {
-        this.state = JSON.parse(storedState);
+        const parsed = JSON.parse(storedState);
+        this.state = {
+          ...parsed,
+          mode: parsed.isDemoMode ? 'demo' : 'real'
+        };
         this.stateSubject.next(this.state);
         
         // Configurer les services en fonction de l'état chargé
-        if (this.state.isDemoMode) {
-          notionClient.setMockMode(true);
-        } else {
-          notionClient.setMockMode(false);
-        }
+        notionClient.setMockMode(this.state.isDemoMode);
       }
     } catch (error) {
       console.error('Erreur lors du chargement de l\'état du mode opérationnel depuis le localStorage', error);
@@ -104,7 +150,7 @@ class OperationModeService {
   /**
    * Méthode privée pour sauvegarder l'état dans le localStorage
    */
-  private _saveState() {
+  private _saveState(): void {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
       this.stateSubject.next(this.state);
@@ -118,8 +164,9 @@ class OperationModeService {
    * 
    * @param reason Raison du basculement en mode démo
    */
-  private _enableDemoMode(reason: string) {
+  private _enableDemoMode(reason: string): void {
     this.state = {
+      mode: 'demo',
       isDemoMode: true,
       reason
     };
@@ -128,9 +175,7 @@ class OperationModeService {
     this._saveState();
     
     // Configurer les services pour utiliser le mode démo
-    if (notionClient.setMockMode) {
-      notionClient.setMockMode(true);
-    }
+    notionClient.setMockMode(true);
   }
 
   /**
@@ -138,8 +183,9 @@ class OperationModeService {
    * 
    * @param reason Raison du basculement en mode réel
    */
-  private _enableRealMode(reason: string) {
+  private _enableRealMode(reason: string): void {
     this.state = {
+      mode: 'real',
       isDemoMode: false,
       reason
     };
@@ -148,9 +194,7 @@ class OperationModeService {
     this._saveState();
     
     // Configurer les services pour utiliser le mode réel
-    if (notionClient.setMockMode) {
-      notionClient.setMockMode(false);
-    }
+    notionClient.setMockMode(false);
   }
 }
 

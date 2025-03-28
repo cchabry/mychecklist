@@ -6,6 +6,7 @@
  */
 
 import { Project } from '@/types/domain/project';
+import { ProjectStatus } from '@/types/enums';
 
 export type { Project };
 
@@ -25,5 +26,5 @@ export type UpdateProjectData = {
   name?: string;
   url?: string;
   description?: string;
-  status?: 'active' | 'completed' | 'pending' | 'archived';
+  status?: ProjectStatus;
 };

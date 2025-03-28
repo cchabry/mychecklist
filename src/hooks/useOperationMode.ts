@@ -1,8 +1,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { operationModeService } from '@/services/operationMode/operationModeService';
-import { OperationModeType, OperationModeState, UseOperationMode } from '@/types/operation';
-import { OPERATION_MODE_SWITCH } from '@/constants/errorMessages';
+import { OperationModeType, OperationModeState } from '@/services/operationMode/operationModeService';
+
+/**
+ * Interface du hook useOperationMode
+ */
+export interface UseOperationMode {
+  mode: OperationModeType;
+  state: OperationModeState;
+  isDemoMode: boolean;
+  isRealMode: boolean;
+  enableDemoMode: (reason?: string) => void;
+  enableRealMode: (reason?: string) => void;
+  reset: (reason?: string) => void;
+}
 
 /**
  * Hook pour accéder et modifier le mode opérationnel de l'application
@@ -31,7 +43,7 @@ export const useOperationMode = (): UseOperationMode => {
 
   // S'abonner aux changements d'état du service
   useEffect(() => {
-    const unsubscribe = operationModeService.subscribe((newState) => {
+    const unsubscribe = operationModeService.subscribe((newState: OperationModeState) => {
       setMode(newState.mode);
       setState(newState);
     });
@@ -42,15 +54,15 @@ export const useOperationMode = (): UseOperationMode => {
 
   // Fonctions pour changer le mode
   const enableDemoMode = useCallback((reason?: string) => {
-    operationModeService.enableDemoMode(reason || OPERATION_MODE_SWITCH);
+    operationModeService.enableDemoMode(reason || "Changement en mode démo");
   }, []);
 
   const enableRealMode = useCallback((reason?: string) => {
-    operationModeService.enableRealMode(reason || OPERATION_MODE_SWITCH);
+    operationModeService.enableRealMode(reason || "Changement en mode réel");
   }, []);
 
-  const reset = useCallback(() => {
-    operationModeService.reset();
+  const reset = useCallback((reason?: string) => {
+    operationModeService.reset(reason);
   }, []);
 
   // Valeurs dérivées
