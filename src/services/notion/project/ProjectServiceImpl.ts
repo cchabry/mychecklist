@@ -54,7 +54,7 @@ export class ProjectServiceImpl extends BaseNotionService<Project, CreateProject
   /**
    * Implémentation de la récupération des projets
    */
-  protected async getAllImpl(options?: StandardFilterOptions<Project>): Promise<NotionResponse<Project[]>> {
+  protected async getAllImpl(_options?: StandardFilterOptions<Project>): Promise<NotionResponse<Project[]>> {
     return getAllProjectsNotionImplementation();
   }
   

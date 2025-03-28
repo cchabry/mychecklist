@@ -1,48 +1,32 @@
 
 /**
- * Implémentations de l'API Notion pour les projets
+ * Implémentations des fonctions d'API pour le service de projets
  */
 
 import { NotionResponse } from '../types';
-import { notionClient } from '../client/notionClient';
 import { Project } from '@/types/domain';
 import { CreateProjectInput, UpdateProjectInput } from './types';
-import { notionPageToProject } from './utils';
+
+// Implémentation fictive uniquement pour satisfaire l'interface
+// Ces fonctions seraient normalement remplacées par de vraies implémentations
+// utilisant l'API Notion
 
 /**
- * Récupère tous les projets depuis Notion
+ * Récupère tous les projets depuis l'API Notion
  */
 export async function getAllProjectsNotionImplementation(): Promise<NotionResponse<Project[]>> {
   try {
-    const config = notionClient.getConfig();
-    const dbId = config.projectsDbId;
-    
-    if (!dbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    // Simulation de la récupération des projets
-    // Remplacer par l'appel réel à l'API Notion
-    
-    // Traitement des résultats
-    const projects: Project[] = [];
-    
-    // En réalité, il faudrait mapper les pages Notion vers des objets Project
-    // Pour l'instant, retournons un tableau vide
+    // Cette fonction serait normalement remplacée par une vraie implémentation
+    // utilisant l'API Notion
     return {
       success: true,
-      data: projects
+      data: []
     };
   } catch (error) {
     return {
       success: false,
       error: {
-        message: `Erreur lors de la récupération des projets: ${error instanceof Error ? error.message : String(error)}`,
+        message: 'Erreur lors de la récupération des projets',
         details: error
       }
     };
@@ -50,42 +34,27 @@ export async function getAllProjectsNotionImplementation(): Promise<NotionRespon
 }
 
 /**
- * Récupère un projet par son ID depuis Notion
+ * Récupère un projet par son ID depuis l'API Notion
  */
 export async function getProjectByIdNotionImplementation(id: string): Promise<NotionResponse<Project>> {
   try {
-    const config = notionClient.getConfig();
-    const dbId = config.projectsDbId;
-    
-    if (!dbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    // Simulation d'un projet
-    const mockProject: Project = {
-      id,
-      name: "Projet exemple",
-      description: "Description du projet exemple",
-      url: "https://example.com",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      progress: 0
-    };
-    
+    // Cette fonction serait normalement remplacée par une vraie implémentation
     return {
       success: true,
-      data: mockProject
+      data: {
+        id,
+        name: 'Projet test',
+        url: 'https://example.com',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active'
+      }
     };
   } catch (error) {
     return {
       success: false,
       error: {
-        message: `Erreur lors de la récupération du projet: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Erreur lors de la récupération du projet #${id}`,
         details: error
       }
     };
@@ -93,43 +62,25 @@ export async function getProjectByIdNotionImplementation(id: string): Promise<No
 }
 
 /**
- * Crée un nouveau projet dans Notion
+ * Crée un projet via l'API Notion
  */
-export async function createProjectNotionImplementation(input: CreateProjectInput): Promise<NotionResponse<Project>> {
+export async function createProjectNotionImplementation(data: CreateProjectInput): Promise<NotionResponse<Project>> {
   try {
-    const config = notionClient.getConfig();
-    const dbId = config.projectsDbId;
-    
-    if (!dbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    // Simulation de création
-    const now = new Date().toISOString();
-    const newProject: Project = {
-      id: `project_${Date.now()}`,
-      name: input.name,
-      description: input.description || "",
-      url: input.url || "",
-      createdAt: now,
-      updatedAt: now,
-      progress: 0
-    };
-    
     return {
       success: true,
-      data: newProject
+      data: {
+        id: `project-${Date.now()}`,
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active'
+      }
     };
   } catch (error) {
     return {
       success: false,
       error: {
-        message: `Erreur lors de la création du projet: ${error instanceof Error ? error.message : String(error)}`,
+        message: 'Erreur lors de la création du projet',
         details: error
       }
     };
@@ -137,53 +88,22 @@ export async function createProjectNotionImplementation(input: CreateProjectInpu
 }
 
 /**
- * Met à jour un projet existant dans Notion
+ * Met à jour un projet via l'API Notion
  */
-export async function updateProjectNotionImplementation(input: UpdateProjectInput): Promise<NotionResponse<Project>> {
+export async function updateProjectNotionImplementation(entity: UpdateProjectInput): Promise<NotionResponse<Project>> {
   try {
-    const config = notionClient.getConfig();
-    const dbId = config.projectsDbId;
-    
-    if (!dbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    // Récupérer le projet existant pour la démonstration
-    const projectResult = await getProjectByIdNotionImplementation(input.id);
-    
-    if (!projectResult.success || !projectResult.data) {
-      return {
-        success: false,
-        error: {
-          message: `Projet non trouvé: ${input.id}`
-        }
-      };
-    }
-    
-    // Mettre à jour le projet
-    const currentProject = projectResult.data;
-    const updatedProject: Project = {
-      ...currentProject,
-      name: input.name !== undefined ? input.name : currentProject.name,
-      description: input.description !== undefined ? input.description : currentProject.description,
-      url: input.url !== undefined ? input.url : currentProject.url,
-      updatedAt: new Date().toISOString()
-    };
-    
     return {
       success: true,
-      data: updatedProject
+      data: {
+        ...entity,
+        updatedAt: new Date().toISOString()
+      } as Project
     };
   } catch (error) {
     return {
       success: false,
       error: {
-        message: `Erreur lors de la mise à jour du projet: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Erreur lors de la mise à jour du projet #${entity.id}`,
         details: error
       }
     };
@@ -191,35 +111,10 @@ export async function updateProjectNotionImplementation(input: UpdateProjectInpu
 }
 
 /**
- * Supprime un projet de Notion
+ * Supprime un projet via l'API Notion
  */
 export async function deleteProjectNotionImplementation(id: string): Promise<NotionResponse<boolean>> {
   try {
-    const config = notionClient.getConfig();
-    const dbId = config.projectsDbId;
-    
-    if (!dbId) {
-      return {
-        success: false,
-        error: {
-          message: "Base de données des projets non configurée"
-        }
-      };
-    }
-    
-    // Vérifier que le projet existe
-    const projectResult = await getProjectByIdNotionImplementation(id);
-    
-    if (!projectResult.success) {
-      return {
-        success: false,
-        error: {
-          message: `Projet non trouvé: ${id}`
-        }
-      };
-    }
-    
-    // Simulation de suppression réussie
     return {
       success: true,
       data: true
@@ -228,7 +123,7 @@ export async function deleteProjectNotionImplementation(id: string): Promise<Not
     return {
       success: false,
       error: {
-        message: `Erreur lors de la suppression du projet: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Erreur lors de la suppression du projet #${id}`,
         details: error
       }
     };
