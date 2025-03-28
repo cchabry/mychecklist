@@ -42,15 +42,7 @@ export interface NotionResponse<T> {
 /**
  * Réponse d'API générique
  */
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    message: string;
-    code?: string;
-    status?: number;
-  };
-}
+export type ApiResponse<T> = NotionResponse<T>;
 
 /**
  * Configuration de base pour Notion API

@@ -7,7 +7,6 @@ import { ProjectApi } from '@/types/api/domain';
 import { Project } from '@/types/domain';
 import { notionService } from '../notionService';
 import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR } from '@/constants/errorMessages';
-import { NotionResponse } from '../base/types';
 
 export class NotionProjectApi implements ProjectApi {
   async getProjects(): Promise<Project[]> {

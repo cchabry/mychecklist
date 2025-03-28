@@ -22,13 +22,14 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    * Récupère tous les projets
    */
   async getProjects(): Promise<NotionResponse<Project[]>> {
-    return this.getAll();
+    const response = await this.getAll();
+    return response;
   }
   
   /**
    * Génération de données mock pour les tests
    */
-  protected generateMockData(count: number, options?: StandardFilterOptions): Project[] {
+  protected generateMockData(_count: number, options?: StandardFilterOptions): Project[] {
     const projects = generateMockProjects();
     
     // Si des options de filtrage sont fournies, appliquer les filtres
@@ -143,7 +144,12 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
    * Récupère un projet par son ID
    */
   async getProjectById(id: string): Promise<NotionResponse<Project>> {
-    return this.getById(id);
+    const response = await this.getById(id);
+    return {
+      success: response.success,
+      data: response.data as Project,
+      error: response.error
+    };
   }
   
   /**

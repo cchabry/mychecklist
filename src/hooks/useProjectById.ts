@@ -50,7 +50,7 @@ const useProjectById = (id: string) => {
     };
     
     fetchProject();
-  }, [id]);
+  }, [id, clearError, startLoading, stopLoading, handleError]);
   
   return {
     project,

@@ -27,7 +27,7 @@ export type {
 };
 
 // Alias pour simplicité - utiliser les types de la base
-export { NotionResponse, StandardFilterOptions, ApiResponse } from '../base/types';
+export type { NotionResponse, StandardFilterOptions, ApiResponse } from '../base/types';
 
 // Exporter les autres types de ResponseTypes
 export * from './ResponseTypes';
