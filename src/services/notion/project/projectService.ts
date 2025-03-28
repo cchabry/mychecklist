@@ -1,11 +1,9 @@
-
 /**
  * Service de projets
  * 
  * Ce service fournit des méthodes pour gérer les projets via l'API Notion
  */
 
-import { notionClient } from '../client/notionClient';
 import { NotionResponse } from '../types';
 import { Project } from '@/types/domain';
 import { generateMockProjects } from './utils';
