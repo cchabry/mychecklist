@@ -23,12 +23,9 @@ export {
   getProjectByIdNotionImplementation,
   createProjectNotionImplementation,
   updateProjectNotionImplementation,
-  deleteProjectNotionImplementation
-} from './apiImplementations';
-
-// Exporter les implémentations mock
-export {
-  getMockProjects,
+  deleteProjectNotionImplementation,
+  mockGetProjects,
   mockCreateProject,
-  mockUpdateProject
-} from './mockImplementations';
+  mockUpdateProject,
+  mockDeleteProject
+} from './apiImplementations';

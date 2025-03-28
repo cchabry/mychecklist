@@ -1,14 +1,27 @@
 
 /**
- * Interface pour l'API des projets
+ * Types pour les API de projets
  */
 
 import { Project } from '@/types/domain';
 
-export interface ProjectApi {
-  getProjects(): Promise<Project[]>;
-  getProjectById(id: string): Promise<Project>;
-  createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project>;
-  updateProject(project: Project): Promise<Project>;
-  deleteProject(id: string): Promise<boolean>;
+/**
+ * Type pour la création d'un projet
+ */
+export interface CreateProjectData {
+  name: string;
+  url?: string;
+  description?: string;
+  progress?: number;
+}
+
+/**
+ * Type pour la mise à jour d'un projet
+ */
+export interface UpdateProjectData {
+  name?: string;
+  url?: string;
+  description?: string;
+  progress?: number;
+  status?: string;
 }

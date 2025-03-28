@@ -1,10 +1,12 @@
+
 /**
  * Implémentations concrètes des services liés aux projets
  * Ces implémentations utilisent l'API Notion pour accéder aux données.
  */
 
 import { notionClient } from '../notionClient';
-import { CreateProjectData, Project, UpdateProjectData } from '@/types/domain';
+import { Project } from '@/types/domain';
+import { CreateProjectData, UpdateProjectData } from '@/types/api/domain/projectApi';
 import { NotionConfig, NotionResponse } from '../types';
 import { ProjectStatus } from '@/types/enums';
 
@@ -15,10 +17,10 @@ class ProjectNotionService {
   private databaseId: string;
 
   constructor(config: NotionConfig) {
-    if (!config?.apiKey || !config?.projectDatabaseId) {
+    if (!config?.apiKey || !config?.databases?.projects) {
       throw new Error("Missing Notion configuration");
     }
-    this.databaseId = config.projectDatabaseId;
+    this.databaseId = config.databases.projects;
   }
 
   /**
@@ -26,7 +28,7 @@ class ProjectNotionService {
    */
   async getProjects(): Promise<NotionResponse<Project[]>> {
     try {
-      const response = await notionClient.client.databases.query({
+      const response = await notionClient.queryDatabase({
         database_id: this.databaseId,
       });
 
@@ -48,7 +50,7 @@ class ProjectNotionService {
         throw new Error("ID de projet manquant");
       }
 
-      const response = await notionClient.client.pages.retrieve({
+      const response = await notionClient.getPage({
         page_id: id,
       });
 
@@ -66,7 +68,7 @@ class ProjectNotionService {
    */
   async createProject(data: CreateProjectData): Promise<NotionResponse<Project>> {
     try {
-      const response = await notionClient.client.pages.create({
+      const response = await notionClient.createPage({
         parent: { database_id: this.databaseId },
         properties: {
           Name: {
@@ -111,7 +113,7 @@ class ProjectNotionService {
    */
   async updateProject(project: Project, data: UpdateProjectData): Promise<NotionResponse<Project>> {
     try {
-      const response = await notionClient.client.pages.update({
+      const response = await notionClient.updatePage({
         page_id: project.id,
         properties: {
           ...(data.name ? {
@@ -164,7 +166,7 @@ class ProjectNotionService {
    */
   async deleteProject(id: string): Promise<NotionResponse<boolean>> {
     try {
-      await notionClient.client.blocks.delete({
+      await notionClient.deleteBlock({
         block_id: id,
       });
 
@@ -191,6 +193,66 @@ class ProjectNotionService {
   }
 }
 
+// Exportation des fonctions d'API
+export function getAllProjectsNotionImplementation(): Promise<NotionResponse<Project[]>> {
+  const config = notionClient.getConfig();
+  if (!config) {
+    return Promise.resolve({ success: false, error: new Error("Configuration Notion non disponible") });
+  }
+  
+  const service = new ProjectNotionService(config);
+  return service.getProjects();
+}
+
+export function getProjectByIdNotionImplementation(id: string): Promise<NotionResponse<Project>> {
+  const config = notionClient.getConfig();
+  if (!config) {
+    return Promise.resolve({ success: false, error: new Error("Configuration Notion non disponible") });
+  }
+  
+  const service = new ProjectNotionService(config);
+  return service.getProjectById(id);
+}
+
+export function createProjectNotionImplementation(data: CreateProjectData): Promise<NotionResponse<Project>> {
+  const config = notionClient.getConfig();
+  if (!config) {
+    return Promise.resolve({ success: false, error: new Error("Configuration Notion non disponible") });
+  }
+  
+  const service = new ProjectNotionService(config);
+  return service.createProject(data);
+}
+
+export function updateProjectNotionImplementation(entity: { id: string } & UpdateProjectData): Promise<NotionResponse<Project>> {
+  const config = notionClient.getConfig();
+  if (!config) {
+    return Promise.resolve({ success: false, error: new Error("Configuration Notion non disponible") });
+  }
+  
+  const service = new ProjectNotionService(config);
+  const { id, ...data } = entity;
+  
+  // Obtenir d'abord le projet
+  return service.getProjectById(id).then(response => {
+    if (!response.success || !response.data) {
+      return response;
+    }
+    
+    return service.updateProject(response.data, data);
+  });
+}
+
+export function deleteProjectNotionImplementation(id: string): Promise<NotionResponse<boolean>> {
+  const config = notionClient.getConfig();
+  if (!config) {
+    return Promise.resolve({ success: false, error: new Error("Configuration Notion non disponible") });
+  }
+  
+  const service = new ProjectNotionService(config);
+  return service.deleteProject(id);
+}
+
 // Mock data functions
 export function mockGetProjects(): Project[] {
   return [
@@ -203,6 +265,7 @@ export function mockGetProjects(): Project[] {
       progress: 75,
       createdAt: new Date(2023, 0, 15).toISOString(),
       updatedAt: new Date(2023, 3, 10).toISOString(),
+      lastAuditDate: new Date(2023, 2, 5).toISOString(),
     },
     {
       id: 'project-2',
@@ -223,6 +286,7 @@ export function mockGetProjects(): Project[] {
       progress: 100,
       createdAt: new Date(2022, 11, 1).toISOString(),
       updatedAt: new Date(2023, 4, 1).toISOString(),
+      lastAuditDate: new Date(2023, 3, 15).toISOString(),
     },
   ];
 }
@@ -244,29 +308,25 @@ export function mockCreateProject(data: CreateProjectData): Project {
   };
 }
 
-export function mockUpdateProject(id: string, data: UpdateProjectData): Project | undefined {
-  const projectIndex = mockGetProjects().findIndex(project => project.id === id);
-  if (projectIndex === -1) {
-    return undefined;
+export function mockUpdateProject(entity: { id: string } & UpdateProjectData): Project {
+  const { id, ...data } = entity;
+  const existingProject = mockGetProjectById(id);
+  
+  if (!existingProject) {
+    throw new Error(`Projet non trouvé: ${id}`);
   }
 
-  const updatedProject = {
-    ...mockGetProjects()[projectIndex],
+  return {
+    ...existingProject,
     ...data,
     updatedAt: new Date().toISOString(),
   };
-
-  return updatedProject;
 }
 
 export function mockDeleteProject(id: string): boolean {
-  const projectIndex = mockGetProjects().findIndex(project => project.id === id);
-  if (projectIndex === -1) {
-    return false;
-  }
-
-  mockGetProjects().splice(projectIndex, 1);
-  return true;
+  const projectExists = mockGetProjectById(id) !== undefined;
+  return projectExists;
 }
 
+// Exporter la classe également pour les cas où elle est nécessaire
 export default ProjectNotionService;

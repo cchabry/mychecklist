@@ -10,11 +10,9 @@ import { Project } from '@/types/domain';
 import { CreateProjectInput, UpdateProjectInput } from './types';
 import { StandardFilterOptions } from '../base/types';
 import { 
-  getMockProjects, 
+  mockGetProjects, 
   mockCreateProject, 
-  mockUpdateProject 
-} from './mockImplementations';
-import { 
+  mockUpdateProject,
   getAllProjectsNotionImplementation, 
   getProjectByIdNotionImplementation, 
   createProjectNotionImplementation,
@@ -34,7 +32,7 @@ export class ProjectServiceImpl extends BaseNotionService<Project, CreateProject
    * Génère des projets fictifs pour le mode mock
    */
   protected async getMockEntities(): Promise<Project[]> {
-    return getMockProjects();
+    return mockGetProjects();
   }
   
   /**

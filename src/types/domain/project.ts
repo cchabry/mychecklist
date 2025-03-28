@@ -55,4 +55,9 @@ export interface Project {
    * Date de dernière modification du projet (au format ISO)
    */
   updatedAt: string;
+  
+  /**
+   * Date du dernier audit réalisé sur ce projet
+   */
+  lastAuditDate?: string;
 }

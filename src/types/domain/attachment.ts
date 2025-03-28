@@ -51,3 +51,14 @@ export interface Attachment {
    */
   createdAt?: string;
 }
+
+// Fonction utilitaire pour convertir l'ancien format vers le nouveau
+export function migrateAttachment(oldAttachment: {id: string, name: string, url: string, type: string}): Attachment {
+  return {
+    id: oldAttachment.id,
+    fileName: oldAttachment.name,
+    name: oldAttachment.name,
+    url: oldAttachment.url,
+    type: oldAttachment.type,
+  };
+}

@@ -4,4 +4,5 @@
  */
 
 export { default as ScoreSelector, type ComplianceScore } from './ScoreSelector';
-export { default as EvaluationForm, type Attachment, type EvaluationFormProps } from './EvaluationForm';
+export { default as EvaluationForm, type EvaluationFormProps } from './EvaluationForm';
+export { Attachment, migrateAttachment } from '@/types/domain/attachment';
