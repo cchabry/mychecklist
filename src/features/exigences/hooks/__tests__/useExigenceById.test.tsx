@@ -25,8 +25,7 @@ const createWrapper = () => {
   );
 };
 
-// Désactivation temporaire de la suite de tests qui échoue
-describe.skip('useExigenceById', () => {
+describe('useExigenceById', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });

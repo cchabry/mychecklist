@@ -3,8 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { generateMockEvaluations } from '../utils';
 import { ComplianceLevel } from '@/types/enums';
 
-// Désactivation temporaire de la suite de tests qui échoue
-describe.skip('Evaluation Utils', () => {
+describe('Evaluation Utils', () => {
   describe('generateMockEvaluations', () => {
     it('devrait générer des évaluations simulées pour un audit', () => {
       const auditId = 'audit-123';
@@ -51,7 +50,7 @@ describe.skip('Evaluation Utils', () => {
       const exigenceId = 'exig-2';
       const evaluations = generateMockEvaluations(auditId, pageId, exigenceId);
       
-      // Vérifier que le filtrage fonctionne correctement (peut retourner un tableau vide si aucune correspondance)
+      // Vérifier que le filtrage fonctionne correctement
       evaluations.forEach(e => {
         expect(e.pageId).toBe(pageId);
         expect(e.exigenceId).toBe(exigenceId);
