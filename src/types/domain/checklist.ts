@@ -1,32 +1,46 @@
 
 /**
- * Types pour les items de checklist
- * Représente les critères d'évaluation du référentiel de bonnes pratiques
+ * Types pour le domaine Checklist
  */
 
 /**
- * Item de checklist (référentiel de bonnes pratiques)
- * Contient les critères d'évaluation servant de base aux exigences
+ * Item de checklist représentant une bonne pratique
  */
 export interface ChecklistItem {
-  /** Identifiant unique de l'item */
+  /** Identifiant unique */
   id: string;
-  /** Titre de l'item (règle ou consigne) */
-  consigne: string;
-  /** Description détaillée de l'item */
+  /** Titre de l'item */
+  title: string;
+  /** Description détaillée */
   description: string;
-  /** Catégorie principale (ex: médias, technique) */
+  /** Catégorie principale */
   category: string;
-  /** Sous-catégorie (ex: infographie, image administrable) */
-  subcategory: string;
-  /** Références à des règles dans des référentiels officiels (RGAA, RGESN, etc.) */
-  reference: string[];
-  /** Types d'intervenants concernés (PO, UX, Développeur, etc.) */
-  profil: string[];
-  /** Étapes du projet concernées par cette consigne */
-  phase: string[];
-  /** Niveau d'effort pour mettre en œuvre (1-5) */
-  effort: number;
-  /** Niveau de priorité (1-5) */
-  priority: number;
+  /** Sous-catégorie (optionnelle) */
+  subcategory?: string;
+  /** Références externes (optionnelles) */
+  reference?: string[];
+  /** Profils d'utilisateur concernés (optionnels) */
+  profil?: string[];
+  /** Phases du projet concernées (optionnelles) */
+  phase?: string[];
+  /** Niveau d'effort requis */
+  effort: string;
+  /** Niveau de priorité */
+  priority: string;
+}
+
+/**
+ * Critère de filtre pour les items de checklist
+ */
+export interface ChecklistItemFilter {
+  /** Filtrer par catégorie */
+  category?: string;
+  /** Filtrer par sous-catégorie */
+  subcategory?: string;
+  /** Recherche textuelle */
+  search?: string;
+  /** Filtrer par phase */
+  phase?: string;
+  /** Filtrer par profil */
+  profil?: string;
 }

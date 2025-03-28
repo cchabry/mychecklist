@@ -1,15 +1,11 @@
 
 /**
- * Point d'entrée pour les implémentations API Notion
+ * Point d'entrée pour les APIs Notion
  * 
- * Ce module exporte toutes les implémentations API Notion de manière
- * cohérente et organisée.
+ * Ce module exporte toutes les APIs Notion pour les différents domaines.
  */
 
-export * from './projects';
-export * from './audits';
-export * from './checklists';
-export * from './exigences';
-export * from './samplePages';
-export * from './evaluations';
-export * from './actions';
+// Exporter les APIs par domaine
+export { checklistsApi } from './checklists';
+
+// D'autres APIs seront ajoutées ici au fur et à mesure

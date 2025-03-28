@@ -1,149 +1,168 @@
 
 /**
- * Client Notion API unifié
+ * Client de base pour l'API Notion
  * 
- * Ce module fournit un client unifié pour l'API Notion qui gère:
- * 1. Le mode réel (requêtes vers l'API Notion)
- * 2. Le mode démo (données simulées)
- * 
- * Il sert de façade pour notionHttpClient et notionMockClient.
+ * Ce module fournit un client HTTP de base pour interagir avec l'API Notion,
+ * avec support du mode de démonstration pour le développement sans API réelle.
  */
 
-import { notionHttpClient } from './notionHttpClient';
-import { notionMockClient } from './notionMockClient';
-import { NotionConfig, NotionResponse, ConnectionTestResult } from '../types';
-import { operationModeService } from '@/services/operationMode/operationModeService';
-import { testConnection } from './connectionTester';
+import { NotionConfig } from '../types/NotionConfig';
 
 /**
- * Client API Notion
- * 
- * Fournit une interface unifiée pour interagir avec l'API Notion,
- * en gérant automatiquement le basculement entre le mode réel et le mode démo.
+ * Configuration par défaut pour le client Notion en mode démonstration
  */
-export class NotionClient {
-  private config: NotionConfig = {
-    mockMode: false,
-    debug: false
-  };
+const DEFAULT_MOCK_CONFIG: NotionConfig = {
+  apiKey: 'demo-api-key',
+  mode: 'demo',
+  projectsDbId: 'demo-projects-db',
+  auditsDbId: 'demo-audits-db',
+  exigencesDbId: 'demo-exigences-db',
+  pagesDbId: 'demo-pages-db',
+  evaluationsDbId: 'demo-evaluations-db',
+  checklistDbId: 'demo-checklist-db',
+  actionsDbId: 'demo-actions-db',
+  progressDbId: 'demo-progress-db'
+};
+
+/**
+ * Client pour l'API Notion
+ */
+class NotionClient {
+  private config: NotionConfig;
   
   /**
-   * Configure le client Notion
-   * @param config Configuration du client
+   * Constructeur du client Notion
+   * 
+   * @param config Configuration optionnelle (utilise la config de démo par défaut)
    */
-  configure(config: NotionConfig): void {
-    this.config = { ...this.config, ...config };
-    
-    // Transmettre la configuration au client HTTP si en mode réel
-    if (!this.isMockMode()) {
-      notionHttpClient.configure(config);
-    }
+  constructor(config: Partial<NotionConfig> = {}) {
+    this.config = {
+      ...DEFAULT_MOCK_CONFIG,
+      ...config
+    };
   }
   
   /**
-   * Vérifie si le client est correctement configuré pour fonctionner
-   * @returns true si la configuration minimale est présente
+   * Vérifie si le client est en mode de démonstration
+   * 
+   * @returns true si le client est en mode de démonstration
    */
-  isConfigured(): boolean {
-    // En mode démo, on considère toujours que le client est configuré
-    if (this.isMockMode()) {
-      return true;
-    }
-    
-    // En mode réel, vérifier la présence des informations essentielles
-    return !!this.config.apiKey && !!this.config.projectsDbId;
+  public isMockMode(): boolean {
+    return this.config.mode === 'demo';
   }
   
   /**
-   * Récupère la configuration actuelle
-   * @returns Copie de la configuration actuelle
+   * Récupère la configuration actuelle du client
+   * 
+   * @returns Configuration actuelle
    */
-  getConfig(): NotionConfig {
+  public getConfig(): NotionConfig {
     return { ...this.config };
   }
   
   /**
-   * Active ou désactive le mode mock
-   * @param enabled État souhaité du mode mock
+   * Définit la configuration du client
+   * 
+   * @param config Nouvelle configuration (partielle ou complète)
    */
-  setMockMode(enabled: boolean): void {
-    this.config.mockMode = enabled;
+  public setConfig(config: Partial<NotionConfig>): void {
+    this.config = {
+      ...this.config,
+      ...config
+    };
   }
   
   /**
-   * Vérifie si le mode mock est actif, soit par configuration directe,
-   * soit via le service de gestion du mode opérationnel
-   * @returns true si le client est en mode mock/démo
+   * Définit le mode d'opération du client
+   * 
+   * @param mode Mode d'opération ('real' ou 'demo')
    */
-  isMockMode(): boolean {
-    return !!this.config.mockMode || operationModeService.isDemoMode();
-  }
-  
-  /**
-   * Active ou désactive le mode debug
-   * @param enabled État souhaité du mode debug
-   */
-  setDebugMode(enabled: boolean): void {
-    this.config.debug = enabled;
+  public setMode(mode: 'real' | 'demo'): void {
+    this.config.mode = mode;
   }
   
   /**
    * Effectue une requête GET vers l'API Notion
-   * @param endpoint Point d'entrée API (ex: '/databases')
-   * @returns Promise avec le résultat de la requête
+   * 
+   * @param endpoint Point de terminaison de l'API
+   * @returns Promise résolvant vers la réponse
    */
-  async get<T>(endpoint: string): Promise<NotionResponse<T>> {
-    return this.isMockMode()
-      ? notionMockClient.get<T>(endpoint)
-      : notionHttpClient.get<T>(endpoint);
+  public async get<T>(endpoint: string): Promise<T> {
+    if (this.isMockMode()) {
+      console.log(`[MOCK] GET request to ${endpoint}`);
+      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+    }
+    
+    // Implémentation réelle à ajouter ultérieurement
+    throw new Error('Real API mode not yet implemented');
   }
   
   /**
    * Effectue une requête POST vers l'API Notion
-   * @param endpoint Point d'entrée API
+   * 
+   * @param endpoint Point de terminaison de l'API
    * @param data Données à envoyer
-   * @returns Promise avec le résultat de la requête
+   * @returns Promise résolvant vers la réponse
    */
-  async post<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
-    return this.isMockMode()
-      ? notionMockClient.post<T>(endpoint, data)
-      : notionHttpClient.post<T>(endpoint, data);
+  public async post<T>(endpoint: string, data: unknown): Promise<T> {
+    if (this.isMockMode()) {
+      console.log(`[MOCK] POST request to ${endpoint} with data:`, data);
+      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+    }
+    
+    // Implémentation réelle à ajouter ultérieurement
+    throw new Error('Real API mode not yet implemented');
   }
   
   /**
    * Effectue une requête PATCH vers l'API Notion
-   * @param endpoint Point d'entrée API
+   * 
+   * @param endpoint Point de terminaison de l'API
    * @param data Données à envoyer
-   * @returns Promise avec le résultat de la requête
+   * @returns Promise résolvant vers la réponse
    */
-  async patch<T>(endpoint: string, data?: any): Promise<NotionResponse<T>> {
-    return this.isMockMode()
-      ? notionMockClient.patch<T>(endpoint, data)
-      : notionHttpClient.patch<T>(endpoint, data);
+  public async patch<T>(endpoint: string, data: unknown): Promise<T> {
+    if (this.isMockMode()) {
+      console.log(`[MOCK] PATCH request to ${endpoint} with data:`, data);
+      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+    }
+    
+    // Implémentation réelle à ajouter ultérieurement
+    throw new Error('Real API mode not yet implemented');
   }
   
   /**
    * Effectue une requête DELETE vers l'API Notion
-   * @param endpoint Point d'entrée API
-   * @returns Promise avec le résultat de la requête
+   * 
+   * @param endpoint Point de terminaison de l'API
+   * @returns Promise résolvant vers la réponse
    */
-  async delete<T>(endpoint: string): Promise<NotionResponse<T>> {
-    return this.isMockMode()
-      ? notionMockClient.delete<T>(endpoint)
-      : notionHttpClient.delete<T>(endpoint);
-  }
-  
-  /**
-   * Teste la connexion à l'API Notion
-   * @returns Résultat du test de connexion
-   */
-  async testConnection(): Promise<ConnectionTestResult> {
-    return testConnection(this.config, this.isMockMode());
+  public async delete<T>(endpoint: string): Promise<T> {
+    if (this.isMockMode()) {
+      console.log(`[MOCK] DELETE request to ${endpoint}`);
+      throw new Error('Mock mode active, but no mock data provided for this endpoint');
+    }
+    
+    // Implémentation réelle à ajouter ultérieurement
+    throw new Error('Real API mode not yet implemented');
   }
 }
 
-// Exporter une instance singleton
+/**
+ * Instance partagée du client Notion
+ */
 export const notionClient = new NotionClient();
 
-// Export par défaut
+/**
+ * Réinitialise le client Notion avec une nouvelle configuration
+ * 
+ * @param config Nouvelle configuration
+ */
+export function resetNotionClient(config: Partial<NotionConfig> = {}): void {
+  notionClient.setConfig({
+    ...DEFAULT_MOCK_CONFIG,
+    ...config
+  });
+}
+
 export default notionClient;

@@ -1,60 +1,53 @@
 
 /**
- * Types de réponse pour l'API Notion
- * 
- * Ce module définit les structures de données retournées par l'API Notion.
+ * Types pour les réponses des services Notion
  */
 
 /**
- * Base de données Notion
+ * Structure de réponse standard pour les services Notion
  * 
- * Représentation d'une base de données dans Notion
+ * @template T Type des données en cas de succès
  */
-export interface NotionDatabase {
-  /** Identifiant unique de la base de données */
-  id: string;
-  /** Titre de la base de données */
-  title: Array<{ plain_text: string }>;
-  /** Propriétés de la base de données */
-  properties: Record<string, any>;
-  /** URL de la base de données */
-  url?: string;
-  /** Propriétés d'affichage de la base de données */
-  display?: Record<string, any>;
+export interface NotionResponse<T> {
+  /** Indique si l'opération a réussi */
+  success: boolean;
+  /** Données en cas de succès */
+  data?: T;
+  /** Informations sur l'erreur en cas d'échec */
+  error?: {
+    /** Message d'erreur */
+    message: string;
+    /** Détails supplémentaires sur l'erreur */
+    details?: unknown;
+  };
 }
 
 /**
- * Page Notion
- * 
- * Représentation d'une page dans Notion
+ * Options de filtre standard pour les requêtes Notion
  */
-export interface NotionPage {
-  /** Identifiant unique de la page */
-  id: string;
-  /** Horodatage de création */
-  created_time: string;
-  /** Horodatage de dernière modification */
-  last_edited_time: string;
-  /** Identifiant du parent (base de données ou page) */
-  parent?: { database_id?: string; page_id?: string };
-  /** Propriétés de la page */
-  properties: Record<string, any>;
-  /** URL de la page */
-  url?: string;
-  /** Contenu de la page */
-  content?: Array<any>;
-}
-
-/**
- * Résultat de requête paginée Notion
- * 
- * @template T - Type des données retournées
- */
-export interface NotionPaginatedResult<T = any> {
-  /** Liste des résultats pour la page courante */
-  results: T[];
-  /** Indique s'il existe plus de résultats */
-  has_more: boolean;
-  /** Curseur pour la page suivante */
-  next_cursor: string | null;
+export interface StandardFilterOptions {
+  /** Identifiant du projet */
+  projectId?: string;
+  /** Identifiant de l'audit */
+  auditId?: string;
+  /** Identifiant de la page */
+  pageId?: string;
+  /** Identifiant de l'exigence */
+  exigenceId?: string;
+  /** Identifiant de l'item de checklist */
+  itemId?: string;
+  /** Statut */
+  status?: string;
+  /** Recherche textuelle */
+  search?: string;
+  /** Options de tri */
+  sort?: {
+    field: string;
+    direction: 'asc' | 'desc';
+  };
+  /** Options de pagination */
+  pagination?: {
+    page: number;
+    pageSize: number;
+  };
 }
