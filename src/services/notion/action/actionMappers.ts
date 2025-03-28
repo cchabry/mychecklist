@@ -4,15 +4,15 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { CorrectiveAction } from '@/types/domain';
 import { 
-  CorrectiveAction, 
   ComplianceStatus, 
   ActionPriority, 
   ActionStatus,
   complianceStatusToLevel,
   actionPriorityToLevel,
   actionStatusToType
-} from '@/types/domain';
+} from '@/types/domain/actionStatus';
 import { CreateActionInput } from './types';
 import { ComplianceLevel, PriorityLevel, StatusType } from '@/types/enums';
 

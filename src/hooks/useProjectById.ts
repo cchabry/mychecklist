@@ -14,7 +14,7 @@ import { Project } from '@/types/domain';
  * @returns Résultat de la requête contenant le projet
  */
 export const useProjectById = (id?: string) => {
-  return useEntityQuery<Project>(
+  const result = useEntityQuery<Project>(
     'project',
     id,
     (projectId) => notionService.getProjectById(projectId),
@@ -22,6 +22,11 @@ export const useProjectById = (id?: string) => {
       staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
+
+  return {
+    ...result,
+    project: result.data
+  };
 };
 
 export default useProjectById;

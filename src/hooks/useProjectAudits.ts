@@ -6,7 +6,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getProjectAudits } from '@/features/audits';
 import { toast } from 'sonner';
-import { Audit } from '@/types/domain';
 
 /**
  * Hook pour récupérer tous les audits d'un projet

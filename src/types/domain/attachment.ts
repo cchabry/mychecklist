@@ -37,6 +37,11 @@ export interface Attachment {
   contentType?: string;
   
   /**
+   * Type de la pièce jointe (pour la rétrocompatibilité)
+   */
+  type?: string;
+  
+  /**
    * Taille du fichier en octets
    */
   size?: number;

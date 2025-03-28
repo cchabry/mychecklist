@@ -7,6 +7,7 @@ import { Button } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
 import { ProjectCard } from '@/components/data-display/ProjectCard';
 import { Project } from '@/types/domain';
+import { ProjectStatus } from '@/types/enums';
 
 /**
  * Page d'accueil affichant les projets et permettant d'en créer de nouveaux
@@ -20,7 +21,7 @@ const Dashboard = () => {
       url: 'www.example.com',
       createdAt: '2023-01-01',
       updatedAt: '2023-05-15',
-      status: 'active',
+      status: ProjectStatus.Active,
       lastAuditDate: '2023-04-20'
     },
     {
@@ -29,7 +30,7 @@ const Dashboard = () => {
       url: 'app.example.org',
       createdAt: '2023-02-10',
       updatedAt: '2023-04-05',
-      status: 'pending'
+      status: ProjectStatus.Pending
     },
     {
       id: '3',
@@ -37,7 +38,7 @@ const Dashboard = () => {
       url: 'shop.example.net',
       createdAt: '2022-11-15',
       updatedAt: '2023-03-20',
-      status: 'completed',
+      status: ProjectStatus.Completed,
       lastAuditDate: '2023-03-10'
     }
   ]);

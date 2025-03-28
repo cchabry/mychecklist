@@ -1,13 +1,12 @@
-
 /**
  * Mappers pour les données de progrès d'actions
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { ActionProgress, ComplianceStatus, ActionStatus } from '@/types/domain';
+import { ActionProgress } from '@/types/domain';
+import { ComplianceStatus, ActionStatus, complianceStatusToLevel, actionStatusToType } from '@/types/domain/actionStatus';
 import { ComplianceLevel, StatusType } from '@/types/enums';
 import { CreateProgressInput } from './types';
-import { complianceStatusToLevel, actionStatusToType } from '@/types/domain';
 
 /**
  * Fonctions utilitaires pour mapper les données de progrès

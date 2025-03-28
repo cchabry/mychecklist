@@ -1,18 +1,19 @@
-
 /**
  * Utilitaires pour générer des données mock d'actions correctives et de progrès
  */
 
 import { 
   CorrectiveAction, 
-  ActionProgress,
+  ActionProgress
+} from '@/types/domain';
+import { 
   ComplianceStatus, 
   ActionPriority, 
   ActionStatus,
   complianceStatusToLevel,
   actionPriorityToLevel,
   actionStatusToType
-} from '@/types/domain';
+} from '@/types/domain/actionStatus';
 
 /**
  * Génère un tableau d'actions correctives simulées pour une évaluation donnée

@@ -16,6 +16,7 @@ export * from './exigence';
 export * from './project';
 export * from './progress';
 export * from './samplePage';
+export * from './actionStatus';
 
 // Types qui n'ont pas encore leur propre fichier
 export * from './user';
