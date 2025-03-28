@@ -1,19 +1,19 @@
 
 /**
  * Implémentation standardisée du service d'exigences
- * basée sur la classe BaseNotionService
+ * basée sur la classe BaseServiceCombined
  */
 
-import { BaseNotionService, generateMockId } from '../base';
+import { BaseServiceCombined, generateMockId } from '../base';
 import { NotionResponse } from '../types';
 import { Exigence } from '@/types/domain';
-import { CreateExigenceInput } from './types';
+import { CreateExigenceInput, UpdateExigenceInput } from './types';
 import { generateMockExigences } from './utils';
 
 /**
  * Implémentation standardisée du service d'exigences
  */
-export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExigenceInput> {
+export class ExigenceServiceImpl extends BaseServiceCombined<Exigence, CreateExigenceInput, UpdateExigenceInput> {
   constructor() {
     super('Exigence', 'projectsDbId');
   }
@@ -22,7 +22,9 @@ export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExige
    * Récupère toutes les exigences d'un projet
    */
   async getExigences(projectId: string): Promise<NotionResponse<Exigence[]>> {
-    return this.getAll({ projectId });
+    return this.getAll({
+      filter: (exigence: Exigence) => exigence.projectId === projectId
+    });
   }
   
   /**
@@ -42,7 +44,7 @@ export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExige
   /**
    * Met à jour une exigence existante
    */
-  async updateExigence(exigence: Exigence): Promise<NotionResponse<Exigence>> {
+  async updateExigence(exigence: UpdateExigenceInput): Promise<NotionResponse<Exigence>> {
     return this.update(exigence);
   }
   
@@ -74,8 +76,8 @@ export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExige
   /**
    * Met à jour une exigence fictive en mode mock
    */
-  protected async mockUpdate(entity: Exigence): Promise<Exigence> {
-    return entity;
+  protected async mockUpdate(entity: UpdateExigenceInput): Promise<Exigence> {
+    return entity as Exigence;
   }
   
   /**
@@ -144,7 +146,7 @@ export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExige
   /**
    * Implémentation de la mise à jour d'une exigence
    */
-  protected async updateImpl(entity: Exigence): Promise<NotionResponse<Exigence>> {
+  protected async updateImpl(entity: UpdateExigenceInput): Promise<NotionResponse<Exigence>> {
     try {
       // Pour l'instant, utilisons une donnée mock même en mode réel
       return {

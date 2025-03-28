@@ -1,19 +1,19 @@
 
 /**
  * Implémentation standardisée du service de pages d'échantillon
- * basée sur la classe BaseNotionService
+ * basée sur la classe BaseServiceCombined
  */
 
-import { BaseNotionService, generateMockId } from '../base';
+import { BaseServiceCombined, generateMockId } from '../base';
 import { NotionResponse } from '../types';
 import { SamplePage } from '@/types/domain';
-import { CreateSamplePageInput } from './types';
+import { CreateSamplePageInput, UpdateSamplePageInput } from './types';
 import { generateMockSamplePages } from './utils';
 
 /**
  * Implémentation standardisée du service de pages d'échantillon
  */
-export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateSamplePageInput> {
+export class SamplePageServiceImpl extends BaseServiceCombined<SamplePage, CreateSamplePageInput, UpdateSamplePageInput> {
   constructor() {
     super('SamplePage', 'projectsDbId');
   }
@@ -22,7 +22,9 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
    * Récupère toutes les pages d'échantillon d'un projet
    */
   async getSamplePages(projectId: string): Promise<NotionResponse<SamplePage[]>> {
-    return this.getAll({ projectId });
+    return this.getAll({
+      filter: (page: SamplePage) => page.projectId === projectId
+    });
   }
   
   /**
@@ -42,7 +44,7 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
   /**
    * Met à jour une page d'échantillon existante
    */
-  async updateSamplePage(page: SamplePage): Promise<NotionResponse<SamplePage>> {
+  async updateSamplePage(page: UpdateSamplePageInput): Promise<NotionResponse<SamplePage>> {
     return this.update(page);
   }
   
@@ -74,8 +76,8 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
   /**
    * Met à jour une page d'échantillon fictive en mode mock
    */
-  protected async mockUpdate(entity: SamplePage): Promise<SamplePage> {
-    return entity;
+  protected async mockUpdate(entity: UpdateSamplePageInput): Promise<SamplePage> {
+    return entity as SamplePage;
   }
   
   /**
@@ -144,7 +146,7 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
   /**
    * Implémentation de la mise à jour d'une page d'échantillon
    */
-  protected async updateImpl(entity: SamplePage): Promise<NotionResponse<SamplePage>> {
+  protected async updateImpl(entity: UpdateSamplePageInput): Promise<NotionResponse<SamplePage>> {
     try {
       // Pour l'instant, utilisons une donnée mock même en mode réel
       return {

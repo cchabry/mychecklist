@@ -19,11 +19,11 @@ export {
 
 // Exporter les implémentations API
 export {
-  createProjectNotionImplementation as createProject,
-  updateProjectNotionImplementation as updateProject,
-  getAllProjectsNotionImplementation as getAllProjects,
-  getProjectByIdNotionImplementation as getProjectById,
-  deleteProjectNotionImplementation as deleteProject
+  getAllProjectsNotionImplementation,
+  getProjectByIdNotionImplementation,
+  createProjectNotionImplementation,
+  updateProjectNotionImplementation,
+  deleteProjectNotionImplementation
 } from './apiImplementations';
 
 // Exporter les implémentations mock
