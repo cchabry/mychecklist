@@ -11,7 +11,6 @@ import { projectService } from '../project';
 import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/types/api/domain/projectApi';
 import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constants/errorMessages';
-import { mapStringToProjectStatus } from '@/types/enums';
 
 /**
  * Implémentation de l'API de projets utilisant le service Notion
@@ -60,13 +59,7 @@ class NotionProjectApi implements ProjectApi {
    * Met à jour un projet existant
    */
   async updateProject(id: string, data: UpdateProjectData): Promise<Project> {
-    // Convertir le statut en ProjectStatus si défini
-    const updatedData = {
-      ...data,
-      status: data.status ? mapStringToProjectStatus(data.status) : undefined
-    };
-    
-    const response = await projectService.updateProject(id, updatedData);
+    const response = await projectService.updateProject(id, data);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || UPDATE_ERROR);

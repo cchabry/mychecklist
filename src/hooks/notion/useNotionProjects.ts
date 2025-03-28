@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/services/notion/project';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import type { CreateProjectInput, UpdateProjectInput } from '@/services/notion/project/types';
-import { ProjectStatus, mapStringToProjectStatus } from '@/types/enums';
+import { mapStringToProjectStatus } from '@/types/enums';
 
 /**
  * Hook pour récupérer tous les projets Notion

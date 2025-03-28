@@ -8,3 +8,10 @@
 // Exporter les hooks spécifiques à Notion
 export { useNotionErrorHandler } from './useNotionErrorHandler';
 export { useNotionService } from './useNotionService';
+export { 
+  useNotionProjects, 
+  useNotionProjectById, 
+  useCreateNotionProject, 
+  useUpdateNotionProject, 
+  useDeleteNotionProject 
+} from './useNotionProjects';

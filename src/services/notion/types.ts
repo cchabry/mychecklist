@@ -54,6 +54,19 @@ export interface ConnectionTestResult {
   user?: string;
   error?: string;
   details?: any;
+  workspaceName?: string;
+  projectsDbName?: string;
+  checklistsDbName?: string;
+}
+
+/**
+ * Définition d'erreur Notion
+ */
+export interface NotionError {
+  message: string;
+  details?: any;
+  code?: string;
+  status?: number;
 }
 
 /**
@@ -62,11 +75,7 @@ export interface ConnectionTestResult {
 export interface NotionResponse<T> {
   success: boolean;
   data?: T;
-  error?: {
-    message: string;
-    details?: any;
-    code?: string;
-  };
+  error?: NotionError;
 }
 
 /**

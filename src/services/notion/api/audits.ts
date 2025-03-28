@@ -1,19 +1,24 @@
 
 /**
  * API Notion pour les audits
- * 
- * Ce module fournit l'implémentation de l'interface AuditApi
- * pour accéder aux données d'audits via l'API Notion ou en mode mock.
  */
 
 import { AuditApi } from '@/types/api/domain/auditApi';
-import { auditService } from '../audit/auditService';
+import { auditService } from '../audit';
 import { Audit } from '@/types/domain';
-import { CreateAuditData, UpdateAuditData } from '@/types/api/domain/auditApi';
-import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR } from '@/constants/errorMessages';
+import { 
+  CreateAuditData, 
+  UpdateAuditData 
+} from '@/types/api/domain/auditApi';
+import { 
+  DELETE_ERROR, 
+  FETCH_ERROR, 
+  CREATE_ERROR, 
+  UPDATE_ERROR 
+} from '@/constants/errorMessages';
 
 /**
- * Implémentation de l'API d'audits utilisant le service Notion
+ * Implémentation de l'API des audits utilisant le service Notion
  */
 class NotionAuditApi implements AuditApi {
   /**
@@ -46,17 +51,7 @@ class NotionAuditApi implements AuditApi {
    * Crée un nouvel audit
    */
   async createAudit(data: CreateAuditData): Promise<Audit> {
-    const now = new Date().toISOString();
-    
-    const auditData = {
-      ...data,
-      createdAt: now,
-      updatedAt: now,
-      status: data.status || 'Planifié',
-      progress: data.progress || 0
-    };
-    
-    const response = await auditService.createAudit(auditData);
+    const response = await auditService.createAudit(data);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || CREATE_ERROR);
@@ -69,12 +64,7 @@ class NotionAuditApi implements AuditApi {
    * Met à jour un audit existant
    */
   async updateAudit(id: string, data: UpdateAuditData): Promise<Audit> {
-    const updateData = {
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-    
-    const response = await auditService.updateAudit(id, updateData);
+    const response = await auditService.updateAudit(id, data);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || UPDATE_ERROR);

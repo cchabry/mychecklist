@@ -19,6 +19,7 @@ describe('Checklist Utils', () => {
   const items: ChecklistItem[] = [
     {
       id: '1',
+      name: 'Alt-Text',
       consigne: 'Utiliser des textes alternatifs',
       description: 'Images accessibles',
       category: 'Accessibilité',
@@ -31,6 +32,7 @@ describe('Checklist Utils', () => {
     },
     {
       id: '2',
+      name: 'Img-Opt',
       consigne: 'Optimiser les images',
       description: 'Images compressées',
       category: 'Performance',
@@ -43,6 +45,7 @@ describe('Checklist Utils', () => {
     },
     {
       id: '3',
+      name: 'Contraste',
       consigne: 'Contraste de texte suffisant',
       description: 'Contrastes WCAG AA',
       category: 'Accessibilité',
