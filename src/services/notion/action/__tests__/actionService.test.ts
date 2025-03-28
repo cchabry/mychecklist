@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { actionService } from '../actionService';
 import { notionClient } from '../../notionClient';
-import { ActionPriority, ActionStatus, ComplianceStatus } from '@/types/domain/actionStatus';
+import { ActionPriority, ActionStatus, ComplianceStatus } from '@/types/domain';
 import { CorrectiveAction } from '@/types/domain';
 import { NotionConfig } from '../../types';
 import { ComplianceLevel, PriorityLevel, StatusType } from '@/types/enums';

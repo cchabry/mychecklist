@@ -1,90 +1,80 @@
 
 /**
- * Définitions des énumérations utilisées dans l'application
- * 
- * Ce fichier centralise toutes les énumérations pour garantir
- * leur cohérence à travers l'application.
+ * Énumérations pour l'application
  */
 
 /**
- * Niveau d'importance d'une exigence
+ * Niveaux d'importance pour les exigences
  */
 export enum ImportanceLevel {
-  NotApplicable = "N/A", // Non applicable
-  Minor = "Mineur",      // Importance mineure
-  Medium = "Moyen",      // Importance moyenne
-  Important = "Important", // Importance élevée
-  Major = "Majeur",       // Importance majeure/critique
-  High = "Important"      // Alias pour Important (pour la rétrocompatibilité)
+  NotApplicable = 'N/A',
+  Minor = 'mineur',
+  Medium = 'moyen',
+  Important = 'important',
+  Major = 'majeur',
+  // Alias pour assurer la compatibilité avec le code existant
+  N_A = 'N/A',
+  MINOR = 'mineur',
+  MEDIUM = 'moyen',
+  IMPORTANT = 'important',
+  MAJOR = 'majeur'
 }
 
 /**
- * Niveau de priorité d'une action corrective
- */
-export enum PriorityLevel {
-  Low = "Faible",       // Priorité basse
-  Medium = "Moyenne",   // Priorité moyenne
-  High = "Haute",       // Priorité élevée
-  Critical = "Critique" // Priorité critique
-}
-
-/**
- * Statut d'une entité (action, tâche, etc.)
- */
-export enum StatusType {
-  Todo = "À faire",     // À faire
-  InProgress = "En cours", // En cours de réalisation
-  Done = "Terminé",     // Terminé
-  Canceled = "Annulé"   // Annulé
-}
-
-/**
- * Niveau de conformité d'une évaluation
+ * Niveaux de conformité pour les évaluations
  */
 export enum ComplianceLevel {
-  NotApplicable = "Non applicable", // Non applicable pour cette page
-  NonCompliant = "Non conforme",    // Ne respecte pas l'exigence
-  PartiallyCompliant = "Partiellement conforme", // Respecte partiellement l'exigence
-  Compliant = "Conforme"           // Respecte pleinement l'exigence
+  Compliant = 'Conforme',
+  PartiallyCompliant = 'Partiellement conforme',
+  NonCompliant = 'Non conforme',
+  NotApplicable = 'Non Applicable'
 }
 
 /**
- * Statut d'un projet
+ * Priorités pour les actions correctives
  */
-export enum ProjectStatus {
-  PENDING = "En attente",
-  ACTIVE = "En cours",
-  COMPLETED = "Terminé",
-  ARCHIVED = "Archivé",
-  InProgress = "En cours"  // Alias pour ACTIVE (pour la rétrocompatibilité)
+export enum PriorityLevel {
+  Low = 'faible',
+  Medium = 'moyenne',
+  High = 'haute',
+  Critical = 'critique'
 }
 
 /**
- * Mapping des chaînes de caractères vers les statuts de projet
+ * Statuts pour les actions et progrès
  */
-export const PROJECT_STATUS_MAPPING: Record<string, ProjectStatus> = {
-  "En attente": ProjectStatus.PENDING,
-  "pending": ProjectStatus.PENDING,
-  "PENDING": ProjectStatus.PENDING,
-  
-  "En cours": ProjectStatus.ACTIVE,
-  "active": ProjectStatus.ACTIVE,
-  "ACTIVE": ProjectStatus.ACTIVE,
-  "InProgress": ProjectStatus.InProgress,
-  
-  "Terminé": ProjectStatus.COMPLETED,
-  "completed": ProjectStatus.COMPLETED,
-  "COMPLETED": ProjectStatus.COMPLETED,
-  
-  "Archivé": ProjectStatus.ARCHIVED,
-  "archived": ProjectStatus.ARCHIVED,
-  "ARCHIVED": ProjectStatus.ARCHIVED
-};
+export enum StatusType {
+  Todo = 'à faire',
+  InProgress = 'en cours',
+  Done = 'terminée'
+}
 
 /**
- * Convertit une chaîne de caractères en ProjectStatus
+ * Profils utilisateurs
  */
-export function mapStringToProjectStatus(status: string): ProjectStatus {
-  const mappedStatus = PROJECT_STATUS_MAPPING[status];
-  return mappedStatus || ProjectStatus.ACTIVE; // Valeur par défaut
+export enum UserProfile {
+  ProductOwner = 'Product Owner',
+  UXDesigner = 'UX designer',
+  UIDesigner = 'UI designer',
+  Developer = 'Développeur',
+  Contributor = 'Contributeur'
+}
+
+/**
+ * Phases de projet
+ */
+export enum ProjectPhase {
+  Design = 'Design',
+  Development = 'Développement',
+  Testing = 'Tests',
+  Production = 'Production'
+}
+
+/**
+ * Types de référence
+ */
+export enum ReferenceType {
+  RGAA = 'RGAA',
+  RGESN = 'RGESN',
+  OPQUAST = 'OPQUAST'
 }

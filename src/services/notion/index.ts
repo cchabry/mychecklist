@@ -19,8 +19,7 @@ export { checklistService } from './checklistService';
 export { exigenceService, exigenceServiceImpl } from './exigence';
 export { samplePageService, samplePageServiceImpl } from './samplePage';
 export { auditService } from './audit';
-export { evaluationService, evaluationServiceImpl } from './evaluation';
-export { projectService, projectServiceImpl } from './project';
+export { evaluationService } from './evaluation';
 export { actionService, progressService } from './action';
 
 // Exporter les types

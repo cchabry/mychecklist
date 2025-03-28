@@ -7,7 +7,13 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ScoreSelector, ComplianceScore } from './ScoreSelector';
-import { Attachment, migrateAttachment } from '@/types/domain/attachment';
+
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+}
 
 export interface EvaluationFormProps {
   exigenceId: string;
@@ -47,12 +53,12 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
   // Cette fonction serait implémentée plus tard avec la gestion de fichiers
   const handleFileUpload = () => {
     // Simulons l'ajout d'une pièce jointe pour la démonstration
-    const mockAttachment: Attachment = migrateAttachment({
+    const mockAttachment: Attachment = {
       id: Date.now().toString(),
       name: 'capture_ecran.png',
       url: '#',
       type: 'image/png'
-    });
+    };
     
     setAttachments([...attachments, mockAttachment]);
     toast.info('Pièce jointe ajoutée');
@@ -149,7 +155,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
                       key={attachment.id}
                       className="flex items-center justify-between text-sm p-1 hover:bg-accent rounded"
                     >
-                      <span className="truncate max-w-[200px]">{attachment.name || attachment.fileName}</span>
+                      <span className="truncate max-w-[200px]">{attachment.name}</span>
                       <Button
                         type="button"
                         variant="ghost"

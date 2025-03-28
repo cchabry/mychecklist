@@ -1,45 +1,49 @@
-/**
- * Tests pour le service d'évaluations
- * 
- * Ce fichier contient des tests unitaires pour le service d'évaluations
- * qui permet de manipuler les évaluations dans Notion.
- */
 
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluationService } from '../evaluationService';
-import { mockNotionClient, resetMocks } from '../../client/__mocks__/notionClient';
+import { notionClient } from '../../notionClient';
 import { ComplianceLevel } from '@/types/enums';
+import { Evaluation } from '@/types/domain';
+import { NotionConfig } from '../../types';
 
-// Mock du client Notion
-jest.mock('../../notionClient', () => ({
-  notionClient: mockNotionClient
+// Mock du notionClient
+vi.mock('../../notionClient', () => ({
+  notionClient: {
+    getConfig: vi.fn(),
+    isMockMode: vi.fn(),
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn()
+  }
 }));
 
+// Réactivation des tests précédemment désactivés
 describe('EvaluationService', () => {
-  beforeEach(() => {
-    resetMocks();
-  });
-
-  const mockAttachment = {
-    id: 'attach-1',
-    fileName: 'capture.png',
-    name: 'capture.png',
-    url: 'https://example.com/files/capture.png',
-    contentType: 'image/png',
-    type: 'image/png',
-    size: 1024
-  };
-
-  const mockEvaluation = {
+  const mockEvaluation: Evaluation = {
     id: 'eval-1',
     auditId: 'audit-123',
     pageId: 'page-123',
     exigenceId: 'exig-123',
     score: ComplianceLevel.Compliant,
     comment: 'Test comment',
-    attachments: [mockAttachment],
+    attachments: [],
     createdAt: '2023-01-01T00:00:00.000Z',
     updatedAt: '2023-01-01T00:00:00.000Z'
   };
+
+  beforeEach(() => {
+    // Réinitialiser tous les mocks avant chaque test
+    vi.resetAllMocks();
+    
+    // Configuration par défaut pour les tests
+    vi.mocked(notionClient.getConfig).mockReturnValue({ 
+      apiKey: 'fake-key',
+      evaluationsDbId: 'evaluations-db'
+    } as NotionConfig);
+    
+    vi.mocked(notionClient.isMockMode).mockReturnValue(true);
+  });
 
   describe('getEvaluations', () => {
     it('devrait retourner une erreur si la configuration est manquante', async () => {
@@ -141,7 +145,7 @@ describe('EvaluationService', () => {
       exigenceId: 'exig-123',
       score: ComplianceLevel.Compliant,
       comment: 'Test comment',
-      attachments: [mockAttachment]
+      attachments: []
     };
 
     it('devrait créer une évaluation en mode mock', async () => {
@@ -183,13 +187,9 @@ describe('EvaluationService', () => {
 
   describe('updateEvaluation', () => {
     it('devrait mettre à jour une évaluation en mode mock', async () => {
-      const updateInput: UpdateEvaluationInput = { 
-        id: mockEvaluation.id, 
-        comment: 'Updated comment',
-        attachments: [mockAttachment]
-      };
+      const updatedEvaluation = { ...mockEvaluation, comment: 'Updated comment' };
       
-      const result = await evaluationService.updateEvaluation(updateInput);
+      const result = await evaluationService.updateEvaluation(updatedEvaluation);
       
       expect(result.success).toBe(true);
       expect(result.data?.comment).toBe('Updated comment');
@@ -204,13 +204,9 @@ describe('EvaluationService', () => {
         data: { id: 'eval-1', properties: {} }
       });
       
-      const updateInput: UpdateEvaluationInput = { 
-        id: mockEvaluation.id, 
-        comment: 'Updated comment',
-        attachments: [mockAttachment] 
-      };
+      const updatedEvaluation = { ...mockEvaluation, comment: 'Updated comment' };
       
-      await evaluationService.updateEvaluation(updateInput);
+      await evaluationService.updateEvaluation(updatedEvaluation);
       
       expect(notionClient.patch).toHaveBeenCalledWith(
         expect.stringContaining('/eval-1'),

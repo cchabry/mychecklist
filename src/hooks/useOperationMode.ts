@@ -1,63 +1,71 @@
 
-/**
- * Hook pour utiliser et gérer le mode d'opération
- * 
- * Ce hook permet d'accéder au mode d'opération actuel (réel ou démo)
- * et fournit des méthodes pour le modifier.
- */
-
 import { useState, useEffect, useCallback } from 'react';
-import { operationModeService } from '@/services/operationMode';
-import { OperationMode, OperationModeState, UseOperationMode } from '@/types/operation';
+import { operationModeService } from '@/services/operationMode/operationModeService';
+import { OperationModeType, OperationModeState, UseOperationMode } from '@/types/operation';
+import { OPERATION_MODE_SWITCH } from '@/constants/errorMessages';
 
 /**
- * Hook pour gérer le mode d'opération
+ * Hook pour accéder et modifier le mode opérationnel de l'application
  * 
- * @example
+ * Ce hook permet d'interagir avec le service de mode opérationnel
+ * depuis les composants React.
+ * 
+ * Exemple d'utilisation:
  * ```tsx
- * const { mode, isRealMode, enableDemoMode } = useOperationMode();
+ * const { isDemoMode, enableRealMode } = useOperationMode();
  * 
- * // Pour passer en mode démo
- * enableDemoMode('Choix utilisateur');
+ * // Affichage conditionnel selon le mode
+ * if (isDemoMode) {
+ *   return <div>Mode démo actif</div>;
+ * }
+ * 
+ * // Changer le mode
+ * const handleSwitchToReal = () => {
+ *   enableRealMode("Passage en production");
+ * };
  * ```
  */
-export function useOperationMode(): UseOperationMode {
-  const [mode, setMode] = useState<OperationMode>(operationModeService.getMode());
+export const useOperationMode = (): UseOperationMode => {
+  const [mode, setMode] = useState<OperationModeType>(operationModeService.getMode());
   const [state, setState] = useState<OperationModeState>(operationModeService.getState());
-  
-  // S'abonner aux changements d'état
+
+  // S'abonner aux changements d'état du service
   useEffect(() => {
     const unsubscribe = operationModeService.subscribe((newState) => {
       setMode(newState.mode);
       setState(newState);
     });
+    
+    // Se désabonner à la destruction du composant
     return unsubscribe;
   }, []);
-  
-  // Passer en mode réel
+
+  // Fonctions pour changer le mode
+  const enableDemoMode = useCallback((reason?: string) => {
+    operationModeService.enableDemoMode(reason || OPERATION_MODE_SWITCH);
+  }, []);
+
   const enableRealMode = useCallback((reason?: string) => {
-    operationModeService.enableRealMode(reason);
+    operationModeService.enableRealMode(reason || OPERATION_MODE_SWITCH);
   }, []);
-  
-  // Passer en mode démo
-  const enableDemoMode = useCallback((reason: string) => {
-    operationModeService.enableDemoMode(reason);
-  }, []);
-  
-  // Réinitialiser le mode
-  const resetMode = useCallback(() => {
+
+  const reset = useCallback(() => {
     operationModeService.reset();
   }, []);
-  
+
+  // Valeurs dérivées
+  const isDemoMode = mode === 'demo';
+  const isRealMode = mode === 'real';
+
   return {
     mode,
     state,
-    isRealMode: mode === 'real',
-    isDemoMode: mode === 'demo',
-    enableRealMode,
+    isDemoMode,
+    isRealMode,
     enableDemoMode,
-    reset: resetMode
+    enableRealMode,
+    reset
   };
-}
+};
 
 export default useOperationMode;

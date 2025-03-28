@@ -5,10 +5,8 @@
 
 import { ExigenceApi } from '@/types/api/domain';
 import { Exigence } from '@/types/domain';
-import { ImportanceLevel } from '@/types/enums';
 import { exigenceService } from '../exigenceService';
 import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR } from '@/constants/errorMessages';
-import { CreateExigenceData } from '@/types/api/domain/exigenceApi';
 
 export class NotionExigenceApi implements ExigenceApi {
   async getExigences(projectId: string): Promise<Exigence[]> {
@@ -19,22 +17,22 @@ export class NotionExigenceApi implements ExigenceApi {
     return response.data || [];
   }
   
-  async getExigenceById(id: string): Promise<Exigence | null> {
+  async getExigenceById(id: string): Promise<Exigence> {
     const response = await exigenceService.getExigenceById(id);
     if (!response.success) {
       throw new Error(response.error?.message || `${NOT_FOUND_ERROR}: Exigence #${id}`);
     }
-    return response.data;
+    return response.data as Exigence;
   }
-
-  async createExigence(data: CreateExigenceData): Promise<Exigence> {
-    const response = await exigenceService.createExigence(data);
+  
+  async createExigence(exigence: Omit<Exigence, 'id'>): Promise<Exigence> {
+    const response = await exigenceService.createExigence(exigence);
     if (!response.success) {
       throw new Error(response.error?.message || CREATE_ERROR);
     }
     return response.data as Exigence;
   }
-
+  
   async updateExigence(exigence: Exigence): Promise<Exigence> {
     const response = await exigenceService.updateExigence(exigence);
     if (!response.success) {
@@ -42,13 +40,13 @@ export class NotionExigenceApi implements ExigenceApi {
     }
     return response.data as Exigence;
   }
-
+  
   async deleteExigence(id: string): Promise<boolean> {
     const response = await exigenceService.deleteExigence(id);
     if (!response.success) {
       throw new Error(response.error?.message || DELETE_ERROR);
     }
-    return response.data || false;
+    return true;
   }
 }
 

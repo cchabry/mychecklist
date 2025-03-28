@@ -4,7 +4,6 @@
  */
 
 import { ComplianceLevel } from '@/types/enums';
-import { Attachment } from '@/types/domain';
 
 // Re-export avec 'export type' pour isolatedModules
 export type { Evaluation } from '@/types/domain';
@@ -28,7 +27,7 @@ export type CreateEvaluationData = {
   exigenceId: string;
   score: ComplianceLevel;
   comment?: string;
-  attachments?: Attachment[];
+  attachments?: string[];
 };
 
 /**
@@ -37,5 +36,5 @@ export type CreateEvaluationData = {
 export type UpdateEvaluationData = {
   score?: ComplianceLevel;
   comment?: string;
-  attachments?: Attachment[];
+  attachments?: string[];
 };

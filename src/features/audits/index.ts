@@ -58,8 +58,17 @@ export async function getAuditById(id: string): Promise<Audit | null> {
  * @throws Error si la création échoue
  */
 export async function createAudit(data: CreateAuditData): Promise<Audit> {
+  const auditData = {
+    projectId: data.projectId,
+    name: data.name,
+    description: data.description,
+    progress: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
   try {
-    return await auditsApi.createAudit(data);
+    return await auditsApi.createAudit(auditData);
   } catch (error) {
     console.error(`Erreur lors de la création de l'audit:`, error);
     throw new Error(`Impossible de créer l'audit: ${error instanceof Error ? error.message : String(error)}`);
@@ -76,7 +85,18 @@ export async function createAudit(data: CreateAuditData): Promise<Audit> {
  */
 export async function updateAudit(id: string, data: UpdateAuditData): Promise<Audit> {
   try {
-    return await auditsApi.updateAudit(id, data);
+    const existingAudit = await auditsApi.getAuditById(id);
+    if (!existingAudit) {
+      throw new Error(`Audit non trouvé`);
+    }
+    
+    const updatedAudit = {
+      ...existingAudit,
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return await auditsApi.updateAudit(updatedAudit);
   } catch (error) {
     console.error(`Erreur lors de la mise à jour de l'audit ${id}:`, error);
     throw new Error(`Impossible de mettre à jour l'audit: ${error instanceof Error ? error.message : String(error)}`);

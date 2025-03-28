@@ -1,22 +1,21 @@
 
 /**
- * Point d'entrée pour les types du domaine
+ * Types de domaine pour l'application
  * 
- * Ce fichier exporte tous les types du domaine de manière centralisée
- * pour faciliter les imports et éviter les problèmes de référence circulaire.
+ * Ce module exporte tous les types de domaine utilisés dans l'application
+ * de façon structurée et organisée.
  */
 
-// Exporter tous les types du domaine
-export * from './action';
-export * from './attachment';
+// Ré-exporter les types de domaine spécifiques
+export * from './project';
 export * from './audit';
 export * from './checklist';
-export * from './evaluation';
 export * from './exigence';
-export * from './project';
+export * from './samplePage'; 
+export * from './evaluation';
+export * from './action';
 export * from './progress';
-export * from './samplePage';
 export * from './actionStatus';
 
-// Types qui n'ont pas encore leur propre fichier
-export * from './user';
+// Éviter d'utiliser l'ancien fichier 'models.ts'
+// Le fichier models.ts est conservé pour compatibilité uniquement

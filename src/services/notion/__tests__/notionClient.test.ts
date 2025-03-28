@@ -1,7 +1,6 @@
 
 /**
  * Tests pour le client Notion unifié (façade)
- * @jest-environment jsdom
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -22,13 +21,11 @@ vi.mock('../client/notionClient', () => ({
     post: vi.fn(),
     patch: vi.fn(),
     delete: vi.fn(),
-    request: vi.fn(),
     testConnection: vi.fn()
   }
 }));
 
-// Note: Les tests sont temporairement désactivés pour permettre la compilation
-describe.skip('Notion Client Façade', () => {
+describe('Notion Client Façade', () => {
   beforeEach(() => {
     // Réinitialiser toutes les mocks entre les tests
     vi.resetAllMocks();

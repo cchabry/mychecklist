@@ -1,45 +1,74 @@
 
-/**
- * Hook pour accéder aux projets
- */
-
-import { useQuery } from '@tanstack/react-query';
-import { getProjects } from '@/features/projects';
-import { useOperationMode } from './useOperationMode';
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
-import { AppError, ErrorType } from '@/types/error';
+import { getProjects } from '@/features/projects';
+import { useLoadingState } from '@/hooks/form';
+import { useOperationMode } from '@/hooks/useOperationMode';
+import { useErrorHandler } from '@/hooks/error';
 
 /**
- * Hook pour récupérer tous les projets
+ * Hook personnalisé pour récupérer et gérer la liste des projets
  * 
- * @returns Résultat de la requête contenant les projets
+ * Ce hook encapsule la logique de chargement des projets depuis l'API Notion,
+ * gère l'état de chargement et les erreurs potentielles.
+ * 
+ * @returns Un objet contenant:
+ *   - projects: La liste des projets récupérés
+ *   - isLoading: L'état de chargement (true pendant le chargement)
+ *   - error: Erreur potentielle survenue lors du chargement
+ *   - isDemoMode: Indique si l'application est en mode démonstration
+ * 
+ * @example
+ * ```tsx
+ * const { projects, isLoading, error } = useProjects();
+ * 
+ * if (isLoading) return <Loader />;
+ * if (error) return <ErrorDisplay error={error} />;
+ * 
+ * return (
+ *   <div>
+ *     {projects.map(project => (
+ *       <ProjectCard key={project.id} project={project} />
+ *     ))}
+ *   </div>
+ * );
+ * ```
  */
-export function useProjects() {
+export const useProjects = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const { isLoading, startLoading, stopLoading } = useLoadingState();
+  const { handleError, clearError, lastError } = useErrorHandler();
   const { isDemoMode } = useOperationMode();
   
-  const query = useQuery({
-    queryKey: ['projects'],
-    queryFn: async (): Promise<Project[]> => {
+  useEffect(() => {
+    /**
+     * Fonction asynchrone pour récupérer les projets
+     */
+    const fetchProjects = async () => {
+      clearError();
+      startLoading();
+      
       try {
-        return await getProjects();
+        const data = await getProjects();
+        setProjects(data);
       } catch (error) {
-        console.error('Erreur lors de la récupération des projets:', error);
-        const appError: AppError = {
-          type: ErrorType.NOTION,
-          message: 'Impossible de récupérer les projets',
-          name: 'FetchProjectsError',
-          technicalMessage: error instanceof Error ? error.message : String(error)
-        };
-        throw appError;
+        handleError(error, {
+          showToast: true,
+          toastTitle: 'Erreur de chargement',
+          logToConsole: true
+        });
+      } finally {
+        stopLoading();
       }
-    }
-  });
+    };
+    
+    fetchProjects();
+  }, []);
   
-  // Retourner un objet structuré avec les projets et le statut de chargement
   return {
-    projects: query.data || [],
-    isLoading: query.isLoading,
-    error: query.error as AppError | null,
+    projects,
+    isLoading,
+    error: lastError,
     isDemoMode
   };
-}
+};

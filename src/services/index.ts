@@ -27,11 +27,8 @@ export {
   exigenceServiceImpl,
   samplePageService,
   samplePageServiceImpl,
-  projectService,
-  projectServiceImpl,
   auditService,
   evaluationService,
-  evaluationServiceImpl,
   actionService,
   progressService
 } from './notion';

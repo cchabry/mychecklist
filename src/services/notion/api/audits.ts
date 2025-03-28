@@ -1,104 +1,53 @@
 
 /**
- * API Notion pour les audits
+ * Implémentation de l'API des audits
  */
 
-import { AuditApi } from '@/types/api/domain/auditApi';
-import { auditService } from '../audit';
+import { AuditApi } from '@/types/api/domain';
 import { Audit } from '@/types/domain';
-import { 
-  CreateAuditData, 
-  UpdateAuditData 
-} from '@/types/api/domain/auditApi';
-import { 
-  DELETE_ERROR, 
-  FETCH_ERROR, 
-  CREATE_ERROR, 
-  UPDATE_ERROR 
-} from '@/constants/errorMessages';
+import { auditService } from '../audit';
+import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR } from '@/constants/errorMessages';
 
-/**
- * Implémentation de l'API des audits utilisant le service Notion
- */
-class NotionAuditApi implements AuditApi {
-  /**
-   * Récupère tous les audits pour un projet
-   */
+export class NotionAuditApi implements AuditApi {
   async getAudits(projectId: string): Promise<Audit[]> {
     const response = await auditService.getAudits(projectId);
-    
-    if (!response.success || !response.data) {
+    if (!response.success) {
       throw new Error(response.error?.message || FETCH_ERROR);
     }
-    
-    return response.data;
+    return response.data || [];
   }
   
-  /**
-   * Récupère un audit par son ID
-   */
-  async getAuditById(id: string): Promise<Audit | null> {
+  async getAuditById(id: string): Promise<Audit> {
     const response = await auditService.getAuditById(id);
-    
     if (!response.success) {
-      return null;
+      throw new Error(response.error?.message || `${NOT_FOUND_ERROR}: Audit #${id}`);
     }
-    
-    return response.data || null;
+    return response.data as Audit;
   }
   
-  /**
-   * Crée un nouvel audit
-   */
-  async createAudit(data: CreateAuditData): Promise<Audit> {
-    const currentTime = new Date().toISOString();
-    
-    // Ajouter les propriétés manquantes requises par l'API Notion
-    const auditData = {
-      ...data,
-      progress: 0,
-      createdAt: currentTime,
-      updatedAt: currentTime
-    };
-    
-    const response = await auditService.createAudit(auditData);
-    
-    if (!response.success || !response.data) {
+  async createAudit(audit: Omit<Audit, 'id' | 'createdAt' | 'updatedAt'>): Promise<Audit> {
+    const response = await auditService.createAudit(audit);
+    if (!response.success) {
       throw new Error(response.error?.message || CREATE_ERROR);
     }
-    
-    return response.data;
+    return response.data as Audit;
   }
   
-  /**
-   * Met à jour un audit existant
-   */
-  async updateAudit(id: string, data: UpdateAuditData): Promise<Audit> {
-    const response = await auditService.updateAudit(id, data);
-    
-    if (!response.success || !response.data) {
+  async updateAudit(audit: Audit): Promise<Audit> {
+    const response = await auditService.updateAudit(audit);
+    if (!response.success) {
       throw new Error(response.error?.message || UPDATE_ERROR);
     }
-    
-    return response.data;
+    return response.data as Audit;
   }
   
-  /**
-   * Supprime un audit
-   */
   async deleteAudit(id: string): Promise<boolean> {
     const response = await auditService.deleteAudit(id);
-    
     if (!response.success) {
       throw new Error(response.error?.message || DELETE_ERROR);
     }
-    
-    return response.data ?? false;
+    return true;
   }
 }
 
-// Exporter une instance singleton
 export const auditsApi = new NotionAuditApi();
-
-// Export par défaut
-export default auditsApi;

@@ -1,109 +1,57 @@
 
 /**
- * API pour les projets utilisant le service Notion
+ * Implémentation de l'API des projets
  */
 
-import { ProjectApi } from '@/types/api/domain/projectApi';
-import { projectService } from '../project';
+import { ProjectApi } from '@/types/api/domain';
 import { Project } from '@/types/domain';
-import { ProjectStatus } from '@/types/enums';
-import { 
-  CreateProjectData,
-  UpdateProjectData
-} from '@/features/projects/types';
-import { 
-  DELETE_ERROR, 
-  FETCH_ERROR, 
-  CREATE_ERROR, 
-  UPDATE_ERROR 
-} from '@/constants/errorMessages';
+import { notionService } from '../notionService';
+import { FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR, DELETE_ERROR, NOT_FOUND_ERROR } from '@/constants/errorMessages';
 
-/**
- * Implémentation de l'API des projets utilisant le service Notion
- */
-class NotionProjectApi implements ProjectApi {
-  /**
-   * Récupère tous les projets
-   */
+export class NotionProjectApi implements ProjectApi {
   async getProjects(): Promise<Project[]> {
-    const response = await projectService.getProjects();
-    
-    if (!response.success || !response.data) {
+    const response = await notionService.getProjects();
+    if (!response.success) {
       throw new Error(response.error?.message || FETCH_ERROR);
     }
-    
-    return response.data;
+    return response.data || [];
   }
   
-  /**
-   * Récupère un projet par son ID
-   */
-  async getProjectById(id: string): Promise<Project | null> {
-    const response = await projectService.getProjectById(id);
-    
+  async getProjectById(id: string): Promise<Project> {
+    const response = await notionService.getProjectById(id);
     if (!response.success) {
-      return null;
+      throw new Error(response.error?.message || `${NOT_FOUND_ERROR}: Projet #${id}`);
     }
-    
-    return response.data || null;
+    return response.data as Project;
   }
   
-  /**
-   * Crée un nouveau projet
-   */
-  async createProject(data: CreateProjectData): Promise<Project> {
-    // Convertir le status en ProjectStatus
-    const projectData = {
-      ...data,
-      status: data.status as ProjectStatus,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    const response = await projectService.createProject(projectData);
-    
-    if (!response.success || !response.data) {
+  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+    const response = await notionService.createProject(project);
+    if (!response.success) {
       throw new Error(response.error?.message || CREATE_ERROR);
     }
-    
-    return response.data;
+    return response.data as Project;
   }
   
-  /**
-   * Met à jour un projet existant
-   */
-  async updateProject(id: string, data: UpdateProjectData): Promise<Project> {
-    // Convertir explicitement le status en ProjectStatus si défini
-    const updateData = {
-      ...data,
-      status: data.status as ProjectStatus | undefined
-    };
-    
-    const response = await projectService.updateProject(id, updateData);
-    
-    if (!response.success || !response.data) {
+  async updateProject(project: Project): Promise<Project> {
+    const response = await notionService.updateProject(project.id, {
+      name: project.name,
+      url: project.url,
+      description: project.description
+    });
+    if (!response.success) {
       throw new Error(response.error?.message || UPDATE_ERROR);
     }
-    
-    return response.data;
+    return response.data as Project;
   }
   
-  /**
-   * Supprime un projet
-   */
   async deleteProject(id: string): Promise<boolean> {
-    const response = await projectService.deleteProject(id);
-    
+    const response = await notionService.deleteProject(id);
     if (!response.success) {
       throw new Error(response.error?.message || DELETE_ERROR);
     }
-    
-    return response.data ?? false;
+    return true;
   }
 }
 
-// Exporter une instance singleton
 export const projectsApi = new NotionProjectApi();
-
-// Export par défaut
-export default projectsApi;

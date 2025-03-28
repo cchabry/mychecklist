@@ -37,7 +37,7 @@ const ProjectEditPage = () => {
         if (project) {
           setFormData({
             name: project.name,
-            url: project.url || '', // Provide a default empty string if url is undefined
+            url: project.url,
             description: project.description || ''
           });
         } else {

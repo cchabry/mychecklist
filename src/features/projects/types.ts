@@ -1,48 +1,29 @@
 
 /**
- * Types pour la feature projets
+ * Types spécifiques aux projets
+ * 
+ * Ce fichier définit les types utilisés dans la fonctionnalité de gestion des projets
  */
 
-import { Project } from '@/types/domain';
-import { ProjectStatus } from '@/types/enums';
+import { Project } from '@/types/domain/project';
+
+export type { Project };
 
 /**
- * Données pour créer un nouveau projet
+ * Type pour la création d'un projet
  */
-export interface CreateProjectData {
+export type CreateProjectData = {
   name: string;
   url?: string;
   description?: string;
-  status?: ProjectStatus;
-}
+};
 
 /**
- * Données pour mettre à jour un projet existant
+ * Type pour la mise à jour d'un projet
  */
-export interface UpdateProjectData {
+export type UpdateProjectData = {
   name?: string;
   url?: string;
   description?: string;
-  status?: ProjectStatus;
-  progress?: number;
-}
-
-/**
- * État des projets
- */
-export interface ProjectsState {
-  projects: Project[];
-  selectedProject: Project | null;
-  isLoading: boolean;
-  error: Error | null;
-}
-
-/**
- * Filtres pour les projets
- */
-export interface ProjectFilters {
-  search?: string;
-  status?: ProjectStatus[];
-  sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'status' | 'progress';
-  sortDirection?: 'asc' | 'desc';
-}
+  status?: 'active' | 'completed' | 'pending' | 'archived';
+};

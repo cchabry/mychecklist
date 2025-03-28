@@ -1,9 +1,10 @@
+
 /**
  * Types pour les services d'actions et de progrès
  */
 
 import { ComplianceLevel, StatusType, PriorityLevel } from '@/types/enums';
-import { ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain/actionStatus';
+import { ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
 
 /**
  * Interface pour les données de création d'une action

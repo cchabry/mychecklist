@@ -20,5 +20,4 @@ export interface CorrectiveAction {
   responsible: string;
   comment?: string;
   status: StatusType;
-  description?: string; // Pour la rétrocompatibilité
 }

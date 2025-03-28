@@ -1,167 +1,160 @@
 
-/**
- * Hooks liés aux projets Notion
- */
-
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { projectService } from '@/services/notion/project';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notionService } from '@/services/notion/notionService';
+import { Project } from '@/types/domain';
+import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
-import type { CreateProjectInput, UpdateProjectInput } from '@/services/notion/project/types';
-import { mapStringToProjectStatus } from '@/types/enums';
+import { toast } from 'sonner';
 
 /**
- * Hook pour récupérer tous les projets Notion
+ * Hook pour gérer les projets via l'API Notion
  * 
- * @returns Résultat de requête pour les projets
+ * Ce hook fournit des méthodes pour récupérer, créer, mettre à jour et supprimer
+ * des projets via le service Notion.
  */
 export function useNotionProjects() {
+  const [isLoading, setIsLoading] = useState(false);
   const { handleNotionError } = useNotionErrorHandler();
+  const queryClient = useQueryClient();
   
-  return useQuery({
-    queryKey: ['notion', 'projects'],
+  // Récupérer la liste des projets
+  const { data: projects = [], isLoading: isLoadingProjects, error } = useQuery({
+    queryKey: ['projects'],
     queryFn: async () => {
       try {
-        const response = await projectService.getProjects();
-        if (!response.success || !response.data) {
+        const response = await notionService.getProjects();
+        if (!response.success) {
           throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
         }
-        return response.data;
+        return response.data || [];
       } catch (error) {
-        throw handleNotionError(error, {
-          endpoint: 'getProjects',
-          toastTitle: 'Erreur de récupération',
-          toastMessage: 'Impossible de récupérer la liste des projets'
+        handleNotionError(error, {
+          endpoint: '/databases/query',
+          toastTitle: 'Erreur de chargement',
+          switchToDemo: true,
+          demoReason: 'Impossible de récupérer les projets'
         });
+        return [];
       }
     }
   });
-}
-
-/**
- * Hook pour récupérer un projet Notion par son ID
- * 
- * @param id - ID du projet à récupérer
- * @returns Résultat de requête pour le projet
- */
-export function useNotionProjectById(id: string) {
-  const { handleNotionError } = useNotionErrorHandler();
   
-  return useQuery({
-    queryKey: ['notion', 'project', id],
-    queryFn: async () => {
-      try {
-        const response = await projectService.getProjectById(id);
-        if (!response.success || !response.data) {
-          throw new Error(response.error?.message || `Erreur lors de la récupération du projet ${id}`);
-        }
-        return response.data;
-      } catch (error) {
-        throw handleNotionError(error, {
-          endpoint: `getProjectById/${id}`,
-          toastTitle: 'Erreur de récupération',
-          toastMessage: `Impossible de récupérer le projet #${id}`
-        });
+  // Récupérer un projet par son ID
+  const getProjectById = useCallback(async (id: string): Promise<Project | null> => {
+    setIsLoading(true);
+    try {
+      const response = await notionService.getProjectById(id);
+      if (!response.success) {
+        throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
-    },
-    enabled: !!id
-  });
-}
-
-/**
- * Hook pour créer un projet Notion
- * 
- * @returns Mutation pour créer un projet
- */
-export function useCreateNotionProject() {
-  const queryClient = useQueryClient();
-  const { handleNotionError } = useNotionErrorHandler();
+      return response.data || null;
+    } catch (error) {
+      handleNotionError(error, {
+        endpoint: `/pages/${id}`,
+        toastTitle: 'Erreur de chargement',
+        toastMessage: `Impossible de récupérer le projet #${id}`
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [handleNotionError]);
   
-  return useMutation({
-    mutationFn: async (projectData: CreateProjectInput) => {
+  // Créer un projet
+  const createProjectMutation = useMutation({
+    mutationFn: async (data: CreateProjectData): Promise<Project> => {
       try {
-        const response = await projectService.createProject(projectData);
+        const response = await notionService.createProject(data);
         if (!response.success || !response.data) {
           throw new Error(response.error?.message || 'Erreur lors de la création du projet');
         }
         return response.data;
       } catch (error) {
-        throw handleNotionError(error, {
-          endpoint: 'createProject',
+        handleNotionError(error, {
+          endpoint: '/pages',
           toastTitle: 'Erreur de création',
           toastMessage: 'Impossible de créer le projet'
         });
+        throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notion', 'projects'] });
+      toast.success('Projet créé', {
+        description: 'Le projet a été créé avec succès'
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     }
   });
-}
-
-/**
- * Hook pour mettre à jour un projet Notion
- * 
- * @returns Mutation pour mettre à jour un projet
- */
-export function useUpdateNotionProject() {
-  const queryClient = useQueryClient();
-  const { handleNotionError } = useNotionErrorHandler();
   
-  return useMutation({
-    mutationFn: async ({ id, ...data }: UpdateProjectInput) => {
-      // Conversion du statut si c'est une chaîne
-      if (typeof data.status === 'string') {
-        data.status = mapStringToProjectStatus(data.status);
-      }
-      
+  // Mettre à jour un projet
+  const updateProjectMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateProjectData }): Promise<Project> => {
       try {
-        const response = await projectService.updateProject(id, data);
+        const response = await notionService.updateProject(id, data);
         if (!response.success || !response.data) {
-          throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet ${id}`);
+          throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
         }
         return response.data;
       } catch (error) {
-        throw handleNotionError(error, {
-          endpoint: `updateProject/${id}`,
+        handleNotionError(error, {
+          endpoint: `/pages/${id}`,
           toastTitle: 'Erreur de mise à jour',
           toastMessage: `Impossible de mettre à jour le projet #${id}`
         });
+        throw error;
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['notion', 'projects'] });
-      queryClient.invalidateQueries({ queryKey: ['notion', 'project', variables.id] });
+      toast.success('Projet mis à jour', {
+        description: 'Le projet a été mis à jour avec succès'
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', variables.id] });
     }
   });
-}
-
-/**
- * Hook pour supprimer un projet Notion
- * 
- * @returns Mutation pour supprimer un projet
- */
-export function useDeleteNotionProject() {
-  const queryClient = useQueryClient();
-  const { handleNotionError } = useNotionErrorHandler();
   
-  return useMutation({
-    mutationFn: async (id: string) => {
+  // Supprimer un projet
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (id: string): Promise<boolean> => {
       try {
-        const response = await projectService.deleteProject(id);
+        const response = await notionService.deleteProject(id);
         if (!response.success) {
-          throw new Error(response.error?.message || `Erreur lors de la suppression du projet ${id}`);
+          throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
         }
-        return response.data;
+        return true;
       } catch (error) {
-        throw handleNotionError(error, {
-          endpoint: `deleteProject/${id}`,
+        handleNotionError(error, {
+          endpoint: `/pages/${id}`,
           toastTitle: 'Erreur de suppression',
           toastMessage: `Impossible de supprimer le projet #${id}`
         });
+        throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notion', 'projects'] });
+      toast.success('Projet supprimé', {
+        description: 'Le projet a été supprimé avec succès'
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     }
   });
+  
+  return {
+    // Données
+    projects,
+    isLoading: isLoading || isLoadingProjects,
+    error,
+    
+    // Méthodes
+    getProjectById,
+    createProject: createProjectMutation.mutate,
+    updateProject: updateProjectMutation.mutate,
+    deleteProject: deleteProjectMutation.mutate,
+    
+    // États des mutations
+    isCreating: createProjectMutation.isPending,
+    isUpdating: updateProjectMutation.isPending,
+    isDeleting: deleteProjectMutation.isPending
+  };
 }

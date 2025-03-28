@@ -77,7 +77,7 @@ export async function createEvaluation(data: CreateEvaluationData): Promise<Eval
  */
 export async function updateEvaluation(id: string, data: UpdateEvaluationData): Promise<Evaluation> {
   try {
-    // Récupérer l'évaluation existante
+    // Récupérer l'��valuation existante
     const existingEvaluation = await getEvaluationById(id);
     
     if (!existingEvaluation) {

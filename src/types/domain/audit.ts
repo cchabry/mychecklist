@@ -7,7 +7,6 @@ export interface Audit {
   projectId: string;
   name: string;
   description?: string;
-  status?: string;
   createdAt: string;
   updatedAt: string;
   progress: number;

@@ -7,7 +7,6 @@
  */
 
 import { ComplianceLevel } from '../enums';
-import { Attachment } from './attachment';
 
 /**
  * Interface pour une évaluation
@@ -42,12 +41,6 @@ export interface Evaluation {
   score: ComplianceLevel;
   
   /**
-   * Alias pour la compatibilité avec l'ancien code
-   * @deprecated Utiliser score à la place
-   */
-  conformityLevel?: ComplianceLevel;
-  
-  /**
    * Commentaire expliquant l'évaluation (observations, justifications, etc.)
    */
   comment?: string;
@@ -55,7 +48,7 @@ export interface Evaluation {
   /**
    * Liste des pièces jointes (captures d'écran, documents, etc.)
    */
-  attachments?: Attachment[];
+  attachments?: string[];
   
   /**
    * Date de création de l'évaluation (au format ISO)

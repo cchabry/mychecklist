@@ -3,8 +3,6 @@
  * Types pour les statuts d'actions correctives
  */
 
-import { ComplianceLevel, PriorityLevel, StatusType } from '../enums';
-
 /**
  * Statut d'une action corrective
  */
@@ -33,6 +31,9 @@ export enum ComplianceStatus {
   Compliant = 2,
   NotApplicable = 3
 }
+
+// Mappages pour la compatibilité entre les types d'énumérations
+import { ComplianceLevel, PriorityLevel, StatusType } from '../enums';
 
 /**
  * Mappages pour la conversion entre ComplianceStatus et ComplianceLevel

@@ -1,174 +1,197 @@
 
 /**
  * Service pour la gestion des items de checklist via Notion
- * 
- * Ce service fournit les fonctionnalités nécessaires pour interagir avec
- * les données de checklist, soit via l'API Notion, soit en mode simulation.
  */
 
-import { notionClient } from './client/notionClient';
+import { notionClient } from './notionClient';
 import { NotionResponse } from './types';
 import { ChecklistItem } from '@/types/domain';
-import { generateMockChecklistItems } from './utils';
-import { checklistMappers } from './checklistMappers';
 
 /**
  * Service de gestion des items de checklist
  */
 class ChecklistService {
   /**
-   * Configure le service avec les paramètres nécessaires
-   */
-  constructor() {
-    this.getChecklistItems = this.getChecklistItems.bind(this);
-    this.getChecklistItemById = this.getChecklistItemById.bind(this);
-  }
-  
-  /**
-   * Vérifie si le service est en mode mock
-   */
-  isMockMode(): boolean {
-    return notionClient.isMockMode();
-  }
-  
-  /**
-   * Récupère la configuration du client Notion
-   */
-  getConfig() {
-    return notionClient.getConfig();
-  }
-  
-  /**
    * Récupère tous les items de checklist
    */
   async getChecklistItems(): Promise<NotionResponse<ChecklistItem[]>> {
-    const config = this.getConfig();
+    const config = notionClient.getConfig();
     
-    if (!config || !config.checklistsDbId) {
+    if (!config.checklistsDbId) {
       return { 
         success: false, 
-        error: { message: "Configuration ou ID de base de données de checklist non disponible" } 
+        error: { message: "Base de données des checklists non configurée" } 
       };
     }
     
     // Si en mode démo, renvoyer des données simulées
-    if (this.isMockMode()) {
+    if (notionClient.isMockMode()) {
       return {
         success: true,
-        data: generateMockChecklistItems()
+        data: this.getMockChecklistItems()
       };
     }
     
-    // En mode réel, interroger l'API Notion
-    try {
-      const response = await notionClient.post(`databases/${config.checklistsDbId}/query`, {});
-      
-      if (!response.success) {
-        return response as NotionResponse<ChecklistItem[]>;
-      }
-      
-      const responseData = response.data || {};
-      const results = responseData.results || [];
-      const items = results.map((page: any) => this.notionPageToChecklistItem(page));
-      
-      return {
-        success: true,
-        data: items
-      };
-    } catch (error) {
-      console.error("Erreur lors de la récupération des items de checklist:", error);
-      return {
-        success: false,
-        error: { 
-          message: `Erreur lors de la récupération des items de checklist: ${error instanceof Error ? error.message : String(error)}` 
-        }
-      };
+    // Interroger la base de données Notion
+    const response = await notionClient.post<{results: any[]}>(`/databases/${config.checklistsDbId}/query`, {});
+    
+    if (!response.success || !response.data?.results) {
+      return { success: false, error: response.error };
     }
+    
+    // Transformer les résultats Notion en items de checklist
+    const items: ChecklistItem[] = response.data.results.map(page => {
+      const properties = page.properties;
+      
+      return {
+        id: page.id,
+        consigne: this.extractTextProperty(properties.Consigne || properties.Title || properties.Name),
+        description: this.extractTextProperty(properties.Description),
+        category: this.extractSelectProperty(properties.Category || properties.Categorie),
+        subcategory: this.extractSelectProperty(properties.Subcategory || properties.SousCategorie),
+        reference: this.extractMultiSelectProperty(properties.Reference || properties.References),
+        profil: this.extractMultiSelectProperty(properties.Profil || properties.Profils),
+        phase: this.extractMultiSelectProperty(properties.Phase || properties.Phases),
+        effort: properties.Effort?.number || 3,
+        priority: properties.Priority?.number || properties.Priorite?.number || 3
+      };
+    });
+    
+    return {
+      success: true,
+      data: items
+    };
   }
   
   /**
-   * Récupère un item de checklist par son identifiant
+   * Récupère un item de checklist par son ID
    */
-  async getChecklistItemById(itemId: string): Promise<NotionResponse<ChecklistItem>> {
-    const config = this.getConfig();
-    
-    if (!config || !config.checklistsDbId) {
-      return { 
-        success: false, 
-        error: { message: "Configuration ou ID de base de données de checklist non disponible" } 
-      };
-    }
-    
+  async getChecklistItemById(id: string): Promise<NotionResponse<ChecklistItem>> {
     // Si en mode démo, renvoyer des données simulées
-    if (this.isMockMode()) {
-      return this.getMockChecklistItemById(itemId);
-    }
-    
-    // En mode réel, interroger l'API Notion
-    try {
-      const response = await notionClient.post(`databases/${config.checklistsDbId}/query`, {
-        filter: {
-          property: 'ID',
-          rich_text: {
-            equals: itemId
-          }
-        }
-      });
+    if (notionClient.isMockMode()) {
+      const mockItems = this.getMockChecklistItems();
+      const item = mockItems.find(item => item.id === id);
       
-      if (!response.success) {
-        return response as NotionResponse<ChecklistItem>;
-      }
-      
-      const responseData = response.data || {};
-      const results = responseData.results || [];
-      
-      if (results.length === 0) {
-        return {
-          success: false,
-          error: { message: `Item de checklist #${itemId} non trouvé` }
+      if (!item) {
+        return { 
+          success: false, 
+          error: { message: `Item de checklist #${id} non trouvé` } 
         };
       }
-      
-      const page = results[0];
-      const item = this.notionPageToChecklistItem(page);
       
       return {
         success: true,
         data: item
       };
-    } catch (error) {
-      console.error(`Erreur lors de la récupération de l'item de checklist #${itemId}:`, error);
-      return {
-        success: false,
-        error: { 
-          message: `Erreur lors de la récupération de l'item de checklist: ${error instanceof Error ? error.message : String(error)}` 
-        }
-      };
-    }
-  }
-  
-  /**
-   * Simule la récupération d'un item de checklist par son ID en mode mock
-   */
-  private getMockChecklistItemById(itemId: string): NotionResponse<ChecklistItem> {
-    if (itemId === 'item-1') {
-      return {
-        success: true,
-        data: checklistMappers.createMockChecklistItem(itemId)
-      };
     }
     
+    // Récupérer les détails de la page depuis Notion
+    const response = await notionClient.get<any>(`/pages/${id}`);
+    
+    if (!response.success || !response.data) {
+      return response as NotionResponse<ChecklistItem>;
+    }
+    
+    const page = response.data;
+    const properties = page.properties;
+    
+    const item: ChecklistItem = {
+      id: page.id,
+      consigne: this.extractTextProperty(properties.Consigne || properties.Title || properties.Name),
+      description: this.extractTextProperty(properties.Description),
+      category: this.extractSelectProperty(properties.Category || properties.Categorie),
+      subcategory: this.extractSelectProperty(properties.Subcategory || properties.SousCategorie),
+      reference: this.extractMultiSelectProperty(properties.Reference || properties.References),
+      profil: this.extractMultiSelectProperty(properties.Profil || properties.Profils),
+      phase: this.extractMultiSelectProperty(properties.Phase || properties.Phases),
+      effort: properties.Effort?.number || 3,
+      priority: properties.Priority?.number || properties.Priorite?.number || 3
+    };
+    
     return {
-      success: false,
-      error: { message: `Item de checklist #${itemId} non trouvé en mode mock` }
+      success: true,
+      data: item
     };
   }
   
   /**
-   * Convertit une page Notion en un objet ChecklistItem
+   * Génère des items de checklist fictifs pour le mode démo
    */
-  private notionPageToChecklistItem(page: any): ChecklistItem {
-    return checklistMappers.notionPageToChecklistItem(page);
+  private getMockChecklistItems(): ChecklistItem[] {
+    return [
+      {
+        id: 'check-1',
+        consigne: 'Utiliser des textes alternatifs pour les images',
+        description: 'Toutes les images doivent avoir un attribut alt décrivant leur contenu',
+        category: 'Accessibilité',
+        subcategory: 'Images',
+        reference: ['RGAA 1.1', 'WCAG 1.1.1'],
+        profil: ['Développeur', 'Contributeur'],
+        phase: ['Développement', 'Production'],
+        effort: 2,
+        priority: 4
+      },
+      {
+        id: 'check-2',
+        consigne: 'Optimiser les images pour le web',
+        description: 'Les images doivent être compressées et dans un format adapté au web',
+        category: 'Performance',
+        subcategory: 'Médias',
+        reference: ['RGESN 4.2'],
+        profil: ['UI designer', 'Développeur'],
+        phase: ['Design', 'Développement'],
+        effort: 3,
+        priority: 3
+      },
+      {
+        id: 'check-3',
+        consigne: 'Contraste suffisant pour le texte',
+        description: 'Le texte doit avoir un contraste suffisant par rapport à son arrière-plan',
+        category: 'Accessibilité',
+        subcategory: 'Contenu',
+        reference: ['RGAA 3.2', 'WCAG 1.4.3'],
+        profil: ['UI designer'],
+        phase: ['Design'],
+        effort: 2,
+        priority: 5
+      }
+    ];
+  }
+  
+  /**
+   * Utilitaire pour extraire le texte d'une propriété Notion
+   */
+  private extractTextProperty(property: any): string {
+    if (!property) return '';
+    
+    if (property.title && Array.isArray(property.title)) {
+      return property.title.map((t: any) => t.plain_text || '').join('');
+    }
+    
+    if (property.rich_text && Array.isArray(property.rich_text)) {
+      return property.rich_text.map((t: any) => t.plain_text || '').join('');
+    }
+    
+    return '';
+  }
+  
+  /**
+   * Utilitaire pour extraire une propriété select de Notion
+   */
+  private extractSelectProperty(property: any): string {
+    if (!property || !property.select) return '';
+    return property.select.name || '';
+  }
+  
+  /**
+   * Utilitaire pour extraire une propriété multi_select de Notion
+   */
+  private extractMultiSelectProperty(property: any): string[] {
+    if (!property || !property.multi_select || !Array.isArray(property.multi_select)) {
+      return [];
+    }
+    
+    return property.multi_select.map((item: any) => item.name || '');
   }
 }
 

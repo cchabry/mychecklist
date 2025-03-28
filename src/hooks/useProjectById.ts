@@ -1,31 +1,43 @@
 
-/**
- * Hook pour récupérer un projet par son ID
- */
-
-import { useEntityQuery } from './api/useGenericQuery';
-import { notionService } from '@/services/notion/notionService';
-import { Project } from '@/types/domain';
+import { useQuery } from '@tanstack/react-query';
+import { getProjectById } from '@/features/projects';
+import { toast } from 'sonner';
 
 /**
- * Hook pour récupérer un projet par son ID
+ * Hook pour récupérer un projet par son ID en utilisant React Query
  * 
- * @param id - Identifiant du projet
- * @returns Résultat de la requête contenant le projet
+ * @param projectId - Identifiant du projet à récupérer
+ * @returns Résultat de la requête contenant le projet et l'état de chargement
  */
-export const useProjectById = (id?: string) => {
-  const result = useEntityQuery<Project>(
-    'project',
-    id,
-    (projectId) => notionService.getProjectById(projectId),
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
-
+export const useProjectById = (projectId: string) => {
+  const result = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: async () => {
+      if (!projectId) return null;
+      
+      try {
+        const data = await getProjectById(projectId);
+        if (!data) {
+          toast.error('Projet non trouvé', {
+            description: `Le projet avec l'ID ${projectId} n'existe pas.`
+          });
+        }
+        return data;
+      } catch (error) {
+        console.error(`Erreur lors de la récupération du projet #${projectId}:`, error);
+        toast.error('Erreur de chargement', {
+          description: `Impossible de récupérer le projet #${projectId}`
+        });
+        throw error; // Propager l'erreur pour que React Query puisse la gérer
+      }
+    },
+    enabled: !!projectId
+  });
+  
   return {
-    ...result,
-    project: result.data
+    project: result.data,
+    isLoading: result.isLoading,
+    error: result.error
   };
 };
 

@@ -1,9 +1,4 @@
 
-/**
- * Tests pour le client Notion
- * @jest-environment jsdom
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notionClient } from '../notionClient';
 import { notionHttpClient } from '../notionHttpClient';
@@ -38,8 +33,7 @@ vi.mock('@/services/operationMode/operationModeService', () => ({
   }
 }));
 
-// Note: Les tests sont temporairement désactivés pour permettre la compilation
-describe.skip('NotionClient', () => {
+describe('NotionClient', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     
