@@ -1,43 +1,62 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { Project } from '@/types/domain';
 import { getProjectById } from '@/features/projects';
-import { toast } from 'sonner';
+import { useLoadingState } from '@/hooks/form';
+import { useOperationMode } from '@/hooks/useOperationMode';
+import { useErrorHandler } from '@/hooks/error';
 
 /**
- * Hook pour récupérer un projet par son ID en utilisant React Query
+ * Hook personnalisé pour récupérer et gérer un projet spécifique
  * 
- * @param projectId - Identifiant du projet à récupérer
- * @returns Résultat de la requête contenant le projet et l'état de chargement
+ * Ce hook encapsule la logique de chargement d'un projet spécifique depuis l'API Notion,
+ * gère l'état de chargement et les erreurs potentielles.
+ * 
+ * @param id - Identifiant du projet à récupérer
+ * @returns Un objet contenant:
+ *   - project: Le projet récupéré, ou null si non trouvé
+ *   - isLoading: L'état de chargement
+ *   - error: Erreur potentielle survenue lors du chargement
  */
-export const useProjectById = (projectId: string) => {
-  const result = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => {
-      if (!projectId) return null;
+const useProjectById = (id: string) => {
+  const [project, setProject] = useState<Project | null>(null);
+  const { isLoading, startLoading, stopLoading } = useLoadingState();
+  const { handleError, clearError, lastError } = useErrorHandler();
+  const { isDemoMode } = useOperationMode();
+  
+  useEffect(() => {
+    /**
+     * Fonction asynchrone pour récupérer le projet
+     */
+    const fetchProject = async () => {
+      if (!id) return;
+      
+      clearError();
+      startLoading();
       
       try {
-        const data = await getProjectById(projectId);
-        if (!data) {
-          toast.error('Projet non trouvé', {
-            description: `Le projet avec l'ID ${projectId} n'existe pas.`
-          });
-        }
-        return data;
+        const data = await getProjectById(id);
+        setProject(data);
       } catch (error) {
-        console.error(`Erreur lors de la récupération du projet #${projectId}:`, error);
-        toast.error('Erreur de chargement', {
-          description: `Impossible de récupérer le projet #${projectId}`
+        handleError(error, {
+          showToast: true,
+          toastTitle: 'Erreur de chargement',
+          toastMessage: `Impossible de récupérer le projet #${id}`,
+          logToConsole: true
         });
-        throw error; // Propager l'erreur pour que React Query puisse la gérer
+      } finally {
+        stopLoading();
       }
-    },
-    enabled: !!projectId
-  });
+    };
+    
+    fetchProject();
+  }, [id]);
   
   return {
-    project: result.data,
-    isLoading: result.isLoading,
-    error: result.error
+    project,
+    isLoading,
+    error: lastError,
+    isDemoMode
   };
 };
 

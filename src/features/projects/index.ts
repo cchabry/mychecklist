@@ -9,6 +9,7 @@
 
 import { notionService } from '@/services/notion/notionService';
 import { Project, CreateProjectData, UpdateProjectData } from './types';
+import { projectsApi } from '@/services/notion/api/projects';
 
 // Réexporter les composants, hooks et utilitaires pour faciliter l'accès
 export * from './components';
@@ -24,14 +25,13 @@ export * from './constants';
  * @throws Error si la récupération échoue
  */
 export async function getProjects(): Promise<Project[]> {
-  const response = await notionService.getProjects();
-  
-  if (response.success && response.data) {
-    return response.data;
+  try {
+    // Utiliser directement l'API refactorisée
+    return await projectsApi.getProjects();
+  } catch (error) {
+    // En cas d'erreur, jeter une exception pour que le hook puisse la gérer
+    throw new Error(error instanceof Error ? error.message : 'Erreur lors de la récupération des projets');
   }
-  
-  // En cas d'erreur, jeter une exception pour que le hook puisse la gérer
-  throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
 }
 
 /**
@@ -42,14 +42,12 @@ export async function getProjects(): Promise<Project[]> {
  * @throws Error si la récupération échoue
  */
 export async function getProjectById(id: string): Promise<Project | null> {
-  const response = await notionService.getProjectById(id);
-  
-  if (response.success && response.data) {
-    return response.data;
+  try {
+    return await projectsApi.getProjectById(id);
+  } catch (error) {
+    // En cas d'erreur, jeter une exception
+    throw new Error(error instanceof Error ? error.message : `Projet #${id} non trouvé`);
   }
-  
-  // En cas d'erreur, jeter une exception
-  throw new Error(response.error?.message || `Projet #${id} non trouvé`);
 }
 
 /**
@@ -60,13 +58,11 @@ export async function getProjectById(id: string): Promise<Project | null> {
  * @throws Error si la création échoue
  */
 export async function createProject(data: CreateProjectData): Promise<Project> {
-  const response = await notionService.createProject(data);
-  
-  if (response.success && response.data) {
-    return response.data;
+  try {
+    return await projectsApi.createProject(data);
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Erreur lors de la création du projet');
   }
-  
-  throw new Error(response.error?.message || 'Erreur lors de la création du projet');
 }
 
 /**
@@ -78,16 +74,23 @@ export async function createProject(data: CreateProjectData): Promise<Project> {
  * @throws Error si la mise à jour échoue
  */
 export async function updateProject(id: string, data: UpdateProjectData): Promise<Project> {
-  const response = await notionService.updateProjectStd({
-    ...data,
-    id
-  } as Project);
-  
-  if (response.success && response.data) {
-    return response.data;
+  try {
+    // Récupérer d'abord le projet existant
+    const existingProject = await getProjectById(id);
+    if (!existingProject) {
+      throw new Error(`Projet #${id} non trouvé`);
+    }
+    
+    // Fusionner les données existantes avec les nouvelles
+    const updatedProject = {
+      ...existingProject,
+      ...data,
+    };
+    
+    return await projectsApi.updateProject(updatedProject);
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : `Erreur lors de la mise à jour du projet #${id}`);
   }
-  
-  throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
 }
 
 /**
@@ -98,11 +101,9 @@ export async function updateProject(id: string, data: UpdateProjectData): Promis
  * @throws Error si la suppression échoue
  */
 export async function deleteProject(id: string): Promise<boolean> {
-  const response = await notionService.deleteProject(id);
-  
-  if (response.success) {
-    return true;
+  try {
+    return await projectsApi.deleteProject(id);
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : `Erreur lors de la suppression du projet #${id}`);
   }
-  
-  throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
 }

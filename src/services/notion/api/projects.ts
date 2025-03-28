@@ -19,26 +19,26 @@ export class NotionProjectApi implements ProjectApi {
   
   async getProjectById(id: string): Promise<Project> {
     const response = await notionService.getProjectById(id);
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || `${NOT_FOUND_ERROR}: Projet #${id}`);
     }
-    return response.data as Project;
+    return response.data;
   }
   
   async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
     const response = await notionService.createProject(project);
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || CREATE_ERROR);
     }
-    return response.data as Project;
+    return response.data;
   }
   
   async updateProject(project: Project): Promise<Project> {
     const response = await notionService.updateProjectStd(project);
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error?.message || UPDATE_ERROR);
     }
-    return response.data as Project;
+    return response.data;
   }
   
   async deleteProject(id: string): Promise<boolean> {

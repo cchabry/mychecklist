@@ -13,6 +13,7 @@ import { Project } from '@/types/domain';
 import { CreateProjectData, UpdateProjectData } from '@/features/projects/types';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
 import { toast } from 'sonner';
+import { NotionResponse } from '@/services/notion/base/types';
 
 /**
  * Hook pour gérer les projets via l'API Notion
@@ -31,15 +32,17 @@ export function useProjects() {
     queryFn: async () => {
       try {
         const response = await projectService.getAll();
-        // Vérifier si la réponse est une NotionResponse
-        if ('success' in response) {
-          if (!response.success) {
-            throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
-          }
-          return response.data || [];
+        if ('success' in response && !response.success) {
+          throw new Error(response.error?.message || 'Erreur lors de la récupération des projets');
         }
+        
+        // Si c'est une NotionResponse, retourner les données
+        if ('success' in response && response.data) {
+          return response.data;
+        }
+        
         // Si c'est directement un tableau, retourner le tableau
-        return response;
+        return Array.isArray(response) ? response : [];
       } catch (error) {
         handleNotionError(error, {
           endpoint: '/databases/query',
@@ -57,15 +60,17 @@ export function useProjects() {
     setIsLoading(true);
     try {
       const response = await projectService.getById(id);
-      // Vérifier si la réponse est une NotionResponse
-      if (response && 'success' in response) {
-        if (!response.success) {
-          throw new Error(response.error?.message || `Projet #${id} non trouvé`);
-        }
-        return response.data || null;
+      if ('success' in response && !response.success) {
+        throw new Error(response.error?.message || `Projet #${id} non trouvé`);
       }
-      // Si c'est directement un objet Project, le retourner
-      return response;
+      
+      // Si c'est une NotionResponse, retourner les données
+      if ('success' in response && response.data) {
+        return response.data;
+      }
+      
+      // Si c'est directement un objet Project, le retourner (ou null)
+      return response as Project | null;
     } catch (error) {
       handleNotionError(error, {
         endpoint: `/pages/${id}`,
@@ -83,19 +88,21 @@ export function useProjects() {
     mutationFn: async (data: CreateProjectData): Promise<Project> => {
       try {
         const response = await projectService.create(data);
-        // Vérifier si la réponse est une NotionResponse
-        if ('success' in response) {
-          if (!response.success) {
-            throw new Error(response.error?.message || 'Erreur lors de la création du projet');
-          }
-          const project = response.data;
-          if (!project) {
-            throw new Error('Erreur lors de la création du projet: aucune donnée retournée');
-          }
-          return project;
+        if ('success' in response && !response.success) {
+          throw new Error(response.error?.message || 'Erreur lors de la création du projet');
         }
+        
+        // Si c'est une NotionResponse, retourner les données
+        if ('success' in response && response.data) {
+          return response.data;
+        }
+        
+        if (!response) {
+          throw new Error('Erreur lors de la création du projet: aucune donnée retournée');
+        }
+        
         // Retourner l'objet Project
-        return response;
+        return response as Project;
       } catch (error) {
         handleNotionError(error, {
           endpoint: '/pages',
@@ -130,19 +137,21 @@ export function useProjects() {
         };
         
         const response = await projectService.update(updatedProject);
-        // Vérifier si la réponse est une NotionResponse
-        if ('success' in response) {
-          if (!response.success) {
-            throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
-          }
-          const project = response.data;
-          if (!project) {
-            throw new Error(`Erreur lors de la mise à jour du projet #${id}: aucune donnée retournée`);
-          }
-          return project;
+        if ('success' in response && !response.success) {
+          throw new Error(response.error?.message || `Erreur lors de la mise à jour du projet #${id}`);
         }
+        
+        // Si c'est une NotionResponse, retourner les données
+        if ('success' in response && response.data) {
+          return response.data;
+        }
+        
+        if (!response) {
+          throw new Error(`Erreur lors de la mise à jour du projet #${id}: aucune donnée retournée`);
+        }
+        
         // Retourner l'objet Project
-        return response;
+        return response as Project;
       } catch (error) {
         handleNotionError(error, {
           endpoint: `/pages/${id}`,
@@ -166,15 +175,17 @@ export function useProjects() {
     mutationFn: async (id: string): Promise<boolean> => {
       try {
         const response = await projectService.delete(id);
-        // Vérifier si la réponse est une NotionResponse
+        if ('success' in response && !response.success) {
+          throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
+        }
+        
+        // Si c'est une NotionResponse
         if ('success' in response) {
-          if (!response.success) {
-            throw new Error(response.error?.message || `Erreur lors de la suppression du projet #${id}`);
-          }
           return true;
         }
+        
         // Si la réponse est directement un booléen
-        return response;
+        return Boolean(response);
       } catch (error) {
         handleNotionError(error, {
           endpoint: `/pages/${id}`,

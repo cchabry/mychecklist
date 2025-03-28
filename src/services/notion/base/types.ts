@@ -19,11 +19,11 @@ export interface StandardFilterOptions {
  * Interface de base pour un service CRUD
  */
 export interface CrudService<T, CreateDataType = Omit<T, 'id'>> {
-  getAll(filter?: StandardFilterOptions): Promise<T[]>;
-  getById(id: string): Promise<T | null>;
-  create(data: CreateDataType): Promise<T>;
-  update(data: T): Promise<T>;
-  delete(id: string): Promise<boolean>;
+  getAll(filter?: StandardFilterOptions): Promise<NotionResponse<T[]>>;
+  getById(id: string): Promise<NotionResponse<T | null>>;
+  create(data: CreateDataType): Promise<NotionResponse<T>>;
+  update(data: T): Promise<NotionResponse<T>>;
+  delete(id: string): Promise<NotionResponse<boolean>>;
 }
 
 /**
@@ -56,11 +56,11 @@ export interface ApiResponse<T> {
  * Configuration de base pour Notion API
  */
 export interface NotionConfig {
-  apiKey: string;
-  projectsDbId: string;
+  apiKey: string;  // Rendre non-optionnel pour éviter des erreurs
+  projectsDbId: string;  // Rendre non-optionnel pour éviter des erreurs
   auditsDbId?: string;
   exigencesDbId?: string;
-  checklistDbId?: string;
+  checklistDbId?: string; // Renommé depuis checklistsDbId pour cohérence
   evaluationsDbId?: string;
   actionsDbId?: string;
   progressDbId?: string;
@@ -80,4 +80,9 @@ export interface ConnectionTestResult {
   checklistsDbName?: string;
   error?: string;
   details?: unknown;
+}
+
+// Fonctions génériques pour générer des ID
+export function generateMockId(prefix = 'mock'): string {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }

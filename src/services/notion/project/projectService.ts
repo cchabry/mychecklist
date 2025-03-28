@@ -5,10 +5,11 @@
  * Ce service fournit des méthodes pour gérer les projets via l'API Notion
  */
 
-import { NotionResponse } from '../types';
+import { NotionResponse, ApiResponse } from '../base/types';
 import { Project } from '@/types/domain';
 import { generateMockProjects } from './utils';
 import { BaseNotionService, StandardFilterOptions } from '../base';
+import { generateMockId } from '../base/types';
 
 /**
  * Service pour gérer les projets
@@ -25,17 +26,19 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
   }
   
   /**
-   * Implémentation de la méthode pour générer des projets fictifs
+   * Génération de données mock pour les tests
    */
-  protected async getMockEntities(options?: StandardFilterOptions): Promise<Project[]> {
+  protected async generateMockData(options?: StandardFilterOptions): Promise<NotionResponse<Project[]>> {
     const projects = generateMockProjects();
     
     // Si des options de filtrage sont fournies, appliquer les filtres
+    let filteredProjects = [...projects];
+    
     if (options) {
       // Recherche textuelle
       if (options.search) {
         const searchLower = options.search.toLowerCase();
-        return projects.filter(p => 
+        filteredProjects = filteredProjects.filter(p => 
           p.name.toLowerCase().includes(searchLower) || 
           (p.description && p.description.toLowerCase().includes(searchLower))
         );
@@ -43,38 +46,72 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
       
       // Filtrage par statut
       if (options.status) {
-        return projects.filter(p => p.status === options.status);
+        filteredProjects = filteredProjects.filter(p => p.status === options.status);
       }
     }
     
-    return projects;
+    return {
+      success: true,
+      data: filteredProjects
+    };
+  }
+  
+  /**
+   * Génération d'un item mock pour les tests
+   */
+  protected async generateMockItem(id: string): Promise<NotionResponse<Project | null>> {
+    const mockProjects = generateMockProjects();
+    const project = mockProjects.find(p => p.id === id);
+    
+    if (project) {
+      return {
+        success: true,
+        data: project
+      };
+    }
+    
+    return {
+      success: false,
+      error: {
+        message: `Projet avec l'ID ${id} non trouvé`,
+        code: 'NOT_FOUND'
+      }
+    };
   }
   
   /**
    * Crée une entité fictive en mode mock
    */
-  protected async mockCreate(data: Partial<Project>): Promise<Project> {
+  protected async mockCreate(data: Partial<Project>): Promise<NotionResponse<Project>> {
     const now = new Date().toISOString();
     
-    return {
-      id: `project-${Date.now()}`,
+    const newProject: Project = {
+      id: generateMockId('project'),
       name: data.name || 'Nouveau projet',
       url: data.url || 'https://example.com',
       description: data.description || '',
       createdAt: now,
       updatedAt: now,
-      progress: 0,
-      ...(data.status && { status: data.status })
+      progress: data.progress || 0,
+      status: data.status || 'active'
+    };
+    
+    return {
+      success: true,
+      data: newProject
     };
   }
   
   /**
    * Met à jour une entité fictive en mode mock
    */
-  protected async mockUpdate(entity: Project): Promise<Project> {
+  protected async mockUpdate(entity: Project): Promise<NotionResponse<Project>> {
     return {
-      ...entity,
-      updatedAt: new Date().toISOString()
+      success: true,
+      data: {
+        ...entity,
+        updatedAt: new Date().toISOString()
+      }
     };
   }
 
