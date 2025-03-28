@@ -8,10 +8,16 @@ export interface Attachment {
   id: string;
   
   /** Type de fichier */
-  fileType: string;
+  fileType?: string;
+  
+  /** Type MIME du fichier (alias pour compatibilité) */
+  type?: string;
   
   /** Nom du fichier */
-  fileName: string;
+  fileName?: string;
+  
+  /** Nom du fichier (alias pour compatibilité) */
+  name?: string;
   
   /** URL de la pièce jointe */
   url: string;
@@ -20,7 +26,7 @@ export interface Attachment {
   size?: number;
   
   /** Date de création */
-  createdAt: string;
+  createdAt?: string;
   
   /** Description ou légende (facultatif) */
   description?: string;

@@ -5,7 +5,7 @@
 export interface Project {
   id: string;
   name: string;
-  url: string;
+  url?: string; // Rendu optionnel pour correspondre à l'implémentation
   description?: string;
   createdAt: string;
   updatedAt: string;
