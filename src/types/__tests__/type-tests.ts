@@ -502,3 +502,132 @@ export function testNotionAPI() {
   
   return { validOptions, successResponse, errorResponse, statuses };
 }
+
+describe("Project Type", () => {
+  it("should accept valid project data", () => {
+    const validProject: Project = {
+      id: "project-1",
+      name: "Mon Site Web",
+      url: "https://example.com",
+      description: "Description du projet",
+      createdAt: "2023-01-01T00:00:00.000Z",
+      updatedAt: "2023-01-02T00:00:00.000Z",
+      status: "active",
+      progress: 50
+    };
+
+    expect(validProject).toBeDefined();
+  });
+
+  it("should reject invalid project data", () => {
+    const invalidProject = {
+      id: "project-1",
+      name: "Mon Site Web",
+      // @ts-expect-error: url est obligatoire
+      url: undefined,
+      createdAt: "2023-01-01T00:00:00.000Z", 
+      updatedAt: "2023-01-02T00:00:00.000Z"
+    };
+
+    expect(invalidProject).toBeDefined();
+  });
+});
+
+describe("Full domain model integration", () => {
+  it("should work with a complete domain model", () => {
+    // Créer un projet
+    const project: Project = {
+      id: "project-1",
+      name: "Mon Site Web",
+      url: "https://example.com",
+      description: "Description du projet",
+      createdAt: "2023-01-01T00:00:00.000Z",
+      updatedAt: "2023-01-02T00:00:00.000Z",
+      status: "active",
+      progress: 75
+    };
+
+    // Créer un item de checklist
+    const checklistItem: ChecklistItem = {
+      id: "ci1",
+      consigne: "Consigne test",
+      description: "Description de la consigne",
+      category: "Catégorie",
+      subcategory: "Sous-catégorie",
+      reference: ["RGAA 1.1", "OPQUAST 42"],
+      profil: ["UI designer", "Développeur"],
+      phase: ["Design", "Développement"],
+      effort: 2,
+      priority: 3
+    };
+
+    // Créer une exigence
+    const exigence: Exigence = {
+      id: "e1",
+      projectId: project.id,
+      itemId: checklistItem.id,
+      importance: ImportanceLevel.Important
+    };
+
+    // Créer une page d'échantillon
+    const samplePage: SamplePage = {
+      id: "sp1",
+      projectId: project.id,
+      url: "https://example.com/page1",
+      title: "Page 1",
+      order: 1
+    };
+
+    // Créer un audit
+    const audit: Audit = {
+      id: "a1",
+      projectId: project.id,
+      name: "Audit 1",
+      createdAt: "2023-01-01T00:00:00.000Z",
+      updatedAt: "2023-01-02T00:00:00.000Z",
+      progress: 0
+    };
+
+    // Créer une évaluation
+    const evaluation: Evaluation = {
+      id: "ev1",
+      auditId: audit.id,
+      pageId: samplePage.id,
+      exigenceId: exigence.id,
+      score: ComplianceLevel.PartiallyCompliant,
+      createdAt: "2023-01-01T00:00:00.000Z",
+      updatedAt: "2023-01-02T00:00:00.000Z"
+    };
+
+    // Créer une action corrective
+    const action: CorrectiveAction = {
+      id: "ac1",
+      evaluationId: evaluation.id,
+      targetScore: ComplianceLevel.Compliant,
+      priority: PriorityLevel.Medium,
+      dueDate: "2023-01-01T00:00:00.000Z",
+      responsible: "Responsable",
+      status: StatusType.Todo
+    };
+
+    // Créer un suivi de progrès
+    const progress: ActionProgress = {
+      id: "ap1",
+      actionId: action.id,
+      date: "2023-01-01T00:00:00.000Z",
+      responsible: "Responsable progrès",
+      score: ComplianceLevel.PartiallyCompliant,
+      status: StatusType.InProgress
+    };
+
+    // Vérifier que tous les objets sont correctement typés
+    assertType<Project>(project);
+    assertType<ChecklistItem>(checklistItem);
+    assertType<Exigence>(exigence);
+    assertType<SamplePage>(samplePage);
+    assertType<Audit>(audit);
+    assertType<Evaluation>(evaluation);
+    assertType<CorrectiveAction>(action);
+    assertType<ActionProgress>(progress);
+  });
+});

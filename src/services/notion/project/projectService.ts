@@ -14,9 +14,8 @@ import { BaseNotionService, StandardFilterOptions } from '../base';
  * Service pour gérer les projets
  */
 class ProjectService extends BaseNotionService<Project, Partial<Project>, Partial<Project>> {
-  constructor() {
-    super('Projet', 'projectsDbId');
-  }
+  protected resourceName = 'Projet';
+  protected databaseId = 'projectsDbId';
 
   /**
    * Récupère tous les projets
@@ -78,6 +77,50 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
       updatedAt: new Date().toISOString()
     };
   }
+
+  /**
+   * Mapping d'une réponse Notion vers un modèle Project
+   */
+  protected mapNotionResponseToModel(responseData: any): Project {
+    // Implémentation simplifiée
+    return {
+      id: responseData.id || '',
+      name: responseData.properties?.Name?.title?.[0]?.plain_text || '',
+      url: responseData.properties?.URL?.url || '',
+      description: responseData.properties?.Description?.rich_text?.[0]?.plain_text || '',
+      createdAt: responseData.created_time || new Date().toISOString(),
+      updatedAt: responseData.last_edited_time || new Date().toISOString(),
+      status: responseData.properties?.Status?.select?.name || 'active',
+      progress: responseData.properties?.Progress?.number || 0,
+    };
+  }
+
+  /**
+   * Mapping d'un modèle Project vers un payload Notion
+   */
+  protected mapModelToNotionPayload(project: Partial<Project>): any {
+    // Implémentation simplifiée
+    return {
+      properties: {
+        Name: {
+          title: [
+            {
+              type: 'text',
+              text: { content: project.name || '' }
+            }
+          ]
+        },
+        ...(project.url && { URL: { url: project.url } }),
+        ...(project.description && { 
+          Description: { 
+            rich_text: [{ type: 'text', text: { content: project.description } }] 
+          } 
+        }),
+        ...(project.status && { Status: { select: { name: project.status } } }),
+        ...(project.progress !== undefined && { Progress: { number: project.progress } })
+      }
+    };
+  }
   
   /**
    * Récupère un projet par son ID
@@ -96,8 +139,8 @@ class ProjectService extends BaseNotionService<Project, Partial<Project>, Partia
   /**
    * Met à jour un projet existant
    */
-  async updateProject(id: string, projectData: Partial<Project>): Promise<NotionResponse<Project>> {
-    return this.update(id, projectData);
+  async updateProject(project: Project): Promise<NotionResponse<Project>> {
+    return this.update(project);
   }
   
   /**

@@ -18,7 +18,7 @@ export interface StandardFilterOptions {
 /**
  * Interface de base pour un service CRUD
  */
-export interface CrudService<T, CreateDataType = Omit<T, 'id'>, UpdateDataType = Partial<T>> {
+export interface CrudService<T, CreateDataType = Omit<T, 'id'>> {
   getAll(filter?: StandardFilterOptions): Promise<T[]>;
   getById(id: string): Promise<T | null>;
   create(data: CreateDataType): Promise<T>;
