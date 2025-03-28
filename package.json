@@ -39,6 +39,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^2.30.0",
+    "lovable-tagger": "^1.1.7",
     "lucide-react": "^0.331.0",
     "puppeteer": "^24.4.0",
     "react": "^18.2.0",
