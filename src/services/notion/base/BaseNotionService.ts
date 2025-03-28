@@ -1,4 +1,3 @@
-
 /**
  * Service de base abstrait pour tous les services Notion
  * 
@@ -9,7 +8,7 @@
 
 import { notionClient } from '../client/notionClient';
 import { NotionResponse, NotionConfig } from '../types';
-import { ErrorType, createAppError } from '@/types/error';
+import { ErrorType } from '@/types/error';
 
 /**
  * Service Notion de base générique
