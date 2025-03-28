@@ -49,7 +49,7 @@ export function useEntityQuery<T>(
   entityName: string,
   id: string | undefined,
   queryFn: (id: string) => Promise<NotionResponse<T>>,
-  options?: Omit<UseQueryOptions<T, Error, T, [string, string]>, 'queryKey' | 'queryFn' | 'enabled'>
+  options?: Omit<UseQueryOptions<T, Error, T, [string, string | undefined]>, 'queryKey' | 'queryFn' | 'enabled'>
 ) {
   return useQuery({
     queryKey: [entityName, id],

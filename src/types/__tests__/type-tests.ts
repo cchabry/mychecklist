@@ -1,3 +1,4 @@
+
 /**
  * Ce fichier contient des tests de type pour vérifier que nos interfaces principales
  * sont correctement définies et utilisées.
@@ -19,8 +20,8 @@ import {
 
 import {
   ImportanceLevel,
-  ConformityLevel,
-  Priority,
+  ComplianceLevel,
+  PriorityLevel,
   StatusType
 } from '../enums';
 
@@ -41,17 +42,17 @@ function testExigence(exigence: Exigence) {
 
 // Test de base pour SamplePage
 function testSamplePage(page: SamplePage) {
-  console.log(page.name);
+  console.log(page.title);
 }
 
 // Test de base pour Evaluation
 function testEvaluation(evaluation: Evaluation) {
-    console.log(evaluation.conformityLevel);
+    console.log(evaluation.score);
 }
 
 // Test de base pour CorrectiveAction
 function testCorrectiveAction(action: CorrectiveAction) {
-    console.log(action.description);
+    console.log(action.comment || action.description);
 }
 
 // Test de base pour ActionProgress
@@ -67,9 +68,22 @@ function testAttachment(attachment: Attachment) {
 // Tests pour les enums
 function testEnums() {
     let importance: ImportanceLevel = ImportanceLevel.Important;
-    let conformity: ConformityLevel = ConformityLevel.Compliant;
-    let priority: Priority = Priority.High;
+    let conformity: ComplianceLevel = ComplianceLevel.Compliant;
+    let priority: PriorityLevel = PriorityLevel.High;
     let status: StatusType = StatusType.Done;
 
     console.log(importance, conformity, priority, status);
 }
+
+// Exporter les fonctions pour éviter les avertissements de variable non utilisée
+export {
+  testProject,
+  testChecklistItem,
+  testExigence,
+  testSamplePage,
+  testEvaluation,
+  testCorrectiveAction,
+  testActionProgress,
+  testAttachment,
+  testEnums
+};

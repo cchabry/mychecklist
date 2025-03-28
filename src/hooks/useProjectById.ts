@@ -13,7 +13,7 @@ import { Project } from '@/types/domain';
  * @param id - Identifiant du projet
  * @returns Résultat de la requête contenant le projet
  */
-const useProjectById = (id?: string) => {
+export const useProjectById = (id?: string) => {
   return useEntityQuery<Project>(
     'project',
     id,

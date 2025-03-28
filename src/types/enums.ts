@@ -14,13 +14,14 @@ export enum ImportanceLevel {
   Minor = "Mineur",
   Medium = "Moyen",
   Important = "Important",
-  Major = "Majeur"
+  Major = "Majeur",
+  NotApplicable = "N/A" // Alias pour la compatibilité
 }
 
 /**
  * Niveaux de conformité pour les évaluations
  */
-export enum ConformityLevel {
+export enum ComplianceLevel {
   Compliant = "Conforme",
   PartiallyCompliant = "Partiellement conforme",
   NonCompliant = "Non conforme",
@@ -30,7 +31,7 @@ export enum ConformityLevel {
 /**
  * Niveaux de priorité pour les actions
  */
-export enum Priority {
+export enum PriorityLevel {
   Low = "Faible",
   Medium = "Moyenne",
   High = "Haute",

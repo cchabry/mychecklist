@@ -42,6 +42,12 @@ export interface Evaluation {
   score: ComplianceLevel;
   
   /**
+   * Alias pour la compatibilité avec l'ancien code
+   * @deprecated Utiliser score à la place
+   */
+  conformityLevel?: ComplianceLevel;
+  
+  /**
    * Commentaire expliquant l'évaluation (observations, justifications, etc.)
    */
   comment?: string;

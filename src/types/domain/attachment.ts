@@ -1,35 +1,48 @@
 
 /**
- * Type pour les pièces jointes
+ * Types pour les pièces jointes
  */
 
+/**
+ * Interface pour une pièce jointe
+ * 
+ * Une pièce jointe représente un fichier lié à une évaluation
+ * (capture d'écran, document, etc.).
+ */
 export interface Attachment {
-  /** Identifiant unique de la pièce jointe */
+  /**
+   * Identifiant unique de la pièce jointe
+   */
   id: string;
   
-  /** Type de fichier */
-  fileType?: string;
-  
-  /** Type MIME du fichier (alias pour compatibilité) */
-  type?: string;
-  
-  /** Nom du fichier */
-  fileName?: string;
-  
-  /** Nom du fichier (alias pour compatibilité) */
+  /**
+   * Nom du fichier
+   * @deprecated Utiliser fileName à la place
+   */
   name?: string;
   
-  /** URL de la pièce jointe */
+  /**
+   * Nom du fichier
+   */
+  fileName: string;
+  
+  /**
+   * URL de la pièce jointe
+   */
   url: string;
   
-  /** Taille du fichier en octets */
+  /**
+   * Type MIME de la pièce jointe
+   */
+  contentType?: string;
+  
+  /**
+   * Taille du fichier en octets
+   */
   size?: number;
   
-  /** Date de création */
+  /**
+   * Date d'ajout de la pièce jointe (au format ISO)
+   */
   createdAt?: string;
-  
-  /** Description ou légende (facultatif) */
-  description?: string;
 }
-
-export default Attachment;
