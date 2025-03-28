@@ -8,7 +8,7 @@
  */
 
 import { OperationMode, OperationModeState } from '@/types/operation';
-import { notionClient } from '../notion/notionClient';
+import { notionClient } from '../notion/client/notionClient';
 import { Subject } from 'rxjs';
 
 // Clé de stockage local
@@ -51,12 +51,27 @@ export class OperationModeService {
   }
   
   /**
+   * Vérifie si le mode actuel est "démo"
+   */
+  isDemoMode(): boolean {
+    return this.state.mode === 'demo';
+  }
+  
+  /**
+   * Vérifie si le mode actuel est "réel"
+   */
+  isRealMode(): boolean {
+    return this.state.mode === 'real';
+  }
+  
+  /**
    * Active le mode réel (API Notion)
    */
-  enableRealMode() {
+  enableRealMode(reason?: string) {
     this.updateState({
       mode: 'real',
-      source: 'manual',
+      reason,
+      source: 'user',
       timestamp: new Date().toISOString()
     });
   }
@@ -68,7 +83,7 @@ export class OperationModeService {
     this.updateState({
       mode: 'demo',
       reason,
-      source: 'manual',
+      source: 'user',
       timestamp: new Date().toISOString()
     });
   }
@@ -95,6 +110,7 @@ export class OperationModeService {
       timestamp: new Date().toISOString()
     };
     this.applyState(this.state);
+    this.stateChange$.next(this.state);
   }
   
   /**

@@ -9,15 +9,18 @@
 import { 
   NotionConfig, 
   NotionAPIOptions,
-  NotionAPIResponse
+  NotionAPIResponse,
+  ConnectionTestResult
 } from './types';
 
 /**
  * Client pour l'API Notion
  */
 class NotionClient {
-  private config: NotionConfig | null = null;
-  private mockMode: boolean = true;
+  private config: NotionConfig = {
+    mockMode: true,
+    debug: false
+  };
   
   /**
    * Configure le client avec les options spécifiées
@@ -26,7 +29,7 @@ class NotionClient {
    */
   configure(options: NotionAPIOptions): void {
     this.config = {
-      token: options.token,
+      apiKey: options.token,
       projectsDbId: options.projectsDbId,
       checklistsDbId: options.checklistsDbId,
       exigencesDbId: options.exigencesDbId,
@@ -35,50 +38,45 @@ class NotionClient {
       evaluationsDbId: options.evaluationsDbId,
       actionsDbId: options.actionsDbId,
       progressDbId: options.progressDbId,
-      useMockData: options.useMockData || false
+      mockMode: options.useMockData || false
     };
-    
-    // Définir le mode mock en fonction de la configuration
-    this.mockMode = this.config.useMockData || false;
   }
   
   /**
    * Vérifie si le client est configuré
    */
   isConfigured(): boolean {
-    return this.config !== null && !!this.config.token;
+    return !!this.config && !!this.config.apiKey;
   }
   
   /**
    * Récupère la configuration actuelle
    */
-  getConfig(): NotionConfig | null {
-    return this.config;
+  getConfig(): NotionConfig {
+    return { ...this.config };
   }
   
   /**
    * Vérifie si le client est en mode mock
    */
   isMockMode(): boolean {
-    return this.mockMode;
+    return !!this.config.mockMode;
   }
   
   /**
    * Définit le mode mock
    */
   setMockMode(useMock: boolean): void {
-    this.mockMode = useMock;
-    
     if (this.config) {
-      this.config.useMockData = useMock;
+      this.config.mockMode = useMock;
     }
   }
   
   /**
    * Effectue une requête GET vers l'API Notion
    */
-  async get<T>(endpoint: string, params?: Record<string, any>): Promise<NotionAPIResponse<T>> {
-    if (this.mockMode) {
+  async get<T>(_endpoint: string, _params?: Record<string, any>): Promise<NotionAPIResponse<T>> {
+    if (this.isMockMode()) {
       throw new Error("Méthode get non supportée en mode mock");
     }
     
@@ -89,8 +87,8 @@ class NotionClient {
   /**
    * Effectue une requête POST vers l'API Notion
    */
-  async post<T>(endpoint: string, data: any): Promise<NotionAPIResponse<T>> {
-    if (this.mockMode) {
+  async post<T>(_endpoint: string, _data: any): Promise<NotionAPIResponse<T>> {
+    if (this.isMockMode()) {
       throw new Error("Méthode post non supportée en mode mock");
     }
     
@@ -101,8 +99,8 @@ class NotionClient {
   /**
    * Effectue une requête PATCH vers l'API Notion
    */
-  async patch<T>(endpoint: string, data: any): Promise<NotionAPIResponse<T>> {
-    if (this.mockMode) {
+  async patch<T>(_endpoint: string, _data: any): Promise<NotionAPIResponse<T>> {
+    if (this.isMockMode()) {
       throw new Error("Méthode patch non supportée en mode mock");
     }
     
@@ -113,8 +111,8 @@ class NotionClient {
   /**
    * Effectue une requête DELETE vers l'API Notion
    */
-  async delete<T>(endpoint: string): Promise<NotionAPIResponse<T>> {
-    if (this.mockMode) {
+  async delete<T>(_endpoint: string): Promise<NotionAPIResponse<T>> {
+    if (this.isMockMode()) {
       throw new Error("Méthode delete non supportée en mode mock");
     }
     
@@ -125,13 +123,31 @@ class NotionClient {
   /**
    * Effectue une requête générique vers l'API Notion
    */
-  async request<T>(method: string, endpoint: string, data?: any): Promise<NotionAPIResponse<T>> {
-    if (this.mockMode) {
-      throw new Error(`Méthode request (${method}) non supportée en mode mock`);
+  async request<T>(_method: string, _endpoint: string, _data?: any): Promise<NotionAPIResponse<T>> {
+    if (this.isMockMode()) {
+      throw new Error(`Méthode request non supportée en mode mock`);
     }
     
     // Implémentation à venir
-    throw new Error(`Méthode request (${method}) non implémentée`);
+    throw new Error(`Méthode request non implémentée`);
+  }
+  
+  /**
+   * Teste la connexion à l'API Notion
+   */
+  async testConnection(): Promise<ConnectionTestResult> {
+    if (this.isMockMode()) {
+      return {
+        success: true,
+        user: "Utilisateur de démonstration"
+      };
+    }
+    
+    // Implémentation à venir
+    return {
+      success: false,
+      error: "Test de connexion non implémenté"
+    };
   }
 }
 

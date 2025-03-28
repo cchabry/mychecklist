@@ -1,94 +1,88 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { Input } from '@/components/ui';
-import { Button } from '@/components/ui';
-import { PageHeader } from '@/components/layout';
-import { ProjectCard } from '@/components/data-display/ProjectCard';
-import { Project } from '@/types/domain';
-import { ProjectStatus } from '@/types/enums';
-import { useProjects, useNavigate } from '@/hooks';
 
-/**
- * Page d'accueil de l'application
- * 
- * Cette page affiche le tableau de bord principal avec les projets et leurs statuts.
- */
-const Dashboard = () => {
-  const { data: projects, isLoading, error } = useProjects();
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { useProjects } from '@/hooks/useProjects';
+import { Card } from '@/components/ui/card';
+import { PlusCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ProjectStatus } from '@/types/enums';
+import { PageHeader } from '@/components/layout';
+import { Project } from '@/types/domain';
+
+export default function Dashboard() {
+  const { projects, isLoading, error, isDemoMode } = useProjects();
   const navigate = useNavigate();
-  
-  const [search, setSearch] = useState('');
-  
-  // Filtrer les projets selon la recherche
-  const filteredProjects = projects.filter(project => 
-    project.name.toLowerCase().includes(search.toLowerCase()) ||
-    (project.url?.toLowerCase().includes(search.toLowerCase()) ?? false)
+
+  if (isLoading) return <div>Chargement des projets...</div>;
+  if (error) return <div>Erreur: {error.message}</div>;
+
+  // Filtrer les projets par statut
+  const completedProjects = projects.filter(
+    (project: Project) => project.status === ProjectStatus.COMPLETED
   );
 
-  // Fonction de regroupement des projets par statut
-  const getProjectsByStatus = (statusToFilter: string) => {
-    if (!projects) return [];
-    return projects.filter(project => project.status === statusToFilter);
-  };
-  
-  // Groupes de projets par statut
-  const activeProjects = projects ? getProjectsByStatus(ProjectStatus.ACTIVE) : [];
-  const pendingProjects = projects ? getProjectsByStatus(ProjectStatus.PENDING) : [];
-  const completedProjects = projects ? getProjectsByStatus(ProjectStatus.COMPLETED) : [];
-  
+  const activeProjects = projects.filter(
+    (project: Project) => project.status === ProjectStatus.ACTIVE
+  );
+
+  const pendingProjects = projects.filter(
+    (project: Project) => project.status === ProjectStatus.PENDING
+  );
+
   return (
-    <div className="p-6">
-      <PageHeader 
-        title="Tableau de bord" 
-        description="Gérez vos projets d'audit"
-        actions={[
-          {
-            label: '',
-            variant: 'outline',
-            icon: (
-              <div className="relative w-56">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Rechercher un projet..."
-                  className="pl-8 bg-white/80"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            )
-          },
-          {
-            label: 'Nouveau projet',
-            icon: <Plus className="mr-2 h-4 w-4" />,
-            href: '/projects/new'
-          }
-        ]}
-      />
-      
-      {filteredProjects.length === 0 ? (
-        <div className="text-center py-12 border rounded-md bg-white/90">
-          <h3 className="text-lg font-medium">Aucun projet trouvé</h3>
-          <p className="text-muted-foreground mt-1">
-            {search ? 'Modifiez votre recherche ou ' : ''}créez un nouveau projet pour commencer
-          </p>
-          <Button asChild className="mt-4">
-            <Link to="/projects/new">
-              <Plus className="mr-2 h-4 w-4" />
+    <div className="space-y-6">
+      <PageHeader
+        title="Tableau de bord"
+        description="Vue d'ensemble de vos projets d'audit"
+        actions={
+          <Button asChild>
+            <Link to="/projects/create">
+              <PlusCircle className="mr-2 h-4 w-4" />
               Nouveau projet
             </Link>
           </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProjects.map(project => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
+        }
+      />
+
+      {isDemoMode && (
+        <Card className="bg-amber-50 border-amber-200 p-4">
+          <p className="text-amber-800">
+            Vous êtes en mode démonstration. Les données affichées sont simulées.
+          </p>
+        </Card>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {projects.map((project: Project) => (
+          <Card key={project.id} className="p-4 hover:shadow-md transition-shadow">
+            <div className="flex flex-col h-full">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">{project.name}</h3>
+                <p className="text-gray-500 mb-2 text-sm truncate">
+                  {project.url}
+                </p>
+                <p className="text-sm line-clamp-2 mb-3">{project.description}</p>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => navigate(`/projects/${project.id}/audits`)}
+                >
+                  Audits
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                >
+                  Détails
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

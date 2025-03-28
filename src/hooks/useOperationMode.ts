@@ -8,20 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { operationModeService } from '@/services/operationMode';
-import { OperationMode, OperationModeState } from '@/types/operation';
-
-/**
- * Interface pour le hook useOperationMode
- */
-export interface UseOperationMode {
-  mode: OperationMode;           // Mode actuel (real ou demo)
-  state: OperationModeState;     // État complet
-  isRealMode: boolean;           // True si en mode réel (API Notion)
-  isDemoMode: boolean;           // True si en mode démo (données simulées)
-  enableRealMode: () => void;    // Passer en mode réel
-  enableDemoMode: (reason: string) => void; // Passer en mode démo avec une raison
-  resetMode: () => void;         // Réinitialiser le mode
-}
+import { OperationMode, OperationModeState, UseOperationMode } from '@/types/operation';
 
 /**
  * Hook pour gérer le mode d'opération
@@ -48,8 +35,8 @@ export function useOperationMode(): UseOperationMode {
   }, []);
   
   // Passer en mode réel
-  const enableRealMode = useCallback(() => {
-    operationModeService.enableRealMode();
+  const enableRealMode = useCallback((reason?: string) => {
+    operationModeService.enableRealMode(reason);
   }, []);
   
   // Passer en mode démo
@@ -69,7 +56,7 @@ export function useOperationMode(): UseOperationMode {
     isDemoMode: mode === 'demo',
     enableRealMode,
     enableDemoMode,
-    resetMode
+    reset: resetMode
   };
 }
 

@@ -1,29 +1,22 @@
 
-import { AlertTriangle, Database } from 'lucide-react';
+import React from 'react';
 import { useOperationMode } from '@/hooks/useOperationMode';
+import { Database, Cloud } from 'lucide-react';
 import { Button } from './ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Badge } from './ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 /**
- * Composant qui affiche un indicateur du mode opérationnel actuel
- * et permet de basculer entre les modes.
- * 
- * En mode démo, un badge jaune est affiché.
- * En mode réel, un petit indicateur discret est affiché.
+ * Indicateur du mode d'opération (démo ou réel)
  */
 export function OperationModeIndicator() {
-  const { isDemoMode, enableRealMode, enableDemoMode, state } = useOperationMode();
+  const { isDemoMode, enableRealMode, enableDemoMode } = useOperationMode();
   
   const toggleMode = () => {
     if (isDemoMode) {
-      enableRealMode("Changement manuel");
+      enableRealMode('Changement manuel via indicateur');
     } else {
-      enableDemoMode("Changement manuel");
+      enableDemoMode('Changement manuel via indicateur');
     }
   };
   
@@ -32,32 +25,34 @@ export function OperationModeIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button 
-            variant={isDemoMode ? "destructive" : "ghost"}
-            size="sm"
-            className={`flex items-center gap-1 ${isDemoMode ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-transparent'}`}
+            variant="ghost" 
+            size="sm" 
+            className="h-9 px-2"
             onClick={toggleMode}
           >
             {isDemoMode ? (
               <>
-                <AlertTriangle className="h-3 w-3" />
-                <span>Mode démonstration</span>
-                {state.reason && (
-                  <span className="text-xs opacity-90">({state.reason})</span>
-                )}
+                <Database className="h-4 w-4 mr-1.5" />
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">DÉMO</Badge>
               </>
             ) : (
-              <Database className="h-4 w-4 text-primary/60" />
+              <>
+                <Cloud className="h-4 w-4 mr-1.5" />
+                <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">PROD</Badge>
+              </>
             )}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            {isDemoMode 
-              ? "Mode démonstration : données simulées. Cliquez pour passer en mode réel." 
-              : "Mode réel : données Notion. Cliquez pour passer en mode démonstration."}
+        <TooltipContent side="bottom">
+          <p>{isDemoMode 
+            ? "Mode démonstration (données simulées)" 
+            : "Mode réel (API Notion)"}
           </p>
+          <p className="text-xs text-muted-foreground">Cliquer pour changer</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
+
+export default OperationModeIndicator;

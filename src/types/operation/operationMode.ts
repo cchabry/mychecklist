@@ -8,20 +8,20 @@
  * - real: Utilise l'API Notion réelle
  * - demo: Utilise des données simulées
  */
-export type OperationModeType = 'real' | 'demo';
+export type OperationMode = 'real' | 'demo';
 
 /**
  * État du mode opérationnel
  */
 export interface OperationModeState {
   /** Mode actuel (real ou demo) */
-  mode: OperationModeType;
+  mode: OperationMode;
   /** Raison du changement de mode (optionnel) */
   reason?: string;
   /** Timestamp du dernier changement */
-  timestamp: number;
+  timestamp: string;
   /** Source du changement (utilisateur, système ou automatique) */
-  source: 'user' | 'system' | 'auto';
+  source: 'user' | 'system' | 'auto' | 'default' | 'manual';
 }
 
 /**
@@ -34,7 +34,7 @@ export interface OperationModeState {
  */
 export interface OperationModeService {
   // État actuel
-  getMode(): OperationModeType;
+  getMode(): OperationMode;
   getState(): OperationModeState;
   
   // Actions
@@ -72,13 +72,13 @@ export interface OperationModeService {
  */
 export interface UseOperationMode {
   // État
-  mode: OperationModeType;
+  mode: OperationMode;
   state: OperationModeState;
   isDemoMode: boolean;
   isRealMode: boolean;
   
   // Actions
   enableRealMode: (reason?: string) => void;
-  enableDemoMode: (reason?: string) => void;
+  enableDemoMode: (reason: string) => void;
   reset: () => void;
 }

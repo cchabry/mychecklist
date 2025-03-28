@@ -9,6 +9,8 @@
 export interface ChecklistItem {
   /** Identifiant unique de l'item */
   id: string;
+  /** Nom court de l'item */
+  name: string;
   /** Consigne ou titre de l'item */
   consigne: string;
   /** Description détaillée de l'item */

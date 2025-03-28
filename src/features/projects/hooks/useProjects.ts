@@ -1,11 +1,12 @@
 
 /**
- * Hook pour accéder à la liste des projets
+ * Hook pour récupérer tous les projets
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { getProjects } from '@/features/projects';
-import { toast } from 'sonner';
+import { AppError, ErrorType } from '@/types/error';
+import { Project } from '@/types/domain';
 
 /**
  * Hook pour récupérer tous les projets
@@ -15,15 +16,18 @@ import { toast } from 'sonner';
 export function useProjects() {
   return useQuery({
     queryKey: ['projects'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Project[]> => {
       try {
         return await getProjects();
       } catch (error) {
         console.error('Erreur lors de la récupération des projets:', error);
-        toast.error('Erreur de chargement', {
-          description: 'Impossible de récupérer la liste des projets'
-        });
-        throw error;
+        const appError: AppError = {
+          type: ErrorType.NOTION,
+          message: 'Impossible de récupérer les projets',
+          name: 'FetchProjectsError',
+          technicalMessage: error instanceof Error ? error.message : String(error)
+        };
+        throw appError;
       }
     }
   });
