@@ -66,5 +66,5 @@ export function generateMockProject(id?: string): Project {
  * @returns Une liste de projets mock
  */
 export function generateMockProjects(count: number = 10): Project[] {
-  return Array.from({ length: count }, (_, i) => generateMockProject());
+  return Array.from({ length: count }, () => generateMockProject());
 }

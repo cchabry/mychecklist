@@ -13,7 +13,7 @@ import { generateMockExigences } from './utils';
 /**
  * Implémentation standardisée du service d'exigences
  */
-export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExigenceInput> {
+export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExigenceInput, Partial<Exigence>> {
   constructor() {
     super('Exigence', 'projectsDbId');
   }
@@ -43,7 +43,7 @@ export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExige
    * Met à jour une exigence existante
    */
   async updateExigence(exigence: Exigence): Promise<NotionResponse<Exigence>> {
-    return this.update(exigence);
+    return this.update(exigence.id, exigence);
   }
   
   /**
@@ -144,12 +144,27 @@ export class ExigenceServiceImpl extends BaseNotionService<Exigence, CreateExige
   /**
    * Implémentation de la mise à jour d'une exigence
    */
-  protected async updateImpl(entity: Exigence): Promise<NotionResponse<Exigence>> {
+  protected async updateImpl(id: string, data: Partial<Exigence>): Promise<NotionResponse<Exigence>> {
     try {
-      // Pour l'instant, utilisons une donnée mock même en mode réel
+      // Récupérer l'exigence existante
+      const existingExigenceResponse = await this.getById(id);
+      if (!existingExigenceResponse.success || !existingExigenceResponse.data) {
+        return {
+          success: false,
+          error: { message: `Exigence #${id} non trouvée` }
+        };
+      }
+      
+      // Mettre à jour l'exigence
+      const updatedExigence = { 
+        ...existingExigenceResponse.data,
+        ...data
+      };
+      
+      // Pour l'instant, simulons une mise à jour réussie
       return {
         success: true,
-        data: await this.mockUpdate(entity)
+        data: updatedExigence
       };
     } catch (error) {
       return {

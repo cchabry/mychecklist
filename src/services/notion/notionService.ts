@@ -19,7 +19,7 @@ class NotionService {
   isMockMode = notionBaseService.isMockMode.bind(notionBaseService);
   testConnection = notionBaseService.testConnection.bind(notionBaseService);
   
-  // Déléguer les méthodes de projet au service de projet
+  // Méthodes liées aux projets
   getProjects = projectService.getProjects.bind(projectService);
   getProjectById = projectService.getProjectById.bind(projectService);
   createProject = projectService.createProject.bind(projectService);

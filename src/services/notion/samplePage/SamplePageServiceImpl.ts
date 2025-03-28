@@ -1,6 +1,6 @@
 
 /**
- * Implémentation standardisée du service de pages d'échantillon
+ * Implémentation standardisée du service des pages d'échantillon
  * basée sur la classe BaseNotionService
  */
 
@@ -11,11 +11,11 @@ import { CreateSamplePageInput } from './types';
 import { generateMockSamplePages } from './utils';
 
 /**
- * Implémentation standardisée du service de pages d'échantillon
+ * Implémentation standardisée du service des pages d'échantillon
  */
-export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateSamplePageInput> {
+export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateSamplePageInput, Partial<SamplePage>> {
   constructor() {
-    super('SamplePage', 'projectsDbId');
+    super('SamplePage', 'pagesDbId');
   }
   
   /**
@@ -43,7 +43,7 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
    * Met à jour une page d'échantillon existante
    */
   async updateSamplePage(page: SamplePage): Promise<NotionResponse<SamplePage>> {
-    return this.update(page);
+    return this.update(page.id, page);
   }
   
   /**
@@ -67,7 +67,8 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
   protected async mockCreate(data: CreateSamplePageInput): Promise<SamplePage> {
     return {
       ...data,
-      id: generateMockId('samplepage')
+      id: generateMockId('page'),
+      order: data.order || 0
     };
   }
   
@@ -144,12 +145,27 @@ export class SamplePageServiceImpl extends BaseNotionService<SamplePage, CreateS
   /**
    * Implémentation de la mise à jour d'une page d'échantillon
    */
-  protected async updateImpl(entity: SamplePage): Promise<NotionResponse<SamplePage>> {
+  protected async updateImpl(id: string, data: Partial<SamplePage>): Promise<NotionResponse<SamplePage>> {
     try {
-      // Pour l'instant, utilisons une donnée mock même en mode réel
+      // Récupérer la page existante
+      const existingPageResponse = await this.getById(id);
+      if (!existingPageResponse.success || !existingPageResponse.data) {
+        return {
+          success: false,
+          error: { message: `Page d'échantillon #${id} non trouvée` }
+        };
+      }
+      
+      // Mettre à jour la page
+      const updatedPage = { 
+        ...existingPageResponse.data,
+        ...data
+      };
+      
+      // Pour l'instant, simulons une mise à jour réussie
       return {
         success: true,
-        data: await this.mockUpdate(entity)
+        data: updatedPage
       };
     } catch (error) {
       return {

@@ -8,19 +8,15 @@ import { BaseNotionService, generateMockId } from '../base/BaseNotionService';
 import { NotionResponse } from '../types';
 import { Audit } from '@/types/domain';
 
-// Import supprimé car non utilisé
-// import { notionClient } from '../client/notionClient';
-
 /**
  * Type pour la création d'un audit
- * Inclut createdAt et updatedAt pour satisfaire la contrainte
  */
 export interface CreateAuditInput extends Omit<Audit, 'id'> {}
 
 /**
  * Implémentation standardisée du service d'audit
  */
-export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput> {
+export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput, Partial<Audit>> {
   constructor() {
     super('Audit', 'projectsDbId');
   }
@@ -94,7 +90,6 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput>
    * Implémentation de la récupération des audits
    */
   protected async getAllImpl(filter?: Record<string, any>): Promise<NotionResponse<Audit[]>> {
-    // Suppression de la variable config non utilisée
     const projectId = filter?.projectId;
     
     if (!projectId) {
@@ -177,13 +172,29 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput>
   /**
    * Implémentation de la mise à jour d'un audit
    */
-  protected async updateImpl(entity: Audit): Promise<NotionResponse<Audit>> {
+  protected async updateImpl(id: string, data: Partial<Audit>): Promise<NotionResponse<Audit>> {
     try {
+      // Récupérer l'audit existant
+      const existingAuditResponse = await this.getById(id);
+      if (!existingAuditResponse.success || !existingAuditResponse.data) {
+        return {
+          success: false,
+          error: { message: `Audit #${id} non trouvé` }
+        };
+      }
+      
+      // Mettre à jour l'audit
+      const updatedAudit = {
+        ...existingAuditResponse.data,
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+      
       // Ici, nous utiliserions l'API Notion pour mettre à jour un audit
-      // Pour l'instant, utilisons une donnée mock
+      // Pour l'instant, retournons l'audit mis à jour
       return {
         success: true,
-        data: await this.mockUpdate(entity)
+        data: updatedAudit
       };
     } catch (error) {
       return {
