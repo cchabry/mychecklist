@@ -15,7 +15,7 @@ import { useOperationMode } from '@/hooks/useOperationMode';
 /**
  * Options spécifiques au gestionnaire d'erreurs Notion
  */
-interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
+export interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
   /** Point d'entrée API concerné (pour le contexte) */
   endpoint?: string;
   /** Basculer automatiquement en mode démo en cas d'erreur */
@@ -29,7 +29,23 @@ interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
 }
 
 /**
+ * Résultat du hook useNotionErrorHandler
+ */
+export interface NotionErrorHandlerResult {
+  /** Gère une erreur Notion avec les options spécifiées */
+  handleNotionError: (error: unknown, options?: NotionErrorHandlerOptions) => AppError;
+  /** Efface la dernière erreur */
+  clearError: () => void;
+  /** Dernière erreur survenue */
+  lastError?: AppError;
+  /** Indique si une erreur est actuellement présente */
+  isError: boolean;
+}
+
+/**
  * Hook pour gérer les erreurs spécifiques à l'API Notion
+ * 
+ * @returns Interface standardisée pour la gestion des erreurs Notion
  * 
  * @example
  * ```tsx
@@ -46,7 +62,7 @@ interface NotionErrorHandlerOptions extends ErrorHandlerOptions {
  * }
  * ```
  */
-export function useNotionErrorHandler() {
+export function useNotionErrorHandler(): NotionErrorHandlerResult {
   const { handleError, clearError, lastError, isError } = useErrorHandler();
   const { enableDemoMode } = useOperationMode();
   

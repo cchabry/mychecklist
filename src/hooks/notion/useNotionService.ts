@@ -1,6 +1,9 @@
 
 /**
  * Hook pour utiliser le service Notion
+ * 
+ * Ce hook fournit une interface unifiée pour interagir avec le service Notion,
+ * gérer la configuration et tester la connexion.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,11 +12,14 @@ import { ConnectionStatus, ConnectionTestResult } from '@/services/notion/types'
 import { toast } from 'sonner';
 import { useOperationMode } from '@/hooks/useOperationMode';
 import { useNotionErrorHandler } from './useNotionErrorHandler';
+import { NotionServiceHookResult } from './types';
 
 /**
  * Hook principal pour accéder au service Notion
+ * 
+ * @returns Interface standardisée pour interagir avec le service Notion
  */
-export function useNotionService() {
+export function useNotionService(): NotionServiceHookResult {
   const [isConfigured, setIsConfigured] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(ConnectionStatus.Disconnected);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,6 +108,7 @@ export function useNotionService() {
   }, [handleNotionError, clearError]);
   
   return {
+    // Données
     isConfigured,
     connectionStatus,
     isLoading,
@@ -109,6 +116,7 @@ export function useNotionService() {
     isConnected: connectionStatus === ConnectionStatus.Connected,
     isMockMode: notionService.isMockMode() || isDemoMode,
     
+    // Méthodes
     setNotionConfig,
     testConnection,
     getConfig: notionService.getConfig,
@@ -117,4 +125,3 @@ export function useNotionService() {
     notion: notionService
   };
 }
-
