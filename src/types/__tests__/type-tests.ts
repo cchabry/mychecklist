@@ -1,3 +1,4 @@
+
 /**
  * Ce fichier contient des tests de type pour vérifier que nos interfaces principales
  * sont correctement définies et utilisées.
@@ -14,7 +15,8 @@ import {
   SamplePage,
   Evaluation,
   CorrectiveAction,
-  ActionProgress 
+  ActionProgress,
+  Attachment // Add import for Attachment
 } from '../domain';
 
 import {

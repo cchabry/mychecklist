@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
@@ -44,7 +45,7 @@ const Dashboard = () => {
   // Filtrer les projets selon la recherche
   const filteredProjects = projects.filter(project => 
     project.name.toLowerCase().includes(search.toLowerCase()) ||
-    project.url.toLowerCase().includes(search.toLowerCase())
+    (project.url?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
   return (
