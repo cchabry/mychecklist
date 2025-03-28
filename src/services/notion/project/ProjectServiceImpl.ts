@@ -1,10 +1,9 @@
-
 /**
  * Implémentation standardisée du service de projets
  * basée sur la classe BaseNotionService
  */
 
-import { BaseNotionService, generateMockId } from '../base/BaseNotionService';
+import { BaseNotionService, generateMockId } from '../base';
 import { NotionResponse } from '../types';
 import { Project } from '@/types/domain';
 import { notionClient } from '../notionClient';
@@ -12,7 +11,10 @@ import { notionClient } from '../notionClient';
 /**
  * Type pour la création d'un projet
  */
-export interface CreateProjectInput extends Omit<Project, 'id' | 'createdAt' | 'updatedAt'> {
+export interface CreateProjectInput {
+  name: string;
+  url?: string;
+  description?: string;
   progress?: number;
 }
 

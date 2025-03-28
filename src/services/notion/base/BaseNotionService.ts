@@ -1,3 +1,4 @@
+
 /**
  * Service de base abstrait pour tous les services Notion
  * 
@@ -9,6 +10,7 @@
 import { notionClient } from '../client/notionClient';
 import { NotionResponse, NotionConfig } from '../types';
 import { ErrorType } from '@/types/error';
+import { CrudService } from './types';
 
 /**
  * Service Notion de base générique
@@ -20,10 +22,10 @@ import { ErrorType } from '@/types/error';
  */
 export abstract class BaseNotionService<
   T extends { id: ID },
-  C extends Omit<T, 'id'>,
+  C extends Partial<Omit<T, 'id'>>,
   U = T,
   ID = string
-> {
+> implements CrudService<T, C, U, ID> {
   /**
    * Nom du service (pour le débogage et les logs)
    */
@@ -156,178 +158,3 @@ export abstract class BaseNotionService<
       };
     }
   }
-  
-  /**
-   * Crée une nouvelle entité
-   * 
-   * @param data Données pour la création
-   * @returns Promesse résolvant vers une réponse contenant l'entité créée
-   */
-  async create(data: C): Promise<NotionResponse<T>> {
-    const configError = this.checkConfig();
-    if (configError) return configError;
-    
-    if (this.isMockMode()) {
-      return {
-        success: true,
-        data: await this.mockCreate(data)
-      };
-    }
-    
-    try {
-      return await this.createImpl(data);
-    } catch (error) {
-      console.error(`${this.serviceName}.create error:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la création du ${this.serviceName}`,
-          details: error
-        }
-      };
-    }
-  }
-  
-  /**
-   * Met à jour une entité existante
-   * 
-   * @param entity Entité avec les modifications
-   * @returns Promesse résolvant vers une réponse contenant l'entité mise à jour
-   */
-  async update(entity: U): Promise<NotionResponse<T>> {
-    const configError = this.checkConfig();
-    if (configError) return configError;
-    
-    if (this.isMockMode()) {
-      return {
-        success: true,
-        data: await this.mockUpdate(entity)
-      };
-    }
-    
-    try {
-      return await this.updateImpl(entity);
-    } catch (error) {
-      console.error(`${this.serviceName}.update error:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la mise à jour du ${this.serviceName}`,
-          details: error
-        }
-      };
-    }
-  }
-  
-  /**
-   * Supprime une entité
-   * 
-   * @param id Identifiant de l'entité
-   * @returns Promesse résolvant vers une réponse indiquant le succès
-   */
-  async delete(id: ID): Promise<NotionResponse<boolean>> {
-    const configError = this.checkConfig();
-    if (configError) return configError;
-    
-    if (this.isMockMode()) {
-      return {
-        success: true,
-        data: true
-      };
-    }
-    
-    try {
-      return await this.deleteImpl(id);
-    } catch (error) {
-      console.error(`${this.serviceName}.delete error:`, error);
-      return {
-        success: false,
-        error: {
-          message: `Erreur lors de la suppression du ${this.serviceName} #${String(id)}`,
-          details: error
-        }
-      };
-    }
-  }
-  
-  // Méthodes abstraites à implémenter par les services spécifiques
-  
-  /**
-   * Génère des entités fictives pour le mode mock
-   * @param filter Filtre(s) optionnel(s)
-   */
-  protected abstract getMockEntities(filter?: Record<string, any>): Promise<T[]>;
-  
-  /**
-   * Crée une entité fictive en mode mock
-   * @param data Données pour la création
-   */
-  protected abstract mockCreate(data: C): Promise<T>;
-  
-  /**
-   * Met à jour une entité fictive en mode mock
-   * @param entity Entité avec les modifications
-   */
-  protected abstract mockUpdate(entity: U): Promise<T>;
-  
-  /**
-   * Implémentation de la récupération des entités
-   * @param filter Filtre(s) optionnel(s)
-   */
-  protected abstract getAllImpl(filter?: Record<string, any>): Promise<NotionResponse<T[]>>;
-  
-  /**
-   * Implémentation de la récupération d'une entité par son identifiant
-   * @param id Identifiant de l'entité
-   */
-  protected abstract getByIdImpl(id: ID): Promise<NotionResponse<T>>;
-  
-  /**
-   * Implémentation de la création d'une entité
-   * @param data Données pour la création
-   */
-  protected abstract createImpl(data: C): Promise<NotionResponse<T>>;
-  
-  /**
-   * Implémentation de la mise à jour d'une entité
-   * @param entity Entité avec les modifications
-   */
-  protected abstract updateImpl(entity: U): Promise<NotionResponse<T>>;
-  
-  /**
-   * Implémentation de la suppression d'une entité
-   * @param id Identifiant de l'entité
-   */
-  protected abstract deleteImpl(id: ID): Promise<NotionResponse<boolean>>;
-}
-
-/**
- * Type pour les options de filtrage standard
- */
-export interface StandardFilterOptions {
-  limit?: number;
-  offset?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  [key: string]: any;
-}
-
-/**
- * Interface pour un service CRUD de base
- */
-export interface CrudService<T, C = Omit<T, 'id'>, U = T, ID = string> {
-  getAll(filter?: Record<string, any>): Promise<NotionResponse<T[]>>;
-  getById(id: ID): Promise<NotionResponse<T>>;
-  create(data: C): Promise<NotionResponse<T>>;
-  update(entity: U): Promise<NotionResponse<T>>;
-  delete(id: ID): Promise<NotionResponse<boolean>>;
-}
-
-/**
- * Utilitaire pour générer un ID mock
- * @param prefix Préfixe pour l'ID
- * @returns ID unique basé sur un timestamp
- */
-export function generateMockId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-}

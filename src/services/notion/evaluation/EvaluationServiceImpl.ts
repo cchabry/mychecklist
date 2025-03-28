@@ -1,13 +1,11 @@
-
 /**
  * Implémentation standardisée du service d'évaluation
  * basée sur la classe BaseNotionService
  */
 
-import { BaseNotionService, generateMockId } from '../base/BaseNotionService';
+import { BaseNotionService, generateMockId } from '../base/BaseServiceCombined';
 import { NotionResponse } from '../types';
 import { Evaluation } from '@/types/domain';
-import { ComplianceLevel } from '@/types/enums';
 import { CreateEvaluationInput } from './types';
 import { generateMockEvaluations } from './utils';
 

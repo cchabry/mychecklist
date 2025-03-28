@@ -1,96 +1,60 @@
-
 /**
- * Types pour le service d'évaluation
- * 
- * Ce module contient les définitions de types utilisés par le service d'évaluation
- * pour représenter les données d'évaluation et les paramètres des opérations.
+ * Types et interfaces pour le service d'évaluations
  */
 
 import { Evaluation } from '@/types/domain';
-import { NotionResponse } from '../types';
 import { ComplianceLevel } from '@/types/enums';
 
 /**
- * Paramètres de filtrage des évaluations
+ * Interface pour créer une évaluation
  */
-export interface EvaluationFilters {
-  /**
-   * Identifiant de l'audit à filtrer
-   */
-  auditId?: string;
-  
-  /**
-   * Identifiant de la page échantillon à filtrer
-   */
-  pageId?: string;
-  
-  /**
-   * Identifiant de l'exigence à filtrer
-   */
-  exigenceId?: string;
-  
-  /**
-   * Niveau de conformité à filtrer
-   */
-  status?: number;
+export interface CreateEvaluationInput {
+  auditId: string;
+  pageId: string;
+  exigenceId: string;
+  score: ComplianceLevel;
+  comment?: string;
+  attachments?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
- * Réponse API pour une liste d'évaluations
+ * Interface pour mettre à jour une évaluation
  */
-export type EvaluationListResponse = NotionResponse<Evaluation[]>;
-
-/**
- * Réponse API pour une seule évaluation
- */
-export type EvaluationResponse = NotionResponse<Evaluation>;
-
-/**
- * Réponse API pour la suppression d'une évaluation
- */
-export type EvaluationDeleteResponse = NotionResponse<boolean>;
-
-/**
- * Données minimales pour la création d'une évaluation
- */
-export interface CreateEvaluationInput {
-  /**
-   * Identifiant de l'audit auquel appartient l'évaluation
-   */
-  auditId: string;
-  
-  /**
-   * Identifiant de la page échantillon évaluée
-   */
-  pageId: string;
-  
-  /**
-   * Identifiant de l'exigence évaluée
-   */
-  exigenceId: string;
-  
-  /**
-   * Niveau de conformité attribué
-   */
-  score: ComplianceLevel;
-  
-  /**
-   * Commentaire optionnel sur l'évaluation
-   */
+export interface UpdateEvaluationInput {
+  id: string;
+  score?: ComplianceLevel;
   comment?: string;
-  
-  /**
-   * Liste des pièces jointes (captures d'écran, etc.)
-   */
   attachments?: string[];
-  
-  /**
-   * Date de création (générée automatiquement si non spécifiée)
-   */
-  createdAt?: string;
-  
-  /**
-   * Date de dernière mise à jour (générée automatiquement si non spécifiée)
-   */
-  updatedAt?: string;
+}
+
+/**
+ * Interface pour les filtres d'évaluation
+ */
+export interface EvaluationFilter {
+  auditId: string;
+  pageId?: string;
+  exigenceId?: string;
+}
+
+/**
+ * Interface pour les statistiques d'évaluation
+ */
+export interface EvaluationStats {
+  total: number;
+  compliant: number;
+  nonCompliant: number;
+  partiallyCompliant: number;
+  notApplicable: number;
+  notEvaluated: number;
+  complianceRate: number;
+}
+
+/**
+ * Interface pour le résultat d'une évaluation groupée
+ */
+export interface GroupedEvaluations {
+  byPage: Record<string, Evaluation[]>;
+  byExigence: Record<string, Evaluation[]>;
 }

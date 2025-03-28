@@ -7,7 +7,8 @@
 
 // Exporter les services
 export { projectService } from './projectService';
-export { projectServiceImpl, CreateProjectInput, UpdateProjectInput } from './ProjectServiceImpl';
+export { projectServiceImpl } from './ProjectServiceImpl';
+export type { CreateProjectInput, UpdateProjectInput } from './ProjectServiceImpl';
 
 // Exporter les utilitaires (si nécessaire)
 // export * from './utils';
