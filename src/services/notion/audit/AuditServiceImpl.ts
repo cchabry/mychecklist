@@ -48,7 +48,8 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
         description: 'Premier audit du projet',
         status: 'en_cours',
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        progress: 25
       },
       {
         id: 'audit_2',
@@ -57,7 +58,8 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
         description: 'Audit de vérification des corrections',
         status: 'terminé',
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        progress: 100
       }
     ];
   }
@@ -74,7 +76,8 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
       description: data.description || '',
       status: 'en_cours',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      progress: 0
     };
   }
   
@@ -113,7 +116,7 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
   /**
    * Implémentation de la récupération d'un audit par son ID
    */
-  protected async getByIdImpl(id: string): Promise<NotionResponse<Audit>> {
+  protected async getByIdImpl(_id: string): Promise<NotionResponse<Audit>> {
     return {
       success: false,
       error: {
@@ -125,7 +128,7 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
   /**
    * Implémentation de la création d'un audit
    */
-  protected async createImpl(data: CreateAuditInput): Promise<NotionResponse<Audit>> {
+  protected async createImpl(_data: CreateAuditInput): Promise<NotionResponse<Audit>> {
     return {
       success: false,
       error: {
@@ -137,7 +140,7 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
   /**
    * Implémentation de la mise à jour d'un audit
    */
-  protected async updateImpl(entity: UpdateAuditInput): Promise<NotionResponse<Audit>> {
+  protected async updateImpl(_entity: UpdateAuditInput): Promise<NotionResponse<Audit>> {
     return {
       success: false,
       error: {
@@ -149,7 +152,7 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
   /**
    * Implémentation de la suppression d'un audit
    */
-  protected async deleteImpl(id: string): Promise<NotionResponse<boolean>> {
+  protected async deleteImpl(_id: string): Promise<NotionResponse<boolean>> {
     return {
       success: false,
       error: {
@@ -158,4 +161,3 @@ export class AuditServiceImpl extends BaseNotionService<Audit, CreateAuditInput,
     };
   }
 }
-

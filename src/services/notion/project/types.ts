@@ -5,6 +5,9 @@
 
 import { Project } from '@/types/domain';
 
+// Réexporter le type Project pour faciliter l'accès
+export type { Project };
+
 /**
  * Type pour la création d'un projet
  */
@@ -25,4 +28,3 @@ export interface UpdateProjectInput {
   description?: string;
   progress?: number;
 }
-

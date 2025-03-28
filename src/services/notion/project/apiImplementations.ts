@@ -1,16 +1,18 @@
-
 /**
  * Implémentations API pour le service de projets
+ * 
+ * Ce fichier contient les implémentations spécifiques à l'API Notion
+ * pour les opérations CRUD sur les projets.
  */
 
-import { NotionResponse } from '../types';
+import { notionClient } from '../client/notionClient';
 import { Project } from '@/types/domain';
-import { notionClient } from '../notionClient';
-import { CreateProjectInput, UpdateProjectInput } from './types';
 import { extractTextProperty, notionPageToProject } from './utils';
+import { NotionResponse } from '../types';
+import { CreateProjectInput, UpdateProjectInput } from './types';
 
 /**
- * Récupère tous les projets depuis l'API Notion
+ * Récupère tous les projets depuis Notion
  */
 export async function getAllProjects(): Promise<NotionResponse<Project[]>> {
   const config = notionClient.getConfig();
@@ -45,7 +47,7 @@ export async function getAllProjects(): Promise<NotionResponse<Project[]>> {
 }
 
 /**
- * Récupère un projet par son ID depuis l'API Notion
+ * Récupère un projet par son ID depuis Notion
  */
 export async function getProjectById(id: string): Promise<NotionResponse<Project>> {
   try {
@@ -73,7 +75,7 @@ export async function getProjectById(id: string): Promise<NotionResponse<Project
 }
 
 /**
- * Crée un projet dans l'API Notion
+ * Crée un nouveau projet dans Notion
  */
 export async function createProject(data: CreateProjectInput): Promise<NotionResponse<Project>> {
   const config = notionClient.getConfig();
@@ -158,43 +160,43 @@ export async function createProject(data: CreateProjectInput): Promise<NotionRes
 }
 
 /**
- * Met à jour un projet dans l'API Notion
+ * Met à jour un projet existant dans Notion
  */
-export async function updateProject(entity: UpdateProjectInput): Promise<NotionResponse<Project>> {
+export async function updateProject(project: UpdateProjectInput): Promise<NotionResponse<Project>> {
   try {
     // Préparer les propriétés à mettre à jour
     const properties: any = {};
     
-    if (entity.name !== undefined) {
+    if (project.name !== undefined) {
       properties.Name = {
         title: [
           {
             text: {
-              content: entity.name
+              content: project.name
             }
           }
         ]
       };
     }
     
-    if (entity.url !== undefined) {
+    if (project.url !== undefined) {
       properties.URL = {
         rich_text: [
           {
             text: {
-              content: entity.url
+              content: project.url
             }
           }
         ]
       };
     }
     
-    if (entity.description !== undefined) {
+    if (project.description !== undefined) {
       properties.Description = {
         rich_text: [
           {
             text: {
-              content: entity.description
+              content: project.description
             }
           }
         ]
@@ -202,7 +204,7 @@ export async function updateProject(entity: UpdateProjectInput): Promise<NotionR
     }
     
     // Mettre à jour la page dans Notion
-    const response = await notionClient.patch<any>(`/pages/${entity.id}`, {
+    const response = await notionClient.patch<any>(`/pages/${project.id}`, {
       properties
     });
     
@@ -229,7 +231,7 @@ export async function updateProject(entity: UpdateProjectInput): Promise<NotionR
 }
 
 /**
- * Supprime (archive) un projet dans l'API Notion
+ * Supprime un projet de Notion
  */
 export async function deleteProject(id: string): Promise<NotionResponse<boolean>> {
   try {

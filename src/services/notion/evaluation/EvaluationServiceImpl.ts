@@ -6,15 +6,29 @@
 import { BaseNotionService } from '../base';
 import { NotionResponse } from '../types';
 import { Evaluation } from '@/types/domain';
-import { CreateEvaluationData, UpdateEvaluationData } from './types';
+import { CreateEvaluationInput, UpdateEvaluationInput } from './types';
 import { generateMockId } from '../base/utils';
+import { ComplianceLevel } from '@/types/enums';
 
 /**
  * Implémentation standardisée du service d'évaluations
  */
-export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateEvaluationData, UpdateEvaluationData> {
+export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateEvaluationInput, UpdateEvaluationInput> {
   constructor() {
     super('Evaluation', 'evaluationsDbId');
+  }
+
+  /**
+   * Récupère les évaluations d'un audit, filtrables par page et exigence
+   */
+  async getEvaluations(auditId: string, pageId?: string, exigenceId?: string): Promise<NotionResponse<Evaluation[]>> {
+    return this.getAll({
+      filter: (evaluation) => {
+        return evaluation.auditId === auditId && 
+          (!pageId || evaluation.pageId === pageId) &&
+          (!exigenceId || evaluation.exigenceId === exigenceId);
+      }
+    });
   }
 
   /**
@@ -28,7 +42,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
         auditId: 'audit_1',
         pageId: 'page_1',
         exigenceId: 'exigence_1',
-        score: 'conformant',
+        score: ComplianceLevel.Compliant,
         comment: 'Conforme aux exigences',
         attachments: [],
         createdAt: now,
@@ -39,7 +53,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
         auditId: 'audit_1',
         pageId: 'page_2',
         exigenceId: 'exigence_2',
-        score: 'non_conformant',
+        score: ComplianceLevel.NonCompliant,
         comment: 'Ne respecte pas les exigences',
         attachments: [],
         createdAt: now,
@@ -51,7 +65,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Crée une évaluation fictive en mode mock
    */
-  protected async mockCreate(data: CreateEvaluationData): Promise<Evaluation> {
+  protected async mockCreate(data: CreateEvaluationInput): Promise<Evaluation> {
     const now = new Date().toISOString();
     return {
       id: generateMockId('eval'),
@@ -69,7 +83,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Met à jour une évaluation fictive en mode mock
    */
-  protected async mockUpdate(entity: UpdateEvaluationData): Promise<Evaluation> {
+  protected async mockUpdate(entity: UpdateEvaluationInput): Promise<Evaluation> {
     const mockEvaluations = await this.getMockEntities();
     const existingEvaluation = mockEvaluations.find(e => e.id === entity.id);
     
@@ -101,7 +115,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la récupération d'une évaluation par son ID
    */
-  protected async getByIdImpl(id: string): Promise<NotionResponse<Evaluation>> {
+  protected async getByIdImpl(_id: string): Promise<NotionResponse<Evaluation>> {
     return {
       success: false,
       error: {
@@ -113,7 +127,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la création d'une évaluation
    */
-  protected async createImpl(data: CreateEvaluationData): Promise<NotionResponse<Evaluation>> {
+  protected async createImpl(_data: CreateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     return {
       success: false,
       error: {
@@ -125,7 +139,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la mise à jour d'une évaluation
    */
-  protected async updateImpl(entity: UpdateEvaluationData): Promise<NotionResponse<Evaluation>> {
+  protected async updateImpl(_entity: UpdateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     return {
       success: false,
       error: {
@@ -137,7 +151,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
   /**
    * Implémentation de la suppression d'une évaluation
    */
-  protected async deleteImpl(id: string): Promise<NotionResponse<boolean>> {
+  protected async deleteImpl(_id: string): Promise<NotionResponse<boolean>> {
     return {
       success: false,
       error: {
@@ -152,4 +166,3 @@ export const evaluationServiceImpl = new EvaluationServiceImpl();
 
 // Export par défaut
 export default evaluationServiceImpl;
-

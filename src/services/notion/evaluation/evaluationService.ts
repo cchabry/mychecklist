@@ -9,7 +9,7 @@
 import { evaluationServiceImpl } from './EvaluationServiceImpl';
 import { NotionResponse } from '../types';
 import { Evaluation } from '@/types/domain';
-import { CreateEvaluationInput } from './types';
+import { CreateEvaluationInput, UpdateEvaluationInput } from './types';
 
 /**
  * Service de gestion des évaluations
@@ -39,7 +39,7 @@ class EvaluationService {
   /**
    * Met à jour une évaluation existante
    */
-  async updateEvaluation(evaluation: Evaluation): Promise<NotionResponse<Evaluation>> {
+  async updateEvaluation(evaluation: UpdateEvaluationInput): Promise<NotionResponse<Evaluation>> {
     return evaluationServiceImpl.update(evaluation);
   }
   
