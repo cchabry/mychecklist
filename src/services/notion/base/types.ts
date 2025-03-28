@@ -10,6 +10,7 @@ export interface StandardFilterOptions<T = any> {
   filter?: (entity: T) => boolean;
   sort?: (a: T, b: T) => number;
   limit?: number;
+  projectId?: string; // Ajouté pour supporter les filtrages par projet
 }
 
 /**

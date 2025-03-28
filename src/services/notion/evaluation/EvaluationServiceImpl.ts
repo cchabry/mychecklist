@@ -9,6 +9,7 @@ import { Evaluation } from '@/types/domain';
 import { CreateEvaluationInput, UpdateEvaluationInput } from './types';
 import { generateMockId } from '../base/utils';
 import { ComplianceLevel } from '@/types/enums';
+import { Attachment } from '@/types/domain';
 
 /**
  * Implémentation standardisée du service d'évaluations
@@ -36,6 +37,13 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
    */
   protected async getMockEntities(): Promise<Evaluation[]> {
     const now = new Date().toISOString();
+    const mockAttachment: Attachment = {
+      id: 'attach_1',
+      name: 'capture_ecran.png',
+      url: 'https://example.com/capture.png',
+      type: 'image/png'
+    };
+
     return [
       {
         id: 'eval_1',
@@ -44,7 +52,7 @@ export class EvaluationServiceImpl extends BaseNotionService<Evaluation, CreateE
         exigenceId: 'exigence_1',
         score: ComplianceLevel.Compliant,
         comment: 'Conforme aux exigences',
-        attachments: [],
+        attachments: [mockAttachment],
         createdAt: now,
         updatedAt: now
       },

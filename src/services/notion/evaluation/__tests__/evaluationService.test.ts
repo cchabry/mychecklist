@@ -3,8 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluationService } from '../evaluationService';
 import { notionClient } from '../../notionClient';
 import { ComplianceLevel } from '@/types/enums';
-import { Evaluation } from '@/types/domain';
+import { Evaluation, Attachment } from '@/types/domain';
 import { NotionConfig } from '../../types';
+import { UpdateEvaluationInput } from '../types';
 
 // Mock du notionClient
 vi.mock('../../notionClient', () => ({
@@ -20,6 +21,14 @@ vi.mock('../../notionClient', () => ({
 
 // Réactivation des tests précédemment désactivés
 describe('EvaluationService', () => {
+  const mockAttachment: Attachment = {
+    id: 'attach-1',
+    name: 'test.pdf',
+    url: 'https://example.com/test.pdf',
+    type: 'application/pdf',
+    size: 12345
+  };
+
   const mockEvaluation: Evaluation = {
     id: 'eval-1',
     auditId: 'audit-123',
@@ -27,7 +36,7 @@ describe('EvaluationService', () => {
     exigenceId: 'exig-123',
     score: ComplianceLevel.Compliant,
     comment: 'Test comment',
-    attachments: [],
+    attachments: [mockAttachment],
     createdAt: '2023-01-01T00:00:00.000Z',
     updatedAt: '2023-01-01T00:00:00.000Z'
   };
@@ -145,7 +154,7 @@ describe('EvaluationService', () => {
       exigenceId: 'exig-123',
       score: ComplianceLevel.Compliant,
       comment: 'Test comment',
-      attachments: []
+      attachments: [mockAttachment]
     };
 
     it('devrait créer une évaluation en mode mock', async () => {
@@ -187,9 +196,13 @@ describe('EvaluationService', () => {
 
   describe('updateEvaluation', () => {
     it('devrait mettre à jour une évaluation en mode mock', async () => {
-      const updatedEvaluation = { ...mockEvaluation, comment: 'Updated comment' };
+      const updateInput: UpdateEvaluationInput = { 
+        id: mockEvaluation.id, 
+        comment: 'Updated comment',
+        attachments: [mockAttachment]
+      };
       
-      const result = await evaluationService.updateEvaluation(updatedEvaluation);
+      const result = await evaluationService.updateEvaluation(updateInput);
       
       expect(result.success).toBe(true);
       expect(result.data?.comment).toBe('Updated comment');
@@ -204,9 +217,13 @@ describe('EvaluationService', () => {
         data: { id: 'eval-1', properties: {} }
       });
       
-      const updatedEvaluation = { ...mockEvaluation, comment: 'Updated comment' };
+      const updateInput: UpdateEvaluationInput = { 
+        id: mockEvaluation.id, 
+        comment: 'Updated comment',
+        attachments: [mockAttachment] 
+      };
       
-      await evaluationService.updateEvaluation(updatedEvaluation);
+      await evaluationService.updateEvaluation(updateInput);
       
       expect(notionClient.patch).toHaveBeenCalledWith(
         expect.stringContaining('/eval-1'),

@@ -7,6 +7,7 @@
  */
 
 import { ComplianceLevel } from '../enums';
+import { Attachment } from './attachment';
 
 /**
  * Interface pour une évaluation
@@ -48,7 +49,7 @@ export interface Evaluation {
   /**
    * Liste des pièces jointes (captures d'écran, documents, etc.)
    */
-  attachments?: string[];
+  attachments?: Attachment[];
   
   /**
    * Date de création de l'évaluation (au format ISO)

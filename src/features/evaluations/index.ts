@@ -1,3 +1,4 @@
+
 /**
  * Point d'entrée pour la feature Evaluations
  */
@@ -12,6 +13,7 @@ export * from './components';
 // Services et API
 import { evaluationsApi } from '@/services/notion/api/evaluations';
 import { Evaluation, CreateEvaluationData, UpdateEvaluationData } from './types';
+import { Attachment } from '@/types/domain';
 
 /**
  * Récupère toutes les évaluations d'un audit
@@ -77,7 +79,7 @@ export async function createEvaluation(data: CreateEvaluationData): Promise<Eval
  */
 export async function updateEvaluation(id: string, data: UpdateEvaluationData): Promise<Evaluation> {
   try {
-    // Récupérer l'��valuation existante
+    // Récupérer l'évaluation existante
     const existingEvaluation = await getEvaluationById(id);
     
     if (!existingEvaluation) {

@@ -9,7 +9,7 @@
 import { EvaluationApi } from '@/types/api/domain';
 import { evaluationService } from '../evaluation';
 import { Evaluation } from '@/types/domain';
-import { CreateEvaluationInput } from '../evaluation/types';
+import { CreateEvaluationInput, UpdateEvaluationInput } from '../evaluation/types';
 import { DELETE_ERROR, FETCH_ERROR, CREATE_ERROR, UPDATE_ERROR } from '@/constants/errorMessages';
 
 /**
@@ -60,8 +60,17 @@ class NotionEvaluationApi implements EvaluationApi {
    * @returns Promise résolvant vers l'évaluation créée
    * @throws Error si la création échoue
    */
-  async createEvaluation(evaluation: CreateEvaluationInput): Promise<Evaluation> {
-    const response = await evaluationService.createEvaluation(evaluation);
+  async createEvaluation(evaluation: Omit<Evaluation, "id" | "createdAt" | "updatedAt">): Promise<Evaluation> {
+    const createInput: CreateEvaluationInput = {
+      auditId: evaluation.auditId,
+      pageId: evaluation.pageId,
+      exigenceId: evaluation.exigenceId,
+      score: evaluation.score,
+      comment: evaluation.comment,
+      attachments: evaluation.attachments
+    };
+    
+    const response = await evaluationService.createEvaluation(createInput);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || CREATE_ERROR);
@@ -78,7 +87,14 @@ class NotionEvaluationApi implements EvaluationApi {
    * @throws Error si la mise à jour échoue
    */
   async updateEvaluation(evaluation: Evaluation): Promise<Evaluation> {
-    const response = await evaluationService.updateEvaluation(evaluation);
+    const updateInput: UpdateEvaluationInput = {
+      id: evaluation.id,
+      score: evaluation.score,
+      comment: evaluation.comment,
+      attachments: evaluation.attachments
+    };
+    
+    const response = await evaluationService.updateEvaluation(updateInput);
     
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || UPDATE_ERROR);

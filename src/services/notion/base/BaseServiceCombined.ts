@@ -1,109 +1,104 @@
 
 /**
- * Point d'entrée principal pour BaseNotionService
- * 
- * Ce fichier réexporte la classe finale BaseNotionServiceAbstract sous le nom
- * de BaseNotionService pour maintenir la compatibilité avec le code existant.
+ * Combinaison de la classe de service de base et de l'interface abstraite
+ * pour faciliter l'implémentation des services spécifiques
  */
 
-import { BaseNotionServiceAbstract } from './BaseNotionServiceAbstract';
+import { BaseNotionService } from './BaseNotionService';
 import { NotionResponse } from '../types';
 
 /**
- * Classe finale BaseNotionService
+ * Classe abstraite définissant les méthodes requises
+ * pour l'implémentation d'un service Notion
  * 
- * Pour la compatibilité avec le code existant, nous exportons directement
- * une classe concrète qui implémente toutes les méthodes abstraites
- * de BaseNotionServiceAbstract avec des fonctionnalités de base.
+ * @template T - Type d'entité principale
+ * @template C - Type pour la création (Create)
+ * @template U - Type pour la mise à jour (Update)
+ * @template ID - Type d'identifiant
  */
-export class BaseNotionService<
-  T extends { id: ID },
-  C extends Partial<Omit<T, 'id'>>,
-  U = T,
-  ID = string
-> extends BaseNotionServiceAbstract<T, C, U, ID> {
+export abstract class BaseNotionServiceAbstract<T, C, U, ID = string> {
+  /**
+   * Génère des entités fictives pour le mode mock
+   */
+  abstract getMockEntities(): Promise<T[]>;
   
   /**
-   * Implémentation de base pour getMockEntities
+   * Crée une entité fictive en mode mock
    */
-  protected async getMockEntities(): Promise<T[]> {
-    console.warn(`${this.entityName}: getMockEntities non implémenté, retourne liste vide.`);
-    return [];
-  }
+  abstract mockCreate(data: C): Promise<T>;
   
   /**
-   * Implémentation de base pour mockCreate
+   * Met à jour une entité fictive en mode mock
    */
-  protected async mockCreate(data: C): Promise<T> {
-    console.warn(`${this.entityName}: mockCreate non implémenté, données:`, data);
-    throw new Error(`Méthode mockCreate non implémentée pour ${this.entityName}`);
-  }
+  abstract mockUpdate(entity: U): Promise<T>;
   
   /**
-   * Implémentation de base pour mockUpdate
+   * Implémentation de la récupération des entités
    */
-  protected async mockUpdate(entity: U): Promise<T> {
-    console.warn(`${this.entityName}: mockUpdate non implémenté, données:`, entity);
-    throw new Error(`Méthode mockUpdate non implémentée pour ${this.entityName}`);
-  }
+  abstract getAllImpl(): Promise<NotionResponse<T[]>>;
   
   /**
-   * Implémentation de base pour getAllImpl
+   * Implémentation de la récupération d'une entité par son ID
    */
-  protected async getAllImpl(): Promise<NotionResponse<T[]>> {
-    return {
-      success: false,
-      error: {
-        message: `Méthode getAllImpl non implémentée pour ${this.entityName}`
-      }
-    };
-  }
+  abstract getByIdImpl(id: ID): Promise<NotionResponse<T>>;
   
   /**
-   * Implémentation de base pour getByIdImpl
+   * Implémentation de la création d'une entité
    */
-  protected async getByIdImpl(id: ID): Promise<NotionResponse<T>> {
-    return {
-      success: false,
-      error: {
-        message: `Méthode getByIdImpl non implémentée pour ${this.entityName}, ID: ${String(id)}`
-      }
-    };
-  }
+  abstract createImpl(data: C): Promise<NotionResponse<T>>;
   
   /**
-   * Implémentation de base pour createImpl
+   * Implémentation de la mise à jour d'une entité
    */
-  protected async createImpl(data: C): Promise<NotionResponse<T>> {
-    return {
-      success: false,
-      error: {
-        message: `Méthode createImpl non implémentée pour ${this.entityName}`
-      }
-    };
-  }
+  abstract updateImpl(entity: U): Promise<NotionResponse<T>>;
   
   /**
-   * Implémentation de base pour updateImpl
+   * Implémentation de la suppression d'une entité
    */
-  protected async updateImpl(entity: U): Promise<NotionResponse<T>> {
-    return {
-      success: false,
-      error: {
-        message: `Méthode updateImpl non implémentée pour ${this.entityName}`
-      }
-    };
-  }
+  abstract deleteImpl(id: ID): Promise<NotionResponse<boolean>>;
+}
+
+/**
+ * Service Notion combiné avec l'implémentation abstraite et l'interface opérationnelle
+ * Cette classe facilite l'implémentation des services spécifiques en
+ * fournissant une structure standard et des méthodes abstraites à implémenter
+ * 
+ * @template T - Type d'entité principale
+ * @template C - Type pour la création (Create)
+ * @template U - Type pour la mise à jour (Update)
+ * @template ID - Type d'identifiant
+ */
+export abstract class BaseServiceCombined<T, C, U, ID = string> 
+  extends BaseNotionService<T, C, U, ID> 
+  implements BaseNotionServiceAbstract<T, C, U, ID> {
   
   /**
-   * Implémentation de base pour deleteImpl
+   * Implémentation de la récupération des entités
+   * La méthode concrète doit être fournie par les classes dérivées
    */
-  protected async deleteImpl(id: ID): Promise<NotionResponse<boolean>> {
-    return {
-      success: false,
-      error: {
-        message: `Méthode deleteImpl non implémentée pour ${this.entityName}, ID: ${String(id)}`
-      }
-    };
-  }
+  protected abstract getAllImpl(): Promise<NotionResponse<T[]>>;
+  
+  /**
+   * Implémentation de la récupération d'une entité par son ID
+   * La méthode concrète doit être fournie par les classes dérivées
+   */
+  protected abstract getByIdImpl(_id: ID): Promise<NotionResponse<T>>;
+  
+  /**
+   * Implémentation de la création d'une entité
+   * La méthode concrète doit être fournie par les classes dérivées
+   */
+  protected abstract createImpl(_data: C): Promise<NotionResponse<T>>;
+  
+  /**
+   * Implémentation de la mise à jour d'une entité
+   * La méthode concrète doit être fournie par les classes dérivées
+   */
+  protected abstract updateImpl(_entity: U): Promise<NotionResponse<T>>;
+  
+  /**
+   * Implémentation de la suppression d'une entité
+   * La méthode concrète doit être fournie par les classes dérivées
+   */
+  protected abstract deleteImpl(_id: ID): Promise<NotionResponse<boolean>>;
 }
