@@ -1,3 +1,4 @@
+
 /**
  * Tests unitaires pour les utilitaires de checklist
  */
@@ -11,7 +12,8 @@ import {
 } from '../utils';
 import { ExigenceWithItem } from '../types';
 import { ImportanceLevel } from '@/types/enums';
-import { ChecklistItem, Exigence } from '@/types/domain';
+import { ChecklistItem } from '@/features/checklist/types';
+import { Exigence } from '@/types/domain';
 
 // Désactivation temporaire de la suite de tests qui échoue
 describe.skip('Exigence Utils', () => {
@@ -26,8 +28,8 @@ describe.skip('Exigence Utils', () => {
       reference: ['RGAA 1.1'],
       profil: ['Développeur'],
       phase: ['Développement'],
-      effort: 2,
-      priority: 5
+      effort: '2',
+      priority: '5'
     },
     {
       id: 'item-2',
@@ -38,8 +40,8 @@ describe.skip('Exigence Utils', () => {
       reference: ['RGESN 4.2'],
       profil: ['Designer'],
       phase: ['Design', 'Développement'],
-      effort: 3,
-      priority: 3
+      effort: '3',
+      priority: '3'
     },
     {
       id: 'item-3',
@@ -50,8 +52,8 @@ describe.skip('Exigence Utils', () => {
       reference: ['RGAA 3.2'],
       profil: ['Designer'],
       phase: ['Design'],
-      effort: 1,
-      priority: 4
+      effort: '1',
+      priority: '4'
     }
   ];
 
@@ -84,7 +86,7 @@ describe.skip('Exigence Utils', () => {
   const exigences: ExigenceWithItem[] = basicExigences.map((exigence, index) => ({
     ...exigence,
     checklistItem: checklistItems[index]
-  }));
+  })) as ExigenceWithItem[];
 
   describe('enrichExigencesWithItems', () => {
     it('devrait enrichir les exigences avec les informations des items', () => {

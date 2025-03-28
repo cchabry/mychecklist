@@ -8,6 +8,7 @@
 
 import { notionClient as notionUnifiedClient } from './client/notionClient';
 import type { NotionResponse } from './types';
+import type { NotionConfig } from './base/types';
 
 /**
  * Façade pour le client Notion unifié
@@ -19,7 +20,7 @@ class NotionClient {
    * Configure le client Notion
    * @param config Configuration du client
    */
-  configure(config: any) {
+  configure(config: NotionConfig) {
     return notionUnifiedClient.configure(config);
   }
   
