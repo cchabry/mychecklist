@@ -3,7 +3,12 @@
  * Hooks Notion
  */
 
-export { useNotionProjects } from './useNotionProjects';
+export { 
+  useNotionProjects,
+  useNotionProjectById,
+  useCreateNotionProject,
+  useUpdateNotionProject,
+  useDeleteNotionProject
+} from './useNotionProjects';
 export { useNotionService } from './useNotionService';
 export { useNotionErrorHandler } from './useNotionErrorHandler';
-

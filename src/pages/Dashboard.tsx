@@ -21,7 +21,7 @@ const Dashboard = () => {
       url: 'www.example.com',
       createdAt: '2023-01-01',
       updatedAt: '2023-05-15',
-      status: ProjectStatus.Active,
+      status: 'IN_PROGRESS', // Utiliser la chaîne directement au lieu de enum
       lastAuditDate: '2023-04-20'
     },
     {
@@ -30,7 +30,7 @@ const Dashboard = () => {
       url: 'app.example.org',
       createdAt: '2023-02-10',
       updatedAt: '2023-04-05',
-      status: ProjectStatus.Pending
+      status: 'NEW' // Utiliser la chaîne directement au lieu de enum
     },
     {
       id: '3',
@@ -38,7 +38,7 @@ const Dashboard = () => {
       url: 'shop.example.net',
       createdAt: '2022-11-15',
       updatedAt: '2023-03-20',
-      status: ProjectStatus.Completed,
+      status: 'COMPLETED', // Utiliser la chaîne directement au lieu de enum
       lastAuditDate: '2023-03-10'
     }
   ]);

@@ -1,3 +1,4 @@
+
 /**
  * Point d'entrée pour le service de projets
  * 
@@ -13,7 +14,20 @@ export type { CreateProjectInput, UpdateProjectInput } from './types';
 
 // Exporter les utilitaires
 export { 
-  notionPageToProject
+  notionPageToProject,
+  mapStringToProjectStatus,
+  isValidProjectStatus
 } from './utils';
 
-// Note: Nous avons supprimé les exportations manquantes qui causaient des erreurs
+// Exporter les implémentations API
+export {
+  getAllProjectsNotionImplementation,
+  getProjectByIdNotionImplementation,
+  createProjectNotionImplementation,
+  updateProjectNotionImplementation,
+  deleteProjectNotionImplementation,
+  mockGetProjects,
+  mockCreateProject,
+  mockUpdateProject,
+  mockDeleteProject
+} from './apiImplementations';

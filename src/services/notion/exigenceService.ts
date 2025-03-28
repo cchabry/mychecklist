@@ -1,6 +1,5 @@
-
 /**
- * Service pour la gestion des exigences via Notion
+ * Service pour la gestion des exigences
  */
 
 import { notionClient } from './notionClient';
@@ -9,7 +8,7 @@ import { Exigence } from '@/types/domain';
 import { ImportanceLevel } from '@/types/enums';
 
 /**
- * Service de gestion des exigences
+ * Service pour la gestion des exigences
  */
 class ExigenceService {
   /**
@@ -18,10 +17,10 @@ class ExigenceService {
   async getExigences(projectId: string): Promise<NotionResponse<Exigence[]>> {
     const config = notionClient.getConfig();
     
-    if (!config.projectsDbId) {
+    if (!config?.exigencesDbId) {
       return { 
         success: false, 
-        error: { message: "Base de données des projets non configurée" } 
+        error: { message: "Base de données des exigences non configurée" } 
       };
     }
     

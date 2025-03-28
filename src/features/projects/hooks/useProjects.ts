@@ -4,7 +4,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getProjects } from '..';
+import { getProjects } from '@/features/projects';
 import { toast } from 'sonner';
 
 /**

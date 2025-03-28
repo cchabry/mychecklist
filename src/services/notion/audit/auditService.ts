@@ -1,4 +1,3 @@
-
 /**
  * Service pour la gestion des audits via Notion
  */
@@ -23,7 +22,7 @@ class AuditService {
   async getAudits(projectId: string): Promise<AuditsResponse> {
     const config = notionClient.getConfig();
     
-    if (!config.projectsDbId) {
+    if (!config?.projectsDbId) {
       return { 
         success: false, 
         error: { message: "Base de données des projets non configurée" } 
@@ -171,4 +170,3 @@ export const auditService = new AuditService();
 
 // Export par défaut
 export default auditService;
-
