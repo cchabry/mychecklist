@@ -1,6 +1,6 @@
 
 import { ActionProgress } from '@/types/domain/action';
-import { ComplianceStatus, ActionStatus } from '@/types/domain/index';
+import { ActionStatus } from '@/types/domain/action';
 
 /**
  * Service pour gérer les progressions des actions correctives

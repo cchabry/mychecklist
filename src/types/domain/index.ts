@@ -13,8 +13,7 @@ export * from './samplePage';
 
 // Exporter directement les enums pour s'assurer qu'ils sont utilisés correctement
 export { 
-  ComplianceStatus, 
-  type ComplianceLevel
+  ComplianceStatus 
 } from './evaluation';
 
 export {
@@ -29,3 +28,4 @@ export {
 // Mettre à jour les alias pour compatibilité
 export type PriorityLevel = ActionPriority;
 export type StatusType = ActionStatus;
+export type ComplianceLevel = ComplianceStatus;
