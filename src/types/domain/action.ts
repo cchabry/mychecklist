@@ -47,6 +47,7 @@ export interface ActionProgress {
   date: string;
   comment: string;
   responsible?: string;
+  score?: ComplianceStatus;
   newStatus?: ActionStatus;
   attachments?: string[];
   author?: string;

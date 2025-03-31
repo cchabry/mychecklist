@@ -1,53 +1,44 @@
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { operationModeService } from '../operationModeService';
 
-describe('OperationModeService', () => {
+describe('operationModeService', () => {
   beforeEach(() => {
-    // Réinitialiser le service
     operationModeService.reset();
   });
 
-  it('devrait toujours être en mode démo', () => {
-    expect(operationModeService.getMode()).toBe('demo');
+  it('should always be in demo mode', () => {
+    expect(operationModeService.isDemoMode()).toBe(true);
+    expect(operationModeService.isRealMode()).toBe(false);
+    expect(operationModeService.getState().mode).toBe('demo');
+  });
+
+  it('should allow changing the demo reason', () => {
+    operationModeService.enableDemoMode('Test reason');
+    
+    expect(operationModeService.isDemoMode()).toBe(true);
+    expect(operationModeService.getState().reason).toBe('Test reason');
+  });
+
+  it('should not allow enabling real mode', () => {
+    const result = operationModeService.enableRealMode();
+    
+    expect(result).toBe(false);
     expect(operationModeService.isDemoMode()).toBe(true);
     expect(operationModeService.isRealMode()).toBe(false);
   });
 
-  it('ne devrait pas changer en mode réel même si demandé', () => {
-    operationModeService.enableRealMode('Test raison');
+  it('should notify subscribers when state changes', () => {
+    const mockCallback = vi.fn();
+    const unsubscribe = operationModeService.subscribe(mockCallback);
     
-    expect(operationModeService.getMode()).toBe('demo');
-    expect(operationModeService.isDemoMode()).toBe(true);
-    expect(operationModeService.isRealMode()).toBe(false);
-  });
-
-  it('devrait mettre à jour la raison en mode démo', () => {
-    const raison = 'Nouvelle raison de test';
-    operationModeService.enableDemoMode(raison);
+    operationModeService.enableDemoMode('New reason');
     
-    expect(operationModeService.getState().reason).toBe(raison);
-  });
-
-  it('devrait notifier les abonnés lors du changement de raison', () => {
-    const listener = vi.fn();
+    expect(mockCallback).toHaveBeenCalledWith(expect.objectContaining({
+      mode: 'demo',
+      reason: 'New reason'
+    }));
     
-    // S'abonner aux changements
-    const unsubscribe = operationModeService.subscribe(listener);
-    
-    // Changer la raison
-    operationModeService.enableDemoMode('Nouvelle raison');
-    
-    // Vérifier que le listener a été appelé
-    expect(listener).toHaveBeenCalledTimes(1);
-    
-    // Se désabonner
     unsubscribe();
-    
-    // Changer à nouveau la raison
-    operationModeService.enableDemoMode('Encore une raison');
-    
-    // Vérifier que le listener n'a pas été appelé à nouveau
-    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
 
-import { OperationModeState, OperationModeType } from '@/types/operation/operationMode';
+import { OperationModeState } from '@/types/operation/operationMode';
 
 /**
  * Service simple pour gérer le mode opérationnel (toujours en mode démo)
@@ -8,7 +8,9 @@ class OperationModeService {
   private subscribers: ((state: OperationModeState) => void)[] = [];
   private state: OperationModeState = {
     mode: 'demo',
-    reason: 'Mode de démonstration permanent'
+    reason: 'Mode de démonstration permanent',
+    timestamp: Date.now(),
+    source: 'initialization'
   };
   
   /**
@@ -38,7 +40,12 @@ class OperationModeService {
   public enableDemoMode(customReason?: string): void {
     // Mettre à jour la raison uniquement si elle est fournie
     if (customReason) {
-      this.state.reason = customReason;
+      this.state = {
+        ...this.state,
+        reason: customReason,
+        timestamp: Date.now(),
+        source: 'manual'
+      };
       this.notifySubscribers();
     }
   }
@@ -59,7 +66,9 @@ class OperationModeService {
   public reset(): void {
     this.state = {
       mode: 'demo',
-      reason: 'Mode de démonstration permanent'
+      reason: 'Mode de démonstration permanent',
+      timestamp: Date.now(),
+      source: 'reset'
     };
     this.notifySubscribers();
   }

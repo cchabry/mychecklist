@@ -25,7 +25,7 @@ function App() {
     <>
       <Routes>
         {/* Layout principal */}
-        <Route path="/" element={<MainLayout />}>
+        <Route element={<MainLayout />}>
           {/* Dashboard (liste des projets) */}
           <Route index element={<Dashboard />} />
           

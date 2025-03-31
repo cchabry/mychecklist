@@ -1,149 +1,85 @@
-/**
- * Service pour la gestion des suivis de progrès
- */
 
-import { notionClient } from '../notionClient';
-import { generateMockActionProgress } from './utils';
-import { 
-  CreateProgressInput, 
-  ProgressResponse, 
-  ProgressListResponse,
-  ProgressDeleteResponse
-} from './types';
-import { ComplianceStatus, ActionStatus, ActionProgress } from '@/types/domain';
+// Importation fictive pour démonstration
+import { ActionProgress, ActionStatus } from '@/types/domain/action';
+import { ComplianceStatus } from '@/types/domain/evaluation';
 
 /**
- * Service de gestion des suivis de progrès
+ * Service de gestion des progrès d'actions correctives (mode démo)
  */
-class ProgressService {
+export class ActionProgressService {
+  private progressItems: ActionProgress[] = [];
+  
   /**
-   * Récupère tous les suivis de progrès liés à une action corrective
+   * Obtenir tous les progrès pour une action
    */
-  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: generateMockActionProgress(actionId)
-      };
-    }
-    
-    // TODO: Implémenter la récupération des suivis de progrès depuis Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: generateMockActionProgress(actionId)
-    };
+  public async getProgressForAction(actionId: string): Promise<ActionProgress[]> {
+    return this.progressItems.filter(item => item.actionId === actionId);
   }
   
   /**
-   * Récupère un suivi de progrès par son ID
+   * Créer un nouvel enregistrement de progrès
    */
-  async getActionProgressById(id: string): Promise<ProgressResponse> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      const mockProgress = generateMockActionProgress('mock-action');
-      const progress = mockProgress.find(p => p.id === id);
-      
-      if (!progress) {
-        return { 
-          success: false, 
-          error: { message: `Suivi de progrès #${id} non trouvé` } 
-        };
-      }
-      
-      return {
-        success: true,
-        data: progress
-      };
+  public async createProgress(data: Partial<ActionProgress>): Promise<ActionProgress> {
+    if (!data.actionId) {
+      throw new Error('L\'identifiant de l\'action est requis');
     }
     
-    // TODO: Implémenter la récupération d'un suivi de progrès depuis Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: {
-        id,
-        actionId: 'mock-action',
-        date: new Date().toISOString(),
-        comment: "Première phase des corrections effectuée",
-        score: ComplianceStatus.PartiallyCompliant,
-        status: ActionStatus.InProgress
-      }
+    const now = new Date();
+    const newProgress: ActionProgress = {
+      id: `progress_${Date.now()}`,
+      actionId: data.actionId,
+      date: data.date || now.toISOString(),
+      comment: data.comment || '',
+      responsible: data.responsible,
+      score: data.score,
+      newStatus: data.newStatus,
+      attachments: data.attachments || [],
+      author: data.author || 'Utilisateur démo'
     };
+    
+    this.progressItems.push(newProgress);
+    return newProgress;
   }
   
   /**
-   * Crée un nouveau suivi de progrès
+   * Mettre à jour un enregistrement de progrès
    */
-  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
-    // Si en mode démo, simuler la création
-    if (notionClient.isMockMode()) {
-      const newProgress = {
-        ...progress,
-        id: `progress-${Date.now()}`
-      };
-      
-      return {
-        success: true,
-        data: newProgress
-      };
+  public async updateProgress(id: string, data: Partial<ActionProgress>): Promise<ActionProgress> {
+    const index = this.progressItems.findIndex(item => item.id === id);
+    
+    if (index === -1) {
+      throw new Error('Enregistrement de progrès non trouvé');
     }
     
-    // TODO: Implémenter la création d'un suivi de progrès dans Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: {
-        ...progress,
-        id: `progress-${Date.now()}`
-      }
+    const updatedProgress = {
+      ...this.progressItems[index],
+      ...data,
+      comment: data.comment || this.progressItems[index].comment,
+      responsible: data.responsible || this.progressItems[index].responsible,
+      score: data.score || this.progressItems[index].score,
+      newStatus: data.newStatus || this.progressItems[index].newStatus
     };
+    
+    this.progressItems[index] = updatedProgress;
+    return updatedProgress;
   }
   
   /**
-   * Met à jour un suivi de progrès existant
+   * Supprimer un enregistrement de progrès
    */
-  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
-    // Si en mode démo, simuler la mise à jour
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: progress
-      };
-    }
-    
-    // TODO: Implémenter la mise à jour d'un suivi de progrès dans Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: progress
-    };
+  public async deleteProgress(id: string): Promise<boolean> {
+    const initialLength = this.progressItems.length;
+    this.progressItems = this.progressItems.filter(item => item.id !== id);
+    return this.progressItems.length < initialLength;
   }
   
   /**
-   * Supprime un suivi de progrès
+   * Réinitialiser les données (pour les tests)
    */
-  async deleteActionProgress(_id: string): Promise<ProgressDeleteResponse> {
-    // Si en mode démo, simuler la suppression
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: true
-      };
-    }
-    
-    // TODO: Implémenter la suppression d'un suivi de progrès dans Notion
-    // Pour l'instant, simuler le succès même en mode réel
-    return {
-      success: true,
-      data: true
-    };
+  public reset(): void {
+    this.progressItems = [];
   }
 }
 
-// Créer et exporter une instance singleton
-export const progressService = new ProgressService();
-
-// Export par défaut
-export default progressService;
+// Instance singleton
+export const actionProgressService = new ActionProgressService();

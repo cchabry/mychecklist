@@ -1,51 +1,43 @@
 
 /**
- * Énumérations pour l'application
+ * @deprecated Utilisez les importations directes depuis les types du domaine
+ * import { ImportanceLevel, ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
  */
+
+import { 
+  ImportanceLevel as DomainImportanceLevel,
+  ComplianceStatus as DomainComplianceStatus,
+  ActionPriority as DomainActionPriority,
+  ActionStatus as DomainActionStatus
+} from './domain';
 
 /**
  * Niveaux d'importance pour les exigences
- * Doit correspondre à ImportanceLevel dans domain/exigence.ts
+ * @deprecated Utilisez ImportanceLevel depuis '@/types/domain'
  */
-export enum ImportanceLevel {
-  NotApplicable = "Non applicable",
-  Minor = "Mineur",
-  Medium = "Moyen",
-  Important = "Important",
-  Major = "Majeur"
-}
+export const ImportanceLevel = DomainImportanceLevel;
+export type ImportanceLevel = DomainImportanceLevel;
 
 /**
  * Niveaux de conformité pour les évaluations
- * Doit correspondre à ComplianceStatus dans domain/evaluation.ts
+ * @deprecated Utilisez ComplianceStatus depuis '@/types/domain'
  */
-export enum ComplianceLevel {
-  Compliant = "Conforme",
-  PartiallyCompliant = "Partiellement conforme",
-  NonCompliant = "Non conforme",
-  NotApplicable = "Non applicable"
-}
+export const ComplianceLevel = DomainComplianceStatus;
+export type ComplianceLevel = DomainComplianceStatus;
 
 /**
  * Priorités pour les actions correctives
- * Doit correspondre à ActionPriority dans domain/action.ts
+ * @deprecated Utilisez ActionPriority depuis '@/types/domain'
  */
-export enum PriorityLevel {
-  Low = "Faible",
-  Medium = "Moyenne",
-  High = "Haute",
-  Critical = "Critique"
-}
+export const PriorityLevel = DomainActionPriority;
+export type PriorityLevel = DomainActionPriority;
 
 /**
  * Statuts pour les actions et progrès
- * Doit correspondre à ActionStatus dans domain/action.ts
+ * @deprecated Utilisez ActionStatus depuis '@/types/domain'
  */
-export enum StatusType {
-  Todo = "À faire",
-  InProgress = "En cours",
-  Done = "Terminée"
-}
+export const StatusType = DomainActionStatus;
+export type StatusType = DomainActionStatus;
 
 /**
  * Profils utilisateurs

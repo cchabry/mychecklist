@@ -11,20 +11,21 @@ export * from './evaluation';
 export * from './exigence';
 export * from './samplePage';
 
-// Re-export les enums du domaine pour uniformiser avec les enums globaux
-import { ComplianceStatus } from './evaluation';
-import { ImportanceLevel } from './exigence';
-import { ActionPriority, ActionStatus } from './action';
-
-// Aliasing des types pour compatibilité
+// Exporter directement les enums pour s'assurer qu'ils sont utilisés correctement
 export { 
-  ComplianceStatus,
-  ImportanceLevel,
-  ActionPriority,
-  ActionStatus
-};
+  ComplianceStatus, 
+  type ComplianceLevel
+} from './evaluation';
 
-// Type aliases for backward compatibility
-export type ComplianceLevel = ComplianceStatus;
+export {
+  ImportanceLevel
+} from './exigence';
+
+export {
+  ActionPriority,
+  ActionStatus,
+} from './action';
+
+// Mettre à jour les alias pour compatibilité
 export type PriorityLevel = ActionPriority;
 export type StatusType = ActionStatus;

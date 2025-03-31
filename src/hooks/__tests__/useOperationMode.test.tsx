@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useOperationMode } from '../useOperationMode';
 import { renderHook } from '@testing-library/react';
 
