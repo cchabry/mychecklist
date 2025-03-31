@@ -1,3 +1,4 @@
+
 import { CorrectiveAction, ActionPriority, ActionStatus } from '@/types/domain/action';
 import { ComplianceStatus } from '@/types/domain/evaluation';
 import { NotionResponse } from '../types';
@@ -179,13 +180,13 @@ export const actionService = {
   /**
    * Récupère une progression spécifique
    */
-  async getActionProgressById(progressId: string): Promise<NotionResponse<ActionProgress>> {
+  async getActionProgressById(_actionId: string): Promise<NotionResponse<ActionProgress>> {
     // En mode démo, on génère une progression fictive
     return {
       success: true,
       data: {
-        id: progressId,
-        actionId: progressId.split('-')[1],
+        id: _actionId,
+        actionId: _actionId.split('-')[1],
         date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         comment: "Mise à jour de la progression",
         author: "Jean Dupont",
