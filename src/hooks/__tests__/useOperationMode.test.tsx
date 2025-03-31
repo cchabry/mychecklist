@@ -1,57 +1,62 @@
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useOperationMode } from '../useOperationMode';
 import { operationModeService } from '@/services/operationMode/operationModeService';
 
-describe('useOperationMode hook', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    operationModeService.reset();
-  });
-
-  it('devrait retourner l\'état initial correctement', () => {
+describe('useOperationMode', () => {
+  it('devrait retourner le mode démo par défaut', () => {
     const { result } = renderHook(() => useOperationMode());
     
+    expect(result.current.isDemoMode).toBe(true);
     expect(result.current.mode).toBe('demo');
     expect(result.current.isRealMode).toBe(false);
-    expect(result.current.isDemoMode).toBe(true);
+    expect(result.current.state).toBeDefined();
   });
 
-  it('devrait refléter les changements de mode', () => {
+  it('ne devrait pas pouvoir passer en mode réel', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { result } = renderHook(() => useOperationMode());
     
-    // Changer le mode via le service
-    act(() => {
-      operationModeService.enableDemoMode('Test hook');
-    });
-    
-    // Vérifier que le hook a mis à jour son état
-    expect(result.current.mode).toBe('demo');
-    expect(result.current.isDemoMode).toBe(true);
-    expect(result.current.isRealMode).toBe(false);
-    expect(result.current.state.reason).toBe('Test hook');
-  });
-
-  it('devrait permettre de changer le mode via le hook', () => {
-    const { result } = renderHook(() => useOperationMode());
-    
-    // Changer le mode via le hook
-    act(() => {
-      result.current.enableDemoMode('Via hook');
-    });
-    
-    // Vérifier que le mode a changé
-    expect(result.current.mode).toBe('demo');
-    expect(result.current.isDemoMode).toBe(true);
-    
-    // Revenir en mode réel
     act(() => {
       result.current.enableRealMode();
     });
     
-    // Vérifier que le mode a changé
-    expect(result.current.mode).toBe('real');
-    expect(result.current.isRealMode).toBe(true);
+    expect(result.current.isDemoMode).toBe(true);
+    expect(result.current.mode).toBe('demo');
+    expect(result.current.isRealMode).toBe(false);
+    expect(console.warn).toHaveBeenCalled();
+    
+    spy.mockRestore();
+  });
+  
+  it('devrait mettre à jour la raison du mode démo', () => {
+    const { result } = renderHook(() => useOperationMode());
+    const raison = 'Nouvelle raison de test';
+    
+    act(() => {
+      result.current.enableDemoMode(raison);
+    });
+    
+    expect(result.current.mode).toBe('demo');
+    expect(result.current.state.reason).toBe(raison);
+  });
+  
+  it('devrait réinitialiser l\'état avec la raison par défaut', () => {
+    const { result } = renderHook(() => useOperationMode());
+    
+    // D'abord, définir une raison personnalisée
+    act(() => {
+      result.current.enableDemoMode('Raison temporaire');
+    });
+    
+    // Puis réinitialiser
+    act(() => {
+      result.current.reset();
+    });
+    
+    expect(result.current.mode).toBe('demo');
+    expect(result.current.isRealMode).toBe(false);
+    expect(result.current.state.reason).toBe('Mode de démonstration permanent');
   });
 });

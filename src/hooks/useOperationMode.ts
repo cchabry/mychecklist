@@ -1,58 +1,36 @@
 
 import { useState, useEffect } from 'react';
+import { operationModeService } from '@/services/operationMode/operationModeService';
+import { OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 
 /**
- * Type pour l'état du mode opérationnel
- */
-export interface OperationModeState {
-  isDemoMode: boolean;
-  reason?: string;
-}
-
-/**
- * Hook pour connaître le mode de fonctionnement de l'application
+ * Hook pour connaître le mode de fonctionnement de l'application (toujours en démo)
  */
 export const useOperationMode = () => {
-  const [state, setState] = useState<OperationModeState>({
-    isDemoMode: true,
-    reason: 'Mode de développement par défaut'
-  });
+  const [state, setState] = useState<OperationModeState>(operationModeService.getState());
   
-  // Propriétés dérivées pour la compatibilité avec l'API existante
-  const isDemoMode = state.isDemoMode;
-  const isRealMode = !state.isDemoMode;
-  const mode = isDemoMode ? 'demo' : 'real';
+  // Propriétés dérivées de l'état
+  const isDemoMode = true; // Toujours true
+  const isRealMode = false; // Toujours false
+  const mode: OperationModeType = 'demo'; // Toujours 'demo'
   
   useEffect(() => {
-    // Vérifier si le mode réel est disponible
-    // Pour l'instant, on est toujours en mode démo
-    const checkMode = () => {
-      setState({
-        isDemoMode: true,
-        reason: 'Mode de développement par défaut'
-      });
-    };
-    
-    checkMode();
+    // S'abonner aux changements d'état
+    const unsubscribe = operationModeService.subscribe(setState);
+    return unsubscribe;
   }, []);
   
   const enableDemoMode = (reason?: string) => {
-    setState({
-      isDemoMode: true,
-      reason: reason || 'Activation manuelle du mode démonstration'
-    });
+    operationModeService.enableDemoMode(reason);
   };
   
   const enableRealMode = () => {
-    // Pour l'instant, cette fonction ne fait rien
-    // car on est toujours en mode démo
-    console.log('Tentative de passage en mode réel - Non implémenté');
-    
-    // On simule le passage en mode réel pour les tests
-    setState({
-      isDemoMode: false,
-      reason: undefined
-    });
+    console.warn('Mode réel désactivé: l\'application fonctionne uniquement en mode démo');
+    // Cette fonction ne fait rien car on est toujours en mode démo
+  };
+  
+  const reset = () => {
+    operationModeService.reset();
   };
   
   return {
@@ -61,6 +39,7 @@ export const useOperationMode = () => {
     mode,
     state,
     enableDemoMode,
-    enableRealMode
+    enableRealMode,
+    reset
   };
 };

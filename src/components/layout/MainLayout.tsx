@@ -1,29 +1,27 @@
 
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import { OperationModeIndicator } from '@/components/OperationModeIndicator';
+import { ReactNode } from 'react';
+import { OperationModeIndicator } from '../OperationModeIndicator';
+
+interface MainLayoutProps {
+  children: ReactNode;
+}
 
 /**
  * Layout principal de l'application
  */
-export const MainLayout = () => {
+export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto py-3 px-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Outil d'audit</h1>
-            <div className="fixed top-4 right-4 z-50">
-              <OperationModeIndicator />
-            </div>
-          </div>
-        </div>
+      <header className="bg-white border-b py-2 px-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Audit Qualité Web</h1>
+        <OperationModeIndicator />
       </header>
-      <main className="flex-1 bg-slate-50">
-        <Outlet />
+      <main className="flex-1 p-4">
+        {children}
       </main>
-      <Toaster position="top-right" richColors />
+      <footer className="bg-gray-50 border-t py-2 px-4 text-center text-sm text-gray-500">
+        Outil d'audit qualité web - Mode démonstration
+      </footer>
     </div>
   );
-};
+}

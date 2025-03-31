@@ -5,12 +5,10 @@ import { Badge } from './ui/badge';
 
 /**
  * Composant qui affiche un indicateur du mode opérationnel (démo)
- * Visible uniquement en mode démo
+ * Toujours visible car on est toujours en mode démo
  */
 export function OperationModeIndicator() {
-  const { isDemoMode, state } = useOperationMode();
-  
-  if (!isDemoMode) return null;
+  const { state } = useOperationMode();
   
   return (
     <Badge 
@@ -19,7 +17,7 @@ export function OperationModeIndicator() {
     >
       <AlertTriangle className="h-3 w-3" />
       <span>Mode démonstration</span>
-      {state.reason && (
+      {state.reason && state.reason !== 'Mode de démonstration permanent' && (
         <span className="text-xs opacity-90">({state.reason})</span>
       )}
     </Badge>

@@ -2,48 +2,20 @@
 import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 
 /**
- * Service de gestion du mode opérationnel (réel vs démo)
+ * Service de gestion du mode opérationnel (toujours en mode démo)
  */
 class OperationModeServiceImpl implements OperationModeService {
   private state: OperationModeState;
   private listeners: Array<(state: OperationModeState) => void> = [];
-  private storageKey = 'operation_mode';
   
   constructor() {
-    // Récupération du mode depuis le localStorage
-    const savedState = this.getSavedState();
-    
-    this.state = savedState || {
-      mode: 'real',
+    // Toujours initialiser en mode démo
+    this.state = {
+      mode: 'demo',
       timestamp: Date.now(),
-      source: 'system'
+      source: 'system',
+      reason: 'Mode de démonstration permanent'
     };
-  }
-  
-  private getSavedState(): OperationModeState | null {
-    try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (saved) {
-        return JSON.parse(saved) as OperationModeState;
-      }
-    } catch (error) {
-      console.error('Erreur lors de la récupération du mode opérationnel :', error);
-    }
-    return null;
-  }
-  
-  private saveState(): void {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.state));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde du mode opérationnel :', error);
-    }
-  }
-  
-  private updateState(newState: Partial<OperationModeState>): void {
-    this.state = { ...this.state, ...newState, timestamp: Date.now() };
-    this.saveState();
-    this.notifyListeners();
   }
   
   private notifyListeners(): void {
@@ -52,7 +24,7 @@ class OperationModeServiceImpl implements OperationModeService {
   
   // Méthodes publiques
   getMode(): OperationModeType {
-    return this.state.mode;
+    return 'demo'; // Toujours retourner 'demo'
   }
   
   getState(): OperationModeState {
@@ -60,39 +32,40 @@ class OperationModeServiceImpl implements OperationModeService {
   }
   
   enableRealMode(reason?: string): void {
-    if (this.state.mode === 'real') return;
-    
-    this.updateState({
-      mode: 'real',
-      reason,
-      source: reason ? 'user' : 'system'
-    });
+    console.warn('Mode réel désactivé: l\'application fonctionne uniquement en mode démo');
+    // Ne fait rien car on est toujours en mode démo
   }
   
   enableDemoMode(reason?: string): void {
-    if (this.state.mode === 'demo') return;
-    
-    this.updateState({
-      mode: 'demo',
-      reason,
-      source: reason ? 'user' : 'system'
-    });
+    // Mettre à jour la raison si fournie
+    if (reason && reason !== this.state.reason) {
+      this.state = {
+        ...this.state,
+        reason,
+        timestamp: Date.now(),
+        source: 'user'
+      };
+      this.notifyListeners();
+    }
   }
   
   reset(): void {
-    this.updateState({
-      mode: 'real',
-      reason: 'Réinitialisation du mode',
+    // Réinitialiser mais rester en mode démo
+    this.state = {
+      mode: 'demo',
+      reason: 'Mode de démonstration permanent',
+      timestamp: Date.now(),
       source: 'system'
-    });
+    };
+    this.notifyListeners();
   }
   
   isDemoMode(): boolean {
-    return this.state.mode === 'demo';
+    return true; // Toujours retourner true
   }
   
   isRealMode(): boolean {
-    return this.state.mode === 'real';
+    return false; // Toujours retourner false
   }
   
   subscribe(listener: (state: OperationModeState) => void): () => void {

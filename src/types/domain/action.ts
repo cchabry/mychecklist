@@ -1,23 +1,25 @@
 
+// Import des types nécessaires
+import { ComplianceStatus } from './evaluation';
+
 /**
- * Enum représentant les statuts possibles d'une action
+ * Niveau de priorité d'une action corrective
  */
-export enum ActionStatus {
-  ToDo = "To Do",
-  InProgress = "In Progress",
-  Done = "Done",
-  Blocked = "Blocked",
-  Open = "Open"
+export enum ActionPriority {
+  Low = "Faible",
+  Medium = "Moyenne",
+  High = "Haute",
+  Critical = "Critique"
 }
 
 /**
- * Enum représentant les priorités possibles d'une action
+ * Statut d'une action corrective
  */
-export enum ActionPriority {
-  High = "High",
-  Medium = "Medium",
-  Low = "Low",
-  Critical = "Critical"
+export enum ActionStatus {
+  ToDo = "À faire",
+  InProgress = "En cours",
+  Done = "Terminée",
+  Cancelled = "Annulée"
 }
 
 /**
@@ -28,21 +30,23 @@ export interface CorrectiveAction {
   evaluationId: string;
   targetScore: ComplianceStatus;
   priority: ActionPriority;
-  dueDate: string;
-  responsible: string;
+  dueDate?: string;
+  responsible?: string;
   comment?: string;
   status: ActionStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
- * Type représentant le suivi d'une action corrective
+ * Type représentant le suivi de progression d'une action
  */
 export interface ActionProgress {
   id: string;
   actionId: string;
   date: string;
-  responsible: string;
-  comment?: string;
-  score: ComplianceStatus;
-  status: ActionStatus;
+  comment: string;
+  newStatus?: ActionStatus;
+  attachments?: string[];
+  author?: string;
 }
