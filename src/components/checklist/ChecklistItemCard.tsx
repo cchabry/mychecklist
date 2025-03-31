@@ -54,8 +54,7 @@ export const ChecklistItemCard: React.FC<ChecklistItemProps> = ({
   return (
     <Card 
       className={cn(
-        "w-full transition-shadow hover:shadow-md",
-        onClick ? "cursor-pointer" : "",
+        "w-full transition-shadow hover:shadow-md cursor-pointer",
         className
       )}
       onClick={onClick}
@@ -100,14 +99,14 @@ export const ChecklistItemCard: React.FC<ChecklistItemProps> = ({
             </div>
           )}
           
-          {profiles && profiles.length > 0 && (
+          {profiles.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-hidden">
               <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span className="truncate">{profiles.join(', ')}</span>
             </div>
           )}
           
-          {phases && phases.length > 0 && (
+          {phases.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-hidden">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span className="truncate">{phases.join(', ')}</span>
@@ -116,7 +115,7 @@ export const ChecklistItemCard: React.FC<ChecklistItemProps> = ({
         </div>
         
         <div className="flex flex-wrap gap-1.5 mt-3">
-          {references && references.map((reference, index) => (
+          {references.map((reference, index) => (
             <Badge key={index} variant="outline" className="bg-gray-50 text-xs">
               {reference}
             </Badge>

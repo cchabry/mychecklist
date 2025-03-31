@@ -1,0 +1,162 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 210 20% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 20% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 20% 20%;
+
+    --primary: 175 33% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 210 20% 20%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 20% 45%;
+
+    --accent: 7 71% 66%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 20% 92%;
+    --input: 210 20% 92%;
+    --ring: 175 33% 42%;
+
+    --radius: 0.5rem;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 220 13% 91%;
+
+    --card: 224 71% 4%;
+    --card-foreground: 220 13% 91%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 220 13% 91%;
+
+    --primary: 175 33% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 220 13% 91%;
+
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+
+    --accent: 7 71% 66%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 220 13% 91%;
+
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 34% 17%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom styles for improved aesthetics */
+@layer components {
+  .glass-card {
+    @apply bg-white/90 backdrop-blur-md border border-white/30 shadow-sm;
+  }
+  
+  .status-chip {
+    @apply text-xs font-medium py-1 px-2.5 rounded-full;
+  }
+  
+  .animated-border {
+    @apply relative overflow-hidden;
+  }
+  
+  .animated-border::after {
+    @apply content-[''] absolute h-[2px] w-0 left-0 bottom-0 bg-tmw-teal transition-all duration-300 ease-apple;
+  }
+  
+  .animated-border:hover::after {
+    @apply w-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+  }
+
+  .tmw-gradient {
+    @apply bg-gradient-to-r from-tmw-teal to-tmw-coral;
+  }
+  
+  .tmw-card {
+    @apply bg-white rounded-xl border border-tmw-teal/20 shadow-sm hover:shadow-md hover:shadow-tmw-teal/10 transition-all duration-300;
+  }
+  
+  .tmw-button {
+    @apply bg-tmw-teal text-white hover:bg-tmw-teal/90 rounded-full px-4 py-2 font-medium transition-all duration-300;
+  }
+  
+  .tmw-button-secondary {
+    @apply bg-white text-tmw-teal border border-tmw-teal/30 hover:border-tmw-teal rounded-full px-4 py-2 font-medium transition-all duration-300;
+  }
+}
+
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}

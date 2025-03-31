@@ -4,8 +4,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useOperationMode } from '../useOperationMode';
 import { operationModeService } from '@/services/operationMode/operationModeService';
 
-// Désactivation temporaire de la suite de tests qui échoue
-describe.skip('useOperationMode hook', () => {
+describe('useOperationMode hook', () => {
   beforeEach(() => {
     localStorage.clear();
     operationModeService.reset();
@@ -22,7 +21,7 @@ describe.skip('useOperationMode hook', () => {
   it('devrait refléter les changements de mode', () => {
     const { result } = renderHook(() => useOperationMode());
     
-    // Changer le mode via le service directement avec la raison "Test hook"
+    // Changer le mode via le service
     act(() => {
       operationModeService.enableDemoMode('Test hook');
     });

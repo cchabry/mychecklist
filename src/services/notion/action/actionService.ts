@@ -1,19 +1,22 @@
 
 /**
- * Service pour la gestion des actions correctives via Notion
- * 
- * Ce service fournit les fonctionnalités nécessaires pour interagir avec
- * les données d'actions correctives, soit via l'API Notion, soit en mode simulation.
+ * Service pour la gestion des actions correctives
  */
 
-import { notionClient } from '../client/notionClient';
-import { NotionResponse } from '../types';
-import { CorrectiveAction } from '@/types/domain';
+import { notionClient } from '../notionClient';
 import { generateMockActions } from './utils';
-import { actionMappers } from './actionMappers';
-import { CreateActionInput } from './types';
-// Import du service de progrès avant la définition de la classe
-// pour éviter les problèmes d'import circulaire
+import { 
+  CreateActionInput, 
+  ActionResponse,
+  ActionsResponse,
+  ActionDeleteResponse,
+  ProgressResponse,
+  ProgressListResponse,
+  ProgressDeleteResponse,
+  CreateProgressInput
+} from './types';
+import { ComplianceStatus, ActionPriority, ActionStatus, CorrectiveAction, ActionProgress } from '@/types/domain';
+import { getFutureDateString } from './utils';
 import { progressService } from './progressService';
 
 /**
@@ -21,18 +24,9 @@ import { progressService } from './progressService';
  */
 class ActionService {
   /**
-   * Récupère toutes les actions liées à une évaluation
+   * Récupère toutes les actions correctives liées à une évaluation
    */
-  async getActions(evaluationId: string): Promise<NotionResponse<CorrectiveAction[]>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async getActions(evaluationId: string): Promise<ActionsResponse> {
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
       return {
@@ -50,27 +44,18 @@ class ActionService {
   }
   
   /**
-   * Récupère une action par son ID
+   * Récupère une action corrective par son ID
    */
-  async getActionById(id: string): Promise<NotionResponse<CorrectiveAction>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async getActionById(id: string): Promise<ActionResponse> {
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
-      const mockActions = generateMockActions('mock-evaluation');
+      const mockActions = generateMockActions('mock-eval');
       const action = mockActions.find(a => a.id === id);
       
       if (!action) {
         return { 
           success: false, 
-          error: { message: `Action #${id} non trouvée` } 
+          error: { message: `Action corrective #${id} non trouvée` } 
         };
       }
       
@@ -84,26 +69,29 @@ class ActionService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: actionMappers.createMockAction(id)
+      data: {
+        id,
+        evaluationId: 'mock-eval',
+        targetScore: ComplianceStatus.Compliant,
+        priority: ActionPriority.High,
+        dueDate: getFutureDateString(14), // dans 2 semaines
+        responsible: 'John Doe',
+        comment: "Ajouter des attributs alt à toutes les images",
+        status: ActionStatus.InProgress
+      }
     };
   }
   
   /**
    * Crée une nouvelle action corrective
    */
-  async createAction(action: CreateActionInput): Promise<NotionResponse<CorrectiveAction>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async createAction(action: CreateActionInput): Promise<ActionResponse> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
-      const newAction = actionMappers.mapInputToAction(action);
+      const newAction = {
+        ...action,
+        id: `action-${Date.now()}`
+      };
       
       return {
         success: true,
@@ -115,23 +103,17 @@ class ActionService {
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: actionMappers.mapInputToAction(action)
+      data: {
+        ...action,
+        id: `action-${Date.now()}`
+      }
     };
   }
   
   /**
    * Met à jour une action corrective existante
    */
-  async updateAction(action: CorrectiveAction): Promise<NotionResponse<CorrectiveAction>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async updateAction(action: CorrectiveAction): Promise<ActionResponse> {
     // Si en mode démo, simuler la mise à jour
     if (notionClient.isMockMode()) {
       return {
@@ -151,16 +133,7 @@ class ActionService {
   /**
    * Supprime une action corrective
    */
-  async deleteAction(_id: string): Promise<NotionResponse<boolean>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async deleteAction(_id: string): Promise<ActionDeleteResponse> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {
@@ -178,11 +151,25 @@ class ActionService {
   }
 
   // Méthodes déléguées au progressService pour la gestion des suivis de progrès
-  getActionProgress = progressService.getActionProgress.bind(progressService);
-  getActionProgressById = progressService.getActionProgressById.bind(progressService);
-  createActionProgress = progressService.createActionProgress.bind(progressService);
-  updateActionProgress = progressService.updateActionProgress.bind(progressService);
-  deleteActionProgress = progressService.deleteActionProgress.bind(progressService);
+  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
+    return progressService.getActionProgress(actionId);
+  }
+
+  async getActionProgressById(id: string): Promise<ProgressResponse> {
+    return progressService.getActionProgressById(id);
+  }
+
+  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
+    return progressService.createActionProgress(progress);
+  }
+
+  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
+    return progressService.updateActionProgress(progress);
+  }
+
+  async deleteActionProgress(id: string): Promise<ProgressDeleteResponse> {
+    return progressService.deleteActionProgress(id);
+  }
 }
 
 // Créer et exporter une instance singleton

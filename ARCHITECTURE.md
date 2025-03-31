@@ -450,4 +450,3 @@ Chaque Pull Request ou contribution devra respecter les critères suivants :
    - Commentaires pour la logique complexe
 
 Les revues de code se concentreront particulièrement sur ces critères pour garantir l'alignement avec la vision architecturale.
-

@@ -1,63 +1,27 @@
 
-import { AlertTriangle, Database } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useOperationMode } from '@/hooks/useOperationMode';
-import { Button } from './ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Badge } from './ui/badge';
 
 /**
- * Composant qui affiche un indicateur du mode opérationnel actuel
- * et permet de basculer entre les modes.
- * 
- * En mode démo, un badge jaune est affiché.
- * En mode réel, un petit indicateur discret est affiché.
+ * Composant qui affiche un indicateur du mode opérationnel (démo)
+ * Visible uniquement en mode démo
  */
 export function OperationModeIndicator() {
-  const { isDemoMode, enableRealMode, enableDemoMode, state } = useOperationMode();
+  const { isDemoMode, state } = useOperationMode();
   
-  const toggleMode = () => {
-    if (isDemoMode) {
-      enableRealMode("Changement manuel");
-    } else {
-      enableDemoMode("Changement manuel");
-    }
-  };
+  if (!isDemoMode) return null;
   
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant={isDemoMode ? "destructive" : "ghost"}
-            size="sm"
-            className={`flex items-center gap-1 ${isDemoMode ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-transparent'}`}
-            onClick={toggleMode}
-          >
-            {isDemoMode ? (
-              <>
-                <AlertTriangle className="h-3 w-3" />
-                <span>Mode démonstration</span>
-                {state.reason && (
-                  <span className="text-xs opacity-90">({state.reason})</span>
-                )}
-              </>
-            ) : (
-              <Database className="h-4 w-4 text-primary/60" />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            {isDemoMode 
-              ? "Mode démonstration : données simulées. Cliquez pour passer en mode réel." 
-              : "Mode réel : données Notion. Cliquez pour passer en mode démonstration."}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Badge 
+      variant="secondary" 
+      className="flex items-center gap-1 bg-yellow-500 hover:bg-yellow-600"
+    >
+      <AlertTriangle className="h-3 w-3" />
+      <span>Mode démonstration</span>
+      {state.reason && (
+        <span className="text-xs opacity-90">({state.reason})</span>
+      )}
+    </Badge>
   );
 }

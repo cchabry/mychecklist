@@ -1,28 +1,27 @@
 
 /**
- * Point d'entrée pour tous les types de l'application
- * 
- * Ce module centralise l'accès à tous les types utilisés dans l'application,
- * garantissant une importation cohérente et une structure claire.
+ * Index principal pour tous les types de l'application
  */
-
-// Types d'API
-export * from './api';
 
 // Types de domaine
 export * from './domain';
 
-// Types d'opération
+// Types d'API
+export * from './api';
+
+// Types d'énumérations
+// Export spécifique pour éviter les ambiguïtés
+export {
+  ComplianceLevel,
+  PriorityLevel,
+  StatusType,
+  UserProfile,
+  ProjectPhase,
+  ReferenceType
+} from './enums';
+
+// Types du mode opérationnel
 export * from './operation';
 
-// Types de routes
+// Types de routage
 export * from './route';
-
-// Types d'erreurs
-export * from './error';
-
-// Types de design
-export * from './design';
-
-// Énumérations
-export * from './enums';

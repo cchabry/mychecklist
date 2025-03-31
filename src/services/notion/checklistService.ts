@@ -5,7 +5,7 @@
 
 import { notionClient } from './notionClient';
 import { NotionResponse } from './types';
-import { ChecklistItem } from '@/types/domain/checklist';
+import { ChecklistItem } from '@/types/domain';
 
 /**
  * Service de gestion des items de checklist
@@ -17,7 +17,7 @@ class ChecklistService {
   async getChecklistItems(): Promise<NotionResponse<ChecklistItem[]>> {
     const config = notionClient.getConfig();
     
-    if (!config.checklistDbId) {
+    if (!config.checklistsDbId) {
       return { 
         success: false, 
         error: { message: "Base de données des checklists non configurée" } 
@@ -33,43 +33,34 @@ class ChecklistService {
     }
     
     // Interroger la base de données Notion
-    try {
-      const response = await notionClient.post<{results: any[]}>(`/databases/${config.checklistDbId}/query`, {});
-      
-      if (!response.success || !response.data?.results) {
-        return { success: false, error: response.error };
-      }
-      
-      // Transformer les résultats Notion en items de checklist
-      const items: ChecklistItem[] = response.data.results.map(page => {
-        const properties = page.properties;
-        
-        return {
-          id: page.id,
-          title: this.extractTextProperty(properties.Consigne || properties.Title || properties.Name),
-          description: this.extractTextProperty(properties.Description),
-          category: this.extractSelectProperty(properties.Category || properties.Categorie),
-          subcategory: this.extractSelectProperty(properties.Subcategory || properties.SousCategorie),
-          reference: this.extractMultiSelectProperty(properties.Reference || properties.References),
-          profil: this.extractMultiSelectProperty(properties.Profil || properties.Profils),
-          phase: this.extractMultiSelectProperty(properties.Phase || properties.Phases),
-          effort: this.getEffortString(properties.Effort?.number || 3),
-          priority: this.getPriorityString(properties.Priority?.number || properties.Priorite?.number || 3)
-        };
-      });
-      
-      return {
-        success: true,
-        data: items
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: { 
-          message: `Erreur lors de la récupération des items de checklist: ${error instanceof Error ? error.message : String(error)}` 
-        }
-      };
+    const response = await notionClient.post<{results: any[]}>(`/databases/${config.checklistsDbId}/query`, {});
+    
+    if (!response.success || !response.data?.results) {
+      return { success: false, error: response.error };
     }
+    
+    // Transformer les résultats Notion en items de checklist
+    const items: ChecklistItem[] = response.data.results.map(page => {
+      const properties = page.properties;
+      
+      return {
+        id: page.id,
+        consigne: this.extractTextProperty(properties.Consigne || properties.Title || properties.Name),
+        description: this.extractTextProperty(properties.Description),
+        category: this.extractSelectProperty(properties.Category || properties.Categorie),
+        subcategory: this.extractSelectProperty(properties.Subcategory || properties.SousCategorie),
+        reference: this.extractMultiSelectProperty(properties.Reference || properties.References),
+        profil: this.extractMultiSelectProperty(properties.Profil || properties.Profils),
+        phase: this.extractMultiSelectProperty(properties.Phase || properties.Phases),
+        effort: properties.Effort?.number || 3,
+        priority: properties.Priority?.number || properties.Priorite?.number || 3
+      };
+    });
+    
+    return {
+      success: true,
+      data: items
+    };
   }
   
   /**
@@ -95,41 +86,32 @@ class ChecklistService {
     }
     
     // Récupérer les détails de la page depuis Notion
-    try {
-      const response = await notionClient.get<any>(`/pages/${id}`);
-      
-      if (!response.success || !response.data) {
-        return response as NotionResponse<ChecklistItem>;
-      }
-      
-      const page = response.data;
-      const properties = page.properties;
-      
-      const item: ChecklistItem = {
-        id: page.id,
-        title: this.extractTextProperty(properties.Consigne || properties.Title || properties.Name),
-        description: this.extractTextProperty(properties.Description),
-        category: this.extractSelectProperty(properties.Category || properties.Categorie),
-        subcategory: this.extractSelectProperty(properties.Subcategory || properties.SousCategorie),
-        reference: this.extractMultiSelectProperty(properties.Reference || properties.References),
-        profil: this.extractMultiSelectProperty(properties.Profil || properties.Profils),
-        phase: this.extractMultiSelectProperty(properties.Phase || properties.Phases),
-        effort: this.getEffortString(properties.Effort?.number || 3),
-        priority: this.getPriorityString(properties.Priority?.number || properties.Priorite?.number || 3)
-      };
-      
-      return {
-        success: true,
-        data: item
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: { 
-          message: `Erreur lors de la récupération de l'item de checklist #${id}: ${error instanceof Error ? error.message : String(error)}` 
-        }
-      };
+    const response = await notionClient.get<any>(`/pages/${id}`);
+    
+    if (!response.success || !response.data) {
+      return response as NotionResponse<ChecklistItem>;
     }
+    
+    const page = response.data;
+    const properties = page.properties;
+    
+    const item: ChecklistItem = {
+      id: page.id,
+      consigne: this.extractTextProperty(properties.Consigne || properties.Title || properties.Name),
+      description: this.extractTextProperty(properties.Description),
+      category: this.extractSelectProperty(properties.Category || properties.Categorie),
+      subcategory: this.extractSelectProperty(properties.Subcategory || properties.SousCategorie),
+      reference: this.extractMultiSelectProperty(properties.Reference || properties.References),
+      profil: this.extractMultiSelectProperty(properties.Profil || properties.Profils),
+      phase: this.extractMultiSelectProperty(properties.Phase || properties.Phases),
+      effort: properties.Effort?.number || 3,
+      priority: properties.Priority?.number || properties.Priorite?.number || 3
+    };
+    
+    return {
+      success: true,
+      data: item
+    };
   }
   
   /**
@@ -139,39 +121,39 @@ class ChecklistService {
     return [
       {
         id: 'check-1',
-        title: 'Utiliser des textes alternatifs pour les images',
+        consigne: 'Utiliser des textes alternatifs pour les images',
         description: 'Toutes les images doivent avoir un attribut alt décrivant leur contenu',
         category: 'Accessibilité',
         subcategory: 'Images',
         reference: ['RGAA 1.1', 'WCAG 1.1.1'],
         profil: ['Développeur', 'Contributeur'],
         phase: ['Développement', 'Production'],
-        effort: 'Moyen',
-        priority: 'Haute'
+        effort: 2,
+        priority: 4
       },
       {
         id: 'check-2',
-        title: 'Optimiser les images pour le web',
+        consigne: 'Optimiser les images pour le web',
         description: 'Les images doivent être compressées et dans un format adapté au web',
         category: 'Performance',
         subcategory: 'Médias',
         reference: ['RGESN 4.2'],
         profil: ['UI designer', 'Développeur'],
         phase: ['Design', 'Développement'],
-        effort: 'Moyen',
-        priority: 'Moyenne'
+        effort: 3,
+        priority: 3
       },
       {
         id: 'check-3',
-        title: 'Contraste suffisant pour le texte',
+        consigne: 'Contraste suffisant pour le texte',
         description: 'Le texte doit avoir un contraste suffisant par rapport à son arrière-plan',
         category: 'Accessibilité',
         subcategory: 'Contenu',
         reference: ['RGAA 3.2', 'WCAG 1.4.3'],
         profil: ['UI designer'],
         phase: ['Design'],
-        effort: 'Faible',
-        priority: 'Haute'
+        effort: 2,
+        priority: 5
       }
     ];
   }
@@ -210,24 +192,6 @@ class ChecklistService {
     }
     
     return property.multi_select.map((item: any) => item.name || '');
-  }
-  
-  /**
-   * Convertit un niveau d'effort numérique en étiquette
-   */
-  private getEffortString(level: number): string {
-    if (level <= 1) return 'Faible';
-    if (level <= 3) return 'Moyen';
-    return 'Élevé';
-  }
-  
-  /**
-   * Convertit un niveau de priorité numérique en étiquette
-   */
-  private getPriorityString(level: number): string {
-    if (level <= 2) return 'Basse';
-    if (level <= 3) return 'Moyenne';
-    return 'Haute';
   }
 }
 

@@ -1,29 +1,22 @@
 
 /**
- * Point d'entrée pour les services Notion
- * 
- * Ce module exporte tous les services Notion et leurs types associés.
+ * Point d'entrée principal pour les services Notion
  */
 
-// Exporter le client
-export { notionClient } from './client/notionClient';
-
-// Exporter les types communs
-export * from './types';
-
-// Exporter les services de base
-export * from './core/BaseService';
-
-// Exporter les services spécifiques à chaque domaine
-export { checklistService, checklistsApi } from './api/checklists';
-
-// Exporter les services existants pour rétrocompatibilité
+// Exporter le service principal
 export { notionService } from './notionService';
-export { notionApi } from './notionApiImpl';
+
+// Exporter les services spécialisés
+export { checklistService } from './checklistService';
 export { exigenceService } from './exigenceService';
 export { samplePageService } from './samplePageService';
-export { auditService } from './auditService';
+export { auditService } from './audit';
 export { evaluationService } from './evaluationService';
-export { actionService } from './actionService';
+export { actionService, progressService } from './action';
 
-// Note: progressService sera ajouté ultérieurement
+// Exporter le client HTTP de base
+export { notionClient } from './notionClient';
+
+// Exporter les types
+export * from './types';
+

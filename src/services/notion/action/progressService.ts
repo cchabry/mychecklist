@@ -1,83 +1,55 @@
 
 /**
- * Service pour la gestion des progrès d'actions correctives via Notion
- * 
- * Ce service fournit les fonctionnalités nécessaires pour interagir avec
- * les données de suivi de progrès, soit via l'API Notion, soit en mode simulation.
+ * Service pour la gestion des suivis de progrès
  */
 
 import { notionClient } from '../notionClient';
-import { NotionResponse } from '../types';
-import { ActionProgress } from '@/types/domain';
-import { generateMockProgress } from './utils';
-import { progressMappers } from './progressMappers';
-import { CreateProgressInput } from './types';
+import { generateMockActionProgress } from './utils';
+import { 
+  CreateProgressInput, 
+  ProgressResponse, 
+  ProgressListResponse,
+  ProgressDeleteResponse
+} from './types';
+import { ComplianceStatus, ActionStatus, ActionProgress } from '@/types/domain';
 
 /**
- * Service de gestion des progrès d'actions correctives
+ * Service de gestion des suivis de progrès
  */
 class ProgressService {
   /**
-   * Récupère tous les progrès liés à une action
+   * Récupère tous les suivis de progrès liés à une action corrective
    */
-  async getActionProgress(actionId: string): Promise<NotionResponse<ActionProgress[]>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
       return {
         success: true,
-        data: generateMockProgress(actionId)
+        data: generateMockActionProgress(actionId)
       };
     }
     
-    // TODO: Implémenter la récupération des progrès depuis Notion
+    // TODO: Implémenter la récupération des suivis de progrès depuis Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: generateMockProgress(actionId)
+      data: generateMockActionProgress(actionId)
     };
   }
   
   /**
-   * Récupère un progrès par son ID
+   * Récupère un suivi de progrès par son ID
    */
-  async getActionProgressById(id: string): Promise<NotionResponse<ActionProgress>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async getActionProgressById(id: string): Promise<ProgressResponse> {
     // Si en mode démo, renvoyer des données simulées
     if (notionClient.isMockMode()) {
-      // Utiliser l'ID spécifié directement pour le test
-      // Astuce: Pour les tests, on utilise 'progress-1' comme ID connu
-      if (id === 'progress-1') {
-        return {
-          success: true,
-          data: progressMappers.createMockProgress(id)
-        };
-      }
-      
-      // Pour tout autre ID en mode mock, générer des progrès et chercher dedans
-      const mockProgress = generateMockProgress('mock-action');
+      const mockProgress = generateMockActionProgress('mock-action');
       const progress = mockProgress.find(p => p.id === id);
       
       if (!progress) {
         return { 
           success: false, 
-          error: { message: `Progrès #${id} non trouvé` } 
+          error: { message: `Suivi de progrès #${id} non trouvé` } 
         };
       }
       
@@ -87,31 +59,32 @@ class ProgressService {
       };
     }
     
-    // TODO: Implémenter la récupération d'un progrès depuis Notion
+    // TODO: Implémenter la récupération d'un suivi de progrès depuis Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
-    const mockProgress = progressMappers.createMockProgress(id);
     return {
       success: true,
-      data: mockProgress
+      data: {
+        id,
+        actionId: 'mock-action',
+        date: new Date().toISOString(),
+        responsible: 'Jane Smith',
+        comment: "Première phase des corrections effectuée",
+        score: ComplianceStatus.PartiallyCompliant,
+        status: ActionStatus.InProgress
+      }
     };
   }
   
   /**
-   * Crée un nouveau progrès d'action
+   * Crée un nouveau suivi de progrès
    */
-  async createActionProgress(progress: CreateProgressInput): Promise<NotionResponse<ActionProgress>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
     // Si en mode démo, simuler la création
     if (notionClient.isMockMode()) {
-      const newProgress = progressMappers.mapInputToProgress(progress);
+      const newProgress = {
+        ...progress,
+        id: `progress-${Date.now()}`
+      };
       
       return {
         success: true,
@@ -119,27 +92,21 @@ class ProgressService {
       };
     }
     
-    // TODO: Implémenter la création d'un progrès dans Notion
+    // TODO: Implémenter la création d'un suivi de progrès dans Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
-      data: progressMappers.mapInputToProgress(progress)
+      data: {
+        ...progress,
+        id: `progress-${Date.now()}`
+      }
     };
   }
   
   /**
-   * Met à jour un progrès d'action existant
+   * Met à jour un suivi de progrès existant
    */
-  async updateActionProgress(progress: ActionProgress): Promise<NotionResponse<ActionProgress>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
     // Si en mode démo, simuler la mise à jour
     if (notionClient.isMockMode()) {
       return {
@@ -148,7 +115,7 @@ class ProgressService {
       };
     }
     
-    // TODO: Implémenter la mise à jour d'un progrès dans Notion
+    // TODO: Implémenter la mise à jour d'un suivi de progrès dans Notion
     // Pour l'instant, renvoyer des données simulées même en mode réel
     return {
       success: true,
@@ -157,18 +124,9 @@ class ProgressService {
   }
   
   /**
-   * Supprime un progrès d'action
+   * Supprime un suivi de progrès
    */
-  async deleteActionProgress(_id: string): Promise<NotionResponse<boolean>> {
-    const config = notionClient.getConfig();
-    
-    if (!config) {
-      return { 
-        success: false, 
-        error: { message: "Configuration Notion non disponible" } 
-      };
-    }
-    
+  async deleteActionProgress(_id: string): Promise<ProgressDeleteResponse> {
     // Si en mode démo, simuler la suppression
     if (notionClient.isMockMode()) {
       return {
@@ -177,7 +135,7 @@ class ProgressService {
       };
     }
     
-    // TODO: Implémenter la suppression d'un progrès dans Notion
+    // TODO: Implémenter la suppression d'un suivi de progrès dans Notion
     // Pour l'instant, simuler le succès même en mode réel
     return {
       success: true,
@@ -191,4 +149,3 @@ export const progressService = new ProgressService();
 
 // Export par défaut
 export default progressService;
-

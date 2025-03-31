@@ -1,21 +1,85 @@
 
 /**
- * Types de domaine pour l'application
- * 
- * Ce module exporte tous les types de domaine utilisés dans l'application
- * de façon structurée et organisée.
+ * Types du domaine de l'application
  */
 
-// Ré-exporter les types de domaine spécifiques
+// Réexporter les types spécifiques
 export * from './project';
 export * from './audit';
 export * from './checklist';
-export * from './exigence';
-export * from './samplePage'; 
-export * from './evaluation';
-export * from './action';
-export * from './progress';
-export * from './actionStatus';
 
-// Éviter d'utiliser l'ancien fichier 'models.ts'
-// Le fichier models.ts est conservé pour compatibilité uniquement
+// Importer les énumérations depuis le fichier central
+import { 
+  ImportanceLevel,
+  ComplianceLevel as ComplianceStatus,
+  PriorityLevel as ActionPriority,
+  StatusType as ActionStatus
+} from '../enums';
+
+// Re-exporter avec des alias pour maintenir la compatibilité
+export { ImportanceLevel, ComplianceStatus, ActionPriority, ActionStatus };
+
+/**
+ * Exigence de projet
+ */
+export interface Exigence {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
+}
+
+/**
+ * Page d'échantillon
+ */
+export interface SamplePage {
+  id: string;
+  projectId: string;
+  url: string;
+  title: string;
+  description?: string;
+  order: number;
+}
+
+/**
+ * Évaluation d'une page pour une exigence
+ */
+export interface Evaluation {
+  id: string;
+  auditId: string;
+  pageId: string;
+  exigenceId: string;
+  score: ComplianceStatus;
+  comment?: string;
+  attachments?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Action corrective
+ */
+export interface CorrectiveAction {
+  id: string;
+  evaluationId: string;
+  targetScore: ComplianceStatus;
+  priority: ActionPriority;
+  dueDate: string;
+  responsible: string;
+  comment?: string;
+  status: ActionStatus;
+}
+
+/**
+ * Suivi des corrections
+ */
+export interface ActionProgress {
+  id: string;
+  actionId: string;
+  date: string;
+  responsible: string;
+  comment?: string;
+  score: ComplianceStatus;
+  status: ActionStatus;
+}

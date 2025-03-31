@@ -1,6 +1,6 @@
 
 /**
- * Point d'entrée pour les composants
+ * Index principal des composants
  */
 
 // Composants UI de base
@@ -9,29 +9,27 @@ export * from './ui';
 // Composants de layout
 export * from './layout';
 
-// Composants de données
-export * from './data-display';
+// Composants spécifiques
+export { default as Navbar } from './Navbar';
+export { OperationModeIndicator } from './OperationModeIndicator';
 
 // Composants de filtres
 export * from './filters';
 
-// Composants de formulaires
-export * from './forms';
+// Composants d'exigences
+export * from './exigences';
 
 // Composants d'évaluation
 export * from './evaluation';
 
-// Composants d'actions
-export * from './actions';
-
 // Composants de checklist
 export * from './checklist';
 
-// Composants d'exigences
-export * from './exigences';
+// Composants d'actions
+export * from './actions';
 
-// Composants individuels
-export { ErrorBoundary } from './ErrorBoundary';
-export { OperationModeIndicator } from './OperationModeIndicator';
-export { default as Navbar } from './Navbar';
-export { default as Layout } from './Layout';
+// Composants de formulaires spécifiques
+export * from './forms';
+
+// Composants d'affichage de données
+export * from './data-display';

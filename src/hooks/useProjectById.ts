@@ -1,53 +1,47 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { Project } from '@/types/domain';
 import { getProjectById } from '@/features/projects';
-import { useOperationMode } from '@/hooks/useOperationMode';
-import { useErrorHandler } from '@/hooks/error';
+import { useLoadingState } from '@/hooks/form';
 import { toast } from 'sonner';
 
 /**
- * Hook personnalisé pour récupérer et gérer un projet spécifique
- * 
- * Ce hook encapsule la logique de chargement d'un projet spécifique depuis l'API Notion,
- * gère l'état de chargement et les erreurs potentielles.
- * 
- * @param id - Identifiant du projet à récupérer
- * @returns Un objet contenant:
- *   - project: Le projet récupéré, ou null si non trouvé
- *   - isLoading: L'état de chargement
- *   - error: Erreur potentielle survenue lors du chargement
+ * Hook pour récupérer un projet par son ID
  */
-const useProjectById = (id: string) => {
-  const { handleError, lastError } = useErrorHandler();
-  const { isDemoMode } = useOperationMode();
+export const useProjectById = (projectId: string) => {
+  const [project, setProject] = useState<Project | null>(null);
+  const { isLoading, error, startLoading, stopLoading, setErrorMessage } = useLoadingState();
   
-  const { data: project, isLoading, error } = useQuery({
-    queryKey: ['project', id],
-    queryFn: async () => {
-      if (!id) return null;
+  useEffect(() => {
+    const fetchProject = async () => {
+      if (!projectId) return;
       
+      startLoading();
       try {
-        return await getProjectById(id);
+        const data = await getProjectById(projectId);
+        setProject(data || null);
+        if (!data) {
+          toast.error('Projet non trouvé', {
+            description: `Le projet avec l'ID ${projectId} n'existe pas.`
+          });
+        }
       } catch (error) {
+        console.error(`Erreur lors de la récupération du projet #${projectId}:`, error);
+        setErrorMessage(`Impossible de récupérer le projet #${projectId}`);
         toast.error('Erreur de chargement', {
-          description: `Impossible de récupérer le projet #${id}`
+          description: `Impossible de récupérer le projet #${projectId}`
         });
-        handleError(error, {
-          showToast: false, // Déjà affiché ci-dessus
-          logToConsole: true
-        });
-        return null;
+      } finally {
+        stopLoading();
       }
-    },
-    enabled: !!id
-  });
+    };
+    
+    fetchProject();
+  }, [projectId]);
   
   return {
     project,
     isLoading,
-    error: error || lastError,
-    isDemoMode
+    error
   };
 };
-
-export default useProjectById;

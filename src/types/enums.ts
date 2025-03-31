@@ -11,13 +11,7 @@ export enum ImportanceLevel {
   Minor = 'mineur',
   Medium = 'moyen',
   Important = 'important',
-  Major = 'majeur',
-  // Alias pour assurer la compatibilité avec le code existant
-  N_A = 'N/A',
-  MINOR = 'mineur',
-  MEDIUM = 'moyen',
-  IMPORTANT = 'important',
-  MAJOR = 'majeur'
+  Major = 'majeur'
 }
 
 /**
