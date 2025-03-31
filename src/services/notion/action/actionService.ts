@@ -1,4 +1,3 @@
-
 import { CorrectiveAction, ActionPriority, ActionStatus } from '@/types/domain/action';
 import { ComplianceStatus } from '@/types/domain/evaluation';
 import { NotionResponse } from '../types';
