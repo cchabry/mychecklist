@@ -15,7 +15,7 @@ import { getProjectById } from '@/features/projects';
  * Page d'édition d'un projet existant
  */
 const ProjectEditPage = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId = '' } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +37,7 @@ const ProjectEditPage = () => {
         if (project) {
           setFormData({
             name: project.name,
-            url: project.url,
+            url: project.url || '',
             description: project.description || ''
           });
         } else {

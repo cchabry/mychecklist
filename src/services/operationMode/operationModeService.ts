@@ -1,82 +1,89 @@
 
-import { OperationModeService, OperationModeState, OperationModeType } from '@/types/operation/operationMode';
+import { OperationModeState, OperationModeType } from '@/types/operation/operationMode';
 
 /**
- * Service de gestion du mode opérationnel (toujours en mode démo)
+ * Service simple pour gérer le mode opérationnel (toujours en mode démo)
  */
-class OperationModeServiceImpl implements OperationModeService {
-  private state: OperationModeState;
-  private listeners: Array<(state: OperationModeState) => void> = [];
+class OperationModeService {
+  private subscribers: ((state: OperationModeState) => void)[] = [];
+  private state: OperationModeState = {
+    mode: 'demo',
+    reason: 'Mode de démonstration permanent'
+  };
   
-  constructor() {
-    // Toujours initialiser en mode démo
-    this.state = {
-      mode: 'demo',
-      timestamp: Date.now(),
-      source: 'system',
-      reason: 'Mode de démonstration permanent'
-    };
-  }
-  
-  private notifyListeners(): void {
-    this.listeners.forEach(listener => listener(this.state));
-  }
-  
-  // Méthodes publiques
-  getMode(): OperationModeType {
-    return 'demo'; // Toujours retourner 'demo'
-  }
-  
-  getState(): OperationModeState {
+  /**
+   * Obtenir l'état actuel du mode opérationnel
+   */
+  public getState(): OperationModeState {
     return { ...this.state };
   }
   
-  enableRealMode(reason?: string): void {
-    console.warn('Mode réel désactivé: l\'application fonctionne uniquement en mode démo');
-    // Ne fait rien car on est toujours en mode démo
+  /**
+   * Vérifier si l'application est en mode démo (toujours true)
+   */
+  public isDemoMode(): boolean {
+    return true;
   }
   
-  enableDemoMode(reason?: string): void {
-    // Mettre à jour la raison si fournie
-    if (reason && reason !== this.state.reason) {
-      this.state = {
-        ...this.state,
-        reason,
-        timestamp: Date.now(),
-        source: 'user'
-      };
-      this.notifyListeners();
+  /**
+   * Vérifier si l'application est en mode réel (toujours false)
+   */
+  public isRealMode(): boolean {
+    return false;
+  }
+  
+  /**
+   * Activer le mode démo avec une raison spécifique
+   */
+  public enableDemoMode(customReason?: string): void {
+    // Mettre à jour la raison uniquement si elle est fournie
+    if (customReason) {
+      this.state.reason = customReason;
+      this.notifySubscribers();
     }
   }
   
-  reset(): void {
-    // Réinitialiser mais rester en mode démo
+  /**
+   * Tenter d'activer le mode réel (ne fait rien, car toujours en démo)
+   * @returns false car le mode réel n'est pas disponible
+   */
+  public enableRealMode(): boolean {
+    // Ne fait rien car nous sommes toujours en mode démo
+    console.warn('Mode réel désactivé: l\'application fonctionne uniquement en mode démo');
+    return false;
+  }
+  
+  /**
+   * Réinitialiser l'état (revient au mode démo par défaut)
+   */
+  public reset(): void {
     this.state = {
       mode: 'demo',
-      reason: 'Mode de démonstration permanent',
-      timestamp: Date.now(),
-      source: 'system'
+      reason: 'Mode de démonstration permanent'
     };
-    this.notifyListeners();
+    this.notifySubscribers();
   }
   
-  isDemoMode(): boolean {
-    return true; // Toujours retourner true
-  }
-  
-  isRealMode(): boolean {
-    return false; // Toujours retourner false
-  }
-  
-  subscribe(listener: (state: OperationModeState) => void): () => void {
-    this.listeners.push(listener);
-    
-    // Retourne une fonction de désinscription
+  /**
+   * S'abonner aux changements d'état
+   */
+  public subscribe(callback: (state: OperationModeState) => void): () => void {
+    this.subscribers.push(callback);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.subscribers = this.subscribers.filter(cb => cb !== callback);
     };
+  }
+  
+  /**
+   * Notifier tous les abonnés du changement d'état
+   */
+  private notifySubscribers(): void {
+    const state = this.getState();
+    for (const subscriber of this.subscribers) {
+      subscriber(state);
+    }
   }
 }
 
-// Créer une instance unique du service
-export const operationModeService = new OperationModeServiceImpl();
+// Créer et exporter une instance singleton
+export const operationModeService = new OperationModeService();

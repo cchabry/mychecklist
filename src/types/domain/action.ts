@@ -46,6 +46,7 @@ export interface ActionProgress {
   actionId: string;
   date: string;
   comment: string;
+  responsible?: string;
   newStatus?: ActionStatus;
   attachments?: string[];
   author?: string;

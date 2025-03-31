@@ -25,9 +25,9 @@ function App() {
     <>
       <Routes>
         {/* Layout principal */}
-        <Route element={<MainLayout />}>
+        <Route path="/" element={<MainLayout />}>
           {/* Dashboard (liste des projets) */}
-          <Route path="/" element={<Dashboard />} />
+          <Route index element={<Dashboard />} />
           
           {/* Routes des projets */}
           <Route path="/projects" element={<ProjectsPage />} />

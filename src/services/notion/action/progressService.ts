@@ -1,4 +1,3 @@
-
 /**
  * Service pour la gestion des suivis de progrès
  */
@@ -67,7 +66,6 @@ class ProgressService {
         id,
         actionId: 'mock-action',
         date: new Date().toISOString(),
-        responsible: 'Jane Smith',
         comment: "Première phase des corrections effectuée",
         score: ComplianceStatus.PartiallyCompliant,
         status: ActionStatus.InProgress

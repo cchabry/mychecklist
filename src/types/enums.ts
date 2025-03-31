@@ -5,70 +5,74 @@
 
 /**
  * Niveaux d'importance pour les exigences
+ * Doit correspondre à ImportanceLevel dans domain/exigence.ts
  */
 export enum ImportanceLevel {
-  NotApplicable = 'N/A',
-  Minor = 'mineur',
-  Medium = 'moyen',
-  Important = 'important',
-  Major = 'majeur'
+  NotApplicable = "Non applicable",
+  Minor = "Mineur",
+  Medium = "Moyen",
+  Important = "Important",
+  Major = "Majeur"
 }
 
 /**
  * Niveaux de conformité pour les évaluations
+ * Doit correspondre à ComplianceStatus dans domain/evaluation.ts
  */
 export enum ComplianceLevel {
-  Compliant = 'Conforme',
-  PartiallyCompliant = 'Partiellement conforme',
-  NonCompliant = 'Non conforme',
-  NotApplicable = 'Non Applicable'
+  Compliant = "Conforme",
+  PartiallyCompliant = "Partiellement conforme",
+  NonCompliant = "Non conforme",
+  NotApplicable = "Non applicable"
 }
 
 /**
  * Priorités pour les actions correctives
+ * Doit correspondre à ActionPriority dans domain/action.ts
  */
 export enum PriorityLevel {
-  Low = 'faible',
-  Medium = 'moyenne',
-  High = 'haute',
-  Critical = 'critique'
+  Low = "Faible",
+  Medium = "Moyenne",
+  High = "Haute",
+  Critical = "Critique"
 }
 
 /**
  * Statuts pour les actions et progrès
+ * Doit correspondre à ActionStatus dans domain/action.ts
  */
 export enum StatusType {
-  Todo = 'à faire',
-  InProgress = 'en cours',
-  Done = 'terminée'
+  Todo = "À faire",
+  InProgress = "En cours",
+  Done = "Terminée"
 }
 
 /**
  * Profils utilisateurs
  */
 export enum UserProfile {
-  ProductOwner = 'Product Owner',
-  UXDesigner = 'UX designer',
-  UIDesigner = 'UI designer',
-  Developer = 'Développeur',
-  Contributor = 'Contributeur'
+  ProductOwner = "Product Owner",
+  UXDesigner = "UX designer",
+  UIDesigner = "UI designer",
+  Developer = "Développeur",
+  Contributor = "Contributeur"
 }
 
 /**
  * Phases de projet
  */
 export enum ProjectPhase {
-  Design = 'Design',
-  Development = 'Développement',
-  Testing = 'Tests',
-  Production = 'Production'
+  Design = "Design",
+  Development = "Développement",
+  Testing = "Tests",
+  Production = "Production"
 }
 
 /**
  * Types de référence
  */
 export enum ReferenceType {
-  RGAA = 'RGAA',
-  RGESN = 'RGESN',
-  OPQUAST = 'OPQUAST'
+  RGAA = "RGAA",
+  RGESN = "RGESN",
+  OPQUAST = "OPQUAST"
 }
