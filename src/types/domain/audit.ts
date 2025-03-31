@@ -1,6 +1,8 @@
 
+import { ActionStatus } from './action';
+
 /**
- * Structure d'un audit
+ * Type représentant un audit
  */
 export interface Audit {
   id: string;
@@ -9,7 +11,14 @@ export interface Audit {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  progress: number;
-  version?: string;
-  itemsCount?: number;
+  status?: 'pending' | 'in-progress' | 'completed' | 'archived';
+  progress?: number;
+  completedAt?: string;
+  actionsCount?: {
+    total: number;
+    [ActionStatus.ToDo]: number;
+    [ActionStatus.InProgress]: number;
+    [ActionStatus.Done]: number;
+    [key: string]: number;
+  };
 }
