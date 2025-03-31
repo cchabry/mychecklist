@@ -14,6 +14,8 @@ export interface Audit {
   status?: 'pending' | 'in-progress' | 'completed' | 'archived';
   progress?: number;
   completedAt?: string;
+  itemsCount?: number;
+  version?: string;
   actionsCount?: {
     total: number;
     [ActionStatus.ToDo]: number;

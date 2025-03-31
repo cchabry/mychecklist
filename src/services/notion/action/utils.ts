@@ -28,7 +28,7 @@ export function generateMockActions(evaluationId: string): CorrectiveAction[] {
       dueDate: getFutureDateString(14), // dans 2 semaines
       responsible: 'Jane Smith',
       comment: "Optimiser les images pour le web",
-      status: ActionStatus.Todo
+      status: ActionStatus.ToDo
     }
   ];
 }

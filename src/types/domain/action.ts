@@ -23,16 +23,26 @@ export enum ActionPriority {
 /**
  * Type représentant une action corrective
  */
-export interface Action {
+export interface CorrectiveAction {
   id: string;
-  auditId: string;
-  pageId: string;
-  title: string;
-  description: string;
+  evaluationId: string;
+  targetScore: ComplianceStatus;
   priority: ActionPriority;
-  dueDate?: string;
-  assignee?: string;
+  dueDate: string;
+  responsible: string;
+  comment?: string;
   status: ActionStatus;
-  createdAt: string;
-  updatedAt: string;
+}
+
+/**
+ * Type représentant le suivi d'une action corrective
+ */
+export interface ActionProgress {
+  id: string;
+  actionId: string;
+  date: string;
+  responsible: string;
+  comment?: string;
+  score: ComplianceStatus;
+  status: ActionStatus;
 }
