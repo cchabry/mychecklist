@@ -3,6 +3,7 @@ import { CorrectiveAction, ActionPriority, ActionStatus } from '@/types/domain/a
 import { ComplianceStatus } from '@/types/domain/evaluation';
 import { NotionResponse } from '../types';
 import { progressService } from './progressService';
+import { ActionProgress } from '@/types/domain/action';
 
 /**
  * Service pour gérer les actions correctives
@@ -228,7 +229,7 @@ export const actionService = {
    * Supprime une progression
    */
   async deleteActionProgress(
-    progressId: string
+    id: string
   ): Promise<NotionResponse<boolean>> {
     // En mode démo, on simule la suppression avec succès
     return {
