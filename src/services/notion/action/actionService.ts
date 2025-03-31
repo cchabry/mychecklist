@@ -229,7 +229,7 @@ export const actionService = {
    * Supprime une progression
    */
   async deleteActionProgress(
-    _id: string  // Paramètre renommé avec un underscore pour indiquer qu'il n'est pas utilisé
+    _id: string
   ): Promise<NotionResponse<boolean>> {
     // En mode démo, on simule la suppression avec succès
     return {
