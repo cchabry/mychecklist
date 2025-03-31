@@ -1,85 +1,57 @@
 
-// Importation fictive pour démonstration
-import { ActionProgress, ActionStatus } from '@/types/domain/action';
-import { ComplianceStatus } from '@/types/domain/evaluation';
+import { ActionProgress } from '@/types/domain/action';
+import { ComplianceStatus, ActionStatus } from '@/types/domain/index';
 
 /**
- * Service de gestion des progrès d'actions correctives (mode démo)
+ * Service pour gérer les progressions des actions correctives
  */
-export class ActionProgressService {
-  private progressItems: ActionProgress[] = [];
-  
+export const progressService = {
   /**
-   * Obtenir tous les progrès pour une action
+   * Récupère les mises à jour de progression pour une action
    */
-  public async getProgressForAction(actionId: string): Promise<ActionProgress[]> {
-    return this.progressItems.filter(item => item.actionId === actionId);
-  }
-  
+  async getProgressUpdates(actionId: string): Promise<ActionProgress[]> {
+    // En mode démo, on renvoie des données simulées
+    return [
+      {
+        id: `progress-${actionId}-1`,
+        actionId,
+        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        comment: "Début des travaux de correction",
+        author: "Jean Dupont",
+        responsible: "Équipe SEO"
+      },
+      {
+        id: `progress-${actionId}-2`,
+        actionId,
+        date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        comment: "Mise en place des balises Alt sur 50% des images",
+        author: "Marie Martin",
+        responsible: "Équipe SEO",
+        newStatus: ActionStatus.InProgress
+      }
+    ];
+  },
+
   /**
-   * Créer un nouvel enregistrement de progrès
+   * Ajoute une mise à jour de progression pour une action
    */
-  public async createProgress(data: Partial<ActionProgress>): Promise<ActionProgress> {
-    if (!data.actionId) {
-      throw new Error('L\'identifiant de l\'action est requis');
-    }
-    
-    const now = new Date();
+  async addProgressUpdate(
+    actionId: string,
+    data: Omit<ActionProgress, 'id' | 'actionId' | 'date'>
+  ): Promise<ActionProgress> {
     const newProgress: ActionProgress = {
-      id: `progress_${Date.now()}`,
-      actionId: data.actionId,
-      date: data.date || now.toISOString(),
-      comment: data.comment || '',
+      id: `progress-${actionId}-${Date.now()}`,
+      actionId,
+      date: new Date().toISOString(),
+      comment: data.comment,
       responsible: data.responsible,
+      author: data.author || 'Utilisateur',
       score: data.score,
       newStatus: data.newStatus,
-      attachments: data.attachments || [],
-      author: data.author || 'Utilisateur démo'
+      attachments: data.attachments
     };
     
-    this.progressItems.push(newProgress);
+    // En mode démo, on simule l'ajout et on retourne directement l'objet
     return newProgress;
   }
-  
-  /**
-   * Mettre à jour un enregistrement de progrès
-   */
-  public async updateProgress(id: string, data: Partial<ActionProgress>): Promise<ActionProgress> {
-    const index = this.progressItems.findIndex(item => item.id === id);
-    
-    if (index === -1) {
-      throw new Error('Enregistrement de progrès non trouvé');
-    }
-    
-    const updatedProgress = {
-      ...this.progressItems[index],
-      ...data,
-      comment: data.comment || this.progressItems[index].comment,
-      responsible: data.responsible || this.progressItems[index].responsible,
-      score: data.score || this.progressItems[index].score,
-      newStatus: data.newStatus || this.progressItems[index].newStatus
-    };
-    
-    this.progressItems[index] = updatedProgress;
-    return updatedProgress;
-  }
-  
-  /**
-   * Supprimer un enregistrement de progrès
-   */
-  public async deleteProgress(id: string): Promise<boolean> {
-    const initialLength = this.progressItems.length;
-    this.progressItems = this.progressItems.filter(item => item.id !== id);
-    return this.progressItems.length < initialLength;
-  }
-  
-  /**
-   * Réinitialiser les données (pour les tests)
-   */
-  public reset(): void {
-    this.progressItems = [];
-  }
-}
-
-// Instance singleton
-export const actionProgressService = new ActionProgressService();
+};

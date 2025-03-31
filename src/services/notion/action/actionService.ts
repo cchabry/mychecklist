@@ -1,179 +1,144 @@
 
-/**
- * Service pour la gestion des actions correctives
- */
-
-import { notionClient } from '../notionClient';
-import { generateMockActions } from './utils';
-import { 
-  CreateActionInput, 
-  ActionResponse,
-  ActionsResponse,
-  ActionDeleteResponse,
-  ProgressResponse,
-  ProgressListResponse,
-  ProgressDeleteResponse,
-  CreateProgressInput
-} from './types';
-import { ComplianceStatus, ActionPriority, ActionStatus, CorrectiveAction, ActionProgress } from '@/types/domain';
-import { getFutureDateString } from './utils';
+import { CorrectiveAction, ActionPriority, ActionStatus } from '@/types/domain/action';
+import { ComplianceStatus } from '@/types/domain/evaluation';
 import { progressService } from './progressService';
 
 /**
- * Service de gestion des actions correctives
+ * Service pour gérer les actions correctives
  */
-class ActionService {
+export const actionService = {
   /**
-   * Récupère toutes les actions correctives liées à une évaluation
+   * Récupère les actions correctives pour une évaluation
    */
-  async getActions(evaluationId: string): Promise<ActionsResponse> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: generateMockActions(evaluationId)
-      };
-    }
-    
-    // TODO: Implémenter la récupération des actions depuis Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: generateMockActions(evaluationId)
-    };
-  }
-  
-  /**
-   * Récupère une action corrective par son ID
-   */
-  async getActionById(id: string): Promise<ActionResponse> {
-    // Si en mode démo, renvoyer des données simulées
-    if (notionClient.isMockMode()) {
-      const mockActions = generateMockActions('mock-eval');
-      const action = mockActions.find(a => a.id === id);
-      
-      if (!action) {
-        return { 
-          success: false, 
-          error: { message: `Action corrective #${id} non trouvée` } 
-        };
-      }
-      
-      return {
-        success: true,
-        data: action
-      };
-    }
-    
-    // TODO: Implémenter la récupération d'une action depuis Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: {
-        id,
-        evaluationId: 'mock-eval',
+  async getActionsByEvaluation(evaluationId: string): Promise<CorrectiveAction[]> {
+    // En mode démo, on renvoie des données simulées
+    return [
+      {
+        id: `action-${evaluationId}-1`,
+        evaluationId,
         targetScore: ComplianceStatus.Compliant,
         priority: ActionPriority.High,
-        dueDate: getFutureDateString(14), // dans 2 semaines
-        responsible: 'John Doe',
-        comment: "Ajouter des attributs alt à toutes les images",
-        status: ActionStatus.InProgress
+        status: ActionStatus.ToDo,
+        comment: "Ajouter des balises alt à toutes les images",
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        responsible: "Équipe SEO",
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
       }
-    };
-  }
-  
+    ];
+  },
+
+  /**
+   * Récupère toutes les actions correctives pour un projet
+   */
+  async getActionsByProject(projectId: string): Promise<CorrectiveAction[]> {
+    // En mode démo, on renvoie des données simulées
+    return [
+      {
+        id: `action-${projectId}-1`,
+        evaluationId: `eval-${projectId}-1`,
+        targetScore: ComplianceStatus.Compliant,
+        priority: ActionPriority.High,
+        status: ActionStatus.ToDo,
+        comment: "Ajouter des balises alt à toutes les images",
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        responsible: "Équipe SEO",
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: `action-${projectId}-2`,
+        evaluationId: `eval-${projectId}-2`,
+        targetScore: ComplianceStatus.Compliant,
+        priority: ActionPriority.Medium,
+        status: ActionStatus.InProgress,
+        comment: "Optimiser les temps de chargement des pages",
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        responsible: "Équipe Performance",
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ];
+  },
+
   /**
    * Crée une nouvelle action corrective
    */
-  async createAction(action: CreateActionInput): Promise<ActionResponse> {
-    // Si en mode démo, simuler la création
-    if (notionClient.isMockMode()) {
-      const newAction = {
-        ...action,
-        id: `action-${Date.now()}`
-      };
-      
-      return {
-        success: true,
-        data: newAction
-      };
-    }
-    
-    // TODO: Implémenter la création d'une action dans Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: {
-        ...action,
-        id: `action-${Date.now()}`
-      }
+  async createAction(action: Omit<CorrectiveAction, 'id' | 'createdAt' | 'updatedAt'>): Promise<CorrectiveAction> {
+    const newAction: CorrectiveAction = {
+      ...action,
+      id: `action-${action.evaluationId}-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-  }
-  
+    
+    // En mode démo, on simule la création et on retourne directement l'objet
+    return newAction;
+  },
+
   /**
    * Met à jour une action corrective existante
    */
-  async updateAction(action: CorrectiveAction): Promise<ActionResponse> {
-    // Si en mode démo, simuler la mise à jour
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: action
-      };
+  async updateAction(
+    id: string,
+    updates: Partial<Omit<CorrectiveAction, 'id' | 'evaluationId' | 'createdAt'>>
+  ): Promise<CorrectiveAction> {
+    // Simuler la récupération de l'action existante
+    const action = await this.getAction(id);
+    
+    if (!action) {
+      throw new Error(`Action ${id} not found`);
     }
     
-    // TODO: Implémenter la mise à jour d'une action dans Notion
-    // Pour l'instant, renvoyer des données simulées même en mode réel
-    return {
-      success: true,
-      data: action
+    // Mise à jour des champs
+    const updatedAction: CorrectiveAction = {
+      ...action,
+      ...updates,
+      updatedAt: new Date().toISOString()
     };
-  }
-  
+    
+    // En mode démo, on simule la mise à jour et on retourne directement l'objet
+    return updatedAction;
+  },
+
   /**
-   * Supprime une action corrective
+   * Récupère une action spécifique
    */
-  async deleteAction(_id: string): Promise<ActionDeleteResponse> {
-    // Si en mode démo, simuler la suppression
-    if (notionClient.isMockMode()) {
-      return {
-        success: true,
-        data: true
-      };
-    }
-    
-    // TODO: Implémenter la suppression d'une action dans Notion
-    // Pour l'instant, simuler le succès même en mode réel
+  async getAction(id: string): Promise<CorrectiveAction | null> {
+    // En mode démo, on génère une action fictive
     return {
-      success: true,
-      data: true
+      id,
+      evaluationId: `eval-${id.split('-')[1]}-1`,
+      targetScore: ComplianceStatus.Compliant,
+      priority: ActionPriority.Medium,
+      status: ActionStatus.InProgress,
+      comment: "Action corrective exemplaire",
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      responsible: "Équipe technique",
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString()
     };
+  },
+
+  /**
+   * Supprime une action
+   */
+  async deleteAction(id: string): Promise<boolean> {
+    // En mode démo, on simule la suppression avec succès
+    return true;
+  },
+
+  /**
+   * Récupère l'historique de progression pour une action
+   */
+  async getActionProgress(id: string) {
+    return progressService.getProgressUpdates(id);
+  },
+
+  /**
+   * Ajoute une mise à jour de progression à une action
+   */
+  async addActionProgress(actionId: string, data: any) {
+    return progressService.addProgressUpdate(actionId, data);
   }
-
-  // Méthodes déléguées au progressService pour la gestion des suivis de progrès
-  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
-    return progressService.getActionProgress(actionId);
-  }
-
-  async getActionProgressById(id: string): Promise<ProgressResponse> {
-    return progressService.getActionProgressById(id);
-  }
-
-  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
-    return progressService.createActionProgress(progress);
-  }
-
-  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
-    return progressService.updateActionProgress(progress);
-  }
-
-  async deleteActionProgress(id: string): Promise<ProgressDeleteResponse> {
-    return progressService.deleteActionProgress(id);
-  }
-}
-
-// Créer et exporter une instance singleton
-export const actionService = new ActionService();
-
-// Export par défaut
-export default actionService;
+};

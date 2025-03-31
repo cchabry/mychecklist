@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { operationModeService } from '../operationModeService';
 
 describe('operationModeService', () => {

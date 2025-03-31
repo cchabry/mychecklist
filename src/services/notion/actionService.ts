@@ -1,11 +1,9 @@
 
 /**
- * Re-export du service d'actions (pour compatibilité avec le code existant)
- * @deprecated Utilisez plutôt l'import depuis './action/actionService'
+ * Point d'entrée pour les services d'action
+ * @deprecated Utiliser le service depuis le module action
  */
 
-import { actionService } from './action/actionService';
-import { progressService } from './action/progressService';
+import { actionService, progressService } from './action';
 
 export { actionService, progressService };
-export default { actionService, progressService };
