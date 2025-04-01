@@ -1,7 +1,7 @@
 
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { MainLayout, ProjectLayout } from '@/components/layout';
+import { MainLayout, ProjectLayout, AuditLayout } from '@/components/layout';
 import Dashboard from '@/pages/Dashboard';
 import ProjectsPage from '@/pages/ProjectsPage';
 import ProjectDetailsPage from '@/pages/ProjectDetailsPage';
@@ -12,6 +12,8 @@ import ProjectCreatePage from '@/pages/ProjectCreatePage';
 import ProjectEditPage from '@/pages/ProjectEditPage';
 import AuditCreatePage from '@/pages/AuditCreatePage';
 import AuditDetailsPage from '@/pages/AuditDetailsPage';
+import AuditSummaryPage from '@/pages/AuditSummaryPage';
+import AuditActionsPage from '@/pages/AuditActionsPage';
 import ConfigPage from '@/pages/ConfigPage';
 import ChecklistPage from '@/pages/ChecklistPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -49,7 +51,13 @@ function App() {
           <Route path="edit" element={<ProjectEditPage />} />
           <Route path="actions" element={<ProjectActionsPage />} />
           <Route path="audits/new" element={<AuditCreatePage />} />
-          <Route path="audits/:auditId" element={<AuditDetailsPage />} />
+        </Route>
+
+        {/* Layout d'audit */}
+        <Route path="/projects/:projectId/audits/:auditId" element={<AuditLayout />}>
+          <Route index element={<AuditDetailsPage />} />
+          <Route path="summary" element={<AuditSummaryPage />} />
+          <Route path="actions" element={<AuditActionsPage />} />
         </Route>
       </Routes>
       
