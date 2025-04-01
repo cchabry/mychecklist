@@ -11,19 +11,10 @@ export * from './evaluation';
 export * from './exigence';
 export * from './samplePage';
 
-// Exporter directement les enums pour s'assurer qu'ils sont utilisés correctement
-export { 
-  ComplianceStatus 
-} from './evaluation';
-
-export {
-  ImportanceLevel
-} from './exigence';
-
-export {
-  ActionPriority,
-  ActionStatus,
-} from './action';
+// Exporter les enums pour qu'ils soient disponibles via l'import depuis domain
+export { ActionPriority, ActionStatus } from './action';
+export { ComplianceStatus } from './evaluation';
+export { ImportanceLevel } from './exigence';
 
 // Mettre à jour les alias pour compatibilité
 export type PriorityLevel = ActionPriority;

@@ -1,16 +1,21 @@
 
 /**
- * Statut de conformité pour une évaluation
+ * Types pour les évaluations d'exigences
+ */
+
+/**
+ * Statut de conformité d'une évaluation
  */
 export enum ComplianceStatus {
-  Compliant = "Conforme",
-  PartiallyCompliant = "Partiellement conforme",
-  NonCompliant = "Non conforme",
-  NotApplicable = "Non applicable"
+  NotEvaluated = 'not-evaluated',
+  NonCompliant = 'non-compliant',
+  PartiallyCompliant = 'partially-compliant',
+  Compliant = 'compliant',
+  NotApplicable = 'not-applicable'
 }
 
 /**
- * Type représentant une évaluation
+ * Évaluation d'une exigence sur une page
  */
 export interface Evaluation {
   id: string;
