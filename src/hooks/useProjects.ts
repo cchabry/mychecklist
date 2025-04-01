@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/domain';
-import { useOperationMode } from './useOperationMode';
 
 /**
  * Hook pour récupérer les projets
@@ -10,7 +9,6 @@ export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { isDemoMode } = useOperationMode();
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -18,7 +16,7 @@ export const useProjects = () => {
       setError(null);
       
       try {
-        // En mode démo, on génère des données fictives après un court délai
+        // Génération de données fictives après un court délai
         setTimeout(() => {
           const mockProjects: Project[] = [
             {
@@ -47,6 +45,24 @@ export const useProjects = () => {
               createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
               updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
               progress: 30
+            },
+            {
+              id: 'project-4',
+              name: 'Intranet collaboratif',
+              description: 'Portail interne avec outils de collaboration',
+              url: 'https://intranet-example.com',
+              createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+              updatedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+              progress: 60
+            },
+            {
+              id: 'project-5',
+              name: 'Place de marché',
+              description: 'Marketplace connecting sellers and buyers',
+              url: 'https://marketplace-example.com',
+              createdAt: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString(),
+              updatedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+              progress: 90
             }
           ];
           
@@ -64,5 +80,5 @@ export const useProjects = () => {
     fetchProjects();
   }, []);
   
-  return { projects, isLoading, error, isDemoMode };
+  return { projects, isLoading, error };
 };

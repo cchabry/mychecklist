@@ -154,8 +154,8 @@ export const actionService = {
   /**
    * Récupère l'historique de progression pour une action
    */
-  async getActionProgress(_actionId: string): Promise<NotionResponse<ActionProgress[]>> {
-    const progressUpdates = await progressService.getProgressUpdates(_actionId);
+  async getActionProgress(actionId: string): Promise<NotionResponse<ActionProgress[]>> {
+    const progressUpdates = await progressService.getProgressUpdates(actionId);
     return {
       success: true,
       data: progressUpdates
