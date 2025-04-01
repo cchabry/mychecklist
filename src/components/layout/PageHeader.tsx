@@ -1,76 +1,68 @@
 
 import { Button } from '@/components/ui';
-import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-export interface PageAction {
+export interface PageHeaderAction {
   label: string;
-  href?: string;
-  onClick?: () => void;
   icon?: React.ReactNode;
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  onClick?: () => void;
+  href?: string;
+  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link';
 }
 
 interface PageHeaderProps {
   title: string;
   description?: string;
-  actions?: PageAction[];
+  actions?: PageHeaderAction[];
   className?: string;
 }
 
 /**
- * En-tête de page avec titre, description et actions
+ * En-tête standardisé pour les pages avec actions optionnelles
  */
-export const PageHeader = ({
-  title,
+const PageHeader = ({ 
+  title, 
   description,
-  actions,
-  className,
+  actions = [],
+  className 
 }: PageHeaderProps) => {
   return (
-    <div className={cn("mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
+    <div className={cn("flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4", className)}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {description && (
-          <p className="text-muted-foreground">{description}</p>
-        )}
+        <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
+        {description && <p className="text-muted-foreground mt-1">{description}</p>}
       </div>
       
-      {actions && actions.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {actions.map((action, index) => {
-            // Si l'action a seulement une icône et pas de libellé visible, on retourne directement l'icône
-            if (action.icon && !action.label) {
-              return <div key={index}>{action.icon}</div>;
-            }
-            
-            const buttonContent = (
-              <>
-                {action.icon}
-                {action.label}
-              </>
-            );
-            
-            return action.href ? (
-              <Button
-                key={index}
-                variant={action.variant || 'default'}
-                asChild
-              >
-                <Link to={action.href}>{buttonContent}</Link>
-              </Button>
-            ) : (
+      {actions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
+          {actions.map((action, index) => (
+            action.label ? (
               <Button
                 key={index}
                 variant={action.variant || 'default'}
                 onClick={action.onClick}
+                asChild={!!action.href}
               >
-                {buttonContent}
+                {action.href ? (
+                  <a href={action.href}>
+                    {action.icon}
+                    {action.label}
+                  </a>
+                ) : (
+                  <>
+                    {action.icon}
+                    {action.label}
+                  </>
+                )}
               </Button>
-            );
-          })}
+            ) : (
+              <div key={index}>{action.icon}</div>
+            )
+          ))}
         </div>
       )}
     </div>
   );
 };
+
+export default PageHeader;

@@ -1,16 +1,14 @@
 
 /**
- * Export des composants UI réutilisables
+ * Index des composants UI
  */
 
-// Exporter les composants UI depuis leur fichier source respectif
-export { Button } from './button';
-export { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from './card';
-export { Input } from './input';
-export { Progress } from './progress';
-export { Badge } from './badge';
-export { Label } from './label';
-export { Textarea } from './textarea';
-export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-export { Popover, PopoverContent, PopoverTrigger } from './popover';
-export { Skeleton } from './skeleton';
+// Import et export des composants UI
+export * from './button';
+export * from './badge';
+export * from './card';
+export * from './input';
+export * from './label';
+export * from './progress';
+export * from './skeleton';
+export * from './textarea';

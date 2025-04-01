@@ -1,93 +1,75 @@
 
-import { nanoid } from 'nanoid';
-import { 
-  ActionPriority, 
-  ActionStatus, 
-  CorrectiveAction, 
-  ActionProgress 
-} from '@/types/domain/action';
-import { ComplianceStatus } from '@/types/domain/evaluation';
-
 /**
- * Génère une date future (pour les dates d'échéance)
+ * Utilitaires pour les actions correctives
  */
-export function getFutureDateString(daysInFuture: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + daysInFuture);
-  return date.toISOString().split('T')[0];
-}
+
+import { CorrectiveAction, ActionProgress, ComplianceStatus, ActionPriority, ActionStatus } from '@/types/domain';
 
 /**
- * Génère des actions correctives simulées pour une évaluation
+ * Génère des actions correctives fictives pour le mode démo
  */
 export function generateMockActions(evaluationId: string): CorrectiveAction[] {
   return [
     {
-      id: `action-${nanoid(6)}`,
+      id: 'action-1',
       evaluationId,
       targetScore: ComplianceStatus.Compliant,
       priority: ActionPriority.High,
-      dueDate: getFutureDateString(14),
+      dueDate: getFutureDateString(7), // dans 1 semaine
       responsible: 'John Doe',
-      comment: 'Ajouter des attributs alt à toutes les images du site',
-      status: ActionStatus.ToDo,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      comment: "Ajouter des attributs alt à toutes les images",
+      status: ActionStatus.InProgress
     },
     {
-      id: `action-${nanoid(6)}`,
-      evaluationId,
-      targetScore: ComplianceStatus.PartiallyCompliant,
-      priority: ActionPriority.Medium,
-      dueDate: getFutureDateString(7),
-      responsible: 'Jane Smith',
-      comment: 'Améliorer les contrastes des textes sur fond coloré',
-      status: ActionStatus.InProgress,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: `action-${nanoid(6)}`,
+      id: 'action-2',
       evaluationId,
       targetScore: ComplianceStatus.Compliant,
-      priority: ActionPriority.Critical,
-      dueDate: getFutureDateString(3),
-      responsible: 'Tech Team',
-      comment: 'Réparer la navigation clavier dans le menu principal',
-      status: ActionStatus.InProgress,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      priority: ActionPriority.Medium,
+      dueDate: getFutureDateString(14), // dans 2 semaines
+      responsible: 'Jane Smith',
+      comment: "Optimiser les images pour le web",
+      status: ActionStatus.Todo
     }
   ];
 }
 
 /**
- * Génère des suivis de progrès simulés pour une action
+ * Génère des suivis de progrès fictifs pour le mode démo
  */
 export function generateMockActionProgress(actionId: string): ActionProgress[] {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  
   return [
     {
-      id: `progress-${nanoid(6)}`,
+      id: 'progress-1',
       actionId,
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      comment: 'Action créée et assignée à l\'équipe',
-      newStatus: ActionStatus.ToDo,
-      author: 'System',
+      date: lastWeek.toISOString(),
+      responsible: 'John Doe',
+      comment: "Début des corrections",
+      score: ComplianceStatus.PartiallyCompliant,
+      status: ActionStatus.InProgress
     },
     {
-      id: `progress-${nanoid(6)}`,
+      id: 'progress-2',
       actionId,
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      comment: 'Début des travaux sur cette action',
-      newStatus: ActionStatus.InProgress,
-      author: 'John Doe',
-    },
-    {
-      id: `progress-${nanoid(6)}`,
-      actionId,
-      date: new Date().toISOString(),
-      comment: 'Mise à jour: 60% des modifications effectuées',
-      author: 'Jane Smith',
+      date: yesterday.toISOString(),
+      responsible: 'John Doe',
+      comment: "50% des images corrigées",
+      score: ComplianceStatus.PartiallyCompliant,
+      status: ActionStatus.InProgress
     }
   ];
+}
+
+/**
+ * Utilitaire pour générer une date future au format ISO
+ */
+export function getFutureDateString(daysFromNow: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  return date.toISOString();
 }

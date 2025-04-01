@@ -1,14 +1,17 @@
 
 import { useState, useEffect } from 'react';
-import { Audit, ActionStatus } from '@/types/domain';
+import { Audit } from '@/types/domain';
+import { useOperationMode } from '@/hooks/useOperationMode';
+import { toast } from 'sonner';
 
 /**
- * Hook pour récupérer les audits d'un projet
+ * Hook pour récupérer les audits liés à un projet
  */
-export function useProjectAudits(projectId: string) {
+export const useProjectAudits = (projectId: string) => {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { isDemoMode } = useOperationMode ? useOperationMode() : { isDemoMode: true };
   
   useEffect(() => {
     if (!projectId) {
@@ -21,85 +24,50 @@ export function useProjectAudits(projectId: string) {
       setError(null);
       
       try {
-        // Simulation d'un délai réseau
-        setTimeout(() => {
-          // Données fictives d'audits
-          const mockAudits: Audit[] = [
-            {
-              id: `audit-${projectId}-1`,
-              projectId,
-              name: "Audit initial",
-              description: "Premier audit de conformité du site",
-              createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-              updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-              status: "completed",
-              progress: 100,
-              actionsCount: {
-                total: 5,
-                [ActionStatus.ToDo]: 0,
-                [ActionStatus.InProgress]: 1,
-                [ActionStatus.Done]: 4,
-                [ActionStatus.Canceled]: 0
-              }
-            },
-            {
-              id: `audit-${projectId}-2`,
-              projectId,
-              name: "Audit d'accessibilité",
-              description: "Vérification spécifique des critères d'accessibilité",
-              createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-              updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-              status: "in-progress",
-              progress: 60,
-              actionsCount: {
-                total: 8,
-                [ActionStatus.ToDo]: 3,
-                [ActionStatus.InProgress]: 3,
-                [ActionStatus.Done]: 2,
-                [ActionStatus.Canceled]: 0
-              }
-            }
-          ];
-
-          // Pour avoir un nombre d'audits cohérent selon les projets
-          const projectNumber = parseInt(projectId.replace(/\D/g, '')) || 1;
-          if (projectNumber === 3) {
-            mockAudits.pop(); // Le projet 3 n'a qu'un audit
-          } else if (projectNumber === 4) {
-            mockAudits.push({
-              id: `audit-${projectId}-3`,
-              projectId,
-              name: "Audit de performance",
-              description: "Analyse des temps de chargement et optimisations",
-              createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-              updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-              status: "planned",
-              progress: 15,
-              actionsCount: {
-                total: 3,
-                [ActionStatus.ToDo]: 3,
-                [ActionStatus.InProgress]: 0,
-                [ActionStatus.Done]: 0,
-                [ActionStatus.Canceled]: 0
-              }
-            });
-          } else if (projectNumber === 5) {
-            // Le projet 5 n'a pas d'audits
-            mockAudits.length = 0;
+        // On simulera des données d'audit pour le moment
+        // À remplacer par un appel API réel dans les prochains sprints
+        const mockAudits: Audit[] = [
+          {
+            id: `audit-${projectId}-1`,
+            projectId: projectId,
+            name: 'Audit initial',
+            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            progress: 75,
+            itemsCount: 15
+          },
+          {
+            id: `audit-${projectId}-2`,
+            projectId: projectId,
+            name: 'Audit de conformité',
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            updatedAt: new Date().toISOString(),
+            progress: 30,
+            itemsCount: 15
           }
-          
+        ];
+        
+        // On attendra un peu pour simuler le chargement
+        setTimeout(() => {
           setAudits(mockAudits);
           setIsLoading(false);
-        }, 600);
-        
+        }, 800);
       } catch (err) {
+        console.error(`Erreur lors de la récupération des audits pour le projet ${projectId}:`, err);
         setError(err instanceof Error ? err : new Error(String(err)));
+        
+        // Ne pas afficher de toast en mode démo
+        if (!isDemoMode) {
+          toast.error('Erreur lors du chargement des audits', {
+            description: 'Impossible de récupérer les audits'
+          });
+        }
         setIsLoading(false);
       }
     };
     
     fetchAudits();
-  }, [projectId]);
+  }, [projectId, isDemoMode]);
   
   return { audits, isLoading, error };
-}
+};

@@ -1,22 +1,85 @@
 
 /**
- * Export des types du domaine
+ * Types du domaine de l'application
  */
 
+// Réexporter les types spécifiques
 export * from './project';
 export * from './audit';
-export * from './action';
 export * from './checklist';
-export * from './evaluation';
-export * from './exigence';
-export * from './samplePage';
 
-// Exporter les enums pour qu'ils soient disponibles via l'import depuis domain
-export { ActionPriority, ActionStatus } from './action';
-export { ComplianceStatus } from './evaluation';
-export { ImportanceLevel } from './exigence';
+// Importer les énumérations depuis le fichier central
+import { 
+  ImportanceLevel,
+  ComplianceLevel as ComplianceStatus,
+  PriorityLevel as ActionPriority,
+  StatusType as ActionStatus
+} from '../enums';
 
-// Mettre à jour les alias pour compatibilité
-export type PriorityLevel = ActionPriority;
-export type StatusType = ActionStatus;
-export type ComplianceLevel = ComplianceStatus;
+// Re-exporter avec des alias pour maintenir la compatibilité
+export { ImportanceLevel, ComplianceStatus, ActionPriority, ActionStatus };
+
+/**
+ * Exigence de projet
+ */
+export interface Exigence {
+  id: string;
+  projectId: string;
+  itemId: string;
+  importance: ImportanceLevel;
+  comment?: string;
+}
+
+/**
+ * Page d'échantillon
+ */
+export interface SamplePage {
+  id: string;
+  projectId: string;
+  url: string;
+  title: string;
+  description?: string;
+  order: number;
+}
+
+/**
+ * Évaluation d'une page pour une exigence
+ */
+export interface Evaluation {
+  id: string;
+  auditId: string;
+  pageId: string;
+  exigenceId: string;
+  score: ComplianceStatus;
+  comment?: string;
+  attachments?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Action corrective
+ */
+export interface CorrectiveAction {
+  id: string;
+  evaluationId: string;
+  targetScore: ComplianceStatus;
+  priority: ActionPriority;
+  dueDate: string;
+  responsible: string;
+  comment?: string;
+  status: ActionStatus;
+}
+
+/**
+ * Suivi des corrections
+ */
+export interface ActionProgress {
+  id: string;
+  actionId: string;
+  date: string;
+  responsible: string;
+  comment?: string;
+  score: ComplianceStatus;
+  status: ActionStatus;
+}

@@ -1,3 +1,4 @@
+
 /**
  * Implémentation complète de l'interface NotionAPI
  * Cet objet fournit une interface unifiée conforme à la définition NotionAPI
@@ -21,7 +22,7 @@ import { exigenceService } from './exigenceService';
 import { samplePageService } from './samplePageService';
 import { auditService } from './auditService';
 import { evaluationService } from './evaluationService';
-import { actionService } from './action';
+import { actionService } from './actionService';
 import { notionClient } from './notionClient';
 
 /**
@@ -257,7 +258,7 @@ class NotionApiImplementation implements NotionAPI {
   
   // Méthodes pour les actions correctives
   async getActions(evaluationId: string): Promise<CorrectiveAction[]> {
-    const response = await actionService.getActionsByEvaluation(evaluationId);
+    const response = await actionService.getActions(evaluationId);
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la récupération des actions correctives");
     }
@@ -265,11 +266,11 @@ class NotionApiImplementation implements NotionAPI {
   }
   
   async getActionById(id: string): Promise<CorrectiveAction> {
-    const action = await actionService.getAction(id);
-    if (!action) {
-      throw new Error(`Action corrective #${id} non trouvée`);
+    const response = await actionService.getActionById(id);
+    if (!response.success) {
+      throw new Error(response.error?.message || `Action corrective #${id} non trouvée`);
     }
-    return action;
+    return response.data as CorrectiveAction;
   }
   
   async createAction(action: Omit<CorrectiveAction, 'id' | 'createdAt' | 'updatedAt'>): Promise<CorrectiveAction> {
@@ -281,14 +282,7 @@ class NotionApiImplementation implements NotionAPI {
   }
   
   async updateAction(action: CorrectiveAction): Promise<CorrectiveAction> {
-    const response = await actionService.updateAction(action.id, {
-      targetScore: action.targetScore,
-      priority: action.priority,
-      status: action.status,
-      dueDate: action.dueDate,
-      responsible: action.responsible,
-      comment: action.comment
-    });
+    const response = await actionService.updateAction(action);
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la mise à jour de l'action corrective");
     }
@@ -300,7 +294,7 @@ class NotionApiImplementation implements NotionAPI {
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la suppression de l'action corrective");
     }
-    return response.data as boolean;
+    return true;
   }
   
   // Méthodes pour les suivis de progrès
@@ -341,7 +335,7 @@ class NotionApiImplementation implements NotionAPI {
     if (!response.success) {
       throw new Error(response.error?.message || "Erreur lors de la suppression du suivi de progrès");
     }
-    return response.data as boolean;
+    return true;
   }
   
   // Méthode de test de connexion

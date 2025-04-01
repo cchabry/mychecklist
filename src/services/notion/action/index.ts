@@ -1,9 +1,9 @@
 
 /**
- * Point d'entrée pour les services d'action
+ * Point d'entrée pour les services d'actions correctives
  */
 
-export * from './actionService';
-export * from './progressService';
+export { actionService } from './actionService';
+export { progressService } from './progressService';
 export * from './types';
 export * from './utils';

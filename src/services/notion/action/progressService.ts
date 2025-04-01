@@ -1,57 +1,151 @@
 
-import { ActionProgress } from '@/types/domain/action';
-import { ActionStatus } from '@/types/domain/action';
+/**
+ * Service pour la gestion des suivis de progrès
+ */
+
+import { notionClient } from '../notionClient';
+import { generateMockActionProgress } from './utils';
+import { 
+  CreateProgressInput, 
+  ProgressResponse, 
+  ProgressListResponse,
+  ProgressDeleteResponse
+} from './types';
+import { ComplianceStatus, ActionStatus, ActionProgress } from '@/types/domain';
 
 /**
- * Service pour gérer les progressions des actions correctives
+ * Service de gestion des suivis de progrès
  */
-export const progressService = {
+class ProgressService {
   /**
-   * Récupère les mises à jour de progression pour une action
+   * Récupère tous les suivis de progrès liés à une action corrective
    */
-  async getProgressUpdates(actionId: string): Promise<ActionProgress[]> {
-    // En mode démo, on renvoie des données simulées
-    return [
-      {
-        id: `progress-${actionId}-1`,
-        actionId,
-        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        comment: "Début des travaux de correction",
-        author: "Jean Dupont",
-        responsible: "Équipe SEO"
-      },
-      {
-        id: `progress-${actionId}-2`,
-        actionId,
-        date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        comment: "Mise en place des balises Alt sur 50% des images",
-        author: "Marie Martin",
-        responsible: "Équipe SEO",
-        newStatus: ActionStatus.InProgress
-      }
-    ];
-  },
-
-  /**
-   * Ajoute une mise à jour de progression pour une action
-   */
-  async addProgressUpdate(
-    actionId: string,
-    data: Omit<ActionProgress, 'id' | 'actionId' | 'date'>
-  ): Promise<ActionProgress> {
-    const newProgress: ActionProgress = {
-      id: `progress-${actionId}-${Date.now()}`,
-      actionId,
-      date: new Date().toISOString(),
-      comment: data.comment,
-      responsible: data.responsible,
-      author: data.author || 'Utilisateur',
-      score: data.score,
-      newStatus: data.newStatus,
-      attachments: data.attachments
-    };
+  async getActionProgress(actionId: string): Promise<ProgressListResponse> {
+    // Si en mode démo, renvoyer des données simulées
+    if (notionClient.isMockMode()) {
+      return {
+        success: true,
+        data: generateMockActionProgress(actionId)
+      };
+    }
     
-    // En mode démo, on simule l'ajout et on retourne directement l'objet
-    return newProgress;
+    // TODO: Implémenter la récupération des suivis de progrès depuis Notion
+    // Pour l'instant, renvoyer des données simulées même en mode réel
+    return {
+      success: true,
+      data: generateMockActionProgress(actionId)
+    };
   }
-};
+  
+  /**
+   * Récupère un suivi de progrès par son ID
+   */
+  async getActionProgressById(id: string): Promise<ProgressResponse> {
+    // Si en mode démo, renvoyer des données simulées
+    if (notionClient.isMockMode()) {
+      const mockProgress = generateMockActionProgress('mock-action');
+      const progress = mockProgress.find(p => p.id === id);
+      
+      if (!progress) {
+        return { 
+          success: false, 
+          error: { message: `Suivi de progrès #${id} non trouvé` } 
+        };
+      }
+      
+      return {
+        success: true,
+        data: progress
+      };
+    }
+    
+    // TODO: Implémenter la récupération d'un suivi de progrès depuis Notion
+    // Pour l'instant, renvoyer des données simulées même en mode réel
+    return {
+      success: true,
+      data: {
+        id,
+        actionId: 'mock-action',
+        date: new Date().toISOString(),
+        responsible: 'Jane Smith',
+        comment: "Première phase des corrections effectuée",
+        score: ComplianceStatus.PartiallyCompliant,
+        status: ActionStatus.InProgress
+      }
+    };
+  }
+  
+  /**
+   * Crée un nouveau suivi de progrès
+   */
+  async createActionProgress(progress: CreateProgressInput): Promise<ProgressResponse> {
+    // Si en mode démo, simuler la création
+    if (notionClient.isMockMode()) {
+      const newProgress = {
+        ...progress,
+        id: `progress-${Date.now()}`
+      };
+      
+      return {
+        success: true,
+        data: newProgress
+      };
+    }
+    
+    // TODO: Implémenter la création d'un suivi de progrès dans Notion
+    // Pour l'instant, renvoyer des données simulées même en mode réel
+    return {
+      success: true,
+      data: {
+        ...progress,
+        id: `progress-${Date.now()}`
+      }
+    };
+  }
+  
+  /**
+   * Met à jour un suivi de progrès existant
+   */
+  async updateActionProgress(progress: ActionProgress): Promise<ProgressResponse> {
+    // Si en mode démo, simuler la mise à jour
+    if (notionClient.isMockMode()) {
+      return {
+        success: true,
+        data: progress
+      };
+    }
+    
+    // TODO: Implémenter la mise à jour d'un suivi de progrès dans Notion
+    // Pour l'instant, renvoyer des données simulées même en mode réel
+    return {
+      success: true,
+      data: progress
+    };
+  }
+  
+  /**
+   * Supprime un suivi de progrès
+   */
+  async deleteActionProgress(_id: string): Promise<ProgressDeleteResponse> {
+    // Si en mode démo, simuler la suppression
+    if (notionClient.isMockMode()) {
+      return {
+        success: true,
+        data: true
+      };
+    }
+    
+    // TODO: Implémenter la suppression d'un suivi de progrès dans Notion
+    // Pour l'instant, simuler le succès même en mode réel
+    return {
+      success: true,
+      data: true
+    };
+  }
+}
+
+// Créer et exporter une instance singleton
+export const progressService = new ProgressService();
+
+// Export par défaut
+export default progressService;

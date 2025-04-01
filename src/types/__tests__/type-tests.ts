@@ -14,12 +14,15 @@ import {
   SamplePage,
   Evaluation,
   CorrectiveAction,
-  ActionProgress,
-  ComplianceStatus,
-  ActionPriority,
-  ActionStatus,
-  ImportanceLevel
+  ActionProgress 
 } from '../domain';
+
+import {
+  ImportanceLevel,
+  ComplianceLevel,
+  PriorityLevel,
+  StatusType
+} from '../enums';
 
 // Fonction helper pour tester qu'un type est assignable à un autre
 // Cette fonction n'est jamais réellement appelée, elle sert uniquement à la vérification de type
@@ -220,7 +223,7 @@ export function testEvaluation() {
     auditId: '456',
     pageId: '789',
     exigenceId: '012',
-    score: ComplianceStatus.Compliant,
+    score: ComplianceLevel.Compliant,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -237,11 +240,11 @@ export function testEvaluation() {
   assertType<Evaluation>(fullEvaluation);
   
   // Test des valeurs d'énumération
-  const allComplianceLevels: ComplianceStatus[] = [
-    ComplianceStatus.Compliant,
-    ComplianceStatus.PartiallyCompliant,
-    ComplianceStatus.NonCompliant,
-    ComplianceStatus.NotApplicable
+  const allComplianceLevels: ComplianceLevel[] = [
+    ComplianceLevel.Compliant,
+    ComplianceLevel.PartiallyCompliant,
+    ComplianceLevel.NonCompliant,
+    ComplianceLevel.NotApplicable
   ];
   
   // Vérifier que chaque niveau de conformité peut être utilisé
@@ -264,11 +267,11 @@ export function testCorrectiveAction() {
   const validAction: CorrectiveAction = {
     id: '123',
     evaluationId: '456',
-    targetScore: ComplianceStatus.Compliant,
-    priority: ActionPriority.High,
-    status: ActionStatus.ToDo,
+    targetScore: ComplianceLevel.Compliant,
+    priority: PriorityLevel.High,
     dueDate: new Date().toISOString(),
-    responsible: 'Jean Dupont'
+    responsible: 'Jean Dupont',
+    status: StatusType.Todo
   };
   
   // Avec commentaire optionnel
@@ -282,19 +285,18 @@ export function testCorrectiveAction() {
   assertType<CorrectiveAction>(withComment);
   
   // Test des valeurs d'énumération pour les priorités
-  const allPriorityLevels: ActionPriority[] = [
-    ActionPriority.Low,
-    ActionPriority.Medium,
-    ActionPriority.High,
-    ActionPriority.Critical
+  const allPriorityLevels: PriorityLevel[] = [
+    PriorityLevel.Low,
+    PriorityLevel.Medium,
+    PriorityLevel.High,
+    PriorityLevel.Critical
   ];
   
   // Test des valeurs d'énumération pour les statuts
-  const allStatusTypes: ActionStatus[] = [
-    ActionStatus.ToDo,
-    ActionStatus.InProgress,
-    ActionStatus.Done,
-    ActionStatus.Cancelled
+  const allStatusTypes: StatusType[] = [
+    StatusType.Todo,
+    StatusType.InProgress,
+    StatusType.Done
   ];
   
   // Vérifier les combinaisons possibles
@@ -321,23 +323,22 @@ export function testActionProgress() {
     id: '123',
     actionId: '456',
     date: new Date().toISOString(),
-    comment: 'Mise à jour de progression',
     responsible: 'Marie Martin',
-    score: ComplianceStatus.PartiallyCompliant,
-    newStatus: ActionStatus.InProgress
+    score: ComplianceLevel.PartiallyCompliant,
+    status: StatusType.InProgress
   };
   
-  // Avec commentaire optionnel et pièces jointes
-  const withAttachments: ActionProgress = {
+  // Avec commentaire optionnel
+  const withComment: ActionProgress = {
     ...validProgress,
-    attachments: ['capture1.png', 'rapport.pdf']
+    comment: 'Modifications partiellement implémentées, en attente de validation'
   };
   
   // Vérification que les objets sont bien de type ActionProgress
   assertType<ActionProgress>(validProgress);
-  assertType<ActionProgress>(withAttachments);
+  assertType<ActionProgress>(withComment);
   
-  return { validProgress, withAttachments };
+  return { validProgress, withComment };
 }
 
 /**
@@ -397,7 +398,7 @@ export function testTypeRelations() {
     auditId: audit.id, // Référence à l'audit
     pageId: samplePage.id, // Référence à la page
     exigenceId: exigence.id, // Référence à l'exigence
-    score: ComplianceStatus.PartiallyCompliant,
+    score: ComplianceLevel.PartiallyCompliant,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -405,21 +406,20 @@ export function testTypeRelations() {
   const action: CorrectiveAction = {
     id: 'ac1',
     evaluationId: evaluation.id, // Référence à l'évaluation
-    targetScore: ComplianceStatus.Compliant,
-    priority: ActionPriority.Medium,
+    targetScore: ComplianceLevel.Compliant,
+    priority: PriorityLevel.Medium,
     dueDate: new Date().toISOString(),
     responsible: 'Responsable',
-    status: ActionStatus.ToDo
+    status: StatusType.Todo
   };
   
   const progress: ActionProgress = {
     id: 'ap1',
     actionId: action.id, // Référence à l'action
     date: new Date().toISOString(),
-    comment: 'Commentaire',
     responsible: 'Responsable progrès',
-    score: ComplianceStatus.PartiallyCompliant,
-    newStatus: ActionStatus.InProgress
+    score: ComplianceLevel.PartiallyCompliant,
+    status: StatusType.InProgress
   };
   
   // Vérifier que tous les objets sont correctement typés
