@@ -29,10 +29,10 @@ const Dashboard = () => {
         description="Gérez vos projets d'audit"
         actions={[
           {
-            label: '',
+            label: 'Rechercher',
             variant: 'outline',
             icon: (
-              <div className="relative w-56">
+              <div className="flex items-center relative w-56">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
@@ -45,10 +45,10 @@ const Dashboard = () => {
             )
           },
           {
-            label: '',
+            label: 'Vue',
             variant: 'outline',
             icon: (
-              <div className="flex space-x-1">
+              <div className="flex items-center space-x-1">
                 <Button 
                   variant={viewMode === 'grid' ? 'default' : 'outline'} 
                   size="icon" 
