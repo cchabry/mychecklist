@@ -28,7 +28,7 @@ export const PageHeader = ({
   className,
 }: PageHeaderProps) => {
   return (
-    <div className={cn("mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
+    <div className={cn("mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {description && (
@@ -37,8 +37,13 @@ export const PageHeader = ({
       </div>
       
       {actions && actions.length > 0 && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {actions.map((action, index) => {
+            // Si l'action a seulement une icône et pas de libellé visible, on retourne directement l'icône
+            if (action.icon && !action.label) {
+              return <div key={index}>{action.icon}</div>;
+            }
+            
             const buttonContent = (
               <>
                 {action.icon}
@@ -60,8 +65,7 @@ export const PageHeader = ({
                 variant={action.variant || 'default'}
                 onClick={action.onClick}
               >
-                {action.icon || null}
-                {action.label}
+                {buttonContent}
               </Button>
             );
           })}

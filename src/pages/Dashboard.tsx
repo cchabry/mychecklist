@@ -28,46 +28,53 @@ const Dashboard = () => {
         title="Tableau de bord" 
         description="Gérez vos projets d'audit"
         actions={[
+          // Action de recherche intégrée directement sans conteneur supplémentaire
           {
-            label: 'Rechercher',
+            label: "",
             variant: 'outline',
             icon: (
-              <div className="flex items-center relative w-56">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Rechercher un projet..."
-                  className="pl-8 bg-white/80"
+                  className="w-56 h-9 bg-white/80"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
             )
           },
+          // Actions de commutation de vue sans conteneur supplémentaire
           {
-            label: 'Vue',
-            variant: 'outline',
+            label: "",
+            variant: 'ghost',
             icon: (
-              <div className="flex items-center space-x-1">
-                <Button 
-                  variant={viewMode === 'grid' ? 'default' : 'outline'} 
-                  size="icon" 
-                  className="h-9 w-9"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid2X2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant={viewMode === 'list' ? 'default' : 'outline'} 
-                  size="icon" 
-                  className="h-9 w-9"
-                  onClick={() => setViewMode('list')}
-                >
-                  <ListFilter className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button 
+                variant={viewMode === 'grid' ? 'default' : 'outline'} 
+                size="icon" 
+                className="h-9 w-9"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid2X2 className="h-4 w-4" />
+              </Button>
             )
           },
+          {
+            label: "",
+            variant: 'ghost',
+            icon: (
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'outline'} 
+                size="icon" 
+                className="h-9 w-9"
+                onClick={() => setViewMode('list')}
+              >
+                <ListFilter className="h-4 w-4" />
+              </Button>
+            )
+          },
+          // Action de création de projet
           {
             label: 'Nouveau projet',
             icon: <Plus className="mr-2 h-4 w-4" />,

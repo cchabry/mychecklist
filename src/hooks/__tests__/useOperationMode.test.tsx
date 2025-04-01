@@ -1,46 +1,51 @@
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 import { useOperationMode } from '../useOperationMode';
-import { renderHook } from '@testing-library/react';
 
 describe('useOperationMode', () => {
   beforeEach(() => {
-    // Reset any mocks between tests
+    // Nettoyer le localStorage avant chaque test
+    localStorage.clear();
   });
 
-  it('should always return isDemoMode as true', () => {
+  it('devrait retourner l\'état par défaut (real mode)', () => {
     const { result } = renderHook(() => useOperationMode());
     
-    expect(result.current.isDemoMode).toBe(true);
-    expect(result.current.mode).toBe('demo');
-    expect(result.current.isRealMode).toBe(false);
+    expect(result.current.mode).toBe('real');
+    expect(result.current.isDemoMode).toBe(false);
+    expect(result.current.isRealMode).toBe(true);
+    expect(result.current.state).toEqual({
+      mode: 'real',
+      timestamp: expect.any(Number),
+      source: 'system'
+    });
   });
 
-  it('should not change to real mode when enableRealMode is called', () => {
+  it('ne devrait plus avoir la possibilité de passer en mode démo', () => {
     const { result } = renderHook(() => useOperationMode());
     
-    // Initial state
-    expect(result.current.isDemoMode).toBe(true);
+    // Vérifier que nous sommes en mode réel par défaut
+    expect(result.current.mode).toBe('real');
     
-    // Try to enable real mode
-    result.current.enableRealMode();
+    // La fonction enableDemoMode existe mais ne fait rien
+    act(() => {
+      result.current.enableDemoMode();
+    });
     
-    // Check that mode did not change
-    expect(result.current.mode).toBe('demo');
-    expect(result.current.isRealMode).toBe(false);
-    expect(result.current.state.reason).toContain('Mode de démonstration permanent');
-  });
-
-  it('should allow setting a custom reason in demo mode', () => {
-    const { result } = renderHook(() => useOperationMode());
+    // Le mode ne change pas
+    expect(result.current.mode).toBe('real');
+    expect(result.current.state).toEqual({
+      mode: 'real',
+      timestamp: expect.any(Number),
+      source: 'system'
+    });
     
-    // Set a custom reason
-    result.current.enableDemoMode('Raison personnalisée');
+    // La fonction reset existe mais ne fait rien
+    act(() => {
+      result.current.reset();
+    });
     
-    // Check that the reason is updated
-    expect(result.current.mode).toBe('demo');
-    
-    // The state should contain our custom reason
-    expect(result.current.state.reason).toBe('Raison personnalisée');
+    // Le mode reste inchangé
+    expect(result.current.mode).toBe('real');
   });
 });
